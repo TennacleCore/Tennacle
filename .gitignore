@@ -1,0 +1,7 @@
+.gradle/
+build/
+.idea/
+*.iml
+shard-saves/
+replays/
+archipelago-crashes/
