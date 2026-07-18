@@ -1,6 +1,7 @@
 package test;
 
 import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.minestommechanics.platform.fixes.client.SelfPlacementFix;
 import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
 import io.github.term4.minestommechanics.util.BlockContact;
 import io.github.term4.minestommechanics.util.tick.TickSystem;
@@ -71,6 +72,8 @@ public final class ShardBridge {
             }
         });
         Shard.selfPlaceExempt(BlockContact::isPassable); // 1.8 ladder/vine/web self-place clutch
+        // order-independent: the routing re-applies this decorator whenever it (re)installs its listener
+        Shard.decoratePlacement(SelfPlacementFix::wrap);
     }
 
     private static boolean domainTicking;
