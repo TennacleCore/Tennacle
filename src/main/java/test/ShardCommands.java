@@ -8,6 +8,7 @@ import io.github.term4.archipelago.shard.ShardView;
 import io.github.term4.archipelago.storage.DataKey;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.archipelago.storage.ShardFile;
+import io.github.term4.archipelago.storage.UserData;
 import io.github.term4.archipelago.storage.polar.PolarShardCodec;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.archipelago.world.WorldAccess;
@@ -217,7 +218,7 @@ final class ShardCommands {
             offClock(() -> {
                 Shard g = shards.create(world, n, ExecutionDomain.create());
                 try {
-                    ShardFile.UserDataView view = ShardFile.load(g, Files.readAllBytes(file));
+                    UserData.View view = ShardFile.load(g, Files.readAllBytes(file));
                     if (view.get(SAVED_ENTITIES) instanceof ListBinaryTag descs) EntityDescriptors.read(g, descs);
                     Msg.shard(sender, "loaded ", Msg.v(ctx.get(name)), " -> ", Msg.v(n), " (diff ",
                             Msg.v(g.overlaySize()), ") - ", Msg.run("/shard join " + n));

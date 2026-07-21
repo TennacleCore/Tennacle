@@ -35,7 +35,7 @@ final class DemoLights {
         DarkLight(Shard shard) {
             this.shard = shard;
             this.unhook = shard.onTick(t -> tick());
-            changed(ShardLighting.chainChunks(shard)); // already-built areas snuff too
+            markChunks(ShardLighting.chainChunks(shard)); // already-built areas snuff too
         }
 
         private UpdateLightPacket dark(int chunkX, int chunkZ) {
@@ -63,10 +63,16 @@ final class DemoLights {
             }
         }
 
-        @Override public void changed(Set<Long> chunks) {
+        @Override public void changed(Set<Long> sections) {
+            for (long key : sections) {
+                due.put(CoordConversion.chunkIndex(ShardLighting.sectionKeyX(key), ShardLighting.sectionKeyZ(key)),
+                        clock + SNUFF_DELAY);
+            }
+        }
+        private void markChunks(Set<Long> chunks) {
             for (long index : chunks) due.put(index, clock + SNUFF_DELAY);
         }
-        @Override public void refreshLit() { changed(lit); }
+        @Override public void refreshLit() { markChunks(lit); }
         @Override public void sendTo(Player player, int chunkX, int chunkZ) {
             long index = CoordConversion.chunkIndex(chunkX, chunkZ);
             if (!candidateChunks().contains(index)) return;

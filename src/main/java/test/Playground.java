@@ -1,6 +1,5 @@
 package test;
 
-import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.minestommechanics.presets.PrimedTnt;
 import io.github.term4.minestommechanics.tracking.ClientVersion;
 import io.github.term4.minestommechanics.world.MechanicsWorld;
@@ -110,13 +109,16 @@ final class Playground {
             p.setChestplate(ItemStack.of(Material.DIAMOND_CHESTPLATE));
             p.setLeggings(ItemStack.of(Material.DIAMOND_LEGGINGS));
             p.setBoots(ItemStack.of(Material.DIAMOND_BOOTS));
-            Msg.usage(p, "Tennacle - the Archipelago + MinestomMechanics playground", new String[][]{
+            // deferred: at spawn the Via handshake may not have revealed the protocol yet, and the welcome
+            // format (gradient vs flat) depends on it
+            Msg.onceProtocolKnown(p, 60, () -> Msg.usage(p,
+                    "Tennacle - the Archipelago + MinestomMechanics playground", new String[][]{
                     {"/shard", "isolated game worlds over this map"},
                     {"/replay", "record + replay a game"},
                     {"/boom", "shard-scoped explosion at your feet"},
                     {"/gm <mode>", "gamemode (also /gmc /gms)"},
                     {"/lag /compat /shorts /enchant /effect /sword /explode", "dev tools"},
-            });
+            }));
         });
         // TNT test item: placing TNT spawns a primed-TNT entity instead of a block, from the active PRESET - so its
         // wire/bounce/fuse always match the profile (a mismatch made a Hypixel-profile run behave like MineMen)

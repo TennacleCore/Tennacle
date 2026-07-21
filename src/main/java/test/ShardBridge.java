@@ -1,5 +1,6 @@
 package test;
 
+import io.github.term4.minestommechanics.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.minestommechanics.platform.fixes.client.SelfPlacementFix;
 import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
@@ -72,6 +73,16 @@ public final class ShardBridge {
             }
         });
         Shard.selfPlaceExempt(BlockContact::isPassable); // 1.8 ladder/vine/web self-place clutch
+        // a projectile senses the world it was launched IN: un-transferred it resolves the BASE map, so
+        // shard-built water/blocks are invisible to its physics (the bobber flew through a shard water
+        // column live - the replay then faithfully rendered the fly-through)
+        MinecraftServer.getGlobalEventHandler().addListener(ProjectileLaunchEvent.class, e -> {
+            Entity shooter = e.projectile().getShooter();
+            if (shooter == null || !(shooter.getTag(WorldAccess.ENTITY_TAG) instanceof Shard s)) return;
+            MinecraftServer.getSchedulerManager().scheduleEndOfTick(() -> { // the world spawn is async; a cancelled launch never spawns
+                if (!e.isCancelled() && !e.projectile().isRemoved()) s.transfer(e.projectile());
+            });
+        });
         // order-independent: the routing re-applies this decorator whenever it (re)installs its listener
         Shard.decoratePlacement(SelfPlacementFix::wrap);
     }

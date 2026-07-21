@@ -38,10 +38,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -99,8 +97,8 @@ class ReplayBridgeTest extends HeadlessServerTest {
             stage.leave(viewer.player);
             viewer.sent.clear();
 
-            // TWIN wire: the replayed drop must look LIVE to the client - its own sim carries it, so the
-            // wire stays nearly silent (per-tick velocity/teleport corrections = the measured chop)
+            // TWIN wire: track-driven legs re-aim at most once per moving tick, and the wire goes
+            // QUIET at rest (the want floor); a mid-flight zero or a snap is the chop
             Shard theater = new Shard(instance, theaterClock);
             theater.join(viewer.player);
             Playback playback = pb = Replay.play(theater, file);
@@ -110,15 +108,15 @@ class ReplayBridgeTest extends HeadlessServerTest {
             assertNotNull(twin);
             Map<String, Integer> wire = classify(viewer, twin.getEntityId());
             System.out.println("LIVE wire: " + live + " / TWIN wire: " + wire);
-            assertTrue(wire.getOrDefault("EntityVelocityPacket", 0) <= 8,
-                    "velocity packets stay live-like, got " + wire);
+            assertTrue(wire.getOrDefault("EntityVelocityPacket", 0) <= 50,
+                    "at most one re-aim per moving tick, got " + wire);
             assertTrue(wire.getOrDefault("EntityTeleportPacket", 0)
                     + wire.getOrDefault("EntityPositionSyncPacket", 0) <= 10,
                     "position snaps stay rare, got " + wire);
-            // a zero mid-flight kills the 1.8 client's local item sim (the frozen-drop capture); the
-            // landing sync's own zero is the only legitimate one
-            assertTrue(zeroVelocities(viewer, twin.getEntityId()) <= 1,
-                    "no zero-velocity kicks beyond the landing sync");
+            // zeros land only where the TRACK rests (leg arrivals at real pauses in the roll-out); a
+            // zero per moving tick was the frozen-drop chop
+            assertTrue(zeroVelocities(viewer, twin.getEntityId()) <= 4,
+                    "zeros only at track rests");
         } finally {
             if (pb != null) pb.halt();
             viewer.player.remove();
@@ -243,9 +241,7 @@ class ReplayBridgeTest extends HeadlessServerTest {
         assertEquals(1, spawns.size());
         CompoundBinaryTag op = ((CompoundBinaryTag) spawns.get(0)).getCompound("op");
         assertEquals("Recorded", op.getString("o"), "the wire owner rides the op as the launcher's name");
-        CompoundBinaryTag desc = op.getCompound("d");
-        assertEquals("mm:projectile", desc.getString("id"));
-        assertNull(desc.get("shooter"), "sanitized: a replayed pearl must never re-link the original thrower");
+        assertNull(op.get("d"), "spawn ops carry no descriptors - playback is puppet-only");
         assertEquals("minecraft:snowball", op.getCompound("vis").getString("type"),
                 "the visual snapshot plays even without mechanics");
 
@@ -255,9 +251,10 @@ class ReplayBridgeTest extends HeadlessServerTest {
             tick();
             Ghost ghost = pb.ghost("Recorded");
             assertNotNull(ghost, "the actor track raised a ghost");
-            ProjectileEntity twin = assertInstanceOf(ProjectileEntity.class, pb.entity(0),
-                    "the registered reviver upgraded the descriptor to the real class");
-            assertSame(ghost, twin.getShooter(), "the enhancer handed ownership to the ghost (the 1.8 wire gate)");
+            Entity twin = pb.entity(0);
+            assertNotNull(twin);
+            assertFalse(twin instanceof ProjectileEntity, "playback is puppet-only: no lib classes revive");
+            assertEquals(net.minestom.server.entity.EntityType.SNOWBALL, twin.getEntityType());
         } finally {
             pb.halt();
         }
@@ -434,9 +431,13 @@ class ReplayBridgeTest extends HeadlessServerTest {
         Playback pb = Replay.play(theater, file);
         try {
             tick();
-            DroppedItemEntity twin = assertInstanceOf(DroppedItemEntity.class, pb.entity(0),
-                    "without the describer/reviver pair this would demote to a visual stand-in");
-            assertEquals(stack, twin.getItemStack());
+            Entity twin = pb.entity(0);
+            assertNotNull(twin);
+            assertFalse(twin instanceof DroppedItemEntity, "playback is puppet-only");
+            assertEquals(net.minestom.server.entity.EntityType.ITEM, twin.getEntityType());
+            // the item stack rides the visual metadata snapshot (the WIRE meta, not the server-side object)
+            assertTrue(twin.getMetadataPacket().entries().values().stream()
+                    .anyMatch(e -> stack.equals(e.value())), "the stack rides the restamped metadata");
         } finally {
             pb.halt();
         }

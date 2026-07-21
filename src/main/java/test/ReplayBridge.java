@@ -1,5 +1,6 @@
 package test;
 
+import io.github.term4.minestommechanics.MinestomMechanics;
 import io.github.term4.minestommechanics.api.event.projectile.ProjectileHitEvent;
 import io.github.term4.minestommechanics.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
@@ -8,7 +9,6 @@ import io.github.term4.archipelago.replay.Recording;
 import io.github.term4.archipelago.replay.Replay;
 import io.github.term4.archipelago.replay.channel.EventDispatcher;
 import io.github.term4.archipelago.replay.core.CoreChannels;
-import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -22,8 +22,8 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Template glue between MinestomMechanics and archipelago-replay - everything mechanics-flavored a replay needs,
  * contributed purely via {@link Replay} registration (an application using both libraries copies this class).
- * The save/load revivers ({@code mm:item}/{@code mm:projectile}) are registered separately with the polar codec;
- * playback upgrades descriptors through them when present.
+ * Playback is puppet-only; the save/load revivers ({@code mm:item}/{@code mm:projectile}) are registered
+ * separately for shard saves.
  */
 public final class ReplayBridge {
 
@@ -35,6 +35,9 @@ public final class ReplayBridge {
         CoreChannels.register();
         if (installed) return;
         installed = true;
+
+        // the twin wire is generation-split (legacy viewers also get per-tick anchors and pins)
+        Replay.legacyViewers(p -> MinestomMechanics.getInstance().clientInfo().isLegacy(p));
 
         // launches recorded at end of THIS tick (the stamp exists, nothing can hit before its first move tick) -
         // a per-tick sampler alone misses projectiles that hit and remove themselves within one tick. The ASYNC
@@ -70,26 +73,6 @@ public final class ReplayBridge {
                         rec.remove(projectile, new Pos(hit.x(), hit.y(), hit.z(), last.yaw(), last.pitch()), "");
                     });
                 });
-            }
-        });
-
-        // a replayed descriptor must never re-link the original thrower (fromSave re-binds ONLINE shooters -
-        // a replayed pearl would teleport the spectating player); the ghost link rides the spawn op instead
-        Replay.sanitizeDescriptors(desc -> {
-            if (!desc.getString("id").equals("mm:projectile") || desc.get("shooter") == null) return desc;
-            CompoundBinaryTag.Builder out = CompoundBinaryTag.builder();
-            for (var entry : desc) {
-                if (!entry.getKey().equals("shooter")) out.put(entry.getKey(), entry.getValue());
-            }
-            return out.build();
-        });
-
-        // footage, not gameplay: hits were RECORDED (hurt flash/arrow-count acts) - a re-simulated projectile
-        // would strike the shooter's own ghost at the throw point
-        Replay.onSpawn((entity, owner, playback) -> {
-            if (entity instanceof ProjectileEntity projectile) {
-                projectile.setEntityHits(false);
-                if (owner != null) projectile.reassignShooter(owner); // the wire owner (1.8 spawn-velocity gate)
             }
         });
     }

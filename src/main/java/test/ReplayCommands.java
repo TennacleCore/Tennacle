@@ -5,7 +5,6 @@ import io.github.term4.archipelago.event.replay.PlaybackStopEvent;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Recording;
 import io.github.term4.archipelago.replay.Replay;
-import io.github.term4.archipelago.replay.SpawnMode;
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
@@ -108,7 +107,6 @@ final class ReplayCommands {
                     + rec.counts() + " (", Msg.v(file.length), " bytes)");
         }, ArgumentType.Literal("stop"), replayName);
         // "visual" = stand-ins only, ignoring registered revivers - the mechanics-less look, for comparison
-        Argument<String> playMode = ArgumentType.Word("playMode").from("visual");
         CommandExecutor doPlay = (sender, ctx) -> {
             if (playback != null) { Msg.err(sender, "replay", "one playback at a time (tick ", Msg.v(playback.tick()), ")"); return; }
             byte[] file;
@@ -120,23 +118,21 @@ final class ReplayCommands {
             }
             String n = ctx.get(newName);
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
-            SpawnMode spawns = ctx.has(playMode) ? SpawnMode.VISUAL : SpawnMode.REVIVED;
             offClock(() -> {
                 Shard target = shards.create(world, n, ExecutionDomain.create());
                 try {
-                    playback = Replay.play(target, file, spawns);
+                    playback = Replay.play(target, file);
                 } catch (IllegalArgumentException e) {
                     shards.destroy(target);
                     Msg.err(sender, "replay", e.getMessage());
                     return;
                 }
                 String skipped = playback.skipped().isEmpty() ? "" : " (skipped channels: " + playback.skipped() + ")";
-                Msg.replay(sender, "playing ", Msg.v(ctx.get(replayName)), " [" + spawns + "]: ", Msg.v(playback.length()),
+                Msg.replay(sender, "playing ", Msg.v(ctx.get(replayName)), ": ", Msg.v(playback.length()),
                         " ticks, " + playback.counts() + skipped + " - ", Msg.run("/shard spectate " + n), " to watch");
             });
         };
         replay.addSyntax(doPlay, ArgumentType.Literal("play"), replayName, newName);
-        replay.addSyntax(doPlay, ArgumentType.Literal("play"), replayName, newName, playMode);
         replay.addSyntax((sender, ctx) -> {
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             long target = ctx.get(seekTick);

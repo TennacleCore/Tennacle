@@ -69,7 +69,7 @@ final class Msg {
 
     /** A structured usage listing: gradient header + one indented clickable row per {@code {command, description}} pair. */
     static void usage(CommandSender to, String title, String[][] rows) {
-        TextComponent.Builder out = Component.text().append(gradient(title));
+        TextComponent.Builder out = Component.text().append(title(to, title));
         for (String[] row : rows) {
             out.append(Component.newline())
                     .append(Component.text("  » ", PURPLE))
@@ -83,12 +83,44 @@ final class Msg {
 
     private static void send(CommandSender to, String tag, TextColor body, Object[] parts) {
         TextComponent.Builder out = Component.text()
-                .append(gradient("[" + tag + "]"))
+                .append(title(to, "[" + tag + "]"))
                 .append(Component.text(" "));
         for (Object part : parts) {
             out.append(part instanceof Component c ? c : Component.text(String.valueOf(part), body));
         }
         to.sendMessage(out.build());
+    }
+
+    /** The signature look per recipient: the gradient for modern clients, flat brand purple for legacy - a 1.8
+     *  client renders each RGB char as its nearest NAMED color, turning the gradient into ugly color chunks. */
+    private static Component title(CommandSender to, String text) {
+        return legacy(to) ? Component.text(text, NamedTextColor.DARK_PURPLE) : gradient(text);
+    }
+
+    // UNKNOWN protocol (the Via/proxy handshake lags the join) renders gradient-free - never chunk a 1.8 client
+    private static boolean legacy(CommandSender to) {
+        var mm = Mechanics.mm;
+        if (!(to instanceof net.minestom.server.entity.Player p) || mm == null || mm.clientInfo() == null) return false;
+        return mm.clientInfo().getProtocol(p) == io.github.term4.minestommechanics.tracking.ClientVersion.UNKNOWN_PROTOCOL
+                || mm.clientInfo().isLegacy(p);
+    }
+
+    /** Runs {@code send} once {@code p}'s protocol is known, or after {@code maxTicks} anyway (then the
+     *  unknown default above applies) - join-time messages would otherwise pick the format blind. */
+    static void onceProtocolKnown(net.minestom.server.entity.Player p, int maxTicks, Runnable send) {
+        var mm = Mechanics.mm;
+        if (mm == null || mm.clientInfo() == null) { send.run(); return; }
+        int[] waited = {0};
+        net.minestom.server.MinecraftServer.getSchedulerManager().scheduleTask(() -> {
+            if (!p.isOnline()) return net.minestom.server.timer.TaskSchedule.stop();
+            boolean known = mm.clientInfo().getProtocol(p)
+                    != io.github.term4.minestommechanics.tracking.ClientVersion.UNKNOWN_PROTOCOL;
+            if (known || (waited[0] += 5) >= maxTicks) {
+                send.run();
+                return net.minestom.server.timer.TaskSchedule.stop();
+            }
+            return net.minestom.server.timer.TaskSchedule.tick(5);
+        }, net.minestom.server.timer.TaskSchedule.tick(1));
     }
 
     /** The signature gradient across {@code text}, per character: purple to magenta over the first half, magenta to cyan over the second. */

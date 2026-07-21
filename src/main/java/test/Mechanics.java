@@ -17,6 +17,7 @@ import io.github.term4.minestommechanics.platform.compatibility.Compat18;
 import io.github.term4.minestommechanics.platform.fixes.Fixes18;
 import io.github.term4.minestommechanics.platform.fixes.FixesSystem;
 import io.github.term4.minestommechanics.presets.Preset;
+import io.github.term4.minestommechanics.presets.PrimedTnt;
 import io.github.term4.minestommechanics.vri.DroppedItemEntity;
 import io.github.term4.minestommechanics.vri.Vri;
 import io.github.term4.minestommechanics.vri.VriConfig;
@@ -29,7 +30,7 @@ import net.minestom.server.entity.Player;
 final class Mechanics {
 
     /** The active preset - swap this ONE line to change the whole setup (mechanics profile + the primed-TNT entity, together). */
-    static final Preset PRESET = Preset.HYPIXEL;
+    static final Preset PRESET = Preset.MMC18;
 
     static ExplosionSystem explosions;
     static ProjectileSystem projectiles;
@@ -47,7 +48,8 @@ final class Mechanics {
         mm.viaProxyDetails = true;
         mm.init();
         mm.profiles().setGlobal(PRESET.profile().toBuilder()
-                .set(MechanicsKeys.COMPAT, Compat18.config())
+                // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
+                .set(MechanicsKeys.COMPAT, Compat18.config().toBuilder().animatiumDebug(true).build())
                 .set(MechanicsKeys.FIXES, Fixes18.config())
                 .build());
         AttackSystem.install(mm);
@@ -72,6 +74,7 @@ final class Mechanics {
         });
         EntityDescriptors.reviveEntity("mm:item", DroppedItemEntity::fromSave);
         EntityDescriptors.reviveEntity("mm:projectile", projectiles::fromSave);
+        EntityDescriptors.reviveEntity("mm:tnt", d -> PrimedTnt.fromSave(explosions, d));
         ReplayBridge.install(); // replay-side mechanics glue (launch capture, shooter scrub, footage flags)
         StateChannels.register(); // opt-in player-state channels (health/hunger/xp/inventory) - /replay state
     }
