@@ -34,6 +34,7 @@ public final class TestServer {
         ShardCommands.register(shards, world);
         ReplayCommands.register(shards, world);
         DevCommands.register(Mechanics.mm);
+        SimTpsCommands.register(Mechanics.mm, shards, world);
 
         server.start("0.0.0.0", 25566);
     }

@@ -3,6 +3,8 @@ package test;
 import io.github.term4.minestommechanics.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.minestommechanics.platform.fixes.client.SelfPlacementFix;
+import io.github.term4.minestommechanics.MinestomMechanics;
+import io.github.term4.minestommechanics.platform.player.PlayerConfigApplier;
 import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
 import io.github.term4.minestommechanics.util.BlockContact;
 import io.github.term4.minestommechanics.util.tick.TickSystem;
@@ -85,6 +87,17 @@ public final class ShardBridge {
         });
         // order-independent: the routing re-applies this decorator whenever it (re)installs its listener
         Shard.decoratePlacement(SelfPlacementFix::wrap);
+        // a shard hop re-points the profile scope chain with NO profile change and NO spawn, so the player-platform
+        // push (simulated-TPS tick rate, compat, platform config) would keep the previous world's state
+        MinecraftServer.getGlobalEventHandler().addListener(ShardJoinEvent.class, e -> repush(e.player()));
+        MinecraftServer.getGlobalEventHandler().addListener(ShardLeaveEvent.class, e -> repush(e.player()));
+        MinecraftServer.getGlobalEventHandler().addListener(ShardTransferEvent.class, e -> {
+            if (e.entity() instanceof Player p) repush(p);
+        });
+    }
+
+    private static void repush(Player player) {
+        PlayerConfigApplier.apply(MinestomMechanics.getInstance(), player);
     }
 
     private static boolean domainTicking;
