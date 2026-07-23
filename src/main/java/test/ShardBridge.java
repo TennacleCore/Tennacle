@@ -2,13 +2,14 @@ package test;
 
 import io.github.term4.minestommechanics.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.minestommechanics.world.ExternallyTickable;
 import io.github.term4.minestommechanics.platform.fixes.client.SelfPlacementFix;
 import io.github.term4.minestommechanics.MinestomMechanics;
 import io.github.term4.minestommechanics.platform.player.PlayerConfigApplier;
 import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
 import io.github.term4.minestommechanics.util.BlockContact;
 import io.github.term4.minestommechanics.util.tick.TickSystem;
-import io.github.term4.minestommechanics.vri.DroppedItemEntity;
+import io.github.term4.minestommechanics.entity.DroppedItemEntity;
 import io.github.term4.minestommechanics.world.MechanicsWorld;
 import io.github.term4.minestommechanics.world.WorldPolicy;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
@@ -124,8 +125,9 @@ public final class ShardBridge {
                 return domain == null || domain.onThread();
             }
         });
-        DomainTicked.cover(entity -> entity instanceof OptimizedPlayer
-                || entity instanceof ProjectileEntity || entity instanceof DroppedItemEntity);
+        // one rule: any mm entity that self-guards its tick (marker contract). Future entities (end crystals, ...)
+        // are covered automatically by implementing ExternallyTickable - no edit here.
+        DomainTicked.cover(entity -> entity instanceof ExternallyTickable);
         // mm's per-tick systems follow a domain-bound shard onto its clock (PRE_DISPATCH ordering holds:
         // Domain.tick runs hooks before entities)
         MinecraftServer.getGlobalEventHandler().addListener(ShardCreateEvent.class, e -> hookDomainTick(e.shard()));

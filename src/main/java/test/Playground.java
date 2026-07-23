@@ -1,6 +1,6 @@
 package test;
 
-import io.github.term4.minestommechanics.presets.PrimedTnt;
+import io.github.term4.minestommechanics.entity.PrimedTnt;
 import io.github.term4.minestommechanics.tracking.ClientVersion;
 import io.github.term4.minestommechanics.world.MechanicsWorld;
 import net.minestom.server.MinecraftServer;

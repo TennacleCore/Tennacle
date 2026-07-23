@@ -29,7 +29,7 @@ final class SimTpsCommands {
         var instance = ArgumentType.Literal("instance");
         var self = ArgumentType.Literal("self");
         var show = ArgumentType.Literal("show");
-        Argument<String> name = ArgumentType.Word("shard");
+        Argument<String> name = ArgumentType.Word("name"); // NOT "shard" - the literal already owns that id (collectArguments keys by id)
         // "native" clears the scope's baseline (back to literal ticks); anything else must parse as a rate
         Argument<String> rate = ArgumentType.Word("rate");
 

@@ -7,7 +7,7 @@ import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
 import io.github.term4.minestommechanics.util.tick.TickContext;
 import io.github.term4.minestommechanics.util.tick.TickPhase;
 import io.github.term4.minestommechanics.util.tick.TickSystem;
-import io.github.term4.minestommechanics.vri.DroppedItemEntity;
+import io.github.term4.minestommechanics.entity.DroppedItemEntity;
 import io.github.term4.minestommechanics.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;

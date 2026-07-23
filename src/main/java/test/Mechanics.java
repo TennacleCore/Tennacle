@@ -17,8 +17,8 @@ import io.github.term4.minestommechanics.platform.compatibility.Compat18;
 import io.github.term4.minestommechanics.platform.fixes.Fixes18;
 import io.github.term4.minestommechanics.platform.fixes.FixesSystem;
 import io.github.term4.minestommechanics.presets.Preset;
-import io.github.term4.minestommechanics.presets.PrimedTnt;
-import io.github.term4.minestommechanics.vri.DroppedItemEntity;
+import io.github.term4.minestommechanics.entity.PrimedTnt;
+import io.github.term4.minestommechanics.entity.DroppedItemEntity;
 import io.github.term4.minestommechanics.vri.Vri;
 import io.github.term4.minestommechanics.vri.VriConfig;
 import io.github.term4.minestommechanics.world.MechanicsWorld;
@@ -30,7 +30,7 @@ import net.minestom.server.entity.Player;
 final class Mechanics {
 
     /** The active preset - swap this ONE line to change the whole setup (mechanics profile + the primed-TNT entity, together). */
-    static final Preset PRESET = Preset.MMC18;
+    static final Preset PRESET = Preset.HYPIXEL;
 
     static ExplosionSystem explosions;
     static ProjectileSystem projectiles;

@@ -8,7 +8,7 @@ import io.github.term4.minestommechanics.mechanics.projectile.entities.Projectil
 import io.github.term4.minestommechanics.mechanics.projectile.types.FishingBobber;
 import io.github.term4.minestommechanics.mechanics.projectile.types.Snowball;
 import io.github.term4.minestommechanics.presets.vanilla18.Vanilla18;
-import io.github.term4.minestommechanics.vri.DroppedItemEntity;
+import io.github.term4.minestommechanics.entity.DroppedItemEntity;
 import io.github.term4.minestommechanics.world.MechanicsWorld;
 import io.github.term4.archipelago.replay.channel.Recorded;
 import io.github.term4.archipelago.shard.Shard;
