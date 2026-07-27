@@ -8,7 +8,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.instance.InstanceContainer;
 
 /**
- * The full Archipelago + MinestomMechanics playground - the reference for using both libraries together.
+ * The full Archipelago + Polyp playground - the reference for using both libraries together.
  * {@code /shard create|join} a game, build/dig, fight with the 1.8 combat kit, {@code /replay} it back;
  * spectate from a second client. Boot only - the pieces live in {@link Mechanics} (systems + bridges),
  * {@link Playground} (world + kit), {@link ShardCommands}, {@link ReplayCommands}, {@link DevCommands}.
@@ -33,8 +33,8 @@ public final class TestServer {
         ShardManager shards = new ShardManager();
         ShardCommands.register(shards, world);
         ReplayCommands.register(shards, world);
-        DevCommands.register(Mechanics.mm);
-        SimTpsCommands.register(Mechanics.mm, shards, world);
+        DevCommands.register(Mechanics.polyp);
+        SimTpsCommands.register(Mechanics.polyp, shards, world);
 
         server.start("0.0.0.0", 25566);
     }

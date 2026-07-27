@@ -1,8 +1,8 @@
 package test;
 
-import io.github.term4.minestommechanics.entity.PrimedTnt;
-import io.github.term4.minestommechanics.tracking.ClientVersion;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.entity.PrimedTnt;
+import io.github.term4.polyp.tracking.ClientVersion;
+import io.github.term4.polyp.world.MechanicsWorld;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
@@ -40,7 +40,7 @@ final class Playground {
         return world;
     }
 
-    // damage-type pads (water/fire/cactus) + the water flow lanes, from the mm example server
+    // damage-type pads (water/fire/cactus) + the water flow lanes, from the polyp example server
     private static void buildTestPads(InstanceContainer world) {
         world.loadChunk(1, 0).thenRun(() -> {
             for (int x = 18; x <= 20; x++)
@@ -112,7 +112,7 @@ final class Playground {
             // deferred: at spawn the Via handshake may not have revealed the protocol yet, and the welcome
             // format (gradient vs flat) depends on it
             Msg.onceProtocolKnown(p, 60, () -> Msg.usage(p,
-                    "Tennacle - the Archipelago + MinestomMechanics playground", new String[][]{
+                    "Tennacle - the Archipelago + Polyp playground", new String[][]{
                     {"/shard", "isolated game worlds over this map"},
                     {"/replay", "record + replay a game"},
                     {"/boom", "shard-scoped explosion at your feet"},
@@ -167,11 +167,11 @@ final class Playground {
 
     // polls until the Via/proxy handshake reveals the protocol (-1 until then), a few tries only
     private static void logProtocol(Player player) {
-        if (!Mechanics.mm.viaProxyDetails) return;
+        if (!Mechanics.polyp.viaProxyDetails) return;
         final int[] runs = {0};
         MinecraftServer.getSchedulerManager().scheduleTask(() -> {
             if (!player.isOnline()) return TaskSchedule.stop();
-            int protocol = Mechanics.mm.clientInfo().getProtocol(player);
+            int protocol = Mechanics.polyp.clientInfo().getProtocol(player);
             if (protocol == ClientVersion.UNKNOWN_PROTOCOL) {
                 return (++runs[0] >= 3) ? TaskSchedule.stop() : TaskSchedule.tick(20);
             }

@@ -1,14 +1,14 @@
 package test;
 
-import io.github.term4.minestommechanics.MechanicsKeys;
-import io.github.term4.minestommechanics.MechanicsProfile;
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.mechanics.blocking.catalog.VanillaBlocking;
-import io.github.term4.minestommechanics.mechanics.explosion.ExplosionSystem;
-import io.github.term4.minestommechanics.platform.compatibility.Compat18;
-import io.github.term4.minestommechanics.platform.compatibility.CompatConfig;
-import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.MechanicsKeys;
+import io.github.term4.polyp.MechanicsProfile;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.mechanics.blocking.catalog.VanillaBlocking;
+import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
+import io.github.term4.polyp.platform.compatibility.Compat18;
+import io.github.term4.polyp.platform.compatibility.CompatConfig;
+import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.world.MechanicsWorld;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
@@ -31,14 +31,14 @@ import net.minestom.server.registry.RegistryKey;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The mm example server's dev/test toolset plus the shard-aware {@code /boom}: lag simulation, profile
+ * The polyp example server's dev/test toolset plus the shard-aware {@code /boom}: lag simulation, profile
  * switches, explosions, enchants, effects, blockable swords, velocity-cap A/B.
  */
 final class DevCommands {
 
     private DevCommands() {}
 
-    static void register(MinestomMechanics mm) {
+    static void register(Polyp polyp) {
         var commands = MinecraftServer.getCommandManager();
 
         Command gm = new Command("gm");
@@ -88,12 +88,12 @@ final class DevCommands {
         Command compatCmd = new Command("compat");
         compatCmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof OptimizedPlayer op)) return;
-            boolean turningOff = mm.profiles().player(op) == null; // no per-player override = currently on the global profile
+            boolean turningOff = polyp.profiles().player(op) == null; // no per-player override = currently on the global profile
             if (turningOff) {
-                mm.profiles().setPlayer(op, MechanicsProfile.builder().set(MechanicsKeys.COMPAT, Compat18.off()).build());
+                polyp.profiles().setPlayer(op, MechanicsProfile.builder().set(MechanicsKeys.COMPAT, Compat18.off()).build());
                 Msg.tag(op, "compat", "mechanics set to ", Msg.v("latest version"));
             } else {
-                mm.profiles().setPlayer(op, null);
+                polyp.profiles().setPlayer(op, null);
                 Msg.tag(op, "compat", "mechanics set to ", Msg.v("1.8"));
             }
         });
@@ -103,9 +103,9 @@ final class DevCommands {
         Command shortsCmd = new Command("shorts");
         shortsCmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof OptimizedPlayer op)) return;
-            CompatConfig current = mm.profiles().resolve(op, MechanicsKeys.COMPAT);
+            CompatConfig current = polyp.profiles().resolve(op, MechanicsKeys.COMPAT);
             boolean on = !(current != null && Boolean.TRUE.equals(current.nativeShortVelocity));
-            mm.profiles().setPlayer(op, MechanicsProfile.builder()
+            polyp.profiles().setPlayer(op, MechanicsProfile.builder()
                     .set(MechanicsKeys.COMPAT, Compat18.config().toBuilder().nativeShortVelocity(on).build())
                     .build());
             Msg.tag(op, "shorts", "shorts velocity: ", Msg.v(on ? "ON" : "OFF"), " (take a >2 b/t knockback to compare)");
@@ -208,7 +208,7 @@ final class DevCommands {
         commands.register(effectCmd);
 
         // /velcap (LpVec3 snap) vs /velcapbridge (exact 1.8 short): A/B for the LegacyVelocityBridge knockback path
-        EventNode<@NotNull PlayerEvent> playerNode = EventNode.type("mm:test-player", EventFilter.PLAYER);
+        EventNode<@NotNull PlayerEvent> playerNode = EventNode.type("polyp:test-player", EventFilter.PLAYER);
         VelocityCapTestCommands.install(playerNode);
         MinecraftServer.getGlobalEventHandler().addChild(playerNode);
 

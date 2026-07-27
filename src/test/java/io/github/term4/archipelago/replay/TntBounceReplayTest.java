@@ -1,12 +1,12 @@
 package io.github.term4.archipelago.replay;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.mechanics.explosion.ExplosionSystem;
-import io.github.term4.minestommechanics.entity.PrimedTnt;
-import io.github.term4.minestommechanics.presets.mmc18.Explosion;
-import io.github.term4.minestommechanics.presets.mmc18.Tnt;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
+import io.github.term4.polyp.entity.PrimedTnt;
+import io.github.term4.polyp.presets.mmc18.Explosion;
+import io.github.term4.polyp.presets.mmc18.Tnt;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -41,19 +41,19 @@ class TntBounceReplayTest extends HeadlessServerTest {
 
     @BeforeAll
     static void mechanics() {
-        MinestomMechanics mm = MinestomMechanics.getInstance();
-        mm.init();
+        Polyp polyp = Polyp.getInstance();
+        polyp.init();
         ShardBridge.install();
         ReplayBridge.install();
         // wire tests emulate specific generations: viewer names carry the split
         Replay.legacyViewers(p -> p.getUsername().contains("Legacy"));
-        explosions = new ExplosionSystem(mm, Explosion.config());
+        explosions = new ExplosionSystem(polyp, Explosion.config());
         EntityDescriptors.describeEntity(e -> {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);
             return stamp != null ? stamp.get() : null;
         });
-        EntityDescriptors.reviveEntity("mm:item", DroppedItemEntity::fromSave);
-        EntityDescriptors.reviveEntity("mm:tnt", d -> PrimedTnt.fromSave(explosions, d));
+        EntityDescriptors.reviveEntity("polyp:item", DroppedItemEntity::fromSave);
+        EntityDescriptors.reviveEntity("polyp:tnt", d -> PrimedTnt.fromSave(explosions, d));
     }
 
     private static void tick() {

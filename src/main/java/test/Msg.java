@@ -99,22 +99,22 @@ final class Msg {
 
     // UNKNOWN protocol (the Via/proxy handshake lags the join) renders gradient-free - never chunk a 1.8 client
     private static boolean legacy(CommandSender to) {
-        var mm = Mechanics.mm;
-        if (!(to instanceof net.minestom.server.entity.Player p) || mm == null || mm.clientInfo() == null) return false;
-        return mm.clientInfo().getProtocol(p) == io.github.term4.minestommechanics.tracking.ClientVersion.UNKNOWN_PROTOCOL
-                || mm.clientInfo().isLegacy(p);
+        var polyp = Mechanics.polyp;
+        if (!(to instanceof net.minestom.server.entity.Player p) || polyp == null || polyp.clientInfo() == null) return false;
+        return polyp.clientInfo().getProtocol(p) == io.github.term4.polyp.tracking.ClientVersion.UNKNOWN_PROTOCOL
+                || polyp.clientInfo().isLegacy(p);
     }
 
     /** Runs {@code send} once {@code p}'s protocol is known, or after {@code maxTicks} anyway (then the
      *  unknown default above applies) - join-time messages would otherwise pick the format blind. */
     static void onceProtocolKnown(net.minestom.server.entity.Player p, int maxTicks, Runnable send) {
-        var mm = Mechanics.mm;
-        if (mm == null || mm.clientInfo() == null) { send.run(); return; }
+        var polyp = Mechanics.polyp;
+        if (polyp == null || polyp.clientInfo() == null) { send.run(); return; }
         int[] waited = {0};
         net.minestom.server.MinecraftServer.getSchedulerManager().scheduleTask(() -> {
             if (!p.isOnline()) return net.minestom.server.timer.TaskSchedule.stop();
-            boolean known = mm.clientInfo().getProtocol(p)
-                    != io.github.term4.minestommechanics.tracking.ClientVersion.UNKNOWN_PROTOCOL;
+            boolean known = polyp.clientInfo().getProtocol(p)
+                    != io.github.term4.polyp.tracking.ClientVersion.UNKNOWN_PROTOCOL;
             if (known || (waited[0] += 5) >= maxTicks) {
                 send.run();
                 return net.minestom.server.timer.TaskSchedule.stop();

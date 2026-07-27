@@ -1,15 +1,15 @@
 package io.github.term4.archipelago.ticking;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.api.event.attack.AttackEvent;
-import io.github.term4.minestommechanics.mechanics.attack.AttackSnapshot;
-import io.github.term4.minestommechanics.mechanics.damage.DamageSystem;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSnapshot;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSystem;
-import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
-import io.github.term4.minestommechanics.mechanics.projectile.types.SplashPotion;
-import io.github.term4.minestommechanics.mechanics.projectile.types.Snowball;
-import io.github.term4.minestommechanics.presets.vanilla18.Vanilla18;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.api.event.attack.AttackEvent;
+import io.github.term4.polyp.mechanics.attack.AttackSnapshot;
+import io.github.term4.polyp.mechanics.damage.DamageSystem;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.mechanics.projectile.types.SplashPotion;
+import io.github.term4.polyp.mechanics.projectile.types.Snowball;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Recording;
@@ -51,12 +51,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class InheritVsSelfParityTest extends HeadlessServerTest {
 
-    private static MinestomMechanics mm;
+    private static Polyp polyp;
     private static final List<ExecutionDomain> created = new CopyOnWriteArrayList<>();
 
     @BeforeAll
     static void mechanics() {
-        mm = MechanicsBoot.ensure();
+        polyp = MechanicsBoot.ensure();
         CoreChannels.register();
         ShardBridge.installDomainTicking();
         for (int cx = 62; cx <= 63; cx++) {
@@ -100,7 +100,7 @@ class InheritVsSelfParityTest extends HeadlessServerTest {
         try {
             victim.setHealth(20f);
             attacker.setItemInMainHand(ItemStack.of(Material.DIAMOND_SWORD));
-            AttackEvent.AttackRule rule = Vanilla18.attackRuleset().create(mm.services());
+            AttackEvent.AttackRule rule = Vanilla18.attackRuleset().create(polyp.services());
             return onOwner(shard, () -> {
                 rule.processAttack(hit(attacker, victim));
                 float health = victim.getHealth();
@@ -116,7 +116,7 @@ class InheritVsSelfParityTest extends HeadlessServerTest {
     }
 
     private static AttackEvent hit(LivingEntity attacker, LivingEntity victim) {
-        return new AttackEvent(new AttackSnapshot(attacker, victim, Vanilla18.attack()), mm.services());
+        return new AttackEvent(new AttackSnapshot(attacker, victim, Vanilla18.attack()), polyp.services());
     }
 
     @Test
@@ -151,7 +151,7 @@ class InheritVsSelfParityTest extends HeadlessServerTest {
     private List<Pos> flight(Shard shard, Pos spawn, int count) {
         LivingEntity shooter = new LivingEntity(EntityType.ZOMBIE);
         shard.spawn(shooter, spawn.add(0, -1, -2)).join();
-        ProjectileSystem ps = new ProjectileSystem(mm, Vanilla18.projectiles());
+        ProjectileSystem ps = new ProjectileSystem(polyp, Vanilla18.projectiles());
         var snap = ProjectileSnapshot.of(shooter, Snowball.INSTANCE)
                 .withSpawnPos(spawn).withVelocity(new Vec(0, 0.1, 1.0)); // explicit: spread must not enter parity
         List<Pos> samples = new CopyOnWriteArrayList<>();
@@ -220,7 +220,7 @@ class InheritVsSelfParityTest extends HeadlessServerTest {
         shard.spawn(victim, at.add(2, 0, 0)).join();
         ItemStack potion = ItemStack.of(Material.SPLASH_POTION)
                 .with(DataComponents.POTION_CONTENTS, new PotionContents(PotionType.SWIFTNESS));
-        ProjectileSystem ps = new ProjectileSystem(mm, Vanilla18.projectiles());
+        ProjectileSystem ps = new ProjectileSystem(polyp, Vanilla18.projectiles());
         var snap = ProjectileSnapshot.of(thrower, SplashPotion.INSTANCE).withItem(potion)
                 .withSpawnPos(at.add(0, 1.62, 0).withPitch(90))
                 .withVelocity(new Vec(0, -0.5, 0)); // explicit: vanilla launch spread must not enter parity

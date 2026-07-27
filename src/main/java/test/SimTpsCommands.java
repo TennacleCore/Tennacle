@@ -1,8 +1,8 @@
 package test;
 
-import io.github.term4.minestommechanics.MechanicsKeys;
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.util.tick.TickScalingConfig;
+import io.github.term4.polyp.MechanicsKeys;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.util.tick.TickScalingConfig;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
 import net.minestom.server.MinecraftServer;
@@ -22,7 +22,7 @@ final class SimTpsCommands {
 
     private SimTpsCommands() {}
 
-    static void register(MinestomMechanics mm, ShardManager shards, InstanceContainer world) {
+    static void register(Polyp polyp, ShardManager shards, InstanceContainer world) {
         Command cmd = new Command("simtps");
         var global = ArgumentType.Literal("global");
         var shard = ArgumentType.Literal("shard");
@@ -45,7 +45,7 @@ final class SimTpsCommands {
             if (!(sender instanceof Player p)) return;
             TickScalingConfig cfg = parse(sender, ctx.get(rate));
             if (cfg == NO_CHANGE) return;
-            mm.profiles().setPlayer(p, MechanicsKeys.TICK_SCALING, cfg);
+            polyp.profiles().setPlayer(p, MechanicsKeys.TICK_SCALING, cfg);
             report(sender, "self", ctx.get(rate));
         }, self, rate);
 
@@ -55,34 +55,34 @@ final class SimTpsCommands {
             TickScalingConfig cfg = parse(sender, ctx.get(rate));
             if (cfg == NO_CHANGE) return;
             // world scope = the shard itself, so ONLY its members dilate - a spectator stays unbound and native
-            mm.profiles().setWorld(ShardBridge.adapt(g), MechanicsKeys.TICK_SCALING, cfg);
+            polyp.profiles().setWorld(ShardBridge.adapt(g), MechanicsKeys.TICK_SCALING, cfg);
             report(sender, "shard " + ctx.get(name), ctx.get(rate));
         }, shard, name, rate);
 
         cmd.addSyntax((sender, ctx) -> {
             TickScalingConfig cfg = parse(sender, ctx.get(rate));
             if (cfg == NO_CHANGE) return;
-            mm.profiles().setInstance(world, MechanicsKeys.TICK_SCALING, cfg);
+            polyp.profiles().setInstance(world, MechanicsKeys.TICK_SCALING, cfg);
             report(sender, "instance", ctx.get(rate));
         }, instance, rate);
 
         cmd.addSyntax((sender, ctx) -> {
             TickScalingConfig cfg = parse(sender, ctx.get(rate));
             if (cfg == NO_CHANGE) return;
-            mm.profiles().setGlobal(MechanicsKeys.TICK_SCALING, cfg);
+            polyp.profiles().setGlobal(MechanicsKeys.TICK_SCALING, cfg);
             report(sender, "global", ctx.get(rate));
         }, global, rate);
 
         cmd.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            TickScalingConfig resolved = mm.profiles().resolve(p, MechanicsKeys.TICK_SCALING);
+            TickScalingConfig resolved = polyp.profiles().resolve(p, MechanicsKeys.TICK_SCALING);
             int tps = resolved == null ? TickScalingConfig.SERVER_TPS : resolved.clientTps();
             // dilation follows the BINDING, not the view: an unbound spectator resolves native and moves normally
             Shard bound = Shard.of(p);
             Msg.tag(p, "simtps", "resolved ",
                     Msg.v(tps == TickScalingConfig.SERVER_TPS ? "native (no scaling)" : tps + " tps"),
                     " | bound to ", Msg.v(bound != null ? shards.nameOf(bound) : "the base map"),
-                    " | client wire ", Msg.v(mm.clientInfo().isLegacy(p) ? "legacy - spectate only" : "modern - can simulate"));
+                    " | client wire ", Msg.v(polyp.clientInfo().isLegacy(p) ? "legacy - spectate only" : "modern - can simulate"));
         }, show);
 
         MinecraftServer.getCommandManager().register(cmd);

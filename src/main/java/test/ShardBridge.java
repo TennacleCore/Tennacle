@@ -1,17 +1,17 @@
 package test;
 
-import io.github.term4.minestommechanics.api.event.projectile.ProjectileLaunchEvent;
-import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
-import io.github.term4.minestommechanics.world.ExternallyTickable;
-import io.github.term4.minestommechanics.platform.fixes.client.SelfPlacementFix;
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.platform.player.PlayerConfigApplier;
-import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
-import io.github.term4.minestommechanics.util.BlockContact;
-import io.github.term4.minestommechanics.util.tick.TickSystem;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
-import io.github.term4.minestommechanics.world.WorldPolicy;
+import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.world.ExternallyTickable;
+import io.github.term4.polyp.platform.fixes.client.SelfPlacementFix;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.platform.player.PlayerConfigApplier;
+import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.util.BlockContact;
+import io.github.term4.polyp.util.tick.TickSystem;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
+import io.github.term4.polyp.world.WorldPolicy;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardView;
@@ -53,7 +53,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Template glue between Archipelago and MinestomMechanics - the two libraries never reference each other, so an
+ * Template glue between Archipelago and Polyp - the two libraries never reference each other, so an
  * application using both copies this class (it IS the whole integration). {@link #install} plugs shard bindings
  * into {@link MechanicsWorld} resolution; {@link #adapt} is the {@code MechanicsWorld} view of a shard (cached,
  * so identity-based gating works).
@@ -98,7 +98,7 @@ public final class ShardBridge {
     }
 
     private static void repush(Player player) {
-        PlayerConfigApplier.apply(MinestomMechanics.getInstance(), player);
+        PlayerConfigApplier.apply(Polyp.getInstance(), player);
     }
 
     private static boolean domainTicking;
@@ -125,10 +125,10 @@ public final class ShardBridge {
                 return domain == null || domain.onThread();
             }
         });
-        // one rule: any mm entity that self-guards its tick (marker contract). Future entities (end crystals, ...)
+        // one rule: any polyp entity that self-guards its tick (marker contract). Future entities (end crystals, ...)
         // are covered automatically by implementing ExternallyTickable - no edit here.
         DomainTicked.cover(entity -> entity instanceof ExternallyTickable);
-        // mm's per-tick systems follow a domain-bound shard onto its clock (PRE_DISPATCH ordering holds:
+        // polyp's per-tick systems follow a domain-bound shard onto its clock (PRE_DISPATCH ordering holds:
         // Domain.tick runs hooks before entities)
         MinecraftServer.getGlobalEventHandler().addListener(ShardCreateEvent.class, e -> hookDomainTick(e.shard()));
         MinecraftServer.getGlobalEventHandler().addListener(ShardDestroyEvent.class, e -> {

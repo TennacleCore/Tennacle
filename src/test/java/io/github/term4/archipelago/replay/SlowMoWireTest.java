@@ -1,13 +1,13 @@
 package io.github.term4.archipelago.replay;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSnapshot;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSystem;
-import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
-import io.github.term4.minestommechanics.mechanics.projectile.types.Snowball;
-import io.github.term4.minestommechanics.presets.vanilla18.Vanilla18;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.mechanics.projectile.types.Snowball;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -34,27 +34,27 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Wire-level check: what a viewer actually receives for a replayed mm projectile at 0.25x. */
+/** Wire-level check: what a viewer actually receives for a replayed polyp projectile at 0.25x. */
 class SlowMoWireTest extends HeadlessServerTest {
 
-    private static MinestomMechanics mm;
+    private static Polyp polyp;
     private static ProjectileSystem projectiles;
 
     @BeforeAll
     static void mechanics() {
-        mm = MinestomMechanics.getInstance();
-        mm.init();
+        polyp = Polyp.getInstance();
+        polyp.init();
         ShardBridge.install();
         ReplayBridge.install();
         // wire tests emulate specific generations: viewer names carry the split
         Replay.legacyViewers(p -> p.getUsername().contains("Legacy"));
-        projectiles = new ProjectileSystem(mm, Vanilla18.projectiles());
+        projectiles = new ProjectileSystem(polyp, Vanilla18.projectiles());
         EntityDescriptors.describeEntity(e -> {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);
             return stamp != null ? stamp.get() : null;
         });
-        EntityDescriptors.reviveEntity("mm:item", DroppedItemEntity::fromSave);
-        EntityDescriptors.reviveEntity("mm:projectile", projectiles::fromSave);
+        EntityDescriptors.reviveEntity("polyp:item", DroppedItemEntity::fromSave);
+        EntityDescriptors.reviveEntity("polyp:projectile", projectiles::fromSave);
     }
 
     private static void tick() {
@@ -271,7 +271,7 @@ class SlowMoWireTest extends HeadlessServerTest {
     }
     /** The HYPIXEL preset broadcasts projectile velocity per tick live (velocitySyncInterval > 0) - the
      *  vanilla18-only harness never saw that writer fight the applier's legs. A parked twin must have ONE
-     *  velocity author: every VEL on the wire is the applier's scaled leg, never mm's internal state. */
+     *  velocity author: every VEL on the wire is the applier's scaled leg, never polyp's internal state. */
     @Test
     void hypixelPresetTwinHasOneVelocityAuthor() {
         Shard game = new Shard(instance);
@@ -283,7 +283,7 @@ class SlowMoWireTest extends HeadlessServerTest {
         try {
             tick();
             ball = projectiles.launch(ProjectileSnapshot.of(thrower.player, Snowball.INSTANCE)
-                    .withConfig(io.github.term4.minestommechanics.presets.hypixel.Projectiles.config()));
+                    .withConfig(io.github.term4.polyp.presets.hypixel.Projectiles.config()));
             assertNotNull(ball);
             MinecraftServer.getSchedulerManager().processTickEnd();
             long time = System.currentTimeMillis();
@@ -327,7 +327,7 @@ class SlowMoWireTest extends HeadlessServerTest {
                 viewer.sent.clear();
             }
             System.out.println("[hypixel-wire] maxVel=" + String.format("%.3f", maxVel));
-            // recorded snowball ~1.5 b/t; every broadcast must be the SCALED leg (~0.375), never mm's
+            // recorded snowball ~1.5 b/t; every broadcast must be the SCALED leg (~0.375), never polyp's
             // internal full-speed state (the captured chaotic-legs bug)
             assertTrue(maxVel > 0.01 && maxVel < 0.8, "one scaled velocity author (max " + maxVel + ")");
         } finally {

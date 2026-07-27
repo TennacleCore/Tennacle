@@ -1,15 +1,15 @@
 package io.github.term4.archipelago.replay;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.mechanics.explosion.ExplosionSystem;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSnapshot;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSystem;
-import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
-import io.github.term4.minestommechanics.mechanics.projectile.types.Snowball;
-import io.github.term4.minestommechanics.entity.PrimedTnt;
-import io.github.term4.minestommechanics.presets.mmc18.Explosion;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.mechanics.projectile.types.Snowball;
+import io.github.term4.polyp.entity.PrimedTnt;
+import io.github.term4.polyp.presets.mmc18.Explosion;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -44,21 +44,21 @@ class ResyncPathWireTest extends HeadlessServerTest {
 
     @BeforeAll
     static void mechanics() {
-        MinestomMechanics mm = MinestomMechanics.getInstance();
-        mm.init();
+        Polyp polyp = Polyp.getInstance();
+        polyp.init();
         ShardBridge.install();
         ReplayBridge.install();
         // wire tests emulate specific generations: viewer names carry the split
         Replay.legacyViewers(p -> p.getUsername().contains("Legacy"));
-        explosions = new ExplosionSystem(mm, Explosion.config());
-        projectiles = new ProjectileSystem(mm, io.github.term4.minestommechanics.presets.hypixel.Projectiles.config());
+        explosions = new ExplosionSystem(polyp, Explosion.config());
+        projectiles = new ProjectileSystem(polyp, io.github.term4.polyp.presets.hypixel.Projectiles.config());
         EntityDescriptors.describeEntity(e -> {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);
             return stamp != null ? stamp.get() : null;
         });
-        EntityDescriptors.reviveEntity("mm:item", DroppedItemEntity::fromSave);
-        EntityDescriptors.reviveEntity("mm:projectile", projectiles::fromSave);
-        EntityDescriptors.reviveEntity("mm:tnt", d -> PrimedTnt.fromSave(explosions, d));
+        EntityDescriptors.reviveEntity("polyp:item", DroppedItemEntity::fromSave);
+        EntityDescriptors.reviveEntity("polyp:projectile", projectiles::fromSave);
+        EntityDescriptors.reviveEntity("polyp:tnt", d -> PrimedTnt.fromSave(explosions, d));
     }
 
     private static void tick() {
@@ -82,7 +82,7 @@ class ResyncPathWireTest extends HeadlessServerTest {
         try {
             tick();
             ball = projectiles.launch(ProjectileSnapshot.of(thrower.player, Snowball.INSTANCE)
-                    .withConfig(io.github.term4.minestommechanics.presets.hypixel.Projectiles.config()));
+                    .withConfig(io.github.term4.polyp.presets.hypixel.Projectiles.config()));
             assertNotNull(ball);
             launchSpeed = ball.velocityBt().length();
             MinecraftServer.getSchedulerManager().processTickEnd();
@@ -494,8 +494,8 @@ class ResyncPathWireTest extends HeadlessServerTest {
         double recordedMinY = 999, recordedEndY = 0;
         try {
             tick();
-            bobber = projectiles.launch(ProjectileSnapshot.of(angler.player, io.github.term4.minestommechanics.mechanics.projectile.types.FishingBobber.INSTANCE)
-                    .withConfig(io.github.term4.minestommechanics.presets.vanilla18.Vanilla18.projectiles()));
+            bobber = projectiles.launch(ProjectileSnapshot.of(angler.player, io.github.term4.polyp.mechanics.projectile.types.FishingBobber.INSTANCE)
+                    .withConfig(io.github.term4.polyp.presets.vanilla18.Vanilla18.projectiles()));
             assertNotNull(bobber);
             MinecraftServer.getSchedulerManager().processTickEnd();
             for (int i = 0; i < 60; i++) {
@@ -565,8 +565,8 @@ class ResyncPathWireTest extends HeadlessServerTest {
         ProjectileEntity bobber = null;
         try {
             tick();
-            bobber = projectiles.launch(ProjectileSnapshot.of(angler.player, io.github.term4.minestommechanics.mechanics.projectile.types.FishingBobber.INSTANCE)
-                    .withConfig(io.github.term4.minestommechanics.presets.vanilla18.Vanilla18.projectiles()));
+            bobber = projectiles.launch(ProjectileSnapshot.of(angler.player, io.github.term4.polyp.mechanics.projectile.types.FishingBobber.INSTANCE)
+                    .withConfig(io.github.term4.polyp.presets.vanilla18.Vanilla18.projectiles()));
             assertNotNull(bobber);
             MinecraftServer.getSchedulerManager().processTickEnd(); // the launch routing transfers end-of-tick
             assertTrue(bobber.getTag(io.github.term4.archipelago.world.WorldAccess.ENTITY_TAG) == game,
@@ -607,11 +607,11 @@ class ResyncPathWireTest extends HeadlessServerTest {
                     game.setBlock(new Pos(x, y, z), net.minestom.server.instance.block.Block.WATER);
         ProjectileEntity bobber = null;
         try {
-            var config = io.github.term4.minestommechanics.presets.mmc18.Projectiles.config();
-            bobber = new io.github.term4.minestommechanics.mechanics.projectile.ProjectileSystem(
-                    io.github.term4.minestommechanics.MinestomMechanics.getInstance(), config)
+            var config = io.github.term4.polyp.presets.mmc18.Projectiles.config();
+            bobber = new io.github.term4.polyp.mechanics.projectile.ProjectileSystem(
+                    io.github.term4.polyp.Polyp.getInstance(), config)
                     .launch(ProjectileSnapshot.of(angler.player,
-                            io.github.term4.minestommechanics.mechanics.projectile.types.FishingBobber.INSTANCE)
+                            io.github.term4.polyp.mechanics.projectile.types.FishingBobber.INSTANCE)
                             .withConfig(config));
             assertNotNull(bobber);
             double maxZ = 0, endY = 0;
@@ -652,8 +652,8 @@ class ResyncPathWireTest extends HeadlessServerTest {
         try {
             tick();
             arrow = projectiles.launch(ProjectileSnapshot.of(thrower.player,
-                    io.github.term4.minestommechanics.mechanics.projectile.types.Arrow.INSTANCE)
-                    .withConfig(io.github.term4.minestommechanics.presets.vanilla18.Vanilla18.projectiles()));
+                    io.github.term4.polyp.mechanics.projectile.types.Arrow.INSTANCE)
+                    .withConfig(io.github.term4.polyp.presets.vanilla18.Vanilla18.projectiles()));
             assertNotNull(arrow);
             MinecraftServer.getSchedulerManager().processTickEnd();
             long time = System.currentTimeMillis();

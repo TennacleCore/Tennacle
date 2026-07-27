@@ -1,14 +1,14 @@
 package io.github.term4.archipelago.ticking;
 
-import io.github.term4.minestommechanics.mechanics.damage.DamageSnapshot;
-import io.github.term4.minestommechanics.mechanics.damage.DamageSystem;
-import io.github.term4.minestommechanics.mechanics.damage.types.projectile.ProjectileDamage;
-import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
-import io.github.term4.minestommechanics.util.tick.TickContext;
-import io.github.term4.minestommechanics.util.tick.TickPhase;
-import io.github.term4.minestommechanics.util.tick.TickSystem;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
+import io.github.term4.polyp.mechanics.damage.DamageSystem;
+import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
+import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.util.tick.TickContext;
+import io.github.term4.polyp.util.tick.TickPhase;
+import io.github.term4.polyp.util.tick.TickSystem;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The mm tick generalization across the bridge: a domain shard's world pass runs mm's registered work on the
+ * The polyp tick generalization across the bridge: a domain shard's world pass runs polyp's registered work on the
  * shard's clock, the main pass leaves its entities alone, and covered projectile/drop classes tick on the clock.
  */
 class DomainTickBridgeTest extends HeadlessServerTest {
@@ -88,7 +88,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
         }
     }
 
-    /** A PLAIN shard adopted onto a live domain mid-life must gain the mm world pass - its entities leave the main pass the moment they become domain-owned. */
+    /** A PLAIN shard adopted onto a live domain mid-life must gain the polyp world pass - its entities leave the main pass the moment they become domain-owned. */
     @Test
     void plainShardReclockedOntoADomainGainsTheWorldPass() {
         ShardBridge.installDomainTicking();
@@ -173,7 +173,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
         ShardBridge.installDomainTicking();
         MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
         ShardManager shards = new ShardManager();
-        // per member: every clock thread whose EXTERNAL pass claimed it - mm systems iterating global
+        // per member: every clock thread whose EXTERNAL pass claimed it - polyp systems iterating global
         // collections (hit queues, stuck arrows, digs) act on exactly the members a pass owns
         Map<String, Set<String>> claimedBy = new ConcurrentHashMap<>();
         List<Player> members = new CopyOnWriteArrayList<>();

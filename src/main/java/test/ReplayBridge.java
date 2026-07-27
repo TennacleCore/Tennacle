@@ -1,10 +1,10 @@
 package test;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.api.event.projectile.ProjectileHitEvent;
-import io.github.term4.minestommechanics.api.event.projectile.ProjectileLaunchEvent;
-import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
-import io.github.term4.minestommechanics.util.Directions;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.api.event.projectile.ProjectileHitEvent;
+import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.util.Directions;
 import io.github.term4.archipelago.replay.Recording;
 import io.github.term4.archipelago.replay.Replay;
 import io.github.term4.archipelago.replay.channel.EventDispatcher;
@@ -20,9 +20,9 @@ import net.minestom.server.event.EventNode;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Template glue between MinestomMechanics and archipelago-replay - everything mechanics-flavored a replay needs,
+ * Template glue between Polyp and archipelago-replay - everything mechanics-flavored a replay needs,
  * contributed purely via {@link Replay} registration (an application using both libraries copies this class).
- * Playback is puppet-only; the save/load revivers ({@code mm:item}/{@code mm:projectile}) are registered
+ * Playback is puppet-only; the save/load revivers ({@code polyp:item}/{@code polyp:projectile}) are registered
  * separately for shard saves.
  */
 public final class ReplayBridge {
@@ -37,7 +37,7 @@ public final class ReplayBridge {
         installed = true;
 
         // the twin wire is generation-split (legacy viewers also get per-tick anchors and pins)
-        Replay.legacyViewers(p -> MinestomMechanics.getInstance().clientInfo().isLegacy(p));
+        Replay.legacyViewers(p -> Polyp.getInstance().clientInfo().isLegacy(p));
 
         // launches recorded at end of THIS tick (the stamp exists, nothing can hit before its first move tick) -
         // a per-tick sampler alone misses projectiles that hit and remove themselves within one tick. The ASYNC

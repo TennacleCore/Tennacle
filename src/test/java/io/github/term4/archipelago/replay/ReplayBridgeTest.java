@@ -1,15 +1,15 @@
 package io.github.term4.archipelago.replay;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.api.event.projectile.ProjectileLaunchEvent;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSnapshot;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSystem;
-import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
-import io.github.term4.minestommechanics.mechanics.projectile.types.FishingBobber;
-import io.github.term4.minestommechanics.mechanics.projectile.types.Snowball;
-import io.github.term4.minestommechanics.presets.vanilla18.Vanilla18;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.mechanics.projectile.types.FishingBobber;
+import io.github.term4.polyp.mechanics.projectile.types.Snowball;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.replay.channel.Recorded;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.storage.EntityDescriptors;
@@ -49,23 +49,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ReplayBridgeTest extends HeadlessServerTest {
 
-    private static MinestomMechanics mm;
+    private static Polyp polyp;
     private static ProjectileSystem projectiles;
 
     @BeforeAll
     static void mechanics() {
-        if (mm != null) return;
-        mm = MinestomMechanics.getInstance();
-        mm.init(); // internally guarded - safe alongside ShardBridgeTest's boot
+        if (polyp != null) return;
+        polyp = Polyp.getInstance();
+        polyp.init(); // internally guarded - safe alongside ShardBridgeTest's boot
         ShardBridge.install();
         ReplayBridge.install();
-        projectiles = new ProjectileSystem(mm, Vanilla18.projectiles());
+        projectiles = new ProjectileSystem(polyp, Vanilla18.projectiles());
         EntityDescriptors.describeEntity(e -> {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);
             return stamp != null ? stamp.get() : null;
         });
-        EntityDescriptors.reviveEntity("mm:item", DroppedItemEntity::fromSave);
-        EntityDescriptors.reviveEntity("mm:projectile", projectiles::fromSave);
+        EntityDescriptors.reviveEntity("polyp:item", DroppedItemEntity::fromSave);
+        EntityDescriptors.reviveEntity("polyp:projectile", projectiles::fromSave);
     }
 
     private static void tick() {
@@ -87,7 +87,7 @@ class ReplayBridgeTest extends HeadlessServerTest {
             Recording rec = Replay.record(stage);
             DroppedItemEntity real = DroppedItemEntity.spawn(instance, new Pos(0.5, 70, 0.5),
                     new Vec(0.15, 0.2, 0.1), ItemStack.of(Material.GOLDEN_APPLE), null, 40,
-                    io.github.term4.minestommechanics.vri.ItemSpawnEvent.Cause.PLAYER_DROP, viewer.player);
+                    io.github.term4.polyp.vri.ItemSpawnEvent.Cause.PLAYER_DROP, viewer.player);
             assertNotNull(real);
             long deadline = System.currentTimeMillis() + 4000;
             while (rec.tick() < 40 && System.currentTimeMillis() < deadline) Thread.onSpinWait();
@@ -156,7 +156,7 @@ class ReplayBridgeTest extends HeadlessServerTest {
 
     @Test
     void revivedItemTwinsRideTheRecordedTrackSmoothly() {
-        ShardBridge.installDomainTicking(); // the playground's config: covered mm entities tick on the clocks
+        ShardBridge.installDomainTicking(); // the playground's config: covered polyp entities tick on the clocks
         io.github.term4.archipelago.ticking.ExecutionDomain stageClock = io.github.term4.archipelago.ticking.ExecutionDomain.create();
         io.github.term4.archipelago.ticking.ExecutionDomain theaterClock = io.github.term4.archipelago.ticking.ExecutionDomain.create();
         Shard stage = new Shard(instance, stageClock);
@@ -167,7 +167,7 @@ class ReplayBridgeTest extends HeadlessServerTest {
             Recording rec = Replay.record(stage);
             DroppedItemEntity real = DroppedItemEntity.spawn(instance, new Pos(0.5, 70, 0.5),
                     new Vec(0.15, 0.2, 0.1), ItemStack.of(Material.GOLDEN_APPLE), null, 40,
-                    io.github.term4.minestommechanics.vri.ItemSpawnEvent.Cause.PLAYER_DROP, dropper.player);
+                    io.github.term4.polyp.vri.ItemSpawnEvent.Cause.PLAYER_DROP, dropper.player);
             assertNotNull(real);
             long deadline = System.currentTimeMillis() + 4000;
             while (rec.tick() < 40 && System.currentTimeMillis() < deadline) Thread.onSpinWait();

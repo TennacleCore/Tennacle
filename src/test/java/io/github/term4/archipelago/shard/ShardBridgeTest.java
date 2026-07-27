@@ -1,11 +1,11 @@
 package io.github.term4.archipelago.shard;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.api.event.explosion.ExplosionEvent;
-import io.github.term4.minestommechanics.mechanics.explosion.ExplosionSystem;
-import io.github.term4.minestommechanics.presets.vanilla18.Explosion;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
+import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
+import io.github.term4.polyp.presets.vanilla18.Explosion;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.archipelago.storage.polar.PolarShardCodec;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -34,11 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 /** The mechanics<->Archipelago glue end to end: bindings resolve through the adapter and gameplay scopes to the shard. */
 class ShardBridgeTest extends HeadlessServerTest {
 
-    private static MinestomMechanics mm;
+    private static Polyp polyp;
 
     @BeforeAll
     static void mechanics() {
-        mm = MechanicsBoot.ensure();
+        polyp = MechanicsBoot.ensure();
     }
 
     @Test
@@ -70,7 +70,7 @@ class ShardBridgeTest extends HeadlessServerTest {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);
             return stamp != null ? stamp.get() : null;
         });
-        EntityDescriptors.reviveEntity("mm:item", DroppedItemEntity::fromSave);
+        EntityDescriptors.reviveEntity("polyp:item", DroppedItemEntity::fromSave);
 
         Shard game = new Shard(instance);
         DroppedItemEntity drop = new DroppedItemEntity(ItemStack.of(Material.DIAMOND, 3), DroppedItemEntity.Model.LEGACY);
@@ -112,7 +112,7 @@ class ShardBridgeTest extends HeadlessServerTest {
         node.addListener(ExplosionEvent.class, e -> captured.addAll(e.targets()));
         MinecraftServer.getGlobalEventHandler().addChild(node);
         try {
-            new ExplosionSystem(mm, Explosion.config()).explode(world, center, 4.0f, null, null);
+            new ExplosionSystem(polyp, Explosion.config()).explode(world, center, 4.0f, null, null);
         } finally {
             MinecraftServer.getGlobalEventHandler().removeChild(node);
         }

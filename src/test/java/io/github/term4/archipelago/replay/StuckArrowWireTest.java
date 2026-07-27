@@ -1,13 +1,13 @@
 package io.github.term4.archipelago.replay;
 
-import io.github.term4.minestommechanics.MinestomMechanics;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSnapshot;
-import io.github.term4.minestommechanics.mechanics.projectile.ProjectileSystem;
-import io.github.term4.minestommechanics.mechanics.projectile.entities.ProjectileEntity;
-import io.github.term4.minestommechanics.mechanics.projectile.types.Arrow;
-import io.github.term4.minestommechanics.presets.vanilla18.Vanilla18;
-import io.github.term4.minestommechanics.entity.DroppedItemEntity;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.mechanics.projectile.types.Arrow;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -45,19 +45,19 @@ class StuckArrowWireTest extends HeadlessServerTest {
 
     @BeforeAll
     static void mechanics() {
-        MinestomMechanics mm = MinestomMechanics.getInstance();
-        mm.init();
+        Polyp polyp = Polyp.getInstance();
+        polyp.init();
         ShardBridge.install();
         ReplayBridge.install();
         // wire tests emulate specific generations: viewer names carry the split
         Replay.legacyViewers(p -> p.getUsername().contains("Legacy"));
-        projectiles = new ProjectileSystem(mm, Vanilla18.projectiles());
+        projectiles = new ProjectileSystem(polyp, Vanilla18.projectiles());
         EntityDescriptors.describeEntity(e -> {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);
             return stamp != null ? stamp.get() : null;
         });
-        EntityDescriptors.reviveEntity("mm:item", DroppedItemEntity::fromSave);
-        EntityDescriptors.reviveEntity("mm:projectile", projectiles::fromSave);
+        EntityDescriptors.reviveEntity("polyp:item", DroppedItemEntity::fromSave);
+        EntityDescriptors.reviveEntity("polyp:projectile", projectiles::fromSave);
     }
 
     private static void tick() {
@@ -109,7 +109,7 @@ class StuckArrowWireTest extends HeadlessServerTest {
             assertNotNull(twin, "the twin rose");
             long time = System.currentTimeMillis();
             int t = 0;
-            // parked twins never run mm's stick transitions: the rest contract is the arrival's
+            // parked twins never run polyp's stick transitions: the rest contract is the arrival's
             // IN_GROUND freeze at the recorded stick point
             for (; t < 80 && !(twin.getEntityMeta() instanceof
                     net.minestom.server.entity.metadata.projectile.AbstractArrowMeta m && m.isInGround()); t++) {
@@ -166,7 +166,7 @@ class StuckArrowWireTest extends HeadlessServerTest {
             viewer.player.remove();
         }
     }
-    /** At fractional rates the twin is a PHANTOM (it never mm-sticks): its rest must still advertise
+    /** At fractional rates the twin is a PHANTOM (it never polyp-sticks): its rest must still advertise
      *  IN_GROUND, or modern clients aim the arrow at its zero velocity - the fully-sideways look. */
     @Test
     void fractionalRestAdvertisesInGround() {
@@ -213,7 +213,7 @@ class StuckArrowWireTest extends HeadlessServerTest {
                 if (!twin.isRemoved()) twin.tick(time + i * 50L);
                 tick();
             }
-            assertFalse(twin instanceof ProjectileEntity, "puppet-only: no mm sim to stick");
+            assertFalse(twin instanceof ProjectileEntity, "puppet-only: no polyp sim to stick");
             assertTrue(((AbstractArrowMeta) twin.getEntityMeta()).isInGround(),
                     "rest advertises IN_GROUND (a zero-velocity arrow aims sideways without it)");
         } finally {
@@ -255,7 +255,7 @@ class StuckArrowWireTest extends HeadlessServerTest {
         Shard theater = new Shard(instance);
         FakePlayer viewer = FakePlayer.connect(instance, new Pos(8.5, 70, 38.5), "ReverseViewer");
         FakePlayer legacy = FakePlayer.connect(instance, new Pos(6.5, 70, 38.5), "ReverseLegacy");
-        io.github.term4.minestommechanics.MinestomMechanics.getInstance().clientInfo()
+        io.github.term4.polyp.Polyp.getInstance().clientInfo()
                 .setProxyDetails(legacy.player, "{\"version\":47}");
         theater.join(viewer.player);
         theater.join(legacy.player);

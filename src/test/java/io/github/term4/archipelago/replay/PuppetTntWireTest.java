@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A puppet TNT twin at rate 1 rides the VELOCITY wire: its client integrates each leg (the bounce arc
  *  renders), never a zero-velocity churn per tick (which stripped the integration and collapsed bounces
- *  to 20Hz steps). TNT carries no mm save stamp, so its twin is always the visual puppet. */
+ *  to 20Hz steps). TNT carries no polyp save stamp, so its twin is always the visual puppet. */
 class PuppetTntWireTest extends HeadlessServerTest {
 
     @org.junit.jupiter.api.BeforeAll

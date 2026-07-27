@@ -1,7 +1,7 @@
 package io.github.term4.archipelago.ticking;
 
-import io.github.term4.minestommechanics.platform.player.OptimizedPlayer;
-import io.github.term4.minestommechanics.world.MechanicsWorld;
+import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -65,8 +65,8 @@ class DomainPlayerBridgeTest extends HeadlessServerTest {
             await("and keeps driving it", () -> player.ticks.get() >= before + 3);
 
             long gated = player.gated.get();
-            player.tick(System.currentTimeMillis()); // a stale driver (this thread): the mm gate must no-op it
-            assertEquals(gated + 1, player.gated.get(), "the ownership gate mirrors into mm's covered classes");
+            player.tick(System.currentTimeMillis()); // a stale driver (this thread): the polyp gate must no-op it
+            assertEquals(gated + 1, player.gated.get(), "the ownership gate mirrors into polyp's covered classes");
 
             shard.leave(player);
             await("leave hands the player back to the server", () -> ExecutionDomain.of(player) == null);
