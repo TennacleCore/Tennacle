@@ -34,7 +34,7 @@ final class Playground {
     static InstanceContainer createWorld() {
         InstanceContainer world = MinecraftServer.getInstanceManager().createInstanceContainer();
         world.setExplosionSupplier(Mechanics.explosions.supplier()); // route instance.explode(...) through the system
-        world.setGenerator(unit -> unit.modifier().fillHeight(0, 40, Block.GRASS_BLOCK));
+        world.setGenerator(unit -> unit.modifier().fillHeight(0, 40, Block.OBSIDIAN));
         world.setChunkSupplier(LightingChunk::new);
         buildTestPads(world);
         return world;

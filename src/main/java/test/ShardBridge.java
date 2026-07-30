@@ -3,7 +3,7 @@ package test;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.polyp.world.ExternallyTickable;
-import io.github.term4.polyp.platform.fixes.client.SelfPlacementFix;
+import io.github.term4.polyp.platform.fixes.client.LegacySelfPlacementFix;
 import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.platform.player.PlayerConfigApplier;
 import io.github.term4.polyp.platform.player.OptimizedPlayer;
@@ -87,7 +87,7 @@ public final class ShardBridge {
             });
         });
         // order-independent: the routing re-applies this decorator whenever it (re)installs its listener
-        Shard.decoratePlacement(SelfPlacementFix::wrap);
+        Shard.decoratePlacement(LegacySelfPlacementFix::wrap);
         // a shard hop re-points the profile scope chain with NO profile change and NO spawn, so the player-platform
         // push (simulated-TPS tick rate, compat, platform config) would keep the previous world's state
         MinecraftServer.getGlobalEventHandler().addListener(ShardJoinEvent.class, e -> repush(e.player()));
