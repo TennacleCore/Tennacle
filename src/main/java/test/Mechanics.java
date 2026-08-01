@@ -10,6 +10,7 @@ import io.github.term4.polyp.mechanics.blocking.BlockingSystem;
 import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
+import io.github.term4.polyp.mechanics.item.ItemDamageSystem;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
@@ -19,6 +20,7 @@ import io.github.term4.polyp.platform.fixes.FixesSystem;
 import io.github.term4.polyp.presets.Preset;
 import io.github.term4.polyp.entity.PrimedTnt;
 import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.presets.scrims18.Scrims18;
 import io.github.term4.polyp.vri.Vri;
 import io.github.term4.polyp.vri.VriConfig;
 import io.github.term4.polyp.world.MechanicsWorld;
@@ -30,7 +32,7 @@ import net.minestom.server.entity.Player;
 final class Mechanics {
 
     /** The active preset - swap this ONE line to change the whole setup (mechanics profile + the primed-TNT entity, together). */
-    static final Preset PRESET = Preset.HYPIXEL;
+    static final Preset PRESET = Preset.MMC18;
 
     static ExplosionSystem explosions;
     static ProjectileSystem projectiles;
@@ -63,6 +65,7 @@ final class Mechanics {
         FixesSystem.install(polyp); // legacy-client fix set (targeted placement rollback, self-place, equipment, ...)
         Vri.install(polyp, VriConfig.all()); // crack overlay, break FX, drops, pickup - all shard-aware
         explosions = ExplosionSystem.install(polyp);
+        ItemDamageSystem.install(polyp); // ground loot: explosions, fire, lava, cactus, void
 
         ShardBridge.install();
         ShardBridge.installDomainTicking();

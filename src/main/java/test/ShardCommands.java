@@ -76,7 +76,8 @@ final class ShardCommands {
         shard.addSyntax((sender, ctx) -> {
             String n = ctx.get(name);
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
-            shards.create(world, n, ExecutionDomain.create()); // domain-bound: this game ticks on its own thread
+            // domain-bound: this game ticks on its own thread. seeded off the base, same cloner as fork/flatten
+            shards.create(world, n, ExecutionDomain.create(), ShardBridge::copyEntity);
             Msg.shard(sender, "created ", Msg.v(n), " on its own clock - ", Msg.run("/shard join " + n));
         }, create, name);
 
