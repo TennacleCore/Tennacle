@@ -118,12 +118,12 @@ class TntBounceReplayTest extends HeadlessServerTest {
                     } else if (pk instanceof EntityPositionAndRotationPacket p && p.entityId() == id) {
                         clientPos = clientPos.add(p.deltaX() / 4096.0, p.deltaY() / 4096.0, p.deltaZ() / 4096.0);
                     } else if (pk instanceof EntityTeleportPacket p && p.entityId() == id) {
-                        maxCorrection = Math.max(maxCorrection, clientPos.distance(Pos.fromPoint(p.position())));
-                        clientPos = Pos.fromPoint(p.position());
+                        maxCorrection = Math.max(maxCorrection, clientPos.distance(p.position().asPos()));
+                        clientPos = p.position().asPos();
                         wirePackets++;
                     } else if (pk instanceof EntityPositionSyncPacket p && p.entityId() == id) {
-                        maxCorrection = Math.max(maxCorrection, clientPos.distance(Pos.fromPoint(p.position())));
-                        clientPos = Pos.fromPoint(p.position());
+                        maxCorrection = Math.max(maxCorrection, clientPos.distance(p.position().asPos()));
+                        clientPos = p.position().asPos();
                         wirePackets++;
                     }
                 }
@@ -312,9 +312,9 @@ class TntBounceReplayTest extends HeadlessServerTest {
                     } else if (pk instanceof EntityPositionAndRotationPacket p && p.entityId() == id) {
                         clientPos = clientPos.add(p.deltaX() / 4096.0, p.deltaY() / 4096.0, p.deltaZ() / 4096.0);
                     } else if (pk instanceof EntityTeleportPacket p && p.entityId() == id) {
-                        clientPos = Pos.fromPoint(p.position());
+                        clientPos = p.position().asPos();
                     } else if (pk instanceof EntityPositionSyncPacket p && p.entityId() == id) {
-                        clientPos = Pos.fromPoint(p.position());
+                        clientPos = p.position().asPos();
                     }
                 }
                 viewer.sent.clear();
@@ -395,12 +395,12 @@ class TntBounceReplayTest extends HeadlessServerTest {
                         anchor = anchor.add(p.deltaX() / 4096.0, p.deltaY() / 4096.0, p.deltaZ() / 4096.0);
                         clientPos = anchor;
                     } else if (pk instanceof EntityTeleportPacket p && p.entityId() == id) {
-                        maxCorrection = Math.max(maxCorrection, clientPos.distance(Pos.fromPoint(p.position())));
-                        anchor = Pos.fromPoint(p.position());
+                        maxCorrection = Math.max(maxCorrection, clientPos.distance(p.position().asPos()));
+                        anchor = p.position().asPos();
                         clientPos = anchor;
                     } else if (pk instanceof EntityPositionSyncPacket p && p.entityId() == id) {
-                        maxCorrection = Math.max(maxCorrection, clientPos.distance(Pos.fromPoint(p.position())));
-                        anchor = Pos.fromPoint(p.position());
+                        maxCorrection = Math.max(maxCorrection, clientPos.distance(p.position().asPos()));
+                        anchor = p.position().asPos();
                         clientPos = anchor;
                     }
                 }

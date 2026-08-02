@@ -20,7 +20,6 @@ import io.github.term4.polyp.platform.fixes.FixesSystem;
 import io.github.term4.polyp.presets.Preset;
 import io.github.term4.polyp.entity.PrimedTnt;
 import io.github.term4.polyp.entity.DroppedItemEntity;
-import io.github.term4.polyp.presets.scrims18.Scrims18;
 import io.github.term4.polyp.vri.Vri;
 import io.github.term4.polyp.vri.VriConfig;
 import io.github.term4.polyp.world.MechanicsWorld;
@@ -32,7 +31,7 @@ import net.minestom.server.entity.Player;
 final class Mechanics {
 
     /** The active preset - swap this ONE line to change the whole setup (mechanics profile + the primed-TNT entity, together). */
-    static final Preset PRESET = Preset.MMC18;
+    static final Preset PRESET = Preset.HYPIXEL_BEDWARS;
 
     static ExplosionSystem explosions;
     static ProjectileSystem projectiles;

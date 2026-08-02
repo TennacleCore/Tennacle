@@ -236,11 +236,11 @@ class SlowMoWireTest extends HeadlessServerTest {
                         clientPos = clientPos.add(p.deltaX() / 4096.0, p.deltaY() / 4096.0, p.deltaZ() / 4096.0);
                         legacyY += p.deltaY() / 4096.0;
                     } else if (pk instanceof EntityTeleportPacket p && p.entityId() == id) {
-                        clientPos = Pos.fromPoint(p.position());
+                        clientPos = p.position().asPos();
                         legacyY = p.position().y();
                         legacyImpactY = p.position().y();
                     } else if (pk instanceof EntityPositionSyncPacket p && p.entityId() == id) {
-                        clientPos = Pos.fromPoint(p.position());
+                        clientPos = p.position().asPos();
                         legacyY = p.position().y();
                         legacyImpactY = p.position().y();
                     } else if (pk instanceof DestroyEntitiesPacket p && p.entityIds().contains(id)) {
@@ -401,7 +401,7 @@ class SlowMoWireTest extends HeadlessServerTest {
                     if (pk instanceof EntityPositionSyncPacket p && p.entityId() == id) {
                         at = new Pos(p.position().x(), p.position().y(), p.position().z());
                     } else if (pk instanceof EntityTeleportPacket p && p.entityId() == id) {
-                        at = Pos.fromPoint(p.position());
+                        at = p.position().asPos();
                     }
                     if (at == null) continue;
                     if (last != null) {

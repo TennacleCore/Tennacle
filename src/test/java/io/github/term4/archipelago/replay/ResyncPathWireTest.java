@@ -200,11 +200,11 @@ class ResyncPathWireTest extends HeadlessServerTest {
                     if (pk instanceof EntityVelocityPacket p && p.entityId() == id) {
                         clientVel = p.velocity();
                     } else if (pk instanceof EntityTeleportPacket p && p.entityId() == id) {
-                        maxJump = Math.max(maxJump, clientPos.distance(Pos.fromPoint(p.position())));
-                        clientPos = Pos.fromPoint(p.position());
+                        maxJump = Math.max(maxJump, clientPos.distance(p.position().asPos()));
+                        clientPos = p.position().asPos();
                     } else if (pk instanceof EntityPositionSyncPacket p && p.entityId() == id) {
-                        maxJump = Math.max(maxJump, clientPos.distance(Pos.fromPoint(p.position())));
-                        clientPos = Pos.fromPoint(p.position());
+                        maxJump = Math.max(maxJump, clientPos.distance(p.position().asPos()));
+                        clientPos = p.position().asPos();
                     }
                 }
                 viewer.sent.clear();
@@ -707,10 +707,10 @@ class ResyncPathWireTest extends HeadlessServerTest {
                         client = new Pos(anchorX, anchorY, anchorZ);
                     } else if (pk instanceof EntityTeleportPacket p && p.entityId() == id) {
                         anchorX = p.position().x(); anchorY = p.position().y(); anchorZ = p.position().z();
-                        client = Pos.fromPoint(p.position());
+                        client = p.position().asPos();
                     } else if (pk instanceof EntityPositionSyncPacket p && p.entityId() == id) {
                         anchorX = p.position().x(); anchorY = p.position().y(); anchorZ = p.position().z();
-                        client = Pos.fromPoint(p.position());
+                        client = p.position().asPos();
                     }
                 }
                 viewer.sent.clear();
