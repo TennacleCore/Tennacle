@@ -60,6 +60,18 @@ final class DevCommands {
         });
         commands.register(gms);
 
+        // /fly: toggle survival flight (double-jump to lift); while flying, fall damage is exempt. A gamemode
+        // switch clears allowFlying (Minestom stamps it from the mode), so re-run /fly after /gms.
+        Command fly = new Command("fly");
+        fly.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            boolean on = !p.isAllowFlying();
+            p.setAllowFlying(on);
+            if (!on) p.setFlying(false);
+            Msg.tag(p, "fly", "flight: ", Msg.v(on ? "ON" : "OFF"));
+        });
+        commands.register(fly);
+
         // /boom resolves the SHOOTER's world: a shard blast only rocks that game, a main-map one never reaches it
         Command boom = new Command("boom");
         boom.setDefaultExecutor((sender, ctx) -> {
