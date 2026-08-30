@@ -5,13 +5,13 @@ import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
-import io.github.term4.archipelago.world.WorldAccess;
+import io.github.term4.polyp.world.MechanicsWorld;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.network.player.GameProfile;
 import net.minestom.server.network.player.PlayerConnection;
 import org.junit.jupiter.api.Test;
-import test.ShardBridge;
+import test.bridge.ShardBridge;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -49,7 +49,6 @@ class DomainPlayerBridgeTest extends HeadlessServerTest {
 
     @Test
     void playersTickOnTheirShardsClockAndReleaseOnLeave() {
-        ShardBridge.installDomainTicking();
         MinecraftServer.getConnectionManager().setPlayerProvider(CountingPlayer::new);
         ExecutionDomain domain = ExecutionDomain.create();
         try {
@@ -73,7 +72,7 @@ class DomainPlayerBridgeTest extends HeadlessServerTest {
             long released = player.ticks.get();
             LockSupport.parkNanos(200_000_000);
             assertTrue(player.ticks.get() <= released + 1, "no clock drives it anymore (headless)");
-            assertNull(player.getTag(WorldAccess.ENTITY_TAG));
+            assertNull(player.getTag(MechanicsWorld.ENTITY_TAG));
         } finally {
             MinecraftServer.getConnectionManager().setPlayerProvider(null);
             domain.retire();

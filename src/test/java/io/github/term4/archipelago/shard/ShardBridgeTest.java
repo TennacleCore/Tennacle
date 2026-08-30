@@ -21,7 +21,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.ShardBridge;
+import test.bridge.ShardBridge;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,13 +48,13 @@ class ShardBridgeTest extends HeadlessServerTest {
         game.spawn(inShard, new Pos(50, 65, 51)).join();
         LivingEntity outside = zombie(new Pos(50, 65, 49));
         try {
-            assertSame(ShardBridge.adapt(game), MechanicsWorld.of(inShard), "bindings resolve to the cached adapter");
+            assertSame(game, MechanicsWorld.of(inShard), "bindings resolve to the cached adapter");
 
             List<ExplosionEvent.Target> targets = explode(MechanicsWorld.of(instance), new Vec(50, 66, 50));
             assertEquals(1, targets.size(), "a main-world blast never reaches shard members");
             assertSame(outside, targets.get(0).entity());
 
-            targets = explode(ShardBridge.adapt(game), new Vec(50, 66, 50));
+            targets = explode(game, new Vec(50, 66, 50));
             assertEquals(1, targets.size(), "a shard blast targets its own game only");
             assertSame(inShard, targets.get(0).entity());
         } finally {
@@ -96,14 +96,14 @@ class ShardBridgeTest extends HeadlessServerTest {
     }
 
     @Test
-    void bridgeClonerReadsTheMechanicsCopyStamp() {
+    void defaultClonerReadsTheMechanicsCopyStamp() {
         DroppedItemEntity drop = new DroppedItemEntity(ItemStack.of(Material.DIAMOND, 3), null);
-        DroppedItemEntity copy = assertInstanceOf(DroppedItemEntity.class, ShardBridge.copyEntity(drop), "mechanics stamp wins");
+        DroppedItemEntity copy = assertInstanceOf(DroppedItemEntity.class, Shard.copyEntity(drop), "mechanics stamp wins");
         assertEquals(drop.getItemStack(), copy.getItemStack());
 
         LivingEntity plain = new LivingEntity(EntityType.ZOMBIE); // no stamp: falls through to Shard.copyEntity
         plain.setHealth(7f);
-        assertEquals(7f, ((LivingEntity) ShardBridge.copyEntity(plain)).getHealth());
+        assertEquals(7f, ((LivingEntity) Shard.copyEntity(plain)).getHealth());
     }
 
     private List<ExplosionEvent.Target> explode(MechanicsWorld world, Vec center) {

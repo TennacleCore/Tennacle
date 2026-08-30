@@ -26,8 +26,8 @@ import net.minestom.server.network.packet.server.play.EntityTeleportPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.ReplayBridge;
-import test.ShardBridge;
+import test.bridge.ReplayBridge;
+import test.bridge.ShardBridge;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -151,7 +151,7 @@ class ResyncPathWireTest extends HeadlessServerTest {
         try {
             tick();
             tnt = PrimedTnt.spawn(explosions, instance, new BlockVec(190, 76, 190),
-                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null));
+                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null, false));
             game.transfer(tnt);
             for (int i = 0; i < 90; i++) {
                 tnt.tick(0);
@@ -232,7 +232,7 @@ class ResyncPathWireTest extends HeadlessServerTest {
         try {
             tick();
             tnt = PrimedTnt.spawn(explosions, instance, new BlockVec(210, 100, 210),
-                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null));
+                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null, false));
             game.transfer(tnt);
             for (int i = 0; i < 40; i++) {
                 tnt.tick(0);
@@ -569,7 +569,7 @@ class ResyncPathWireTest extends HeadlessServerTest {
                     .withConfig(io.github.term4.polyp.presets.vanilla18.Vanilla18.projectiles()));
             assertNotNull(bobber);
             MinecraftServer.getSchedulerManager().processTickEnd(); // the launch routing transfers end-of-tick
-            assertTrue(bobber.getTag(io.github.term4.archipelago.world.WorldAccess.ENTITY_TAG) == game,
+            assertTrue(bobber.getTag(io.github.term4.polyp.world.MechanicsWorld.ENTITY_TAG) == game,
                     "the launch routed the bobber into the shooter's shard");
             double maxZ = 0;
             for (int i = 0; i < 80 && !bobber.isRemoved(); i++) {
@@ -594,7 +594,6 @@ class ResyncPathWireTest extends HeadlessServerTest {
      *  float in pools) - this deep column must float it, proving the cross-clock shard-water routing. */
     @Test
     void bobberFloatsOnShardWaterInProdShape() {
-        ShardBridge.installDomainTicking();
         io.github.term4.archipelago.ticking.ExecutionDomain clock =
                 io.github.term4.archipelago.ticking.ExecutionDomain.create();
         Shard game = new Shard(instance, clock);
@@ -621,7 +620,7 @@ class ResyncPathWireTest extends HeadlessServerTest {
                 tick(); // main scheduler: the end-of-tick transfer; the DOMAIN ticks the bobber itself
                 maxZ = Math.max(maxZ, bobber.getPosition().z());
                 endY = bobber.getPosition().y();
-                transferred |= bobber.getTag(io.github.term4.archipelago.world.WorldAccess.ENTITY_TAG) == game;
+                transferred |= bobber.getTag(io.github.term4.polyp.world.MechanicsWorld.ENTITY_TAG) == game;
                 if (endY > 69.5 && transferred && Math.abs(bobber.getVelocity().y()) < 1.0) break; // floating
             }
             System.out.println("[prod-water] transferred=" + transferred

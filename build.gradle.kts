@@ -21,7 +21,14 @@ dependencies {
     implementation("net.minestom:minestom:$minestomVersion")
     implementation("io.github.term4:minestom-mechanics:0.2.0")
     implementation("io.github.term4:archipelago:0.2.0")
+    implementation("io.github.term4:polyp-world:0.2.0") // the seam archipelago compiles against; the app provides it
+    implementation("io.github.term4:barnacle:0.1.0")
+    implementation("io.github.term4:grotto:0.1.0")
+    implementation("io.github.term4:bloom:0.1.0")
+    implementation("io.github.term4:canvas:0.1.0")
+    implementation("org.everbuild.blocksandstuff:blocksandstuff-blocks:1.10.2-SNAPSHOT") // local fork, bumped to 26.2
     implementation("dev.hollowcube:polar:1.16.0")
+    compileOnly("it.unimi.dsi:fastutil:8.5.19") // javac reads PolarLoader signatures that reference it
     implementation("com.github.luben:zstd-jni:1.5.7-7")
     runtimeOnly("org.tinylog:tinylog-api:2.8.0-M1")
     runtimeOnly("org.tinylog:tinylog-impl:2.8.0-M1")

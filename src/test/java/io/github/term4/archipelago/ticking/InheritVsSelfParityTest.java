@@ -32,7 +32,7 @@ import net.minestom.server.potion.PotionType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.ShardBridge;
+import test.bridge.ShardBridge;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +58,6 @@ class InheritVsSelfParityTest extends HeadlessServerTest {
     static void mechanics() {
         polyp = MechanicsBoot.ensure();
         CoreChannels.register();
-        ShardBridge.installDomainTicking();
         for (int cx = 62; cx <= 63; cx++) {
             for (int cz = 62; cz <= 63; cz++) instance.loadChunk(cx, cz).join();
         }

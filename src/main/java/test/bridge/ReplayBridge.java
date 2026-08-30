@@ -1,4 +1,4 @@
-package test;
+package test.bridge;
 
 import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.api.event.projectile.ProjectileHitEvent;

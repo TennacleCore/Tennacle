@@ -1,5 +1,10 @@
-package test;
+package test.lobby;
 
+import test.Mechanics;
+import test.Msg;
+
+import io.github.term4.polyp.MechanicsKeys;
+import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.entity.PrimedTnt;
 import io.github.term4.polyp.tracking.ClientVersion;
 import io.github.term4.polyp.world.MechanicsWorld;
@@ -27,11 +32,11 @@ import net.minestom.server.timer.TaskSchedule;
  * The world and the player's kit: flat map with the damage/flow test pads, full combat inventory + armor on
  * join, the preset-driven TNT item.
  */
-final class Playground {
+public final class Playground {
 
     private Playground() {}
 
-    static InstanceContainer createWorld() {
+    public static InstanceContainer createWorld() {
         InstanceContainer world = MinecraftServer.getInstanceManager().createInstanceContainer();
         world.setExplosionSupplier(Mechanics.explosions.supplier()); // route instance.explode(...) through the system
         world.setGenerator(unit -> unit.modifier().fillHeight(0, 40, Block.OBSIDIAN));
@@ -91,7 +96,7 @@ final class Playground {
         inst.setBlock(sx, baseY + 2, sz, marker); // flow points AWAY from this marker
     }
 
-    static void installListeners(InstanceContainer world) {
+    public static void installListeners(InstanceContainer world) {
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
         events.addListener(AsyncPlayerConfigurationEvent.class, e -> {
             e.setSpawningInstance(world);
@@ -115,23 +120,11 @@ final class Playground {
                     "Tennacle - the Archipelago + Polyp playground", new String[][]{
                     {"/shard", "isolated game worlds over this map"},
                     {"/replay", "record + replay a game"},
+                    {"/duel <player> [sumo|boxing|bridge]", "1v1s; /stats for boxing careers"},
                     {"/boom", "shard-scoped explosion at your feet"},
                     {"/gm <mode>", "gamemode (also /gmc /gms)"},
                     {"/lag /compat /shorts /enchant /effect /sword /explode", "dev tools"},
             }));
-        });
-        // TNT test item: placing TNT spawns a primed-TNT entity instead of a block, from the active PRESET - so its
-        // wire/bounce/fuse always match the profile (a mismatch made a Hypixel-profile run behave like MineMen)
-        events.addListener(PlayerBlockPlaceEvent.class, event -> {
-            if (!event.getBlock().compare(Block.TNT)) return;
-            event.setCancelled(true);
-            Player p = event.getPlayer();
-            if (p.getInstance() == null || Mechanics.explosions == null) return;
-            PrimedTnt.spawn(Mechanics.explosions, MechanicsWorld.of(p), event.getBlockPosition(), Mechanics.presetFor(p).tnt);
-            if (p.getGameMode() != GameMode.CREATIVE) { // cancelling the place keeps the item, so consume one like vanilla TNT
-                ItemStack held = p.getItemInHand(event.getHand());
-                p.setItemInHand(event.getHand(), held.withAmount(held.amount() - 1));
-            }
         });
     }
 

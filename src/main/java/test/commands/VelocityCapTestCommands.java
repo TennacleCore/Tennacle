@@ -1,4 +1,4 @@
-package test;
+package test.commands;
 
 import io.github.term4.polyp.platform.compatibility.ViaBridgeException;
 import io.github.term4.polyp.platform.compatibility.ViaBridgeRpc;
@@ -13,7 +13,7 @@ import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 
-final class VelocityCapTestCommands {
+public final class VelocityCapTestCommands {
 
     private static final double CAP_BPT = 3.9;
     private static final short CAP_SHORT = 31200;
@@ -21,7 +21,7 @@ final class VelocityCapTestCommands {
 
     private VelocityCapTestCommands() {}
 
-    static void install(@NotNull EventNode<@NotNull PlayerEvent> playerNode) {
+    public static void install(@NotNull EventNode<@NotNull PlayerEvent> playerNode) {
         playerNode.addListener(PlayerPacketOutEvent.class, event -> {
             if (!Boolean.TRUE.equals(event.getPlayer().getTag(SUPPRESS_VELOCITY_PACKET))) return;
             if (event.getPacket() instanceof EntityVelocityPacket vel
@@ -31,7 +31,7 @@ final class VelocityCapTestCommands {
         });
     }
 
-    static void applyNormalCap(@NotNull Player player) {
+    public static void applyNormalCap(@NotNull Player player) {
         Vec snapped = LegacyVelocity.snap(capPerSecond());
         player.setVelocity(snapped);
         player.sendMessage("[velcap] normal setVelocity X="
@@ -39,7 +39,7 @@ final class VelocityCapTestCommands {
                 + " b/s (snapped). On 1.8 via LpVec3 expect ~3.899875 b/t, not 3.9.");
     }
 
-    static void applyBridgeCap(@NotNull Player player) {
+    public static void applyBridgeCap(@NotNull Player player) {
         Vec snapped = LegacyVelocity.snap(capPerSecond());
         player.setTag(SUPPRESS_VELOCITY_PACKET, true);
         player.setVelocity(snapped);

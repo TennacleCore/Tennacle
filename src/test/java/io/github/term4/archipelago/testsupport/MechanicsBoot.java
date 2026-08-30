@@ -7,7 +7,7 @@ import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
 import io.github.term4.polyp.presets.vanilla18.Attributes;
 import io.github.term4.polyp.presets.vanilla18.Damage;
 import io.github.term4.polyp.presets.vanilla18.Knockback;
-import test.ShardBridge;
+import test.bridge.ShardBridge;
 
 /** The vanilla18 combat systems + bridge, installed once per JVM - shared by every bridge test class. */
 public final class MechanicsBoot {

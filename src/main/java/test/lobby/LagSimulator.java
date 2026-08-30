@@ -1,4 +1,4 @@
-package test;
+package test.lobby;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -95,7 +95,8 @@ public final class LagSimulator {
         while (iterator.hasNext()) {
             Map.Entry<UUID, Queue<Delayed>> entry = iterator.next();
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(entry.getKey());
-            if (player == null) { // disconnected - drop the buffer
+            if (player == null) { // disconnected - drop the buffer and the lag setting
+                delayTicks.remove(entry.getKey());
                 iterator.remove();
                 continue;
             }

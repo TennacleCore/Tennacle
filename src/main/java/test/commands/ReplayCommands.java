@@ -1,4 +1,6 @@
-package test;
+package test.commands;
+
+import test.Msg;
 
 import io.github.term4.archipelago.Storage;
 import io.github.term4.archipelago.event.replay.PlaybackStopEvent;
@@ -21,10 +23,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static test.Ops.offClock;
+import static test.commands.Ops.offClock;
 
 /** {@code /replay}: record a shard, play it back into a fresh theater, seek/reverse/rewind/commit. */
-final class ReplayCommands {
+public final class ReplayCommands {
 
     // demo keeps one recording/playback at a time (the lib supports many); volatile - stop events for a domain
     // theater fire on its clock thread
@@ -33,7 +35,7 @@ final class ReplayCommands {
 
     private ReplayCommands() {}
 
-    static void register(ShardManager shards, InstanceContainer world) {
+    public static void register(ShardManager shards, InstanceContainer world) {
         Path replayDir = Storage.dir("replay-dir", "replays");
         Command replay = new Command("replay");
         Argument<String> name = ArgumentType.Word("name");

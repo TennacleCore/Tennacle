@@ -30,8 +30,8 @@ import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SpawnEntityPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.ReplayBridge;
-import test.ShardBridge;
+import test.bridge.ReplayBridge;
+import test.bridge.ShardBridge;
 
 import java.util.List;
 import java.util.Map;
@@ -75,7 +75,6 @@ class ReplayBridgeTest extends HeadlessServerTest {
 
     @Test
     void itemTwinWireStaysQuiet() throws Exception {
-        ShardBridge.installDomainTicking();
         io.github.term4.archipelago.ticking.ExecutionDomain stageClock = io.github.term4.archipelago.ticking.ExecutionDomain.create();
         io.github.term4.archipelago.ticking.ExecutionDomain theaterClock = io.github.term4.archipelago.ticking.ExecutionDomain.create();
         Shard stage = new Shard(instance, stageClock);
@@ -87,7 +86,7 @@ class ReplayBridgeTest extends HeadlessServerTest {
             Recording rec = Replay.record(stage);
             DroppedItemEntity real = DroppedItemEntity.spawn(instance, new Pos(0.5, 70, 0.5),
                     new Vec(0.15, 0.2, 0.1), ItemStack.of(Material.GOLDEN_APPLE), null, 40,
-                    io.github.term4.polyp.vri.ItemSpawnEvent.Cause.PLAYER_DROP, viewer.player);
+                    io.github.term4.polyp.api.event.item.ItemSpawnEvent.Cause.PLAYER_DROP, viewer.player);
             assertNotNull(real);
             long deadline = System.currentTimeMillis() + 4000;
             while (rec.tick() < 40 && System.currentTimeMillis() < deadline) Thread.onSpinWait();
@@ -156,7 +155,6 @@ class ReplayBridgeTest extends HeadlessServerTest {
 
     @Test
     void revivedItemTwinsRideTheRecordedTrackSmoothly() {
-        ShardBridge.installDomainTicking(); // the playground's config: covered polyp entities tick on the clocks
         io.github.term4.archipelago.ticking.ExecutionDomain stageClock = io.github.term4.archipelago.ticking.ExecutionDomain.create();
         io.github.term4.archipelago.ticking.ExecutionDomain theaterClock = io.github.term4.archipelago.ticking.ExecutionDomain.create();
         Shard stage = new Shard(instance, stageClock);
@@ -167,7 +165,7 @@ class ReplayBridgeTest extends HeadlessServerTest {
             Recording rec = Replay.record(stage);
             DroppedItemEntity real = DroppedItemEntity.spawn(instance, new Pos(0.5, 70, 0.5),
                     new Vec(0.15, 0.2, 0.1), ItemStack.of(Material.GOLDEN_APPLE), null, 40,
-                    io.github.term4.polyp.vri.ItemSpawnEvent.Cause.PLAYER_DROP, dropper.player);
+                    io.github.term4.polyp.api.event.item.ItemSpawnEvent.Cause.PLAYER_DROP, dropper.player);
             assertNotNull(real);
             long deadline = System.currentTimeMillis() + 4000;
             while (rec.tick() < 40 && System.currentTimeMillis() < deadline) Thread.onSpinWait();

@@ -20,7 +20,7 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.junit.jupiter.api.Test;
-import test.ShardBridge;
+import test.bridge.ShardBridge;
 
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,6 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void mmTickWorkFollowsTheShardOntoItsClock() {
-        ShardBridge.installDomainTicking();
         MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
         ExecutionDomain domain = ExecutionDomain.create();
         ShardManager shards = new ShardManager();
@@ -57,7 +56,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
             }
         });
         Shard shard = shards.create(instance, "ticksys", domain);
-        world[0] = ShardBridge.adapt(shard);
+        world[0] = shard;
         Player player = FakePlayer.connect(instance, new Pos(0.5, 70, 0.5), "TickSteve").player;
         DroppedItemEntity drop = new DroppedItemEntity(ItemStack.of(Material.STONE), null);
         try {
@@ -91,7 +90,6 @@ class DomainTickBridgeTest extends HeadlessServerTest {
     /** A PLAIN shard adopted onto a live domain mid-life must gain the polyp world pass - its entities leave the main pass the moment they become domain-owned. */
     @Test
     void plainShardReclockedOntoADomainGainsTheWorldPass() {
-        ShardBridge.installDomainTicking();
         ExecutionDomain domain = ExecutionDomain.create();
         ShardManager shards = new ShardManager();
         List<String> passes = new CopyOnWriteArrayList<>();
@@ -100,7 +98,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
             if (ctx.external() && ctx.world() == world[0]) passes.add(Thread.currentThread().getName());
         });
         Shard shard = shards.create(instance, "lateclock"); // plain: no domain at create
-        world[0] = ShardBridge.adapt(shard);
+        world[0] = shard;
         try {
             LockSupport.parkNanos(150_000_000);
             assertTrue(passes.isEmpty(), "no world pass while plain (the main pass owns everything)");
@@ -116,7 +114,6 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void joiningADomainShardResetsTickStampedCombatState() {
-        ShardBridge.installDomainTicking();
         MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
         var services = MechanicsBoot.ensure().services();
         ShardManager shards = new ShardManager();
@@ -136,7 +133,6 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void intraTreeLayerSwitchesKeepCombatState() {
-        ShardBridge.installDomainTicking();
         MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
         var services = MechanicsBoot.ensure().services();
         ShardManager shards = new ShardManager();
@@ -170,7 +166,6 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void coLocatedShardPassesNeverCrossOwnership() {
-        ShardBridge.installDomainTicking();
         MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
         ShardManager shards = new ShardManager();
         // per member: every clock thread whose EXTERNAL pass claimed it - polyp systems iterating global

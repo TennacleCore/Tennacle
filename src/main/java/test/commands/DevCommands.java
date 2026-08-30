@@ -1,4 +1,8 @@
-package test;
+package test.commands;
+
+import test.Mechanics;
+import test.Msg;
+import test.lobby.LagSimulator;
 
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.MechanicsProfile;
@@ -34,11 +38,11 @@ import org.jetbrains.annotations.NotNull;
  * The polyp example server's dev/test toolset plus the shard-aware {@code /boom}: lag simulation, profile
  * switches, explosions, enchants, effects, blockable swords, velocity-cap A/B.
  */
-final class DevCommands {
+public final class DevCommands {
 
     private DevCommands() {}
 
-    static void register(Polyp polyp) {
+    public static void register(Polyp polyp) {
         var commands = MinecraftServer.getCommandManager();
 
         Command gm = new Command("gm");

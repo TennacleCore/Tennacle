@@ -1,5 +1,8 @@
 package test;
 
+import test.bridge.ReplayBridge;
+import test.bridge.ShardBridge;
+
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.polyp.MechanicsKeys;
@@ -10,7 +13,7 @@ import io.github.term4.polyp.mechanics.blocking.BlockingSystem;
 import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
-import io.github.term4.polyp.mechanics.item.ItemDamageSystem;
+import io.github.term4.polyp.mechanics.itemdamage.ItemDamageSystem;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
@@ -20,6 +23,7 @@ import io.github.term4.polyp.platform.fixes.FixesSystem;
 import io.github.term4.polyp.presets.Preset;
 import io.github.term4.polyp.entity.PrimedTnt;
 import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.entity.FallingBlockEntity;
 import io.github.term4.polyp.vri.Vri;
 import io.github.term4.polyp.vri.VriConfig;
 import io.github.term4.polyp.world.MechanicsWorld;
@@ -28,23 +32,23 @@ import net.minestom.server.entity.Player;
 /**
  * The mechanics half of the playground: the profile, every polyp system, and the archipelago bridges.
  */
-final class Mechanics {
+public final class Mechanics {
 
     /** The active preset - swap this ONE line to change the whole setup (mechanics profile + the primed-TNT entity, together). */
-    static final Preset PRESET = Preset.MMC18;
+    public static final Preset PRESET = Preset.MMC18;
 
-    static ExplosionSystem explosions;
-    static ProjectileSystem projectiles;
-    static Polyp polyp;
+    public static ExplosionSystem explosions;
+    public static ProjectileSystem projectiles;
+    public static Polyp polyp;
 
     private Mechanics() {}
 
-    static Preset presetFor(Player p) {
+    public static Preset presetFor(Player p) {
         return PRESET;
     }
 
     /** 1.8 mechanics + the full compat/fixes layer over shards: the two bridges are the whole integration. */
-    static void install() {
+    public static void install() {
         polyp = Polyp.getInstance();
         polyp.viaProxyDetails = true;
         polyp.init();
@@ -66,8 +70,11 @@ final class Mechanics {
         explosions = ExplosionSystem.install(polyp);
         ItemDamageSystem.install(polyp); // ground loot: explosions, fire, lava, cactus, void
 
+        // vanilla placement rules (stairs, slabs, fences, doors, ...): registered on the BlockManager, so
+        // both plain instances and shard-routed placements resolve them
+        org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations.registerDefault();
+
         ShardBridge.install();
-        ShardBridge.installDomainTicking();
         // save/load glue for mechanics entities: the codec reads archipelago's ENTITY_SAVE natively; mechanics stamps
         // its own mirror, so point the save side at it and bind the load-side revivers
         EntityDescriptors.describeEntity(e -> {
@@ -75,6 +82,7 @@ final class Mechanics {
             return stamp != null ? stamp.get() : null;
         });
         EntityDescriptors.reviveEntity("polyp:item", DroppedItemEntity::fromSave);
+        EntityDescriptors.reviveEntity("polyp:falling_block", FallingBlockEntity::fromSave);
         EntityDescriptors.reviveEntity("polyp:projectile", projectiles::fromSave);
         EntityDescriptors.reviveEntity("polyp:tnt", d -> PrimedTnt.fromSave(explosions, d));
         ReplayBridge.install(); // replay-side mechanics glue (launch capture, shooter scrub, footage flags)

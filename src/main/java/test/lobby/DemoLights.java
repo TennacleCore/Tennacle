@@ -1,4 +1,4 @@
-package test;
+package test.lobby;
 
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardLighting;
@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** The {@code /shard relight} demo {@link ShardLighting} implementations. */
-final class DemoLights {
+public final class DemoLights {
 
     private DemoLights() {}
 
@@ -24,7 +24,7 @@ final class DemoLights {
      * prediction shows first - torch glows, then the server kills it: the visible proof that server light
      * overrides client light.
      */
-    static final class DarkLight implements ShardLighting {
+    public static final class DarkLight implements ShardLighting {
         private static final int SNUFF_DELAY = 20;
         private final Shard shard;
         private final Runnable unhook;
@@ -32,7 +32,7 @@ final class DemoLights {
         private final Map<Long, Long> due = new ConcurrentHashMap<>();
         private volatile long clock;
 
-        DarkLight(Shard shard) {
+        public DarkLight(Shard shard) {
             this.shard = shard;
             this.unhook = shard.onTick(t -> tick());
             markChunks(ShardLighting.chainChunks(shard)); // already-built areas snuff too
@@ -100,7 +100,7 @@ final class DemoLights {
     }
 
     /** No packets, just chat narration of every hook the shard drives. */
-    record NarratingLight(Shard shard, String name) implements ShardLighting {
+    public record NarratingLight(Shard shard, String name) implements ShardLighting {
         private void say(String what) {
             for (Player p : shard.members()) p.sendMessage("[light:" + name + "] " + what);
         }

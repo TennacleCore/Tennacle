@@ -25,8 +25,8 @@ import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.coordinate.Vec;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.ReplayBridge;
-import test.ShardBridge;
+import test.bridge.ReplayBridge;
+import test.bridge.ShardBridge;
 
 import java.util.List;
 
@@ -350,7 +350,7 @@ class TntBounceReplayTest extends HeadlessServerTest {
             tick();
             // mmc18 knobs but a LONG fuse: the stock 52 detonates mid-air on a 55-block drop
             tnt = PrimedTnt.spawn(explosions, instance, new BlockVec(110, 120, 110),
-                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null));
+                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null, false));
             game.transfer(tnt);
             for (int i = 0; i < 130; i++) {
                 tnt.tick(0);
@@ -431,7 +431,7 @@ class TntBounceReplayTest extends HeadlessServerTest {
         try {
             tick();
             tnt = PrimedTnt.spawn(explosions, instance, new BlockVec(130, 120, 130),
-                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null));
+                    new PrimedTnt.Config(200, 4.0f, true, PrimedTnt.Wire.MINEMEN, true, null, false));
             game.transfer(tnt);
             for (int i = 0; i < 130; i++) {
                 tnt.tick(0);

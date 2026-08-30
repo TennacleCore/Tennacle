@@ -1,4 +1,8 @@
-package test;
+package test.commands;
+
+import test.Msg;
+import test.bridge.ShardBridge;
+import test.lobby.DemoLights;
 
 import io.github.term4.archipelago.Storage;
 import io.github.term4.archipelago.shard.Shard;
@@ -11,7 +15,7 @@ import io.github.term4.archipelago.storage.ShardFile;
 import io.github.term4.archipelago.storage.UserData;
 import io.github.term4.archipelago.storage.polar.PolarShardCodec;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
-import io.github.term4.archipelago.world.WorldAccess;
+import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.world.WorldCommands;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
@@ -23,6 +27,7 @@ import net.minestom.server.command.builder.CommandExecutor;
 import net.minestom.server.command.builder.arguments.Argument;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.Weather;
 
@@ -31,18 +36,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static test.Ops.label;
-import static test.Ops.offClock;
+import static test.commands.Ops.label;
+import static test.commands.Ops.offClock;
 
 /** {@code /shard}: create/join/layer/fork/flatten, saves (single + tree + polar exchange), relight, views, domains. */
-final class ShardCommands {
+public final class ShardCommands {
 
     // the entity recipe: a shard save IS just a diff - descriptors ride the DataKey user-data section
-    static final DataKey<BinaryTag> SAVED_ENTITIES = new DataKey<>("demo:entities", Codec.NBT);
+    public static final DataKey<BinaryTag> SAVED_ENTITIES = new DataKey<>("demo:entities", Codec.NBT);
 
     private ShardCommands() {}
 
-    static void register(ShardManager shards, InstanceContainer world) {
+    public static void register(ShardManager shards, InstanceContainer world) {
         Command shard = new Command("shard");
         var create = ArgumentType.Literal("create");
         var join = ArgumentType.Literal("join");
@@ -76,8 +81,11 @@ final class ShardCommands {
         shard.addSyntax((sender, ctx) -> {
             String n = ctx.get(name);
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
-            // domain-bound: this game ticks on its own thread. seeded off the base, same cloner as fork/flatten
-            shards.create(world, n, ExecutionDomain.create(), ShardBridge::copyEntity);
+            // over the map the sender is standing on: the playground, or an open Bloom arena (its layers
+            // are ordinary shards). Only the playground seeds base entities - an arena's are session furniture
+            Instance target = sender instanceof Player p && p.getInstance() != null ? p.getInstance() : world;
+            if (target == world) shards.create(world, n, ExecutionDomain.create(), Shard::copyEntity);
+            else shards.create(target, n, ExecutionDomain.create());
             Msg.shard(sender, "created ", Msg.v(n), " on its own clock - ", Msg.run("/shard join " + n));
         }, create, name);
 
@@ -97,7 +105,7 @@ final class ShardCommands {
             String n = ctx.get(forkName);
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
             offClock(() -> {
-                shards.fork(g, n, ShardBridge::copyEntity); // diff + sky + entities (mechanics stamps + archipelago's default cloner)
+                shards.fork(g, n, Shard::copyEntity); // diff + sky + entities (mechanics stamps + archipelago's default cloner)
                 Msg.shard(sender, "forked ", Msg.v(ctx.get(name)), " -> ", Msg.v(n), " - ", Msg.run("/shard join " + n));
             });
         }, fork, name, forkName);
@@ -122,7 +130,7 @@ final class ShardCommands {
             String n = ctx.get(forkName);
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
             offClock(() -> {
-                shards.flatten(top, bottom, n, ShardBridge::copyEntity);
+                shards.flatten(top, bottom, n, Shard::copyEntity);
                 Msg.shard(sender, Msg.v(ctx.get(name)), " onto ", Msg.v(ctx.get(bottomName)), " -> ", Msg.v(n), " (top wins) - ", Msg.run("/shard join " + n));
             });
         }, flatten, name, bottomName, forkName);
@@ -134,7 +142,7 @@ final class ShardCommands {
             String n = ctx.get(forkName);
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
             offClock(() -> {
-                shards.flatten(top, n, ShardBridge::copyEntity);
+                shards.flatten(top, n, Shard::copyEntity);
                 Msg.shard(sender, "chain of ", Msg.v(ctx.get(name)), " -> ", Msg.v(n), " - ", Msg.run("/shard join " + n));
             });
         }, flatten, name, forkName);
@@ -273,7 +281,7 @@ final class ShardCommands {
 
         shard.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            if (WorldAccess.of(p) instanceof Shard g) {
+            if (MechanicsWorld.of(p) instanceof Shard g) {
                 g.leave(p);
                 Msg.shard(p, "left - back on the main map");
             } else Msg.err(p, "shard", "not in a shard");

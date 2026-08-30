@@ -1,4 +1,7 @@
-package test;
+package test.commands;
+
+import test.Msg;
+import test.bridge.ShardBridge;
 
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.Polyp;
@@ -18,11 +21,11 @@ import net.minestom.server.instance.InstanceContainer;
  * motion and above it is fast. Anyone SIMULATING in a dilated scope also gets a client tick-rate packet (modern
  * only); a legacy client can watch a dilated shard but never play in one.
  */
-final class SimTpsCommands {
+public final class SimTpsCommands {
 
     private SimTpsCommands() {}
 
-    static void register(Polyp polyp, ShardManager shards, InstanceContainer world) {
+    public static void register(Polyp polyp, ShardManager shards, InstanceContainer world) {
         Command cmd = new Command("simtps");
         var global = ArgumentType.Literal("global");
         var shard = ArgumentType.Literal("shard");
@@ -55,7 +58,7 @@ final class SimTpsCommands {
             TickScalingConfig cfg = parse(sender, ctx.get(rate));
             if (cfg == NO_CHANGE) return;
             // world scope = the shard itself, so ONLY its members dilate - a spectator stays unbound and native
-            polyp.profiles().setWorld(ShardBridge.adapt(g), MechanicsKeys.TICK_SCALING, cfg);
+            polyp.profiles().setWorld(g, MechanicsKeys.TICK_SCALING, cfg);
             report(sender, "shard " + ctx.get(name), ctx.get(rate));
         }, shard, name, rate);
 
