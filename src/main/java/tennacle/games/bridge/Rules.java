@@ -24,6 +24,7 @@ import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -159,6 +160,7 @@ public final class Rules implements GameModule {
             }
         });
         game.on(net.minestom.server.event.item.ItemDropEvent.class, e -> {
+            System.out.println("[debug-drop] " + e.getPlayer().getUsername() + " drops " + e.getItemStack().material());
             if (game.roster().slotOf(e.getPlayer()) == null) return;
             e.setCancelled(true);
             e.getPlayer().getInventory().update(); // 1.8 predicted the toss - resync the slots
@@ -166,11 +168,15 @@ public final class Rules implements GameModule {
         game.on(net.minestom.server.event.inventory.InventoryPreClickEvent.class, e -> {
             if (game.roster().slotOf(e.getPlayer()) == null) return;
             var click = e.getClick();
+            System.out.println("[debug-click] " + click.getClass().getSimpleName() + " " + click
+                    + " inv=" + (e.getInventory() == null ? "player" : e.getInventory().getClass().getSimpleName()));
             // an in-screen toss is a CLICK - Minestom clears the slot on the click result, so the drop
             // event alone can't keep the item
             if (click instanceof net.minestom.server.inventory.click.Click.DropSlot
                     || click instanceof net.minestom.server.inventory.click.Click.DropCursor) {
                 e.setCancelled(true);
+                // the in-processing resync gets lost on the 1.8 path - repaint again outside it
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() -> e.getPlayer().getInventory().update());
                 return;
             }
             Material picked = e.getClickedItem().material();
