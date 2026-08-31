@@ -5,6 +5,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 import tennacle.Msg;
+import tennacle.Sessions;
 import tennacle.games.Duels;
 
 /** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
@@ -14,30 +15,11 @@ public final class LobbyCommands {
     private LobbyCommands() {}
 
     public static void register() {
+        Sessions.register(LobbyCommands::gameDeparture);
         Command cmd = new Command("spawn", "lobby", "l");
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            Game seated = Game.of(p);
-            if (seated == null) {
-                for (Game game : Duels.grotto().games()) { // ghosts are unbound - the tag can't route them
-                    if (game.isGhost(p)) {
-                        seated = game;
-                        break;
-                    }
-                }
-            }
-            if (seated != null) {
-                Game.Departure departure = seated.depart(p);
-                if (departure != null && departure.reserved()) {
-                    Msg.tag(p, "lobby", "left the game - your seat holds, ", Msg.run("/rejoin"));
-                } else {
-                    Msg.tag(p, "lobby", "left the game");
-                }
-            } else {
-                for (Game game : Duels.grotto().games()) {
-                    if (game.spectators().contains(p)) game.unspectate(p);
-                }
-            }
+            Sessions.depart(p);
             Duels.toLobby(p);
         });
         MinecraftServer.getCommandManager().register(cmd);
@@ -58,5 +40,32 @@ public final class LobbyCommands {
             Msg.tag(p, "lobby", "rejoining your " + held.type().id());
         });
         MinecraftServer.getCommandManager().register(rejoin);
+    }
+
+    private static Runnable gameDeparture(Player p) {
+        Game seated = Game.of(p);
+        if (seated == null) {
+            for (Game game : Duels.grotto().games()) { // ghosts are unbound - the tag can't route them
+                if (game.isGhost(p)) {
+                    seated = game;
+                    break;
+                }
+            }
+        }
+        if (seated != null) {
+            Game game = seated;
+            return () -> {
+                Game.Departure departure = game.depart(p);
+                if (departure != null && departure.reserved()) {
+                    Msg.tag(p, "lobby", "left the game - your seat holds, ", Msg.run("/rejoin"));
+                } else {
+                    Msg.tag(p, "lobby", "left the game");
+                }
+            };
+        }
+        for (Game game : Duels.grotto().games()) {
+            if (game.spectators().contains(p)) return () -> game.unspectate(p);
+        }
+        return null;
     }
 }

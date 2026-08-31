@@ -66,6 +66,14 @@ public final class TestServer {
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(Path.of("arenas"), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
+        Sessions.register(p -> {
+            var editing = Bloom.session();
+            if (editing == null || p.getInstance() != editing.instance()) return null;
+            return () -> {
+                editing.close(); // same contract as /arena close
+                Msg.tag(p, "arena", "session closed (unsaved edits discarded)");
+            };
+        });
         // legacy clients can't render the glowing region boxes - they get particle outlines
         Bloom.legacyViewers(p -> Mechanics.polyp.clientInfo().isLegacy(p));
         Canvas.theme(Msg.THEME);
