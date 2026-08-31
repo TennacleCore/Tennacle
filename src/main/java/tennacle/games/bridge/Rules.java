@@ -69,9 +69,10 @@ public final class Rules implements GameModule {
             }
         }
         // both planes are optional map limits; absent = the standard offsets off the bridge itself
-        double voidY = plane(game, Markers.VOID, floor - 10);
+        double voidY = plane(game, Bridge.VOID, floor - 10);
         minBuildY = floor; // never beneath the bridge's underside
-        maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT, top + 7));
+        // 7 above the walking surface (top block + 1): the canonical deck lands the hypixel y=100
+        maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT, top + 8));
 
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             e.amount(0);
@@ -144,11 +145,16 @@ public final class Rules implements GameModule {
         announceFall(game, player);
     }
 
+    // a flat (1-tall) box is an X/Z slice under the global band; a taller box is its own 3D volume,
+    // for maps whose buildable ceiling varies along the bridge
     private boolean buildable(RegionMarker build, Point pos) {
-        if (pos.blockY() < minBuildY || pos.blockY() > maxBuildY) return false;
-        for (RegionMarker.Cuboid box : build.boxes()) { // slices gate X/Z only - Y is the band above
-            if (pos.blockX() >= box.min().blockX() && pos.blockX() <= box.max().blockX()
-                    && pos.blockZ() >= box.min().blockZ() && pos.blockZ() <= box.max().blockZ()) return true;
+        for (RegionMarker.Cuboid box : build.boxes()) {
+            if (pos.blockX() < box.min().blockX() || pos.blockX() > box.max().blockX()
+                    || pos.blockZ() < box.min().blockZ() || pos.blockZ() > box.max().blockZ()) continue;
+            boolean flat = box.min().blockY() == box.max().blockY();
+            int lo = flat ? minBuildY : box.min().blockY();
+            int hi = flat ? maxBuildY : box.max().blockY();
+            if (pos.blockY() >= lo && pos.blockY() <= hi) return true;
         }
         return false;
     }

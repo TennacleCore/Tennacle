@@ -42,9 +42,10 @@ public final class Bridge {
     public static final MarkerKey<PosMarker> RESPAWN = MarkerKey.pos("bridge:respawn");
     /** Horizontal build slices (multi-box for non-square shapes); Y never gates here - see the band. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bridge:build");
-    /** Optional highest placeable Y; absent = bridge top + 7. {@code grotto:void} likewise defaults to
-     * bridge underside - 10. */
+    /** Optional highest placeable Y; absent = 7 above the walking surface (canonical maps land y=100). */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bridge:height");
+    /** Optional kill plane; absent = 10 below the bridge structure's underside. */
+    public static final MarkerKey<LimitMarker> VOID = MarkerKey.limit("bridge:void");
     // the Bloom-authored bridge geometry: the build band derives from these (underside .. top + height - 1)
     public static final MarkerKey<RegionMarker> SECTION = MarkerKey.region("section");
     public static final MarkerKey<RegionMarker> CENTER = MarkerKey.region("center");
