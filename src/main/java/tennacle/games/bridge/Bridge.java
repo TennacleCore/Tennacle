@@ -44,7 +44,7 @@ public final class Bridge {
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bridge:build");
     /** Highest placeable Y - the starter ships y=100 (texture packs key off it); flat build boxes band under it. */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bridge:height");
-    /** The kill plane - the starter ships structure bottom - 10. */
+    /** The kill plane - the starter ships 5 under the bridge underside (y=80). */
     public static final MarkerKey<LimitMarker> VOID = MarkerKey.limit("bridge:void");
     // the Bloom-authored bridge geometry: the build band derives from these (underside .. top + height - 1)
     public static final MarkerKey<RegionMarker> SECTION = MarkerKey.region("section");
