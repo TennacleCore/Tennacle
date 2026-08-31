@@ -19,8 +19,7 @@ public final class LobbyCommands {
         Command cmd = new Command("spawn", "lobby", "l");
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            Sessions.depart(p);
-            Duels.toLobby(p);
+            if (!Sessions.depart(p)) Duels.toLobby(p);
         });
         MinecraftServer.getCommandManager().register(cmd);
 
@@ -61,10 +60,16 @@ public final class LobbyCommands {
                 } else {
                     Msg.tag(p, "lobby", "left the game");
                 }
+                Duels.toLobby(p);
             };
         }
         for (Game game : Duels.grotto().games()) {
-            if (game.spectators().contains(p)) return () -> game.unspectate(p);
+            if (game.spectators().contains(p)) {
+                return () -> {
+                    game.unspectate(p);
+                    Duels.toLobby(p);
+                };
+            }
         }
         return null;
     }

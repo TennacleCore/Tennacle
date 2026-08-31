@@ -66,13 +66,26 @@ public final class TestServer {
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(Path.of("arenas"), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
-        Sessions.register(p -> {
-            var editing = Bloom.session();
-            if (editing == null || p.getInstance() != editing.instance()) return null;
-            return () -> {
-                editing.close(); // same contract as /arena close
-                Msg.tag(p, "arena", "session closed (unsaved edits discarded)");
-            };
+        Sessions.register(new Sessions.Kind() { // /l in the editor confirm-gates like /arena delete
+            private java.util.UUID pending;
+            private long until;
+
+            @Override
+            public Runnable departure(net.minestom.server.entity.Player p) {
+                var editing = Bloom.session();
+                if (editing == null || p.getInstance() != editing.instance()) return null;
+                if (!p.getUuid().equals(pending) || System.currentTimeMillis() > until) {
+                    pending = p.getUuid();
+                    until = System.currentTimeMillis() + 10_000;
+                    return () -> Msg.tag(p, "arena", "you're editing " + editing.id()
+                            + " - /l again within 10s closes it (unsaved edits discarded)");
+                }
+                pending = null;
+                return () -> {
+                    editing.close(); // its exit policy lands the builders in the lobby
+                    Msg.tag(p, "arena", "session closed (unsaved edits discarded)");
+                };
+            }
         });
         // legacy clients can't render the glowing region boxes - they get particle outlines
         Bloom.legacyViewers(p -> Mechanics.polyp.clientInfo().isLegacy(p));

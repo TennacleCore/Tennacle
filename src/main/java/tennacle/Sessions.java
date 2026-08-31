@@ -14,7 +14,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class Sessions {
 
-    /** One kind of "being somewhere": non-null = this player is yours, and running it performs the leave. */
+    /** One kind of "being somewhere": non-null = this player is yours, and running it performs the leave.
+     * The runnable owns the whole exit, teleport included - a confirm gate may hold the player instead. */
     @FunctionalInterface
     public interface Kind {
         @Nullable Runnable departure(@NotNull Player player);
