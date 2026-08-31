@@ -1,6 +1,7 @@
 package test.looks;
 
 import test.Msg;
+import test.games.Duels;
 
 import io.github.term4.canvas.theme.Shine;
 import io.github.term4.grotto.Game;
@@ -28,13 +29,14 @@ public final class Frames {
     public static Scoreboard minemen(String title, Consumer<Scoreboard> content) {
         Component rule = Msg.MINEMEN.rule(19, NamedTextColor.GRAY);
         Scoreboard board = Scoreboard.of(Component.text(title, NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
-                .line(rule);
+                .line(rule)
+                .gameId();
         content.accept(board);
         return board
                 .blank()
                 .line((g, me) -> minemenRow("Your Ping: ", me.getLatency() + " ms"))
                 .line((g, me) -> {
-                    Player them = other(g, me);
+                    Player them = Duels.opponent(g, me);
                     return minemenRow("Their Ping: ", them != null ? them.getLatency() + " ms" : "?");
                 })
                 .blank()
@@ -47,7 +49,9 @@ public final class Frames {
                                      @Nullable ToLongFunction<Game> ticksLeft, Consumer<Scoreboard> content) {
         Scoreboard board = Scoreboard.of((g, me) -> Shine.HYPIXEL.frame(shineName, (int) (g.tick() / 2)))
                 .titleEvery(2)
-                .line((g, me) -> Msg.HYPIXEL.prose(LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yy"))))
+                // date + gray game code, the captured hypixel layout - a screenshot names the game
+                .line((g, me) -> Msg.HYPIXEL.prose(LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yy")))
+                        .append(Component.text("  " + g.code(), NamedTextColor.DARK_GRAY)))
                 .blank();
         if (ticksLeft != null) {
             board.line((g, me) -> hypixelRow("Time Left: ", clock(Math.max(0, ticksLeft.applyAsLong(g)))))
@@ -69,7 +73,9 @@ public final class Frames {
         Scoreboard board = Scoreboard.of(me -> Msg.SCRIMS.boardTitle(me, title))
                 .width(100) // captured scrims board: the widest row runs 99px, just past its 16-hyphen rule
                 .line(rule)
-                .line((g, me) -> Msg.SCRIMS.prose(LocalDate.now().toString()))
+                // date + gray game code, the captured scrims layout - a screenshot names the game
+                .line((g, me) -> Msg.SCRIMS.prose(LocalDate.now().toString())
+                        .append(Component.text(" " + g.code(), NamedTextColor.DARK_GRAY)))
                 .blank();
         content.accept(board);
         return board
@@ -90,12 +96,5 @@ public final class Frames {
     public static String clock(long ticks) {
         long seconds = ticks / 20;
         return "%02d:%02d".formatted(seconds / 60, seconds % 60);
-    }
-
-    private static @Nullable Player other(Game game, Player me) {
-        for (Player member : game.members()) {
-            if (member != me) return member;
-        }
-        return null;
     }
 }

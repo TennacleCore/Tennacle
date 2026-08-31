@@ -14,8 +14,7 @@ final class Ends {
 
     // the full scrims layout; damage/pressure/blocks/hits are filler until their mechanics land
     static Summary scrims() {
-        return Summary.of()
-                .theme(g -> Duels.lookOf(g).theme())
+        return Duels.summary()
                 .row("Score", (g, side, th, color) -> th.meter(
                         g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS),
                         g.rules().resolve(Scope.GAME, Bridge.TARGET), color))
@@ -44,7 +43,7 @@ final class Ends {
 
     // captured rows: Goals, Damage Dealt, accuracies, gapples, blocks - fillers until their mechanics land
     static Summary hypixel() {
-        return Summary.of().theme(g -> Duels.lookOf(g).theme()).hypixel("Bridge Duel")
+        return Duels.summary().hypixel("Bridge Duel")
                 .row("Goals", (g, side, th, c) -> th.value(
                         g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS)))
                 .row("Damage Dealt", (g, side, th, c) -> th.hearts(0))
@@ -53,11 +52,11 @@ final class Ends {
                 .row("Golden Apples Eaten", (g, side, th, c) -> th.value(0))
                 .row("Blocks Placed", (g, side, th, c) -> th.value(0))
                 .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + (Bridge.opponent(g, me) != null
-                                ? Bridge.opponent(g, me).getUsername() : "") + " bridge hypixel"));
+                        Summary.won(g, me), "/duel " + (Duels.opponent(g, me) != null
+                                ? Duels.opponent(g, me).getUsername() : "") + " bridge hypixel"));
     }
 
     static Results minemen() {
-        return Results.of().theme(g -> Duels.lookOf(g).theme());
+        return Duels.results();
     }
 }

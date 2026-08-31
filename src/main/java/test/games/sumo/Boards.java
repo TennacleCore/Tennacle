@@ -1,6 +1,7 @@
 package test.games.sumo;
 
 import test.Msg;
+import test.games.Duels;
 import test.looks.Frames;
 
 import io.github.term4.grotto.Game;
@@ -24,7 +25,7 @@ final class Boards {
                 g -> g.rules().resolve(Scope.GAME, Sumo.LIMIT) - g.tick(), b -> b
                 .line(Component.text("Opponent:", NamedTextColor.WHITE, TextDecoration.BOLD))
                 .line((g, me) -> {
-                    Player them = Sumo.opponent(g, me);
+                    Player them = Duels.opponent(g, me);
                     return Component.text("⬆ ", NamedTextColor.WHITE)
                             .append(Component.text(them != null ? them.getUsername() + " " : "? ", NamedTextColor.GOLD))
                             .append(Msg.HYPIXEL.value(them != null ? (int) them.getHealth() : 0))

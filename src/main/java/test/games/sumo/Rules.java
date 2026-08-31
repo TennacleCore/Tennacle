@@ -56,7 +56,7 @@ public final class Rules implements GameModule {
     }
 
     @Override
-    public void onLeave(@NotNull Game game, @NotNull Player quitter) {
-        Duels.settle(game, quitter, null);
+    public void onLeave(@NotNull Game game, @NotNull Player quitter, @NotNull Game.Departure departure) {
+        if (!departure.reserved()) Duels.settle(game, quitter, null); // a held seat waits out its window
     }
 }

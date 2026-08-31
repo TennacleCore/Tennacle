@@ -1,4 +1,4 @@
-package test.lobby;
+package test.dev;
 
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardLighting;

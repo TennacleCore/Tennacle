@@ -2,7 +2,7 @@ package test.commands;
 
 import test.Mechanics;
 import test.Msg;
-import test.lobby.LagSimulator;
+import test.dev.LagSimulator;
 
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.MechanicsProfile;
@@ -31,7 +31,11 @@ import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
+import net.minestom.server.network.packet.server.play.EntityEffectPacket;
+import net.minestom.server.network.packet.server.play.RemoveEntityEffectPacket;
+import net.minestom.server.network.packet.server.play.UpdateHealthPacket;
 import net.minestom.server.registry.RegistryKey;
+import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -41,6 +45,30 @@ import org.jetbrains.annotations.NotNull;
 public final class DevCommands {
 
     private DevCommands() {}
+
+    private static final Tag<String> NS_MODE = Tag.String("test:ns-mode");
+    private static final Tag<Integer> NS_BLIND_TICKS = Tag.Integer("test:ns-blind-ticks");
+
+    /** {@code mode} null = off: restore the real food + drop the effect. */
+    private static void setNsMode(Player p, String mode, int blindTicks) {
+        String previous = p.getTag(NS_MODE);
+        if (mode == null) {
+            p.removeTag(NS_MODE);
+            if ("blind".equals(previous)) p.sendPacket(new RemoveEntityEffectPacket(p.getEntityId(), PotionEffect.BLINDNESS));
+            if ("food".equals(previous)) p.sendPacket(new UpdateHealthPacket(p.getHealth(), p.getFood(), p.getFoodSaturation()));
+            Msg.tag(p, "ns", "client sprint block ", Msg.v("off"));
+            return;
+        }
+        if ("blind".equals(previous) && !mode.equals("blind")) {
+            p.sendPacket(new RemoveEntityEffectPacket(p.getEntityId(), PotionEffect.BLINDNESS));
+        }
+        if ("food".equals(previous) && !mode.equals("food")) {
+            p.sendPacket(new UpdateHealthPacket(p.getHealth(), p.getFood(), p.getFoodSaturation()));
+        }
+        p.setTag(NS_MODE, mode);
+        if (mode.equals("blind")) p.setTag(NS_BLIND_TICKS, Math.max(2, blindTicks));
+        Msg.tag(p, "ns", "client sprint block ", Msg.v(mode.equals("blind") ? "blind (" + Math.max(2, blindTicks) + "t)" : mode));
+    }
 
     public static void register(Polyp polyp) {
         var commands = MinecraftServer.getCommandManager();
@@ -114,6 +142,39 @@ public final class DevCommands {
             }
         });
         commands.register(compatCmd);
+
+        // /ns: A/B the two client sprint/swim gates. "food" clamps the wire food to 6 (steady 3-shank bar, nothing
+        // else); "blind [duration]" holds a hidden blindness (fog lerps out at duration/20, but the sky-block and
+        // darkness ride effect PRESENCE - short durations strobe under jitter, longer ones block the sky steadily)
+        Command ns = new Command("ns");
+        Argument<Integer> blindTicks = ArgumentType.Integer("duration").setDefaultValue(5);
+        ns.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            setNsMode(p, p.getTag(NS_MODE) == null ? "food" : null, 0);
+        });
+        ns.addSyntax((sender, ctx) -> {
+            if (sender instanceof Player p) setNsMode(p, "food", 0);
+        }, ArgumentType.Literal("food"));
+        ns.addSyntax((sender, ctx) -> {
+            if (sender instanceof Player p) setNsMode(p, "blind", ctx.get(blindTicks));
+        }, ArgumentType.Literal("blind"), blindTicks);
+        ns.addSyntax((sender, ctx) -> {
+            if (sender instanceof Player p) setNsMode(p, null, 0);
+        }, ArgumentType.Literal("off"));
+        commands.register(ns);
+        MinecraftServer.getSchedulerManager().scheduleTask(() -> {
+            for (Player p : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+                String nsMode = p.getTag(NS_MODE);
+                if (nsMode == null) continue;
+                if (nsMode.equals("food")) {
+                    p.sendPacket(new UpdateHealthPacket(p.getHealth(), Math.min(p.getFood(), 6), p.getFoodSaturation()));
+                } else {
+                    Integer d = p.getTag(NS_BLIND_TICKS);
+                    p.sendPacket(new EntityEffectPacket(p.getEntityId(),
+                            new Potion(PotionEffect.BLINDNESS, 0, d != null ? d : 5, Potion.AMBIENT_FLAG)));
+                }
+            }
+        }, net.minestom.server.timer.TaskSchedule.immediate(), net.minestom.server.timer.TaskSchedule.tick(1));
 
         // /shorts: A/B the byte-exact Animatium velocity vs the lossy LpVec3 (take a >2 b/t knockback to compare)
         Command shortsCmd = new Command("shorts");
@@ -225,18 +286,18 @@ public final class DevCommands {
 
         // /velcap (LpVec3 snap) vs /velcapbridge (exact 1.8 short): A/B for the LegacyVelocityBridge knockback path
         EventNode<@NotNull PlayerEvent> playerNode = EventNode.type("polyp:test-player", EventFilter.PLAYER);
-        VelocityCapTestCommands.install(playerNode);
+        VelocityCapCommands.install(playerNode);
         MinecraftServer.getGlobalEventHandler().addChild(playerNode);
 
         Command velCap = new Command("velcap");
         velCap.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) VelocityCapTestCommands.applyNormalCap(p);
+            if (sender instanceof Player p) VelocityCapCommands.applyNormalCap(p);
         });
         commands.register(velCap);
 
         Command velCapBridge = new Command("velcapbridge");
         velCapBridge.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) VelocityCapTestCommands.applyBridgeCap(p);
+            if (sender instanceof Player p) VelocityCapCommands.applyBridgeCap(p);
         });
         commands.register(velCapBridge);
     }

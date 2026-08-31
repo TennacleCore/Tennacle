@@ -1,11 +1,9 @@
 package test.games.sumo;
 
 import test.Mechanics;
-import test.bridge.ShardBridge;
 import test.games.Duels;
 import test.games.HotArena;
 
-import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.roster.SlotLayout;
@@ -17,8 +15,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.codec.Codec;
-import net.minestom.server.entity.Player;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -57,12 +53,5 @@ public final class Sumo {
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(), profile),
                 Duels.HYPIXEL, true,
                 List.of(Component.text("Eliminate your opponents!", NamedTextColor.YELLOW, TextDecoration.BOLD))));
-    }
-
-    static @Nullable Player opponent(Game game, Player me) {
-        for (Player member : game.members()) {
-            if (member != me) return member;
-        }
-        return null;
     }
 }

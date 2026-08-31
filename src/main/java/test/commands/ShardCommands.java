@@ -1,8 +1,7 @@
 package test.commands;
 
 import test.Msg;
-import test.bridge.ShardBridge;
-import test.lobby.DemoLights;
+import test.dev.DemoLights;
 
 import io.github.term4.archipelago.Storage;
 import io.github.term4.archipelago.shard.Shard;
@@ -35,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static test.commands.Ops.label;
 import static test.commands.Ops.offClock;
@@ -303,9 +303,19 @@ public final class ShardCommands {
             Msg.shard(sender, Msg.v(ctx.get(name)), " destroyed");
         }, destroy, name);
 
-        shard.addSyntax((sender, ctx) -> shards.shards().forEach(g -> Msg.shard(sender,
-                Msg.v(label(shards, g)), " members=", Msg.v(g.members().size()),
-                " observers=", Msg.v(g.observers().size()), " diff=", Msg.v(g.overlaySize()))), list);
+        shard.addSyntax((sender, ctx) -> {
+            Map<Instance, List<Shard>> by = new java.util.LinkedHashMap<>();
+            for (Shard g : shards.shards()) by.computeIfAbsent(g.instance(), i -> new java.util.ArrayList<>()).add(g);
+            if (by.isEmpty()) { Msg.shard(sender, "no shards"); return; }
+            for (var group : by.entrySet()) {
+                boolean here = sender instanceof Player p && p.getInstance() == group.getKey();
+                Msg.shard(sender, Msg.v(String.valueOf(group.getKey().getDimensionName())), here ? " (here)" : "");
+                for (Shard g : group.getValue()) {
+                    Msg.shard(sender, "  ", Msg.v(label(shards, g)), " members=", Msg.v(g.members().size()),
+                            " observers=", Msg.v(g.observers().size()), " diff=", Msg.v(g.overlaySize()));
+                }
+            }
+        }, list);
 
         // chain-effective light as per-viewer UpdateLight overlays (modern clients; 1.8 self-relights).
         // 'disable' = NO system (client-local relight is all you see); 'off' = a demo system that FORCES
@@ -400,8 +410,8 @@ public final class ShardCommands {
             if (n.equals("off")) { ShardView.set(p, null); Msg.shard(p, "view reset"); return; }
             Shard g = shards.byName(n);
             if (g == null) { p.sendMessage("[shard] no shard named '" + n + "'"); return; }
-            ShardView.set(p, ShardView.of(g));
-            Msg.shard(p, "spectating ", Msg.v(n), " - watching, not playing (", Msg.run("/shard spectate off"), ")");
+            spectate(p, g, ShardView.of(g), () ->
+                    Msg.shard(p, "spectating ", Msg.v(n), " - watching, not playing (", Msg.run("/shard spectate off"), ")"));
         }, spectate, name);
         shard.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
@@ -409,8 +419,8 @@ public final class ShardCommands {
             if (g == null) { Msg.err(p, "shard", "no shard named ", Msg.v(ctx.get(name))); return; }
             ShardView view = ShardView.of(g);
             if (ctx.get(spectateMode).equals("+main")) view = view.withBaseEntities(true);
-            ShardView.set(p, view);
-            Msg.shard(p, "spectating ", Msg.v(ctx.get(name)), " [" + ctx.get(spectateMode) + "]");
+            spectate(p, g, view, () ->
+                    Msg.shard(p, "spectating ", Msg.v(ctx.get(name)), " [" + ctx.get(spectateMode) + "]"));
         }, spectate, name, spectateMode);
 
         shard.addSyntax((sender, ctx) -> {
@@ -445,6 +455,16 @@ public final class ShardCommands {
             if (sender instanceof Player p) Msg.shard(p, Msg.v(p.getUsername()), " waves at the game");
         });
         WorldCommands.register(wave, w -> w instanceof Shard);
+    }
+
+    /** Views only render in their own instance - cross-world watching is {@code /grotto spectate}'s job (it transfers). */
+    private static void spectate(Player p, Shard g, ShardView view, Runnable announce) {
+        if (p.getInstance() != g.instance()) {
+            Msg.err(p, "shard", "that shard lives in another world - ", Msg.run("/grotto spectate <player>"), " follows games there");
+            return;
+        }
+        ShardView.set(p, view);
+        announce.run();
     }
 
     private static void printTree(CommandSender sender, ShardManager shards, Shard shard, int depth) {

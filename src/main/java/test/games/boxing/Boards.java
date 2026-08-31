@@ -1,13 +1,13 @@
 package test.games.boxing;
 
 import test.Msg;
+import test.games.Duels;
 import test.looks.Frames;
 
 import io.github.term4.grotto.modules.Scoreboard;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minestom.server.entity.Player;
 
 /** Boxing's board rows per network; the chrome comes from {@link Frames}. */
 final class Boards {
@@ -18,12 +18,12 @@ final class Boards {
     static Scoreboard minemen() {
         return Frames.minemen("Boxing", b -> b
                 .line((g, me) -> Component.text("Hits: ", NamedTextColor.WHITE)
-                        .append(Component.text("(" + signed(Boxing.hits(g, me) - Boxing.hits(g, Boxing.opponent(g, me))) + ")",
+                        .append(Component.text("(" + signed(Boxing.hits(g, me) - Boxing.hits(g, Duels.opponent(g, me))) + ")",
                                 NamedTextColor.GREEN)), Boxing.HITS)
                 .line((g, me) -> Component.text("  You: ", NamedTextColor.WHITE)
                         .append(Component.text(Boxing.hits(g, me), NamedTextColor.LIGHT_PURPLE)), Boxing.HITS)
                 .line((g, me) -> Component.text("  Them: ", NamedTextColor.WHITE)
-                        .append(Component.text(Boxing.hits(g, Boxing.opponent(g, me)), NamedTextColor.LIGHT_PURPLE)), Boxing.HITS)
+                        .append(Component.text(Boxing.hits(g, Duels.opponent(g, me)), NamedTextColor.LIGHT_PURPLE)), Boxing.HITS)
                 .line((g, me) -> Component.text("  1st to " + g.rules().resolve(Scope.GAME, Boxing.TARGET) + "!",
                         NamedTextColor.GRAY))
                 .blank()
@@ -44,7 +44,7 @@ final class Boards {
                 .line((g, me) -> Component.text("Hits: ", NamedTextColor.WHITE)
                         .append(Msg.SCRIMS.value(Boxing.hits(g, me)))
                         .append(Msg.SCRIMS.prose(" | "))
-                        .append(Msg.SCRIMS.value(Boxing.hits(g, Boxing.opponent(g, me)))), Boxing.HITS)
+                        .append(Msg.SCRIMS.value(Boxing.hits(g, Duels.opponent(g, me)))), Boxing.HITS)
                 .line((g, me) -> Component.text("Combo: ", NamedTextColor.WHITE)
                         .append(Msg.SCRIMS.value(Boxing.seatStat(g, me, Boxing.COMBO))), Boxing.COMBO));
     }

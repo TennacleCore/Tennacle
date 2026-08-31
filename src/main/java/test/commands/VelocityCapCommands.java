@@ -13,13 +13,13 @@ import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 
-public final class VelocityCapTestCommands {
+public final class VelocityCapCommands {
 
     private static final double CAP_BPT = 3.9;
     private static final short CAP_SHORT = 31200;
     private static final Tag<Boolean> SUPPRESS_VELOCITY_PACKET = Tag.Transient("polyp:test:suppress-velocity-packet");
 
-    private VelocityCapTestCommands() {}
+    private VelocityCapCommands() {}
 
     public static void install(@NotNull EventNode<@NotNull PlayerEvent> playerNode) {
         playerNode.addListener(PlayerPacketOutEvent.class, event -> {

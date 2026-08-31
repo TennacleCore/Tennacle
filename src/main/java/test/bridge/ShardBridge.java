@@ -3,10 +3,9 @@ package test.bridge;
 import io.github.term4.polyp.fx.Fx;
 import io.github.term4.polyp.fx.FxContext;
 import io.github.term4.polyp.entity.FallingBlockEntity;
-import io.github.term4.polyp.platform.fixes.client.LegacySelfPlacementFix;
 import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.platform.compatibility.CompatPlacement;
 import io.github.term4.polyp.platform.player.PlayerConfigApplier;
-import io.github.term4.polyp.util.BlockContact;
 import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardWorlds;
@@ -33,12 +32,12 @@ public final class ShardBridge {
     /** Install once at boot, before players join (alongside {@code Shard.blockRouting()}). */
     public static synchronized void install() {
         ShardWorlds.install();
-        Shard.placementCheckExempt(BlockContact::legacyPlacementCheckExempt); // 1.8 ladder/vine/web/stairs clutch
+        // 1.8 clutch semantics for LEGACY placers only (ladder/vine/web unchecked, stairs by the cell-center
+        // rule); modern clients keep the precise check their own prediction agrees with
+        Shard.placementBodyCheck(CompatPlacement::placementBodyCheck);
         // routed digs run through the fx registry instead of Archipelago's plain default (silence/swap per scope)
         Shard.breakFx((breaker, shard, pos, broken) -> Fx.play(Polyp.getInstance().services(), Fx.BLOCK_BREAK,
                 FxContext.at(shard, pos, breaker).withDetail(broken)));
-        // order-independent: the routing re-applies this decorator whenever it (re)installs its listener
-        Shard.decoratePlacement(LegacySelfPlacementFix::wrap);
         // door/gate/cake handlers read+write the clicker's shard, not the base map
         org.everbuild.blocksandstuff.blocks.util.InteractionWorlds.setResolver(interaction ->
                 interaction.getPlayer().getTag(MechanicsWorld.ENTITY_TAG) instanceof Shard s

@@ -1,7 +1,6 @@
 package test.commands;
 
 import test.Msg;
-import test.bridge.ShardBridge;
 
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.Polyp;

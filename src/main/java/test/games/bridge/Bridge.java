@@ -1,7 +1,6 @@
 package test.games.bridge;
 
 import test.Mechanics;
-import test.bridge.ShardBridge;
 import test.games.Duels;
 import test.games.HotArena;
 
@@ -84,13 +83,6 @@ public final class Bridge {
     static String teamOf(Game game, Player player) {
         var seat = game.roster().slotOf(player);
         return seat != null ? seat.team() : "";
-    }
-
-    static Player opponent(Game game, Player me) {
-        for (Player member : game.members()) {
-            if (member != me) return member;
-        }
-        return null;
     }
 
     private static Material blocks(String team) {

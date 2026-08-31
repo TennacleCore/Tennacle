@@ -17,23 +17,23 @@ final class Ends {
 
     // captured hypixel sumo end block + the play-again line
     static Summary hypixel() {
-        return Summary.of().theme(g -> Duels.lookOf(g).theme()).hypixel("Sumo Duel")
+        return Duels.summary().hypixel("Sumo Duel")
                 .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())))
                 .after((g, me) -> HypixelCard.playAgain(
                         Summary.won(g, me), "/duel " + opponentName(g, me) + " sumo"));
     }
 
     static Results minemen() {
-        return Results.of().theme(g -> Duels.lookOf(g).theme());
+        return Duels.results();
     }
 
     static Summary scrims() {
-        return Summary.of().theme(g -> Duels.lookOf(g).theme())
+        return Duels.summary()
                 .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())));
     }
 
     private static String opponentName(Game game, Player me) {
-        Player them = Sumo.opponent(game, me);
+        Player them = Duels.opponent(game, me);
         return them != null ? them.getUsername() : "";
     }
 

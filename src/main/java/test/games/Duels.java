@@ -12,6 +12,8 @@ import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.Grotto;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.Results;
+import io.github.term4.grotto.modules.Summary;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.GameState;
@@ -114,11 +116,11 @@ public final class Duels {
     public static final Look MINEMEN = new Look(Msg.MINEMEN, Duels::minemenDeath, Duels::minemenVerdict,
             new Count(n -> Component.text(n + "...", NamedTextColor.YELLOW), null,
                     (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
-            SoundSet.of().cue(SoundSet.Cue.COUNTDOWN, TICK).cue(SoundSet.Cue.START, GO));
+            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO));
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Duels::scrimsDeath, Duels::scrimsVerdict,
             new Count(Duels::scrimsNumber, null, (g, p) -> null),
-            SoundSet.of().cue(SoundSet.Cue.COUNTDOWN, TICK).cue(SoundSet.Cue.START, GO));
+            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO));
     /** Captured hypixel: scoring kinds end on TEAM WINS! + the score; plain duels on VICTORY!/DEFEAT!. */
     public static final Look HYPIXEL = new Look(Msg.HYPIXEL, Duels::hypixelDeath, Duels::hypixelVerdict,
             new Count(Duels::hypixelNumber,
@@ -126,9 +128,9 @@ public final class Duels {
                     Duels::hypixelStarted),
             // captured: note.hat vol 20 each beat, nothing at zero, fireworks.launch vol 3 on a goal
             SoundSet.of()
-                    .cue(SoundSet.Cue.COUNTDOWN,
+                    .cue(SoundSet.COUNTDOWN,
                             Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 20f, 1f))
-                    .cue(SoundSet.Cue.SCORED,
+                    .cue(SoundSet.SCORED,
                             Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f)));
 
     /**
@@ -163,6 +165,20 @@ public final class Duels {
             "minemen", MINEMEN, "scrims", SCRIMS, "hypixel", HYPIXEL));
 
     /** The game's presentation preset: the duel-time override when set, else the kind's default. */
+    /** The one other side in a 1v1 (ghosts included, so boards hold through the linger), or {@code null}. */
+    public static @Nullable Player opponent(@NotNull Game game, @NotNull Player me) {
+        return game.opponents(me).stream().findFirst().orElse(null);
+    }
+
+    /** End screens carrying the game's look - what every duel mode's {@code Ends} starts from. */
+    public static Summary summary() {
+        return Summary.of().theme(g -> lookOf(g).theme());
+    }
+
+    public static Results results() {
+        return Results.of().theme(g -> lookOf(g).theme());
+    }
+
     public static Look lookOf(Game game) {
         Look override = looks.get(game.state().get(Scope.GAME, LOOK));
         if (override != null) return override;
@@ -195,11 +211,17 @@ public final class Duels {
     private static final Map<UUID, ItemStack[]> kits = new ConcurrentHashMap<>();
     private static Grotto grotto;
     private static String defaultKind;
+    private static Consumer<Player> lobbyRoute = player -> {};
 
     private Duels() {}
 
     public static Grotto grotto() {
         return grotto;
+    }
+
+    /** The exit-policy teleport (gamemode + kit restore included) - for commands that send players home. */
+    public static void toLobby(@NotNull Player player) {
+        lobbyRoute.accept(player);
     }
 
     public static void kind(@NotNull Kind kind) {
@@ -209,12 +231,13 @@ public final class Duels {
 
     public static void install(InstanceContainer lobby, Pos lobbySpawn, ShardManager shards) {
         grotto = Grotto.install(shards); // shared manager: /shard tree shows the game trees
-        grotto.exit(player -> {
+        lobbyRoute = player -> {
             player.setGameMode(GameMode.SURVIVAL);
             player.setFlying(false);
             player.setInstance(lobby, lobbySpawn);
             restoreKit(player);
-        });
+        };
+        grotto.exit(lobbyRoute);
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> {
             UUID gone = e.getPlayer().getUuid();
             kits.remove(gone); // a fresh join re-kits anyway
@@ -457,7 +480,7 @@ public final class Duels {
     }
 
     /** Plays the look's sound for {@code cue} to everyone in the game; a look without one stays silent. */
-    public static void cue(Game game, SoundSet.Cue cue) {
+    public static void cue(Game game, String cue) {
         var sound = lookOf(game).sounds().get(cue);
         if (sound != null) each(game, p -> p.playSound(sound));
     }
@@ -549,7 +572,7 @@ public final class Duels {
                     each(game, p -> {
                         p.sendMessage(line);
                         if (title != null) p.showTitle(title);
-                        look.sounds().play(p, SoundSet.Cue.COUNTDOWN);
+                        look.sounds().play(p, SoundSet.COUNTDOWN);
                     });
                     st.alarms().arm("duel:count", tick + 20, CompoundBinaryTag.builder().putInt("n", n - 1).build());
                 } else if (game.shard().members().size() < 2) { // a duelist never arrived (logged out mid-transfer)
@@ -566,7 +589,7 @@ public final class Duels {
                         Component started = look.count().started().apply(game, p);
                         if (started != null) p.sendMessage(started);
                         if (clear != null) p.showTitle(clear);
-                        look.sounds().play(p, SoundSet.Cue.START);
+                        look.sounds().play(p, SoundSet.START);
                     });
                 }
             });

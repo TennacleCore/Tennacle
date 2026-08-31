@@ -5,7 +5,7 @@ rootProject.name = "Tennacle"
 if (file("../Polyp").exists()) {
     includeBuild("../Polyp") {
         dependencySubstitution {
-            substitute(module("io.github.term4:minestom-mechanics")).using(project(":"))
+            substitute(module("io.github.term4:polyp")).using(project(":"))
             substitute(module("io.github.term4:polyp-world")).using(project(":world"))
         }
     }

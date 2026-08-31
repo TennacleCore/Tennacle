@@ -50,14 +50,14 @@ public final class Rules implements GameModule {
     }
 
     @Override
-    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot) {
+    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
         player.addEffect(new Potion(PotionEffect.SPEED, 1, Potion.INFINITE_DURATION)); // Speed II
     }
 
     @Override
-    public void onLeave(@NotNull Game game, @NotNull Player quitter) {
+    public void onLeave(@NotNull Game game, @NotNull Player quitter, @NotNull Game.Departure departure) {
         quitter.removeEffect(PotionEffect.SPEED);
-        Duels.settle(game, quitter, null);
+        if (!departure.reserved()) Duels.settle(game, quitter, null); // a held seat waits out its window
     }
 
     private static void timeUp(Game game) {

@@ -1,4 +1,4 @@
-package test.lobby;
+package test.dev;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;

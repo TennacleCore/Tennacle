@@ -2,7 +2,6 @@ package test.games.boxing;
 
 import test.Mechanics;
 import test.Msg;
-import test.bridge.ShardBridge;
 import test.games.Duels;
 import test.games.HotArena;
 
@@ -113,11 +112,6 @@ public final class Boxing {
     static int seatStat(Game game, Player player, StateKey<Integer> key) {
         Slot seat = game.roster().slotOf(player);
         return seat == null ? 0 : game.state().get(Scope.slot(seat.index()), key);
-    }
-
-    static Player opponent(Game game, Player viewer) {
-        // game.members() includes the ghost, so the board's "Them" holds through the linger
-        return game.members().stream().filter(m -> m != viewer).findFirst().orElse(null);
     }
 
     static String wtap(int hits, int sprint) {

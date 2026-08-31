@@ -4,7 +4,6 @@ import test.Msg;
 import test.games.Duels;
 
 import io.github.term4.canvas.theme.SoundSet;
-import io.github.term4.canvas.theme.Titles;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
@@ -117,8 +116,8 @@ public final class Rules implements GameModule {
     }
 
     @Override
-    public void onLeave(@NotNull Game game, @NotNull Player quitter) {
-        Duels.settle(game, quitter, null);
+    public void onLeave(@NotNull Game game, @NotNull Player quitter, @NotNull Game.Departure departure) {
+        if (!departure.reserved()) Duels.settle(game, quitter, null); // a held seat waits out its window
     }
 
     private void score(Game game, Player scorer, Slot seat) {
@@ -142,7 +141,7 @@ public final class Rules implements GameModule {
         }
         Title scored = Title.title(Banners.scoredTitle(game, scorer, color), Component.empty(),
                 Duels.times(game, 0, 30, 10));
-        Duels.cue(game, SoundSet.Cue.SCORED);
+        Duels.cue(game, SoundSet.SCORED);
         for (Player member : game.members()) {
             member.showTitle(scored);
             Slot memberSeat = game.roster().slotOf(member);

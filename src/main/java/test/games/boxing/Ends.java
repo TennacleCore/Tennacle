@@ -25,7 +25,7 @@ final class Ends {
     private Ends() {}
 
     static Summary hypixel() {
-        return Summary.of().theme(g -> Duels.lookOf(g).theme()).hypixel("Boxing Duel")
+        return Duels.summary().hypixel("Boxing Duel")
                 .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
                 .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
                 .row("W-Taps", (g, side, th, c) ->
@@ -35,7 +35,7 @@ final class Ends {
     }
 
     static Summary scrims() {
-        return Summary.of().theme(g -> Duels.lookOf(g).theme())
+        return Duels.summary()
                 .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
                 .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
                 .row("W-Taps", "Sprint hits over total hits", (g, side, th, c) ->
@@ -44,7 +44,7 @@ final class Ends {
 
     // first in the module list: snapshots must capture Speed II before Rules.onEnd strips it
     static Results results() {
-        return Results.of().theme(g -> Duels.lookOf(g).theme()).item((g, p) -> {
+        return Duels.results().item((g, p) -> {
             int hits = Boxing.seatStat(g, p, Boxing.HITS);
             String wtap = Boxing.wtap(hits, Boxing.seatStat(g, p, Boxing.SPRINT_HITS));
             return ItemStack.of(Material.DIAMOND_SWORD)
@@ -64,7 +64,7 @@ final class Ends {
     }
 
     private static String opponentName(Game game, Player me) {
-        Player them = Boxing.opponent(game, me);
+        Player them = Duels.opponent(game, me);
         return them != null ? them.getUsername() : "";
     }
 }
