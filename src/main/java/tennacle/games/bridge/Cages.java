@@ -269,12 +269,24 @@ public final class Cages implements GameModule {
         return "";
     }
 
+    /** Preferences load at LOGIN, so by any match the answer already sits in the cache. */
+    static void installPreload() {
+        var node = MinecraftServer.getGlobalEventHandler();
+        node.addListener(net.minestom.server.event.player.AsyncPlayerConfigurationEvent.class,
+                e -> preload(e.getPlayer().getUuid()));
+        node.addListener(net.minestom.server.event.player.PlayerDisconnectEvent.class,
+                e -> CHOICES.remove(e.getPlayer().getUuid())); // re-fetched next login
+    }
+
+    private static void preload(UUID player) {
+        Duels.grotto().vault().get(player, Bridge.CAGE_CHOICE)
+                .thenAccept(choice -> CHOICES.put(player, choice));
+    }
+
     static String choiceOf(Player player) {
         String cached = CHOICES.get(player.getUuid());
         if (cached != null) return cached;
-        CHOICES.put(player.getUuid(), ""); // one fetch; the vault answer covers the next stamp
-        Duels.grotto().vault().get(player.getUuid(), Bridge.CAGE_CHOICE)
-                .thenAccept(choice -> CHOICES.put(player.getUuid(), choice));
+        preload(player.getUuid()); // belt: an unexpected miss heals for the next stamp
         return "";
     }
 

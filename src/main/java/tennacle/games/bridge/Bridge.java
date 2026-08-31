@@ -139,6 +139,7 @@ public final class Bridge {
             Msg.tag(p, "cage", "cage set to " + pick);
         }, variantArg);
         MinecraftServer.getCommandManager().register(cageCmd);
+        Cages.installPreload();
 
         Duels.kind(new Duels.Kind("bridge", type, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(),
@@ -147,7 +148,7 @@ public final class Bridge {
                                         Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
                                 .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES, arrowsVanishOver(null))
                                 .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
-                                .set(io.github.term4.polyp.MechanicsKeys.VRI, QUIET_WORLD)
+                                .set(io.github.term4.polyp.MechanicsKeys.VRI, NO_TOSS)
                                 .build()),
                 Duels.SCRIMS,
                 false, // no death animation or spectate: everyone stays where they stand
@@ -158,8 +159,10 @@ public final class Bridge {
                 GOALS)); // a SCORING kind: hypixel ends on "<TEAM> WINS!" over the final score
     }
 
-    // no ground items at all (hypixel parity): no block drops, no tosses, no pickups; crack overlay stays
-    private static final VriConfig QUIET_WORLD = VriConfig.builder().blockBreakProgress(true).build();
+    // hypixel parity: mined clay drops and gets picked up - TOSSING is the only thing bridge removes
+    private static final VriConfig NO_TOSS = VriConfig.builder().blockBreakProgress(true)
+            .blockDrops(io.github.term4.polyp.vri.BlockDrops.VANILLA)
+            .itemPickup(true).fireBreaks(true).tntIgnite(true).build();
 
     /** Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. */
     private static ProjectileConfig arrowsVanishOver(ProjectileConfig base) {
