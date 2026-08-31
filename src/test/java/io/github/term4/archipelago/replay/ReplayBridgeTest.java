@@ -11,6 +11,7 @@ import io.github.term4.polyp.presets.vanilla18.Vanilla18;
 import io.github.term4.polyp.entity.DroppedItemEntity;
 import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.replay.channel.Recorded;
+import io.github.term4.archipelago.replay.core.Channels;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.archipelago.storage.ShardFile;
@@ -230,17 +231,17 @@ class ReplayBridgeTest extends HeadlessServerTest {
         }
         assertEquals(1, rec.counts().get("replay:spawn"));
 
-        // the recorded spawn op: shooter attributed by name, descriptor sanitized, visual snapshot present
+        // the recorded spawn op (packed channel): shooter attributed by name, visual snapshot present -
+        // descriptors can't ride at all, the Spawn record has no field for them (playback is puppet-only)
         Shard scratch = new Shard(instance);
         CompoundBinaryTag ops = ShardFile.load(scratch, file).get(Replay.OPS);
         assertNotNull(ops);
-        ListBinaryTag spawns = ops.getCompound("channels").getCompound("replay:spawn")
-                .getList("ops", BinaryTagTypes.COMPOUND);
+        var spawns = new io.github.term4.archipelago.replay.track.SpawnTrack()
+                .decode(ops.getCompound("channels").getCompound("replay:spawn").getByteArray("bin"));
         assertEquals(1, spawns.size());
-        CompoundBinaryTag op = ((CompoundBinaryTag) spawns.get(0)).getCompound("op");
-        assertEquals("Recorded", op.getString("o"), "the wire owner rides the op as the launcher's name");
-        assertNull(op.get("d"), "spawn ops carry no descriptors - playback is puppet-only");
-        assertEquals("minecraft:snowball", op.getCompound("vis").getString("type"),
+        Channels.Spawn op = spawns.get(0).op();
+        assertEquals("Recorded", op.shooter(), "the wire owner rides the op as the launcher's name");
+        assertEquals("minecraft:snowball", op.visual().getString("type"),
                 "the visual snapshot plays even without mechanics");
 
         Shard theater = new Shard(instance);

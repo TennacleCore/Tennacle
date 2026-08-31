@@ -30,7 +30,7 @@ public final class Frames {
         Component rule = Msg.MINEMEN.rule(19, NamedTextColor.GRAY);
         Scoreboard board = Scoreboard.of(Component.text(title, NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
                 .line(rule)
-                .gameId();
+                .gameId(g -> Msg.MINEMEN);
         content.accept(board);
         return board
                 .blank()
@@ -51,7 +51,7 @@ public final class Frames {
                 .titleEvery(2)
                 // date + gray game code, the captured hypixel layout - a screenshot names the game
                 .line((g, me) -> Msg.HYPIXEL.prose(LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yy")))
-                        .append(Component.text("  " + g.code(), NamedTextColor.DARK_GRAY)))
+                        .append(Msg.HYPIXEL.dim("  " + g.code())))
                 .blank();
         if (ticksLeft != null) {
             board.line((g, me) -> hypixelRow("Time Left: ", clock(Math.max(0, ticksLeft.applyAsLong(g)))))
@@ -75,7 +75,7 @@ public final class Frames {
                 .line(rule)
                 // date + gray game code, the captured scrims layout - a screenshot names the game
                 .line((g, me) -> Msg.SCRIMS.prose(LocalDate.now().toString())
-                        .append(Component.text(" " + g.code(), NamedTextColor.DARK_GRAY)))
+                        .append(Msg.SCRIMS.dim(" " + g.code())))
                 .blank();
         content.accept(board);
         return board
