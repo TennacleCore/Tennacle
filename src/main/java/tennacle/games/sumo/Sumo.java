@@ -44,10 +44,12 @@ public final class Sumo {
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();
-        // world scope beats the global MMC18: Hypixel mechanics, minus every non-melee damage type
+        // world scope beats whatever the server runs globally: Hypixel mechanics AND its compat layer (the
+        // self-overlap placement refusal), minus every non-melee damage type
         MechanicsProfile hypixel = Preset.HYPIXEL.profile();
         MechanicsProfile profile = hypixel.toBuilder()
                 .set(MechanicsKeys.DAMAGE, Duels.meleeOnlyOver(hypixel.get(MechanicsKeys.DAMAGE)))
+                .set(MechanicsKeys.COMPAT, Duels.compatOf(Preset.HYPIXEL))
                 .build();
         Duels.kind(new Duels.Kind("sumo", type, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(), profile),

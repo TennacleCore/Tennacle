@@ -34,7 +34,7 @@ import net.minestom.server.entity.Player;
 public final class Mechanics {
 
     /** The active preset - swap this ONE line to change the whole setup (mechanics profile + the primed-TNT entity, together). */
-    public static final Preset PRESET = Preset.HYPIXEL;
+    public static final Preset PRESET = Preset.MMC18;
 
     public static ExplosionSystem explosions;
     public static ProjectileSystem projectiles;
