@@ -17,7 +17,6 @@ import io.github.term4.polyp.mechanics.itemdamage.ItemDamageSystem;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
-import io.github.term4.polyp.platform.compatibility.Compat18;
 import io.github.term4.polyp.platform.fixes.Fixes18;
 import io.github.term4.polyp.platform.fixes.FixesSystem;
 import io.github.term4.polyp.presets.Preset;
@@ -35,7 +34,7 @@ import net.minestom.server.entity.Player;
 public final class Mechanics {
 
     /** The active preset - swap this ONE line to change the whole setup (mechanics profile + the primed-TNT entity, together). */
-    public static final Preset PRESET = Preset.MMC18;
+    public static final Preset PRESET = Preset.HYPIXEL;
 
     public static ExplosionSystem explosions;
     public static ProjectileSystem projectiles;
@@ -53,8 +52,9 @@ public final class Mechanics {
         polyp.viaProxyDetails = true;
         polyp.init();
         polyp.profiles().setGlobal(PRESET.profile().toBuilder()
+                // the preset's own compat layer (hypixel refuses self-overlapping placement where 1.8 allowed it);
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
-                .set(MechanicsKeys.COMPAT, Compat18.config().toBuilder().animatiumDebug(true).build())
+                .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder().animatiumDebug(true).build())
                 .set(MechanicsKeys.FIXES, Fixes18.config())
                 .build());
         AttackSystem.install(polyp);
