@@ -28,6 +28,7 @@ import net.kyori.adventure.title.Title;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.item.ItemStack;
@@ -59,11 +60,6 @@ public final class Rules implements GameModule {
     static final String REFIT_ALARM = "bridge:refit";
     private static final String QUIVER_ALARM = "bridge:quiver";
     private static final int ARROW_TICKS = 70; // 3.5s, the termbridge/hypixel return time
-    // ported termbridge: your team scoring ding vs the enemy's low pling; the arrow-return pickup
-    private static final Sound ALLY_SCORED =
-            Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f);
-    private static final Sound ENEMY_SCORED =
-            Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 0.75f);
     private static final Sound ARROW_BACK =
             Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1f);
 
@@ -145,6 +141,16 @@ public final class Rules implements GameModule {
                 score(game, player, seat);
                 return;
             }
+        });
+        game.on(net.minestom.server.event.item.ItemDropEvent.class, e -> {
+            if (game.roster().slotOf(e.getPlayer()) != null) e.setCancelled(true);
+        });
+        game.on(net.minestom.server.event.inventory.InventoryPreClickEvent.class, e -> {
+            if (game.roster().slotOf(e.getPlayer()) == null) return;
+            Material picked = e.getClickedItem().material();
+            // armor only ever exists worn here - a click that grabs a leather piece is an unequip
+            if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
+                    || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
         game.on(ProjectileLaunchEvent.class, e -> e.snapshot().shooter(), e -> {
             if (!(e.snapshot().type() instanceof Arrow) || !(e.snapshot().shooter() instanceof Player shooter)) return;
@@ -310,6 +316,11 @@ public final class Rules implements GameModule {
     }
 
     @Override
+    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
+        player.setGameMode(GameMode.SURVIVAL); // bridge digs and builds - the duel default is adventure
+    }
+
+    @Override
     public void onLeave(@NotNull Game game, @NotNull Player quitter, @NotNull Game.Departure departure) {
         if (!departure.reserved()) Duels.settle(game, quitter, null); // a held seat waits out its window
     }
@@ -333,14 +344,12 @@ public final class Rules implements GameModule {
             if (loser != null) Duels.settle(game, loser);
             return;
         }
+        // the held title + firework beats take over from the re-cage count one tick later (captured)
         Title scored = Title.title(Banners.scoredTitle(game, scorer, color), Component.empty(),
-                Duels.times(game, 0, 30, 0));
-        Duels.cue(game, SoundSet.SCORED);
+                Duels.times(game, 0, 40, 0));
         for (Player member : game.members()) {
             member.showTitle(scored);
             Slot memberSeat = game.roster().slotOf(member);
-            boolean ally = memberSeat != null && memberSeat.team().equals(seat.team());
-            member.playSound(ally ? ALLY_SCORED : ENEMY_SCORED);
             if (memberSeat != null) member.teleport(spawnOf(game, memberSeat));
         }
         st.alarms().arm(Cages.RECAGE_ALARM, st.tick() + 1, CompoundBinaryTag.builder()
