@@ -11,6 +11,8 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.kit.Kit;
+import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
+import io.github.term4.polyp.mechanics.hunger.HungerConfig;
 import io.github.term4.polyp.mechanics.projectile.ProjectileConfig;
 import io.github.term4.polyp.mechanics.projectile.types.Arrow;
 import io.github.term4.polyp.mechanics.projectile.types.ProjectileTypeConfig;
@@ -81,9 +83,8 @@ public final class Bridge {
             .item(2, PICKAXE)
             .item(3, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
             .item(4, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
-            .item(8, ItemStack.of(Material.GOLDEN_APPLE, 8))
+            .item(5, ItemStack.of(Material.GOLDEN_APPLE, 8))
             .item(9, ItemStack.of(Material.ARROW))
-            .dyedArmor(EquipmentSlot.HELMET, Material.LEATHER_HELMET)
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
             .dyedArmor(EquipmentSlot.BOOTS, Material.LEATHER_BOOTS);
@@ -111,7 +112,10 @@ public final class Bridge {
         Duels.kind(new Duels.Kind("bridge", type, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(),
                         io.github.term4.polyp.MechanicsProfile.builder()
-                                .set(io.github.term4.polyp.MechanicsKeys.DAMAGE, Duels.meleeOnlyOver(null))
+                                .set(io.github.term4.polyp.MechanicsKeys.DAMAGE,
+                                        Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
+                                .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES, arrowsVanishOver(null))
+                                .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
                                 .build()),
                 Duels.SCRIMS,
                 false, // no death animation or spectate: everyone stays where they stand
@@ -120,6 +124,28 @@ public final class Bridge {
                         Component.empty(),
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 GOALS)); // a SCORING kind: hypixel ends on "<TEAM> WINS!" over the final score
+    }
+
+    /** Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. */
+    private static ProjectileConfig arrowsVanishOver(ProjectileConfig base) {
+        if (base == null) {
+            var global = Mechanics.polyp.profiles().global();
+            base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.PROJECTILES) : null;
+        }
+        ProjectileConfig vanish = ProjectileConfig.builder()
+                .typeConfigs(ProjectileTypeConfig.builder(Arrow.KEY).removeOnBlockHit(true).build())
+                .build();
+        return base != null ? vanish.fromBase(base) : vanish;
+    }
+
+    /** Food locked, healing only by apple: hunger and natural regen both off. */
+    private static HungerConfig hungerOff(HungerConfig base) {
+        if (base == null) {
+            var global = Mechanics.polyp.profiles().global();
+            base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.HUNGER) : null;
+        }
+        HungerConfig off = HungerConfig.builder().enabled(false).naturalRegen(false).build();
+        return base != null ? off.fromBase(base) : off;
     }
 
     static String teamOf(Game game, Player player) {

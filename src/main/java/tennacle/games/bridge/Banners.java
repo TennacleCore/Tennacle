@@ -115,6 +115,18 @@ final class Banners {
                 .append(Component.text(".", NamedTextColor.GRAY));
     }
 
+    // captured scrims: "Dogln was killed by Opikss." gray prose, names team-colored; minemen mirrors its voice
+    static Component killedLine(Game game, Player victim, @Nullable Player by) {
+        var roster = game.roster();
+        Component name = Component.text(victim.getUsername() + " ", roster.team(Bridge.teamOf(game, victim)).color());
+        boolean minemen = "minemen".equals(Duels.lookNameOf(game));
+        NamedTextColor prose = minemen ? NamedTextColor.YELLOW : NamedTextColor.GRAY;
+        if (by == null) return name.append(Component.text(minemen ? "died!" : "died.", prose));
+        return name.append(Component.text("was killed by ", prose))
+                .append(Component.text(by.getUsername(), roster.team(Bridge.teamOf(game, by)).color()))
+                .append(Component.text(minemen ? "!" : ".", prose));
+    }
+
     // captured: personal red bold KILL! line
     static Component kill(Game game, Player fallen) {
         return Component.text("KILL! ", NamedTextColor.RED, TextDecoration.BOLD)

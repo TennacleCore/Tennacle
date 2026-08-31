@@ -89,10 +89,27 @@ public final class Rules implements GameModule {
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
 
         game.on(DamageEvent.class, DamageEvent::target, e -> {
-            e.amount(0);
-            if (e.target() instanceof Player victim && e.source() instanceof Player attacker && attacker != victim) {
+            if (!(e.target() instanceof Player victim)) return;
+            // arrows resolve source to the shooter (snapshot contract), so this credits bow kills too
+            Player attacker = e.source() instanceof Player p && p != victim ? p : null;
+            if (attacker != null) {
                 protectedUntil.remove(attacker.getUuid()); // swinging forfeits your own protection
                 lastHit.put(victim.getUuid(), new Hit(attacker, st.tick()));
+            }
+            Slot seat = game.roster().slotOf(victim);
+            if (seat == null) return;
+            Long shield = protectedUntil.get(victim.getUuid());
+            if (shield != null && st.tick() < shield) {
+                e.amount(0);
+                return;
+            }
+            if (!"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) {
+                e.amount(0);
+                return;
+            }
+            if (victim.getHealth() - e.amount() <= 0) {
+                e.amount(0); // a kill respawns behind protection - never the death screen
+                killed(game, victim, seat, attacker);
             }
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
@@ -143,7 +160,9 @@ public final class Rules implements GameModule {
             }
         });
         game.on(net.minestom.server.event.item.ItemDropEvent.class, e -> {
-            if (game.roster().slotOf(e.getPlayer()) != null) e.setCancelled(true);
+            if (game.roster().slotOf(e.getPlayer()) == null) return;
+            e.setCancelled(true);
+            e.getPlayer().getInventory().update(); // 1.8 predicted the toss - resync the slots
         });
         game.on(net.minestom.server.event.inventory.InventoryPreClickEvent.class, e -> {
             if (game.roster().slotOf(e.getPlayer()) == null) return;
@@ -228,6 +247,21 @@ public final class Rules implements GameModule {
         Double y = game.arena().markers(key).getFirst().y();
         if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
         return y;
+    }
+
+    private void killed(Game game, Player victim, Slot seat, @org.jetbrains.annotations.Nullable Player by) {
+        PosMarker back = game.arena().marker(Bridge.RESPAWN, seat.team());
+        victim.teleport(back != null ? back.pos() : spawnOf(game, seat));
+        refit(game, victim, seat);
+        protectedUntil.put(victim.getUuid(),
+                game.state().tick() + game.rules().resolve(Scope.GAME, Bridge.PROTECT));
+        lastHit.remove(victim.getUuid());
+        if (by != null) {
+            addSeat(game, by, Bridge.KILLS);
+            if ("minemen".equals(Duels.lookNameOf(game))) by.sendMessage(Banners.kill(game, victim));
+        }
+        Component line = Banners.killedLine(game, victim, by);
+        Duels.each(game, p -> p.sendMessage(line));
     }
 
     private void died(Game game, Player player, Slot seat) {

@@ -525,6 +525,11 @@ public final class Duels {
      * config they displace or the preset tuning drops to the vanilla floor. The melee entry is untouched.
      */
     public static DamageConfig meleeOnlyOver(DamageConfig base) {
+        return meleeAndOver(base, java.util.Set.of());
+    }
+
+    /** {@link #meleeOnlyOver} keeping the listed extra types too (bridge keeps arrows). */
+    public static DamageConfig meleeAndOver(DamageConfig base, java.util.Set<Key> alsoKept) {
         if (base == null) {
             MechanicsProfile global = Mechanics.polyp.profiles().global();
             base = global != null ? global.get(MechanicsKeys.DAMAGE) : null;
@@ -533,7 +538,7 @@ public final class Duels {
         for (Key key : List.of(FallDamage.KEY, CactusDamage.KEY, BurningDamage.KEY, InFireDamage.KEY,
                 LavaDamage.KEY, DrowningDamage.KEY, SuffocationDamage.KEY, StarvationDamage.KEY,
                 ProjectileDamage.KEY, MagicDamage.KEY, ExplosionDamage.KEY, GenericDamage.KEY)) {
-            damage.typeConfig(DamageTypeConfig.builder(key).enabled(false).build());
+            if (!alsoKept.contains(key)) damage.typeConfig(DamageTypeConfig.builder(key).enabled(false).build());
         }
         DamageConfig switches = damage.build();
         return base != null ? switches.fromBase(base) : switches;
