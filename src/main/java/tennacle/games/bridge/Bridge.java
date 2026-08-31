@@ -42,9 +42,9 @@ public final class Bridge {
     public static final MarkerKey<PosMarker> RESPAWN = MarkerKey.pos("bridge:respawn");
     /** Horizontal build slices (multi-box for non-square shapes); Y never gates here - see the band. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bridge:build");
-    /** Highest placeable Y - the starter ships y=100 (texture packs key off it); flat build boxes band under it. */
+    /** Highest placeable Y - the starter ships y=99 (y=100, the texture-pack line, is the first refused row). */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bridge:height");
-    /** The kill plane - the starter ships 5 under the bridge underside (y=80). */
+    /** The kill plane - the starter ships y=80. */
     public static final MarkerKey<LimitMarker> VOID = MarkerKey.limit("bridge:void");
     // the Bloom-authored bridge geometry: the build band derives from these (underside .. top + height - 1)
     public static final MarkerKey<RegionMarker> SECTION = MarkerKey.region("section");
