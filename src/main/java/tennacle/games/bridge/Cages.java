@@ -5,6 +5,7 @@ import tennacle.games.Duels;
 import tennacle.games.HotArena;
 
 import io.github.term4.barnacle.Arena;
+import io.github.term4.barnacle.marker.Marker;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
@@ -31,19 +32,25 @@ import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The bridge round. The cage is authored as real blocks in the {@code cages} arena - a {@code cage} region
- * over the volume plus a {@code cage} pos standing where the player stands, facing the cage's FRONT - and
- * stamps over each team's {@code bridge:cage} spot rotated so the front faces the map's center. The
- * countdown runs on the captured per-network voice; bridge never installs the shared duel countdown, so
- * the freeze lives here too.
+ * The bridge round. Cages are authored as real blocks in the {@code cages} arena - per variant (marker
+ * group): a {@code cage} region over the volume and a {@code cage} pos standing where the player stands,
+ * facing the FRONT. {@code accent}/{@code accent.<family>} regions mark cells whose authored RED blocks
+ * recolor to the seat's team. Players pick a variant ({@code /cage}, vault-backed); each spot stamps its
+ * seat's pick rotated so the front faces the map center. The countdown is the captured per-network voice;
+ * bridge never runs the shared duel countdown, so the freeze lives here too.
  */
 public final class Cages implements GameModule {
 
@@ -54,6 +61,8 @@ public final class Cages implements GameModule {
     private static final HotArena CAGES = HotArena.of("cages");
     private static final MarkerKey<PosMarker> CAGE_SPOT = MarkerKey.pos("cage");
     private static final MarkerKey<RegionMarker> CAGE_BOX = MarkerKey.region("cage");
+    private static final Map<String, String> TEAM_DYE = Map.of(
+            "red", "RED", "blue", "BLUE", "green", "LIME", "yellow", "YELLOW");
 
     // captured hypixel: note.hat vol 1 each beat, note.harp at GO; scrims/minemen cues UNCAPTURED - pling
     private static final Sound HAT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 1f, 1f);
@@ -61,13 +70,16 @@ public final class Cages implements GameModule {
     private static final Sound TICK = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 1f);
     private static final Sound GO = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
 
-    private record CageDef(Facing front, Map<BlockVec, Block> cells) {}
+    private record Cell(BlockVec offset, Block block, @Nullable String recolor) {}
+    private record CageDef(Facing front, List<Cell> cells) {}
     private static Arena cageSource;
-    private static CageDef cageDef;
+    private static Map<String, CageDef> cageDefs = Map.of();
+    private static final Map<UUID, String> CHOICES = new ConcurrentHashMap<>();
 
     private final Map<Point, Block> replaced = new HashMap<>();
     private Component held;
     private boolean introShown;
+    private boolean caged;
 
     @Override
     public void install(@NotNull Game game) {
@@ -110,7 +122,7 @@ public final class Cages implements GameModule {
             e.setCancelled(true);
         });
 
-        stamp(game);
+        // the first beat stamps (a tick after install) so the seats are filled and picks resolve
         st.alarms().arm(COUNT_ALARM, st.tick() + 1,
                 CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
     }
@@ -124,6 +136,10 @@ public final class Cages implements GameModule {
         GameState st = game.state();
         if (!"countdown".equals(st.get(Scope.GAME, Duels.PHASE))) return;
         boolean hypixel = "hypixel".equals(Duels.lookNameOf(game));
+        if (!caged) {
+            caged = true;
+            stamp(game);
+        }
         if (!introShown) {
             introShown = true;
             if (hypixel) { // captured: the instruction block lands right before the first cage beat
@@ -167,68 +183,136 @@ public final class Cages implements GameModule {
         held = scorer.isEmpty() ? null
                 : Banners.scoredHeld(game, scorer, game.roster().team(payload.getString("team")).color());
         game.state().set(Scope.GAME, Duels.PHASE, "countdown");
+        caged = true;
         stamp(game);
         game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
         game.state().alarms().arm(COUNT_ALARM, game.state().tick() + 1,
                 CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
     }
 
-    /** The authored cage, offsets relative to its stand spot; re-extracted when /arena save swaps the arena. */
-    private static synchronized CageDef cage() {
+    /** The authored cages by variant; re-extracted when /arena save swaps the arena. */
+    private static synchronized Map<String, CageDef> cages() {
         Arena arena;
         try {
             arena = CAGES.get();
         } catch (IllegalStateException missing) {
-            return null; // no cages arena yet - open-air freeze
+            return Map.of(); // no cages arena yet - open-air freeze
         }
-        if (arena == cageSource) return cageDef;
-        PosMarker spot = arena.markers(CAGE_SPOT).isEmpty() ? null : arena.markers(CAGE_SPOT).getFirst();
-        RegionMarker box = arena.markers(CAGE_BOX).isEmpty() ? null : arena.markers(CAGE_BOX).getFirst();
+        if (arena == cageSource) return cageDefs;
         cageSource = arena;
-        if (spot == null || box == null) {
-            cageDef = null;
-            System.err.println("[cages] the cages arena needs a 'cage' region and a 'cage' pos facing its front");
-            return null;
-        }
-        BlockVec anchor = new BlockVec(spot.pos().blockX(), spot.pos().blockY(), spot.pos().blockZ());
-        Map<BlockVec, Block> cells = new HashMap<>();
+        Map<String, CageDef> defs = new HashMap<>();
         var source = arena.instantiate();
-        for (RegionMarker.Cuboid part : box.boxes()) {
-            for (int x = part.min().blockX(); x <= part.max().blockX(); x++) {
-                for (int z = part.min().blockZ(); z <= part.max().blockZ(); z++) {
-                    if (!source.isChunkLoaded(x >> 4, z >> 4)) source.loadChunk(x >> 4, z >> 4).join();
-                    for (int y = part.min().blockY(); y <= part.max().blockY(); y++) {
-                        Block block = source.getBlock(x, y, z);
-                        if (!block.isAir()) {
-                            cells.put(new BlockVec(x - anchor.blockX(), y - anchor.blockY(), z - anchor.blockZ()), block);
+        for (PosMarker spot : arena.markers(CAGE_SPOT)) {
+            RegionMarker box = arena.marker(CAGE_BOX, spot.group());
+            if (box == null) continue;
+            List<RegionMarker> accents = new ArrayList<>();
+            for (Marker marker : arena.markers()) {
+                if (marker instanceof RegionMarker region && region.group().equals(spot.group())
+                        && (region.key().equals("accent") || region.key().startsWith("accent."))) {
+                    accents.add(region);
+                }
+            }
+            BlockVec anchor = new BlockVec(spot.pos().blockX(), spot.pos().blockY(), spot.pos().blockZ());
+            List<Cell> cells = new ArrayList<>();
+            for (RegionMarker.Cuboid part : box.boxes()) {
+                for (int x = part.min().blockX(); x <= part.max().blockX(); x++) {
+                    for (int z = part.min().blockZ(); z <= part.max().blockZ(); z++) {
+                        if (!source.isChunkLoaded(x >> 4, z >> 4)) source.loadChunk(x >> 4, z >> 4).join();
+                        for (int y = part.min().blockY(); y <= part.max().blockY(); y++) {
+                            Block block = source.getBlock(x, y, z);
+                            if (block.isAir()) continue;
+                            cells.add(new Cell(
+                                    new BlockVec(x - anchor.blockX(), y - anchor.blockY(), z - anchor.blockZ()),
+                                    block, recolor(block, new BlockVec(x, y, z), accents)));
                         }
                     }
                 }
             }
+            defs.put(spot.group(), new CageDef(Facing.fromYaw(spot.pos().yaw()), List.copyOf(cells)));
         }
         arena.unload();
-        cageDef = new CageDef(Facing.fromYaw(spot.pos().yaw()), cells);
-        return cageDef;
+        if (defs.isEmpty()) System.err.println("[cages] the cages arena has no cage region+pos pair");
+        cageDefs = Map.copyOf(defs);
+        return cageDefs;
+    }
+
+    // authored RED_* inside a matching accent region recolors per team; the returned tail rides the Cell
+    private static @Nullable String recolor(Block block, BlockVec at, List<RegionMarker> accents) {
+        String name = block.key().value().toUpperCase(Locale.ROOT);
+        if (!name.startsWith("RED_")) return null;
+        for (RegionMarker accent : accents) {
+            if (!accent.contains(at)) continue;
+            String family = accent.key().equals("accent") ? "" : accent.key().substring("accent.".length());
+            if (familyMatches(name, family)) return name.substring("RED_".length());
+        }
+        return null;
+    }
+
+    private static boolean familyMatches(String name, String family) {
+        return switch (family) {
+            case "" -> true;
+            case "wool" -> name.endsWith("_WOOL");
+            case "glass" -> name.contains("STAINED_GLASS");
+            case "terracotta" -> name.endsWith("TERRACOTTA");
+            case "concrete" -> name.contains("CONCRETE");
+            case "carpet" -> name.endsWith("_CARPET");
+            default -> false;
+        };
+    }
+
+    /** The seated player's pick for that team's spot ("" until their vault answer lands). */
+    private static String choiceFor(Game game, String team) {
+        for (Player member : game.members()) {
+            Slot seat = game.roster().slotOf(member);
+            if (seat != null && seat.team().equals(team)) return choiceOf(member);
+        }
+        return "";
+    }
+
+    static String choiceOf(Player player) {
+        String cached = CHOICES.get(player.getUuid());
+        if (cached != null) return cached;
+        CHOICES.put(player.getUuid(), ""); // one fetch; the vault answer covers the next stamp
+        Duels.grotto().vault().get(player.getUuid(), Bridge.CAGE_CHOICE)
+                .thenAccept(choice -> CHOICES.put(player.getUuid(), choice));
+        return "";
+    }
+
+    static void choose(Player player, String variant) {
+        CHOICES.put(player.getUuid(), variant);
+        Duels.grotto().vault().set(player.getUuid(), Bridge.CAGE_CHOICE, variant);
+    }
+
+    static Set<String> variants() {
+        return cages().keySet();
     }
 
     // all writes ride the game's shard - the arena container is shared by concurrent games
     private void stamp(Game game) {
-        CageDef cage = cage();
-        if (cage == null) return;
+        Map<String, CageDef> defs = cages();
+        if (defs.isEmpty()) return;
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {
+            CageDef cage = defs.getOrDefault(choiceFor(game, spawn.group()), defs.get(""));
+            if (cage == null) cage = defs.values().iterator().next();
             var at = spawn.pos();
             // the map marker already faces the center - rotate the authored front onto it
             int turns = cage.front().quarterTurnsTo(Facing.fromYaw(at.yaw()));
-            cage.cells().forEach((offset, block) -> {
-                BlockVec turned = Facing.rotate(offset, turns);
+            String dye = TEAM_DYE.getOrDefault(spawn.group(), "RED");
+            for (Cell cell : cage.cells()) {
+                BlockVec turned = Facing.rotate(cell.offset(), turns);
                 BlockVec pos = new BlockVec(at.blockX() + turned.blockX(), at.blockY() + turned.blockY(),
                         at.blockZ() + turned.blockZ());
                 if (!game.instance().isChunkLoaded(pos.blockX() >> 4, pos.blockZ() >> 4)) {
                     game.instance().loadChunk(pos.blockX() >> 4, pos.blockZ() >> 4).join();
                 }
+                Block block = cell.block();
+                if (cell.recolor() != null) {
+                    Block dyed = Block.fromKey("minecraft:" + (dye + "_" + cell.recolor()).toLowerCase(Locale.ROOT));
+                    if (dyed != null) block = dyed;
+                }
                 replaced.putIfAbsent(pos, game.shard().getBlock(pos.blockX(), pos.blockY(), pos.blockZ()));
                 game.shard().setBlock(pos, Facing.rotate(block, turns));
-            });
+            }
         }
     }
 

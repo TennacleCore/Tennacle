@@ -1,6 +1,7 @@
 package tennacle.games.bridge;
 
 import tennacle.Mechanics;
+import tennacle.Msg;
 import tennacle.games.Duels;
 import tennacle.games.MapPool;
 
@@ -19,9 +20,13 @@ import io.github.term4.polyp.mechanics.projectile.types.ProjectileTypeConfig;
 import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.state.StateKey;
+import io.github.term4.grotto.vault.VaultKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.codec.Codec;
+import net.minestom.server.command.builder.arguments.ArgumentType;
+import net.minestom.server.command.builder.Command;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
@@ -62,12 +67,15 @@ public final class Bridge {
     public static final StateKey<Integer> TARGET = StateKey.of("bridge:target", Codec.INT, 5);
     public static final StateKey<Integer> LIMIT = StateKey.of("bridge:limit-ticks", Codec.INT, 15 * 60 * 20);
     public static final StateKey<Integer> KILLS = StateKey.of("bridge:kills", Codec.INT, 0, true);
+    /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
+    public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
     /** Knockback immunity after a respawn; forfeited by swinging or touching blocks. */
     public static final StateKey<Integer> PROTECT = StateKey.of("bridge:protect-ticks", Codec.INT, 40);
 
     // explicit per-team blocks - the team NAME never dictates the material
     private static final Map<String, Material> BLOCKS = Map.of(
-            "red", Material.RED_TERRACOTTA, "blue", Material.BLUE_TERRACOTTA);
+            "red", Material.RED_TERRACOTTA, "blue", Material.BLUE_TERRACOTTA,
+            "green", Material.LIME_TERRACOTTA, "yellow", Material.YELLOW_TERRACOTTA);
 
     private static final ItemStack SWORD = ItemStack.of(Material.IRON_SWORD)
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
@@ -109,6 +117,28 @@ public final class Bridge {
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();
+        Command cageCmd = new Command("cage");
+        cageCmd.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            var names = Cages.variants().stream().map(v -> v.isEmpty() ? "default" : v).sorted().toList();
+            String mine = Cages.choiceOf(p);
+            Msg.tag(p, "cage", "cages: " + (names.isEmpty() ? "none authored yet" : String.join(", ", names))
+                    + " - yours: " + (mine.isEmpty() ? "default" : mine));
+        });
+        var variantArg = ArgumentType.Word("variant");
+        cageCmd.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            String pick = ctx.get(variantArg);
+            String variant = pick.equals("default") ? "" : pick;
+            if (!Cages.variants().contains(variant)) {
+                Msg.err(p, "cage", "no cage named '" + pick + "' (/cage lists them)");
+                return;
+            }
+            Cages.choose(p, variant);
+            Msg.tag(p, "cage", "cage set to " + pick);
+        }, variantArg);
+        MinecraftServer.getCommandManager().register(cageCmd);
+
         Duels.kind(new Duels.Kind("bridge", type, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(),
                         io.github.term4.polyp.MechanicsProfile.builder()
