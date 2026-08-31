@@ -79,6 +79,25 @@ final class Banners {
 
     // captured per network - minemen: team names, yellow prose, "!"; scrims and hypixel share
     // team names, gray prose, "."
+    // ported termbridge: gray prose, the number green at 4+, yellow at 3-2, red at 1
+    static Component cageCount(Game game, int n) {
+        NamedTextColor tone = n == 1 ? NamedTextColor.RED : n <= 3 ? NamedTextColor.YELLOW : NamedTextColor.GREEN;
+        return Component.text("Cages open in ", NamedTextColor.GRAY)
+                .append(Component.text(n, tone))
+                .append(Component.text("...", NamedTextColor.GRAY));
+    }
+
+    static Component fight(Game game) {
+        return Component.text("Fight!", NamedTextColor.GREEN);
+    }
+
+    /** {@link #scoredTitle} by name - the scorer may be gone by the time the re-cage count renders it. */
+    static Component scoredHeld(Game game, String scorer, TextColor color) {
+        return "minemen".equals(Duels.lookNameOf(game))
+                ? Component.text(scorer, color).append(Component.text(" scored!", NamedTextColor.YELLOW))
+                : Component.text(scorer + " scored!", color);
+    }
+
     static Component fallLine(Game game, Player fallen, @Nullable Player by) {
         var roster = game.roster();
         Component name = Component.text(fallen.getUsername() + " ", roster.team(Bridge.teamOf(game, fallen)).color());

@@ -10,7 +10,6 @@ import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
-import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.grotto.modules.Kits;
@@ -18,6 +17,10 @@ import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.codec.Codec;
+import net.minestom.server.component.DataComponents;
+import net.minestom.server.item.component.EnchantmentList;
+import net.minestom.server.item.enchant.Enchantment;
+import net.minestom.server.utils.Unit;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
@@ -61,9 +64,22 @@ public final class Bridge {
     private static final Map<String, Material> BLOCKS = Map.of(
             "red", Material.RED_TERRACOTTA, "blue", Material.BLUE_TERRACOTTA);
 
-    private static final Kit KIT = Kit.of("bridge")
-            .item(0, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
-            .item(1, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
+    private static final ItemStack SWORD = ItemStack.of(Material.IRON_SWORD)
+            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+    private static final ItemStack BOW = ItemStack.of(Material.BOW)
+            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+    private static final ItemStack PICKAXE = ItemStack.of(Material.DIAMOND_PICKAXE)
+            .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2)))
+            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+
+    static final Kit KIT = Kit.of("bridge")
+            .item(0, SWORD)
+            .item(1, BOW)
+            .item(2, PICKAXE)
+            .item(3, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
+            .item(4, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
+            .item(8, ItemStack.of(Material.GOLDEN_APPLE, 8))
+            .item(9, ItemStack.of(Material.ARROW))
             .dyedArmor(EquipmentSlot.HELMET, Material.LEATHER_HELMET)
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
@@ -78,7 +94,6 @@ public final class Bridge {
                 .team("red", NamedTextColor.RED)
                 .team("blue", NamedTextColor.BLUE)
                 .expect(CAGE, 2)
-                .expect(Markers.BOUNDS, 1)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)
                 .expect(BUILD, 1)
@@ -86,7 +101,7 @@ public final class Bridge {
                 .expect(VOID, 1)
                 .expect(SECTION, 2)
                 .expect(CENTER, 1)
-                .modules(Duels.Countdown::new, () -> Kits.of(KIT), Cages::new, Rules::new,
+                .modules(Cages::new, () -> Kits.of(KIT), Rules::new,
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();

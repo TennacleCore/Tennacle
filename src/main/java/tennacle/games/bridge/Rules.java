@@ -10,21 +10,31 @@ import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.api.event.consume.ConsumeAppliedEvent;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
+import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
+import io.github.term4.polyp.mechanics.projectile.types.Arrow;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.attribute.Attribute;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
+import net.minestom.server.potion.Potion;
+import net.minestom.server.potion.PotionEffect;
+import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerMoveEvent;
@@ -46,7 +56,19 @@ public final class Rules implements GameModule {
 
     private record Hit(Player by, long tick) {}
 
+    static final String REFIT_ALARM = "bridge:refit";
+    private static final String QUIVER_ALARM = "bridge:quiver";
+    private static final int ARROW_TICKS = 70; // 3.5s, the termbridge/hypixel return time
+    // ported termbridge: your team scoring ding vs the enemy's low pling; the arrow-return pickup
+    private static final Sound ALLY_SCORED =
+            Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1f);
+    private static final Sound ENEMY_SCORED =
+            Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 0.75f);
+    private static final Sound ARROW_BACK =
+            Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1f);
+
     private long goalCooldownUntil;
+    private final Map<UUID, Long> arrowDue = new HashMap<>();
     private final Map<UUID, Hit> lastHit = new HashMap<>();
     private final Map<UUID, Long> protectedUntil = new HashMap<>();
     private final Set<Point> placed = new HashSet<>();
@@ -56,7 +78,6 @@ public final class Rules implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         GameState st = game.state();
-        RegionMarker bounds = game.arena().markers(Markers.BOUNDS).getFirst();
         RegionMarker build = game.arena().markers(Bridge.BUILD).getFirst();
         int floor = Integer.MAX_VALUE;
         for (var key : List.of(Bridge.SECTION, Bridge.CENTER)) {
@@ -112,7 +133,7 @@ public final class Rules implements GameModule {
             Slot seat = game.roster().slotOf(player);
             if (seat == null) return;
             Pos to = e.getNewPosition();
-            if (to.y() < voidY || !bounds.contains(to)) {
+            if (to.y() < voidY) {
                 died(game, player, seat);
                 return;
             }
@@ -125,8 +146,76 @@ public final class Rules implements GameModule {
                 return;
             }
         });
+        game.on(ProjectileLaunchEvent.class, e -> e.snapshot().shooter(), e -> {
+            if (!(e.snapshot().type() instanceof Arrow) || !(e.snapshot().shooter() instanceof Player shooter)) return;
+            if (game.roster().slotOf(shooter) == null) return;
+            startQuiver(game, shooter);
+        });
+        game.on(ConsumeAppliedEvent.class, e -> e.snapshot().user(), e -> {
+            Player eater = e.snapshot().user();
+            if (e.snapshot().item().material() != Material.GOLDEN_APPLE
+                    || game.roster().slotOf(eater) == null) return;
+            eater.setHealth((float) eater.getAttributeValue(Attribute.MAX_HEALTH));
+            boolean absorbed = eater.getActiveEffects().stream()
+                    .anyMatch(effect -> effect.potion().effect().equals(PotionEffect.ABSORPTION));
+            if (!absorbed) eater.addEffect(new Potion(PotionEffect.ABSORPTION, 0, 20 * 60));
+        });
+        st.alarms().register(QUIVER_ALARM, (tick, payload) -> quiverTick(game));
+        st.alarms().register(REFIT_ALARM, (tick, payload) -> {
+            for (Player member : game.members()) {
+                Slot ms = game.roster().slotOf(member);
+                if (ms != null) refit(game, member, ms);
+            }
+        });
         st.alarms().register(TIME_UP_ALARM, (tick, payload) -> timeUp(game));
         st.alarms().arm(TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
+    }
+
+    // one arrow in the quiver: shooting starts the 3.5s return, the XP bar drains it down
+    private void startQuiver(Game game, Player shooter) {
+        boolean idle = arrowDue.isEmpty();
+        arrowDue.put(shooter.getUuid(), game.state().tick() + ARROW_TICKS);
+        shooter.setLevel(4);
+        shooter.setExp(1f);
+        if (idle) game.state().alarms().arm(QUIVER_ALARM, game.state().tick() + 1);
+    }
+
+    private void quiverTick(Game game) {
+        long now = game.state().tick();
+        var pending = arrowDue.entrySet().iterator();
+        while (pending.hasNext()) {
+            var entry = pending.next();
+            Player owner = game.members().stream()
+                    .filter(m -> m.getUuid().equals(entry.getKey())).findFirst().orElse(null);
+            if (owner == null) {
+                pending.remove();
+                continue;
+            }
+            long left = entry.getValue() - now;
+            if (left <= 0) {
+                owner.getInventory().setItemStack(9, ItemStack.of(Material.ARROW));
+                owner.playSound(ARROW_BACK);
+                owner.setExp(0f);
+                owner.setLevel(0);
+                pending.remove();
+                continue;
+            }
+            owner.setExp(left / (float) ARROW_TICKS);
+            owner.setLevel((int) Math.ceil(left / 20.0));
+        }
+        if (!arrowDue.isEmpty()) game.state().alarms().arm(QUIVER_ALARM, now + 1);
+    }
+
+    /** Round-fresh: full health and food, effects gone, kit re-applied, the quiver reset. */
+    private void refit(Game game, Player player, Slot seat) {
+        arrowDue.remove(player.getUuid());
+        player.setExp(0f);
+        player.setLevel(0);
+        player.setHealth((float) player.getAttributeValue(Attribute.MAX_HEALTH));
+        player.setFood(20);
+        player.clearEffects();
+        player.getInventory().clear();
+        Bridge.KIT.apply(game, player, seat);
     }
 
     private static double plane(Game game, MarkerKey<LimitMarker> key) {
@@ -138,6 +227,7 @@ public final class Rules implements GameModule {
     private void died(Game game, Player player, Slot seat) {
         PosMarker back = game.arena().marker(Bridge.RESPAWN, seat.team());
         player.teleport(back != null ? back.pos() : spawnOf(game, seat));
+        refit(game, player, seat);
         protectedUntil.put(player.getUuid(),
                 game.state().tick() + game.rules().resolve(Scope.GAME, Bridge.PROTECT));
         announceFall(game, player);
@@ -244,14 +334,17 @@ public final class Rules implements GameModule {
             return;
         }
         Title scored = Title.title(Banners.scoredTitle(game, scorer, color), Component.empty(),
-                Duels.times(game, 0, 30, 10));
+                Duels.times(game, 0, 30, 0));
         Duels.cue(game, SoundSet.SCORED);
         for (Player member : game.members()) {
             member.showTitle(scored);
             Slot memberSeat = game.roster().slotOf(member);
+            boolean ally = memberSeat != null && memberSeat.team().equals(seat.team());
+            member.playSound(ally ? ALLY_SCORED : ENEMY_SCORED);
             if (memberSeat != null) member.teleport(spawnOf(game, memberSeat));
         }
-        st.alarms().arm(Cages.RECAGE_ALARM, st.tick() + 1);
+        st.alarms().arm(Cages.RECAGE_ALARM, st.tick() + 1, CompoundBinaryTag.builder()
+                .putString("scorer", scorer.getUsername()).putString("team", seat.team()).build());
     }
 
     private static Pos spawnOf(Game game, Slot seat) {
