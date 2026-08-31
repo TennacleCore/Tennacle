@@ -21,9 +21,11 @@ import io.github.term4.canvas.Canvas;
 import io.github.term4.polyp.tracking.ClientVersion;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.timer.TaskSchedule;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.InstanceContainer;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -33,6 +35,32 @@ import java.nio.file.Path;
  * {@link Playground} (world + kit), {@link ShardCommands}, {@link ReplayCommands}, {@link DevCommands}.
  */
 public final class TestServer {
+
+    private static final int EDITOR_IDLE_MINUTES = 10;
+    private static long editorEmptySince;
+
+    // an abandoned editor closes on its own, but the unsaved work survives as an .autosave sidecar
+    private static void editorWatchdog() {
+        var editing = Bloom.session();
+        if (editing == null || !editing.instance().getPlayers().isEmpty()) {
+            editorEmptySince = 0;
+            return;
+        }
+        if (editorEmptySince == 0) {
+            editorEmptySince = System.currentTimeMillis();
+            return;
+        }
+        if (System.currentTimeMillis() - editorEmptySince < EDITOR_IDLE_MINUTES * 60_000L) return;
+        editorEmptySince = 0;
+        try {
+            Files.write(Path.of("arenas", editing.id() + ".bncl.autosave"), editing.save());
+        } catch (Exception e) {
+            System.err.println("[arena] idle autosave failed: " + e);
+        }
+        editing.close();
+        System.out.println("[arena] " + editing.id() + " sat empty " + EDITOR_IDLE_MINUTES
+                + "m - closed (unsaved edits in the .autosave)");
+    }
 
     public static void main(String[] args) {
         // the platform flags, before init
@@ -66,27 +94,18 @@ public final class TestServer {
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(Path.of("arenas"), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
-        Sessions.register(new Sessions.Kind() { // /l in the editor confirm-gates like /arena delete
-            private java.util.UUID pending;
-            private long until;
-
-            @Override
-            public Runnable departure(net.minestom.server.entity.Player p) {
-                var editing = Bloom.session();
-                if (editing == null || p.getInstance() != editing.instance()) return null;
-                if (!p.getUuid().equals(pending) || System.currentTimeMillis() > until) {
-                    pending = p.getUuid();
-                    until = System.currentTimeMillis() + 10_000;
-                    return () -> Msg.tag(p, "arena", "you're editing " + editing.id()
-                            + " - /l again within 10s closes it (unsaved edits discarded)");
-                }
-                pending = null;
-                return () -> {
-                    editing.close(); // its exit policy lands the builders in the lobby
-                    Msg.tag(p, "arena", "session closed (unsaved edits discarded)");
-                };
-            }
+        Bloom.registerDefaultCommands();
+        Sessions.register(p -> { // /l leaves the editor OPEN - the idle watchdog below owns closing
+            var editing = Bloom.session();
+            if (editing == null || p.getInstance() != editing.instance()) return null;
+            return () -> {
+                Duels.toLobby(p);
+                Msg.tag(p, "arena", editing.id() + " stays open - /arena edit steps back in; it closes after "
+                        + EDITOR_IDLE_MINUTES + "m empty (autosave kept)");
+            };
         });
+        MinecraftServer.getSchedulerManager().buildTask(TestServer::editorWatchdog)
+                .repeat(TaskSchedule.seconds(30)).schedule();
         // legacy clients can't render the glowing region boxes - they get particle outlines
         Bloom.legacyViewers(p -> Mechanics.polyp.clientInfo().isLegacy(p));
         Canvas.theme(Msg.THEME);
