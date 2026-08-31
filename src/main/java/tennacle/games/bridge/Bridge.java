@@ -5,6 +5,7 @@ import tennacle.games.Duels;
 import tennacle.games.HotArena;
 
 import io.github.term4.barnacle.marker.MarkerKey;
+import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
@@ -39,6 +40,9 @@ public final class Bridge {
     public static final MarkerKey<PosMarker> RESPAWN = MarkerKey.pos("bridge:respawn");
     /** Horizontal build slices (multi-box for non-square shapes); Y never gates here - see the band. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bridge:build");
+    /** Optional highest placeable Y; absent = bridge top + 7. {@code grotto:void} likewise defaults to
+     * bridge underside - 10. */
+    public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bridge:height");
     // the Bloom-authored bridge geometry: the build band derives from these (underside .. top + height - 1)
     public static final MarkerKey<RegionMarker> SECTION = MarkerKey.region("section");
     public static final MarkerKey<RegionMarker> CENTER = MarkerKey.region("center");
@@ -47,8 +51,6 @@ public final class Bridge {
     public static final StateKey<Integer> TARGET = StateKey.of("bridge:target", Codec.INT, 5);
     public static final StateKey<Integer> LIMIT = StateKey.of("bridge:limit-ticks", Codec.INT, 15 * 60 * 20);
     public static final StateKey<Integer> KILLS = StateKey.of("bridge:kills", Codec.INT, 0, true);
-    /** Blocks above the bridge top you may build. */
-    public static final StateKey<Integer> BUILD_HEIGHT = StateKey.of("bridge:build-height", Codec.INT, 7);
     /** Knockback immunity after a respawn; forfeited by swinging or touching blocks. */
     public static final StateKey<Integer> PROTECT = StateKey.of("bridge:protect-ticks", Codec.INT, 40);
 
@@ -74,7 +76,6 @@ public final class Bridge {
                 .team("blue", NamedTextColor.BLUE)
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1)
-                .expect(Markers.VOID, 1)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)
                 .expect(BUILD, 1)

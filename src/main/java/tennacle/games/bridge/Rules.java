@@ -5,6 +5,7 @@ import tennacle.games.Duels;
 
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.barnacle.marker.LimitMarker;
+import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
@@ -56,8 +57,6 @@ public final class Rules implements GameModule {
     public void install(@NotNull Game game) {
         GameState st = game.state();
         RegionMarker bounds = game.arena().markers(Markers.BOUNDS).getFirst();
-        LimitMarker voidLine = game.arena().markers(Markers.VOID).getFirst();
-        double voidY = voidLine.y() != null ? voidLine.y() : Double.NEGATIVE_INFINITY;
         RegionMarker build = game.arena().markers(Bridge.BUILD).getFirst();
         int floor = Integer.MAX_VALUE;
         int top = Integer.MIN_VALUE;
@@ -69,8 +68,10 @@ public final class Rules implements GameModule {
                 }
             }
         }
+        // both planes are optional map limits; absent = the standard offsets off the bridge itself
+        double voidY = plane(game, Markers.VOID, floor - 10);
         minBuildY = floor; // never beneath the bridge's underside
-        maxBuildY = top + game.rules().resolve(Scope.GAME, Bridge.BUILD_HEIGHT) - 1;
+        maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT, top + 7));
 
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             e.amount(0);
@@ -128,6 +129,11 @@ public final class Rules implements GameModule {
         });
         st.alarms().register(TIME_UP_ALARM, (tick, payload) -> timeUp(game));
         st.alarms().arm(TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
+    }
+
+    private static double plane(Game game, MarkerKey<LimitMarker> key, double fallback) {
+        var lines = game.arena().markers(key);
+        return !lines.isEmpty() && lines.getFirst().y() != null ? lines.getFirst().y() : fallback;
     }
 
     private void died(Game game, Player player, Slot seat) {
