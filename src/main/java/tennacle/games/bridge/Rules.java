@@ -59,20 +59,17 @@ public final class Rules implements GameModule {
         RegionMarker bounds = game.arena().markers(Markers.BOUNDS).getFirst();
         RegionMarker build = game.arena().markers(Bridge.BUILD).getFirst();
         int floor = Integer.MAX_VALUE;
-        int top = Integer.MIN_VALUE;
         for (var key : List.of(Bridge.SECTION, Bridge.CENTER)) {
             for (RegionMarker part : game.arena().markers(key)) {
                 for (RegionMarker.Cuboid box : part.boxes()) {
                     floor = Math.min(floor, box.min().blockY());
-                    top = Math.max(top, box.max().blockY());
                 }
             }
         }
-        // both planes are optional map limits; absent = the standard offsets off the bridge itself
-        double voidY = plane(game, Bridge.VOID, floor - 10);
+        // both planes ride the map - the starter ships the standard ones, the type expects them
+        double voidY = plane(game, Bridge.VOID);
         minBuildY = floor; // never beneath the bridge's underside
-        // 7 above the walking surface (top block + 1): the canonical deck lands the hypixel y=100
-        maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT, top + 8));
+        maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
 
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             e.amount(0);
@@ -132,9 +129,10 @@ public final class Rules implements GameModule {
         st.alarms().arm(TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
     }
 
-    private static double plane(Game game, MarkerKey<LimitMarker> key, double fallback) {
-        var lines = game.arena().markers(key);
-        return !lines.isEmpty() && lines.getFirst().y() != null ? lines.getFirst().y() : fallback;
+    private static double plane(Game game, MarkerKey<LimitMarker> key) {
+        Double y = game.arena().markers(key).getFirst().y();
+        if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
+        return y;
     }
 
     private void died(Game game, Player player, Slot seat) {

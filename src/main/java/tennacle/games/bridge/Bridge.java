@@ -42,9 +42,9 @@ public final class Bridge {
     public static final MarkerKey<PosMarker> RESPAWN = MarkerKey.pos("bridge:respawn");
     /** Horizontal build slices (multi-box for non-square shapes); Y never gates here - see the band. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bridge:build");
-    /** Optional highest placeable Y; absent = 7 above the walking surface (canonical maps land y=100). */
+    /** Highest placeable Y - the starter ships y=100 (texture packs key off it); flat build boxes band under it. */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bridge:height");
-    /** Optional kill plane; absent = 10 below the bridge structure's underside. */
+    /** The kill plane - the starter ships structure bottom - 10. */
     public static final MarkerKey<LimitMarker> VOID = MarkerKey.limit("bridge:void");
     // the Bloom-authored bridge geometry: the build band derives from these (underside .. top + height - 1)
     public static final MarkerKey<RegionMarker> SECTION = MarkerKey.region("section");
@@ -82,6 +82,8 @@ public final class Bridge {
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)
                 .expect(BUILD, 1)
+                .expect(HEIGHT, 1)
+                .expect(VOID, 1)
                 .expect(SECTION, 2)
                 .expect(CENTER, 1)
                 .modules(Duels.Countdown::new, () -> Kits.of(KIT), Cages::new, Rules::new,
