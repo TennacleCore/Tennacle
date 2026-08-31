@@ -26,8 +26,8 @@ import net.minestom.server.network.packet.server.play.EntityTeleportPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.bridge.ReplayBridge;
-import test.bridge.ShardBridge;
+import tennacle.bridge.ReplayBridge;
+import tennacle.bridge.ShardBridge;
 
 import java.util.List;
 

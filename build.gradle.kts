@@ -39,7 +39,7 @@ dependencies {
 }
 
 application {
-    mainClass = "test.TestServer"
+    mainClass = "tennacle.TestServer"
     applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED") // polar's zstd-jni
 }
 

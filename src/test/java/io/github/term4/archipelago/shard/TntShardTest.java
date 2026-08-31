@@ -10,7 +10,7 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.bridge.ShardBridge;
+import tennacle.bridge.ShardBridge;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

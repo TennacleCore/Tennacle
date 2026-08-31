@@ -21,7 +21,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import test.bridge.ShardBridge;
+import tennacle.bridge.ShardBridge;
 
 import java.util.ArrayList;
 import java.util.List;
