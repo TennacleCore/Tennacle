@@ -4,6 +4,8 @@ import tennacle.Msg;
 import tennacle.games.Duels;
 
 import io.github.term4.canvas.theme.SoundSet;
+import io.github.term4.barnacle.marker.LimitMarker;
+import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
@@ -15,18 +17,26 @@ import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
+import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
+import net.minestom.server.coordinate.BlockVec;
+import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.player.PlayerBlockBreakEvent;
+import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerMoveEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-/** Goals, void resets, kill credit. Shoves never hurt - crossing and scoring are the whole game. */
+/** Goals, the void line, respawn protection, and the build band. Shoves never hurt. */
 public final class Rules implements GameModule {
 
     private static final String TIME_UP_ALARM = "bridge:time-up";
@@ -37,37 +47,121 @@ public final class Rules implements GameModule {
 
     private long goalCooldownUntil;
     private final Map<UUID, Hit> lastHit = new HashMap<>();
+    private final Map<UUID, Long> protectedUntil = new HashMap<>();
+    private final Set<Point> placed = new HashSet<>();
+    private int minBuildY;
+    private int maxBuildY;
 
     @Override
     public void install(@NotNull Game game) {
         GameState st = game.state();
         RegionMarker bounds = game.arena().markers(Markers.BOUNDS).getFirst();
+        LimitMarker voidLine = game.arena().markers(Markers.VOID).getFirst();
+        double voidY = voidLine.y() != null ? voidLine.y() : Double.NEGATIVE_INFINITY;
+        RegionMarker build = game.arena().markers(Bridge.BUILD).getFirst();
+        int floor = Integer.MAX_VALUE;
+        int top = Integer.MIN_VALUE;
+        for (var key : List.of(Bridge.SECTION, Bridge.CENTER)) {
+            for (RegionMarker part : game.arena().markers(key)) {
+                for (RegionMarker.Cuboid box : part.boxes()) {
+                    floor = Math.min(floor, box.min().blockY());
+                    top = Math.max(top, box.max().blockY());
+                }
+            }
+        }
+        minBuildY = floor; // never beneath the bridge's underside
+        maxBuildY = top + game.rules().resolve(Scope.GAME, Bridge.BUILD_HEIGHT) - 1;
+
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             e.amount(0);
             if (e.target() instanceof Player victim && e.source() instanceof Player attacker && attacker != victim) {
+                protectedUntil.remove(attacker.getUuid()); // swinging forfeits your own protection
                 lastHit.put(victim.getUuid(), new Hit(attacker, st.tick()));
             }
+        });
+        game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
+            if (!(e.target() instanceof Player victim)) return;
+            Long until = protectedUntil.get(victim.getUuid());
+            if (until != null && st.tick() < until) e.setCancelled(true);
+        });
+        game.on(PlayerBlockPlaceEvent.class, e -> {
+            Player player = e.getPlayer();
+            if (game.roster().slotOf(player) == null) return;
+            Point pos = e.getBlockPosition();
+            if (!buildable(build, pos) || onASpawn(game, pos)) {
+                e.setCancelled(true);
+                Msg.err(player, "bridge", "you can't build there");
+                return;
+            }
+            placed.add(new BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
+            protectedUntil.remove(player.getUuid());
+        });
+        game.on(PlayerBlockBreakEvent.class, e -> {
+            Player player = e.getPlayer();
+            if (game.roster().slotOf(player) == null) return;
+            Point pos = e.getBlockPosition();
+            boolean own = placed.remove(new BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
+            if (!own && !inBridge(game, pos)) {
+                e.setCancelled(true);
+                Msg.err(player, "bridge", "you can't break that");
+                return;
+            }
+            protectedUntil.remove(player.getUuid());
         });
         game.on(PlayerMoveEvent.class, e -> {
             Player player = e.getPlayer();
             Slot seat = game.roster().slotOf(player);
             if (seat == null) return;
-            if (!bounds.contains(e.getNewPosition())) {
-                player.teleport(spawnOf(game, seat));
-                announceFall(game, player);
+            Pos to = e.getNewPosition();
+            if (to.y() < voidY || !bounds.contains(to)) {
+                died(game, player, seat);
                 return;
             }
             if (!"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) return;
             if (st.tick() < goalCooldownUntil) return;
             for (RegionMarker goal : game.arena().markers(Bridge.GOAL)) {
-                if (goal.group().equals(seat.team()) || !goal.contains(e.getNewPosition())) continue;
-                goalCooldownUntil = st.tick() + 10;
+                if (goal.group().equals(seat.team()) || !goal.contains(to)) continue;
+                goalCooldownUntil = st.tick() + 40;
                 score(game, player, seat);
                 return;
             }
         });
         st.alarms().register(TIME_UP_ALARM, (tick, payload) -> timeUp(game));
         st.alarms().arm(TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
+    }
+
+    private void died(Game game, Player player, Slot seat) {
+        PosMarker back = game.arena().marker(Bridge.RESPAWN, seat.team());
+        player.teleport(back != null ? back.pos() : spawnOf(game, seat));
+        protectedUntil.put(player.getUuid(),
+                game.state().tick() + game.rules().resolve(Scope.GAME, Bridge.PROTECT));
+        announceFall(game, player);
+    }
+
+    private boolean buildable(RegionMarker build, Point pos) {
+        if (pos.blockY() < minBuildY || pos.blockY() > maxBuildY) return false;
+        for (RegionMarker.Cuboid box : build.boxes()) { // slices gate X/Z only - Y is the band above
+            if (pos.blockX() >= box.min().blockX() && pos.blockX() <= box.max().blockX()
+                    && pos.blockZ() >= box.min().blockZ() && pos.blockZ() <= box.max().blockZ()) return true;
+        }
+        return false;
+    }
+
+    private static boolean onASpawn(Game game, Point pos) {
+        for (PosMarker at : game.arena().markers(Markers.SPAWN)) if (spawnBlock(at, pos)) return true;
+        for (PosMarker at : game.arena().markers(Bridge.RESPAWN)) if (spawnBlock(at, pos)) return true;
+        return false;
+    }
+
+    private static boolean spawnBlock(PosMarker at, Point pos) {
+        return pos.blockX() == at.pos().blockX() && pos.blockZ() == at.pos().blockZ()
+                && (pos.blockY() == at.pos().blockY() || pos.blockY() == at.pos().blockY() + 1);
+    }
+
+    private static boolean inBridge(Game game, Point pos) {
+        for (RegionMarker part : game.arena().markers(Bridge.SECTION)) if (part.contains(pos)) return true;
+        for (RegionMarker part : game.arena().markers(Bridge.CENTER)) if (part.contains(pos)) return true;
+        return false;
     }
 
     private void announceFall(Game game, Player fallen) {
@@ -147,6 +241,7 @@ public final class Rules implements GameModule {
             Slot memberSeat = game.roster().slotOf(member);
             if (memberSeat != null) member.teleport(spawnOf(game, memberSeat));
         }
+        st.alarms().arm(Cages.RECAGE_ALARM, st.tick() + 1);
     }
 
     private static Pos spawnOf(Game game, Slot seat) {

@@ -87,6 +87,12 @@ public final class Duels {
     // the tick the duel settled: the final hit's knockback (same cascade, same tick) must still land
     public static final StateKey<Long> DONE_AT = StateKey.of("duel:done-at", Codec.LONG, -1L);
 
+    /** Re-armable mid-game (bridge re-cages on a goal): same beats, same GO. */
+    public static final String COUNT_ALARM = "duel:count";
+    public static final int COUNT_FROM = 5;
+    /** Arm tick -> GO: one beat out, then a beat per second down from {@link #COUNT_FROM}. */
+    public static final int COUNT_TICKS = 20 * (COUNT_FROM + 1);
+
     /** Renders a kill line; {@code winner}/{@code verb} null = a forfeit with no killer. */
     @FunctionalInterface
     public interface DeathLine {
@@ -566,7 +572,7 @@ public final class Duels {
                     }
                 }
             });
-            st.alarms().register("duel:count", (tick, payload) -> {
+            st.alarms().register(COUNT_ALARM, (tick, payload) -> {
                 if (!"countdown".equals(st.get(Scope.GAME, PHASE))) return; // settled early (a quit)
                 int n = payload.getInt("n");
                 if (n > 0) {
@@ -581,7 +587,7 @@ public final class Duels {
                         if (title != null) p.showTitle(title);
                         look.sounds().play(p, SoundSet.COUNTDOWN);
                     });
-                    st.alarms().arm("duel:count", tick + 20, CompoundBinaryTag.builder().putInt("n", n - 1).build());
+                    st.alarms().arm(COUNT_ALARM, tick + 20, CompoundBinaryTag.builder().putInt("n", n - 1).build());
                 } else if (game.shard().members().size() < 2) { // a duelist never arrived (logged out mid-transfer)
                     st.set(Scope.GAME, PHASE, "done");
                     each(game, p -> Msg.tag(p, "duel", "duel cancelled - your opponent never showed"));
@@ -600,7 +606,7 @@ public final class Duels {
                     });
                 }
             });
-            st.alarms().arm("duel:count", st.tick() + 20, CompoundBinaryTag.builder().putInt("n", 5).build());
+            st.alarms().arm(COUNT_ALARM, st.tick() + 20, CompoundBinaryTag.builder().putInt("n", COUNT_FROM).build());
 
             // cancelling would resync with ABSOLUTE view (the client's look rewinds mid-flick); instead let
             // the packet land, then pin back to the seat with yaw/pitch as zero RELATIVE deltas

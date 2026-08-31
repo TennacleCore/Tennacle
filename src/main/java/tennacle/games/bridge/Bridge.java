@@ -5,6 +5,7 @@ import tennacle.games.Duels;
 import tennacle.games.HotArena;
 
 import io.github.term4.barnacle.marker.MarkerKey;
+import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
@@ -25,20 +26,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Simple bridge: red side, blue side, a goal pit behind each - jump into the ENEMY's to score, first to
- * five wins. Falling resets you to your spawn. No cages, no bows, no block limits - just the game.
- * Gameplay lives in {@link Rules}, boards in {@link Boards}, chat and title text in {@link Banners},
- * end screens in {@link Ends}.
+ * Bridge: red side, blue side, a goal pit behind each - jump into the ENEMY's to score, first to five wins.
+ * Rounds start caged ({@link Cages}); building is gated to the map's build slices between the bridge's
+ * underside and the height band; dying to the void respawns you behind brief protection ({@link Rules}).
+ * Boards in {@link Boards}, chat and title text in {@link Banners}, end screens in {@link Ends}.
  */
 public final class Bridge {
 
     /** Group = the DEFENDING team; scoring is entering the goal whose group is not yours. */
     public static final MarkerKey<RegionMarker> GOAL = MarkerKey.region("bridge:goal");
+    /** Post-death spawn per team; the cage spot is {@code grotto:spawn}. */
+    public static final MarkerKey<PosMarker> RESPAWN = MarkerKey.pos("bridge:respawn");
+    /** Horizontal build slices (multi-box for non-square shapes); Y never gates here - see the band. */
+    public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bridge:build");
+    // the Bloom-authored bridge geometry: the build band derives from these (underside .. top + height - 1)
+    public static final MarkerKey<RegionMarker> SECTION = MarkerKey.region("section");
+    public static final MarkerKey<RegionMarker> CENTER = MarkerKey.region("center");
 
     public static final StateKey<Integer> GOALS = StateKey.of("bridge:goals", Codec.INT, 0, true);
     public static final StateKey<Integer> TARGET = StateKey.of("bridge:target", Codec.INT, 5);
     public static final StateKey<Integer> LIMIT = StateKey.of("bridge:limit-ticks", Codec.INT, 15 * 60 * 20);
     public static final StateKey<Integer> KILLS = StateKey.of("bridge:kills", Codec.INT, 0, true);
+    /** Blocks above the bridge top you may build. */
+    public static final StateKey<Integer> BUILD_HEIGHT = StateKey.of("bridge:build-height", Codec.INT, 7);
+    /** Knockback immunity after a respawn; forfeited by swinging or touching blocks. */
+    public static final StateKey<Integer> PROTECT = StateKey.of("bridge:protect-ticks", Codec.INT, 40);
 
     // explicit per-team blocks - the team NAME never dictates the material
     private static final Map<String, Material> BLOCKS = Map.of(
@@ -62,7 +74,13 @@ public final class Bridge {
                 .team("blue", NamedTextColor.BLUE)
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1)
-                .modules(Duels.Countdown::new, () -> Kits.of(KIT), Rules::new,
+                .expect(Markers.VOID, 1)
+                .expect(GOAL, 2)
+                .expect(RESPAWN, 2)
+                .expect(BUILD, 1)
+                .expect(SECTION, 2)
+                .expect(CENTER, 1)
+                .modules(Duels.Countdown::new, () -> Kits.of(KIT), Cages::new, Rules::new,
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();
