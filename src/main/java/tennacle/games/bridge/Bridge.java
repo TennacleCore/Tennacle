@@ -2,7 +2,7 @@ package tennacle.games.bridge;
 
 import tennacle.Mechanics;
 import tennacle.games.Duels;
-import tennacle.games.HotArena;
+import tennacle.games.MapPool;
 
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.LimitMarker;
@@ -36,7 +36,9 @@ public final class Bridge {
 
     /** Group = the DEFENDING team; scoring is entering the goal whose group is not yours. */
     public static final MarkerKey<RegionMarker> GOAL = MarkerKey.region("bridge:goal");
-    /** Post-death spawn per team; the cage spot is {@code grotto:spawn}. */
+    /** The caged round-start spot per team (rounds begin and re-cage here); slots seat off it too. */
+    public static final MarkerKey<PosMarker> CAGE = MarkerKey.pos("bridge:cage");
+    /** Post-death spawn per team. */
     public static final MarkerKey<PosMarker> RESPAWN = MarkerKey.pos("bridge:respawn");
     /** Horizontal build slices (multi-box for non-square shapes); Y never gates here - see the band. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bridge:build");
@@ -69,12 +71,12 @@ public final class Bridge {
     private Bridge() {}
 
     public static void install() {
-        HotArena arena = HotArena.of("bridge");
+        MapPool arena = MapPool.of("bridge");
         GameType type = GameType.builder("bridge")
-                .slots(SlotLayout.groups(Markers.SPAWN, 1))
+                .slots(SlotLayout.groups(CAGE, 1))
                 .team("red", NamedTextColor.RED)
                 .team("blue", NamedTextColor.BLUE)
-                .expect(Markers.SPAWN, 2)
+                .expect(CAGE, 2)
                 .expect(Markers.BOUNDS, 1)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)

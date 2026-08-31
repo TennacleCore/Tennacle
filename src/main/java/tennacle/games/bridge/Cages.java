@@ -8,7 +8,6 @@ import io.github.term4.barnacle.template.Template;
 import io.github.term4.barnacle.template.TemplateStore;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.minestom.server.coordinate.BlockVec;
@@ -56,7 +55,7 @@ public final class Cages implements GameModule {
     private void stamp(Game game) {
         Template cage = TEMPLATES.template("cage");
         if (cage == null) return;
-        for (PosMarker spawn : game.arena().markers(Markers.SPAWN)) {
+        for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {
             var at = spawn.pos();
             BlockVec anchor = new BlockVec(at.blockX(), at.blockY(), at.blockZ());
             cage.at(anchor, Facing.fromYaw(at.yaw())).forEach((pos, block) -> {

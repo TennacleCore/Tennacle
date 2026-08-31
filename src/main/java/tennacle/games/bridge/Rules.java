@@ -154,7 +154,7 @@ public final class Rules implements GameModule {
     }
 
     private static boolean onASpawn(Game game, Point pos) {
-        for (PosMarker at : game.arena().markers(Markers.SPAWN)) if (spawnBlock(at, pos)) return true;
+        for (PosMarker at : game.arena().markers(Bridge.CAGE)) if (spawnBlock(at, pos)) return true;
         for (PosMarker at : game.arena().markers(Bridge.RESPAWN)) if (spawnBlock(at, pos)) return true;
         return false;
     }
