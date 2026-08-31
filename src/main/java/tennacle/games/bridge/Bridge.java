@@ -15,6 +15,7 @@ import io.github.term4.grotto.kit.Kit;
 import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
 import io.github.term4.polyp.mechanics.hunger.HungerConfig;
 import io.github.term4.polyp.mechanics.projectile.ProjectileConfig;
+import io.github.term4.polyp.vri.VriConfig;
 import io.github.term4.polyp.mechanics.projectile.types.Arrow;
 import io.github.term4.polyp.mechanics.projectile.types.ProjectileTypeConfig;
 import io.github.term4.grotto.roster.SlotLayout;
@@ -146,6 +147,7 @@ public final class Bridge {
                                         Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
                                 .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES, arrowsVanishOver(null))
                                 .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
+                                .set(io.github.term4.polyp.MechanicsKeys.VRI, QUIET_WORLD)
                                 .build()),
                 Duels.SCRIMS,
                 false, // no death animation or spectate: everyone stays where they stand
@@ -155,6 +157,9 @@ public final class Bridge {
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 GOALS)); // a SCORING kind: hypixel ends on "<TEAM> WINS!" over the final score
     }
+
+    // no ground items at all (hypixel parity): no block drops, no tosses, no pickups; crack overlay stays
+    private static final VriConfig QUIET_WORLD = VriConfig.builder().blockBreakProgress(true).build();
 
     /** Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. */
     private static ProjectileConfig arrowsVanishOver(ProjectileConfig base) {
