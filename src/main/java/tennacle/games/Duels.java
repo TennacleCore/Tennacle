@@ -22,8 +22,6 @@ import io.github.term4.grotto.state.StateKey;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.MechanicsProfile;
-import io.github.term4.polyp.platform.compatibility.CompatConfig;
-import io.github.term4.polyp.presets.Preset;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import io.github.term4.polyp.mechanics.damage.DamageConfig;
 import io.github.term4.polyp.mechanics.damage.types.DamageTypeConfig;
@@ -167,13 +165,6 @@ public final class Duels {
             "minemen", MINEMEN, "scrims", SCRIMS, "hypixel", HYPIXEL));
 
     /** The game's presentation preset: the duel-time override when set, else the kind's default. */
-    /** A kind's compat layer for its game world: the network's deltas over the server's own, like
-     *  {@link #meleeOnlyOver} does for damage - a world member replaces the global's wholesale. */
-    public static CompatConfig compatOf(@NotNull Preset preset) {
-        MechanicsProfile global = Mechanics.polyp.profiles().global();
-        return preset.compat(global != null ? global.get(MechanicsKeys.COMPAT) : null);
-    }
-
     /** The one other side in a 1v1 (ghosts included, so boards hold through the linger), or {@code null}. */
     public static @Nullable Player opponent(@NotNull Game game, @NotNull Player me) {
         return game.opponents(me).stream().findFirst().orElse(null);

@@ -49,7 +49,7 @@ public final class Sumo {
         MechanicsProfile hypixel = Preset.HYPIXEL.profile();
         MechanicsProfile profile = hypixel.toBuilder()
                 .set(MechanicsKeys.DAMAGE, Duels.meleeOnlyOver(hypixel.get(MechanicsKeys.DAMAGE)))
-                .set(MechanicsKeys.COMPAT, Duels.compatOf(Preset.HYPIXEL))
+                .set(MechanicsKeys.COMPAT, Preset.HYPIXEL.compat())
                 .build();
         Duels.kind(new Duels.Kind("sumo", type, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(), profile),
