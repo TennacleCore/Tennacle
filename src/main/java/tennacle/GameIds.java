@@ -62,9 +62,8 @@ public final class GameIds {
         return false;
     }
 
-    /** Screenshot to id: the board's printed date + the code beside it; {@code null} = no launch minute fits.
-     *  THE export surface - a website, bot, or admin tool holding the secret calls this, no command involved.
-     *  Squinted glyphs fold (case-insensitive, o/i/l as 0/1/1). */
+    /** Screenshot to id: the board's printed date + the code beside it ({@code null} = no launch minute
+     *  fits); squinted glyphs fold. What a website/bot/command holding the secret calls. */
     public static @Nullable String derive(@NotNull LocalDate boardDate, @NotNull String code) {
         int packed = 0;
         for (int i = 0; i < code.length(); i++) packed = (packed << 5) | digit(code.charAt(i));

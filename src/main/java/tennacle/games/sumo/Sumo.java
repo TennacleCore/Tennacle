@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Sumo: Hypixel-preset knockback, zero damage (hits shove but never hurt) - first out of the ring loses.
- * The Hypixel profile rides the game's shard (world scope beats the server's MMC18 global).
+ * The Hypixel profile rides the game's shard (world scope beats the server global).
  * Gameplay lives in {@link Rules}, boards in {@link Boards}, end screens in {@link Ends}.
  */
 public final class Sumo {
@@ -44,8 +44,7 @@ public final class Sumo {
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();
-        // world scope beats whatever the server runs globally: Hypixel mechanics AND its compat layer (the
-        // self-overlap placement refusal), minus every non-melee damage type
+        // world scope over the global: hypixel mechanics + compat, melee-only damage
         MechanicsProfile hypixel = Preset.HYPIXEL.profile();
         MechanicsProfile profile = hypixel.toBuilder()
                 .set(MechanicsKeys.DAMAGE, Duels.meleeOnlyOver(hypixel.get(MechanicsKeys.DAMAGE)))

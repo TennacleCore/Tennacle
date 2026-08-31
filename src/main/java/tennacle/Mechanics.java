@@ -52,7 +52,6 @@ public final class Mechanics {
         polyp.viaProxyDetails = true;
         polyp.init();
         polyp.profiles().setGlobal(PRESET.profile().toBuilder()
-                // the preset's own compat layer (hypixel refuses self-overlapping placement where 1.8 allowed it);
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
                 .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder().animatiumDebug(true).build())
                 .set(MechanicsKeys.FIXES, Fixes18.config())
