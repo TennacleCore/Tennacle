@@ -15,7 +15,15 @@ import io.github.term4.grotto.kit.Kit;
 import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
 import io.github.term4.polyp.mechanics.hunger.HungerConfig;
 import io.github.term4.polyp.mechanics.projectile.ProjectileConfig;
+import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
+import io.github.term4.polyp.mechanics.consumable.ConsumableConfig;
+import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver;
+import io.github.term4.polyp.mechanics.consumable.ConsumableTypeConfig;
+import io.github.term4.polyp.mechanics.consumable.catalog.VanillaConsumables;
 import io.github.term4.polyp.vri.VriConfig;
+import net.minestom.server.entity.attribute.Attribute;
+import net.minestom.server.potion.Potion;
+import net.minestom.server.potion.PotionEffect;
 import io.github.term4.polyp.mechanics.projectile.types.Arrow;
 import io.github.term4.polyp.mechanics.projectile.types.ProjectileTypeConfig;
 import io.github.term4.grotto.roster.SlotLayout;
@@ -149,6 +157,7 @@ public final class Bridge {
                                 .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES, arrowsVanishOver(null))
                                 .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
                                 .set(io.github.term4.polyp.MechanicsKeys.VRI, NO_TOSS)
+                                .set(io.github.term4.polyp.MechanicsKeys.CONSUMABLES, bridgeAppleOver(null))
                                 .build()),
                 Duels.SCRIMS,
                 false, // no death animation or spectate: everyone stays where they stand
@@ -163,6 +172,33 @@ public final class Bridge {
     private static final VriConfig NO_TOSS = VriConfig.builder().blockBreakProgress(true)
             .blockDrops(io.github.term4.polyp.vri.BlockDrops.VANILLA)
             .itemPickup(true).fireBreaks(true).tntIgnite(true).build();
+
+    // the hypixel heal apple: full health, absorption I 60s only if absent - and nothing else (no regen)
+    private static final ConsumableBehavior BRIDGE_APPLE = new ConsumableBehavior() {
+        @Override
+        public void onFinish(ConsumableConfigResolver.ConsumableContext ctx) {
+            Player eater = ctx.user();
+            eater.setHealth((float) eater.getAttributeValue(Attribute.MAX_HEALTH));
+            boolean absorbed = eater.getActiveEffects().stream()
+                    .anyMatch(effect -> effect.potion().effect().equals(PotionEffect.ABSORPTION));
+            if (!absorbed) eater.addEffect(new Potion(PotionEffect.ABSORPTION, 0, 20 * 60));
+        }
+    };
+
+    /** Replaces the vanilla gapple effects for this world; type entries layer whole, so the 1.8 eat gate rides along. */
+    private static ConsumableConfig bridgeAppleOver(ConsumableConfig base) {
+        if (base == null) {
+            var global = Mechanics.polyp.profiles().global();
+            base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.CONSUMABLES) : null;
+        }
+        ConsumableConfig apple = ConsumableConfig.builder()
+                .typeConfigs(ConsumableTypeConfig.builder(VanillaConsumables.GOLDEN_APPLE.key())
+                        .canConsume(ctx -> VanillaConsumables.legacyCanEat(ctx, true))
+                        .behavior(BRIDGE_APPLE)
+                        .build())
+                .build();
+        return base != null ? apple.fromBase(base) : apple;
+    }
 
     /** Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. */
     private static ProjectileConfig arrowsVanishOver(ProjectileConfig base) {

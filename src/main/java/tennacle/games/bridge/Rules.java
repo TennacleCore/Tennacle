@@ -16,7 +16,6 @@ import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
-import io.github.term4.polyp.api.event.consume.ConsumeAppliedEvent;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
@@ -166,6 +165,14 @@ public final class Rules implements GameModule {
         });
         game.on(net.minestom.server.event.inventory.InventoryPreClickEvent.class, e -> {
             if (game.roster().slotOf(e.getPlayer()) == null) return;
+            var click = e.getClick();
+            // an in-screen toss is a CLICK - Minestom clears the slot on the click result, so the drop
+            // event alone can't keep the item
+            if (click instanceof net.minestom.server.inventory.click.Click.DropSlot
+                    || click instanceof net.minestom.server.inventory.click.Click.DropCursor) {
+                e.setCancelled(true);
+                return;
+            }
             Material picked = e.getClickedItem().material();
             // armor only ever exists worn here - a click that grabs a leather piece is an unequip
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
@@ -175,15 +182,6 @@ public final class Rules implements GameModule {
             if (!(e.snapshot().type() instanceof Arrow) || !(e.snapshot().shooter() instanceof Player shooter)) return;
             if (game.roster().slotOf(shooter) == null) return;
             startQuiver(game, shooter);
-        });
-        game.on(ConsumeAppliedEvent.class, e -> e.snapshot().user(), e -> {
-            Player eater = e.snapshot().user();
-            if (e.snapshot().item().material() != Material.GOLDEN_APPLE
-                    || game.roster().slotOf(eater) == null) return;
-            eater.setHealth((float) eater.getAttributeValue(Attribute.MAX_HEALTH));
-            boolean absorbed = eater.getActiveEffects().stream()
-                    .anyMatch(effect -> effect.potion().effect().equals(PotionEffect.ABSORPTION));
-            if (!absorbed) eater.addEffect(new Potion(PotionEffect.ABSORPTION, 0, 20 * 60));
         });
         st.alarms().register(QUIVER_ALARM, (tick, payload) -> quiverTick(game));
         st.alarms().register(REFIT_ALARM, (tick, payload) -> {
