@@ -307,8 +307,15 @@ public final class Duels {
     }
 
     private static void start(Kind kind, @Nullable String look, Player a, Player b) {
+        Arena arena;
+        try {
+            arena = kind.arena().get(); // lazy: the map may not be authored yet
+        } catch (IllegalStateException e) {
+            for (Player p : new Player[]{a, b}) Msg.err(p, "duel", e.getMessage());
+            return;
+        }
         // the look stamps BEFORE modules install - a Choice board picks its variant at install time
-        Game game = grotto.launch(kind.type(), kind.arena().get(), null,
+        Game game = grotto.launch(kind.type(), arena, null,
                 g -> { if (look != null) g.state().set(Scope.GAME, LOOK, look); });
         kind.onLaunch().accept(game);
         for (Player p : new Player[]{a, b}) {

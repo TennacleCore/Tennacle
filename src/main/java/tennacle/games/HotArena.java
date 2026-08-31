@@ -10,29 +10,22 @@ import java.nio.file.Path;
 import java.util.function.Supplier;
 
 /**
- * A {@code .bncl}-backed arena: reads {@code arenas/<name>.bncl} and hot-reloads on {@code /arena save} -
- * the NEXT game gets the edit, in-flight games finish on the old arena, and the stale instance
- * unregisters once its last game drains. Maps are made (Bloom), never generated.
+ * A {@code .bncl}-backed arena: reads {@code arenas/<name>.bncl} lazily and hot-reloads on
+ * {@code /arena save} - the NEXT game gets the edit, in-flight games finish on the old arena, and the stale
+ * instance unregisters once its last game drains. A missing file never blocks boot (this is the server maps
+ * are authored ON); launching before the map exists is the error.
  */
 public final class HotArena implements Supplier<Arena> {
 
     private final String name;
     private volatile Arena arena;
 
-    private HotArena(String name, Arena initial) {
+    private HotArena(String name) {
         this.name = name;
-        this.arena = initial;
     }
 
     public static HotArena of(String name) {
-        Path file = Path.of("arenas", name + ".bncl");
-        Arena initial;
-        try {
-            initial = Arena.read(Files.readAllBytes(file));
-        } catch (IOException | RuntimeException e) {
-            throw new IllegalStateException(file + " missing or unreadable - build the map in Bloom and /arena save it", e);
-        }
-        HotArena hot = new HotArena(name, initial);
+        HotArena hot = new HotArena(name);
         Bloom.onSave(saved -> {
             if (saved.getFileName().toString().equals(name + ".bncl")) hot.reload(saved);
         });
@@ -41,7 +34,15 @@ public final class HotArena implements Supplier<Arena> {
 
     @Override
     public Arena get() {
-        return arena;
+        Arena loaded = arena;
+        if (loaded != null) return loaded;
+        Path file = Path.of("arenas", name + ".bncl");
+        try {
+            arena = loaded = Arena.read(Files.readAllBytes(file));
+        } catch (IOException | RuntimeException e) {
+            throw new IllegalStateException(file + " missing or unreadable - build the map in Bloom and /arena save it", e);
+        }
+        return loaded;
     }
 
     private void reload(Path file) {
@@ -53,7 +54,7 @@ public final class HotArena implements Supplier<Arena> {
             return;
         }
         System.out.println("[" + name + "] arena reloaded - the next game uses your edit");
-        var stale = old.instantiated();
+        var stale = old == null ? null : old.instantiated(); // first save may beat the first launch
         if (stale == null) return;
         MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
             boolean inUse = !stale.getPlayers().isEmpty()
