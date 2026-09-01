@@ -147,6 +147,11 @@ public final class Cages implements GameModule {
             caged = true;
             stamp(game);
         }
+        // the clock starts with the first beat (captured: Time Left ticks through the cage count)
+        if (st.get(Scope.GAME, Duels.STARTED_AT) < 0) {
+            st.set(Scope.GAME, Duels.STARTED_AT, st.tick());
+            st.alarms().arm(Rules.TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
+        }
         if (!introShown) {
             introShown = true;
             if (hypixel) { // captured: the instruction block lands right before the first cage beat
@@ -178,10 +183,6 @@ public final class Cages implements GameModule {
         open(game);
         held = null;
         st.set(Scope.GAME, Duels.PHASE, "fighting");
-        if (st.get(Scope.GAME, Duels.STARTED_AT) < 0) {
-            st.set(Scope.GAME, Duels.STARTED_AT, st.tick());
-            st.alarms().arm(Rules.TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
-        }
         Title fight = Title.title(Component.empty(), Banners.fight(game), Duels.times(game, 0, 20, 10));
         Duels.each(game, p -> {
             p.showTitle(fight);

@@ -45,8 +45,8 @@ public final class Rules implements GameModule {
             game.decide(Outcome.draw(), 60);
         });
         game.state().alarms().arm(TIME_UP_ALARM, game.state().tick()
-                + tennacle.games.Duels.START_GRACE_TICKS + tennacle.games.Duels.COUNT_TICKS
-                + game.rules().resolve(Scope.GAME, Sumo.LIMIT)); // the count runs before the clock does
+                + tennacle.games.Duels.START_GRACE_TICKS
+                + game.rules().resolve(Scope.GAME, Sumo.LIMIT)); // the clock starts with the first beat
     }
 
     private static void add(Game game, Player player, StateKey<Integer> key) {

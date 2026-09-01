@@ -589,6 +589,8 @@ public final class Duels {
             });
             st.alarms().register(COUNT_ALARM, (tick, payload) -> {
                 if (!"countdown".equals(st.get(Scope.GAME, PHASE))) return; // settled early (a quit)
+                // the clock starts with the first beat - only the grace sits outside match time
+                if (st.get(Scope.GAME, STARTED_AT) < 0) st.set(Scope.GAME, STARTED_AT, tick);
                 int n = payload.getInt("n");
                 if (n > 0) {
                     Look look = lookOf(game);
@@ -609,7 +611,6 @@ public final class Duels {
                     game.decide(Outcome.draw(), 1);
                 } else {
                     st.set(Scope.GAME, PHASE, "fighting");
-                    if (st.get(Scope.GAME, STARTED_AT) < 0) st.set(Scope.GAME, STARTED_AT, tick);
                     Look look = lookOf(game);
                     // captured: the beat title fades out empty (10, 0, 10)
                     Title clear = look.count().title() != null ? Title.title(Component.empty(), Component.empty(),
