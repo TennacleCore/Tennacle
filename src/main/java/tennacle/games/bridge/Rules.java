@@ -210,13 +210,6 @@ public final class Rules implements GameModule {
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
-        game.on(io.github.term4.polyp.api.event.projectile.ProjectileHitEvent.class,
-                io.github.term4.polyp.api.event.projectile.ProjectileHitEvent::shooter, e -> {
-            if (!(e.snapshot().type() instanceof Arrow) || !(e.target() instanceof Player victim)) return;
-            // no cosmetic body arrows in bridge - clear after the hit's own add lands
-            MinecraftServer.getSchedulerManager().scheduleNextTick(() ->
-                    io.github.term4.polyp.mechanics.projectile.entities.arrow.StuckArrows.set(victim, 0));
-        });
         game.on(ProjectileLaunchEvent.class, e -> e.snapshot().shooter(), e -> {
             if (!(e.snapshot().type() instanceof Arrow) || !(e.snapshot().shooter() instanceof Player shooter)) return;
             if (game.roster().slotOf(shooter) == null) return;

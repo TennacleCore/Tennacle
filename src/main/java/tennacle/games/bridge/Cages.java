@@ -75,7 +75,8 @@ public final class Cages implements GameModule {
     private record CageDef(Facing front, List<Cell> cells) {}
     private static Arena cageSource;
     private static Map<String, CageDef> cageDefs = Map.of();
-    private static final Map<UUID, String> CHOICES = new ConcurrentHashMap<>();
+    private static final tennacle.PlayerPrefs.Entry<String, String> PICK =
+            tennacle.PlayerPrefs.register(Bridge.CAGE_CHOICE);
 
     private final Map<Point, Block> replaced = new HashMap<>();
     private Component held;
@@ -281,30 +282,13 @@ public final class Cages implements GameModule {
         return "";
     }
 
-    /** Preferences load at LOGIN, so by any match the answer already sits in the cache. */
-    static void installPreload() {
-        var node = MinecraftServer.getGlobalEventHandler();
-        node.addListener(net.minestom.server.event.player.AsyncPlayerConfigurationEvent.class,
-                e -> preload(e.getPlayer().getUuid()));
-        node.addListener(net.minestom.server.event.player.PlayerDisconnectEvent.class,
-                e -> CHOICES.remove(e.getPlayer().getUuid())); // re-fetched next login
-    }
-
-    private static void preload(UUID player) {
-        Duels.grotto().vault().get(player, Bridge.CAGE_CHOICE)
-                .thenAccept(choice -> CHOICES.put(player, choice));
-    }
-
     static String choiceOf(Player player) {
-        String cached = CHOICES.get(player.getUuid());
-        if (cached != null) return cached;
-        preload(player.getUuid()); // belt: an unexpected miss heals for the next stamp
-        return "";
+        String pick = PICK.of(player.getUuid());
+        return pick != null ? pick : ""; // null = the login fetch has not landed - default cage
     }
 
     static void choose(Player player, String variant) {
-        CHOICES.put(player.getUuid(), variant);
-        Duels.grotto().vault().set(player.getUuid(), Bridge.CAGE_CHOICE, variant);
+        PICK.set(player, variant);
     }
 
     static Set<String> variants() {

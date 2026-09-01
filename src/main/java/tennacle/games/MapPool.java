@@ -42,6 +42,7 @@ public final class MapPool implements Supplier<Arena> {
     @Override
     public Arena get() {
         if (!scanned) scan();
+        maps.keySet().removeIf(file -> !Files.exists(file)); // /arena delete drops out of rotation
         List<Arena> live = List.copyOf(maps.values());
         if (live.isEmpty()) {
             throw new IllegalStateException("no arenas tagged '" + tag
@@ -67,17 +68,7 @@ public final class MapPool implements Supplier<Arena> {
             System.err.println("[maps:" + tag + "] unreadable " + file + ": " + e);
             return;
         }
-        drain(arena.meta().tags().contains(tag) ? maps.put(file, arena) : maps.remove(file));
+        HotArena.drain(arena.meta().tags().contains(tag) ? maps.put(file, arena) : maps.remove(file));
         if (maps.containsKey(file)) System.out.println("[maps:" + tag + "] " + file.getFileName() + " in rotation");
-    }
-
-    private static void drain(Arena old) {
-        var stale = old == null ? null : old.instantiated();
-        if (stale == null) return;
-        MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
-            boolean inUse = !stale.getPlayers().isEmpty()
-                    || Duels.grotto().games().stream().anyMatch(g -> g.instance() == stale);
-            if (!inUse) MinecraftServer.getInstanceManager().unregisterInstance(stale);
-        });
     }
 }

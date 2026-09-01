@@ -1,6 +1,7 @@
 package tennacle.games.sumo;
 
 import tennacle.Mechanics;
+import tennacle.games.Countdown;
 import tennacle.games.Duels;
 import tennacle.games.HotArena;
 
@@ -40,7 +41,7 @@ public final class Sumo {
                 .team("blue", NamedTextColor.BLUE)
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1)
-                .modules(Duels.Countdown::new, Rules::new,
+                .modules(Countdown::new, Rules::new,
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();

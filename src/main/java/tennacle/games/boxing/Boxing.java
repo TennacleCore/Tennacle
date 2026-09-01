@@ -2,6 +2,7 @@ package tennacle.games.boxing;
 
 import tennacle.Mechanics;
 import tennacle.Msg;
+import tennacle.games.Countdown;
 import tennacle.games.Duels;
 import tennacle.games.HotArena;
 
@@ -82,7 +83,7 @@ public final class Boxing {
                 .modules(
                         // ends first: snapshots must capture Speed II before Rules.onEnd strips it
                         () -> Duels.byLook(Ends::hypixel, Ends::results, Ends::scrims),
-                        Duels.Countdown::new, () -> Kits.of(KIT), Rules::new,
+                        Countdown::new, () -> Kits.of(KIT), Rules::new,
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Stats.of()
                                 .counter(HITS, CAREER_HITS)

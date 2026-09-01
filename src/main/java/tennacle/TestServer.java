@@ -84,6 +84,7 @@ public final class TestServer {
         SimTpsCommands.register(Mechanics.polyp, shards, world);
         Duels.install(world, new Pos(0.5, 42, 0.5), shards); // /duel <player> [mode]: 1v1s over Grotto
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
+        PlayerPrefs.install();
         GameIds.install(Duels.grotto(),
                 System.getenv().getOrDefault("TENNACLE_GAME_SECRET", "tennacle-dev-secret"));
         GrottoCommands.register(shards); // /grotto: the live map (instances, games, players, shard trees)

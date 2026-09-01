@@ -107,6 +107,8 @@ public final class Bridge {
             .item("blocks2", 4, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
             .item("gapple", 5, ItemStack.of(Material.GOLDEN_APPLE, 8))
             .item("arrow", 9, ItemStack.of(Material.ARROW))
+            .display("blocks", ItemStack.of(Material.WHITE_TERRACOTTA, 64))
+            .display("blocks2", ItemStack.of(Material.WHITE_TERRACOTTA, 64))
             .layouts((g, p) -> KitLayouts.of(p, "bridge"))
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
@@ -153,16 +155,7 @@ public final class Bridge {
             Msg.tag(p, "cage", "cage set to " + pick);
         }, variantArg);
         MinecraftServer.getCommandManager().register(cageCmd);
-        Cages.installPreload();
-        KitLayouts.install("bridge", KIT, role -> switch (role) {
-            // editor stand-ins: same materials, team-neutral where the real kit derives from the seat
-            case "sword" -> SWORD;
-            case "bow" -> BOW;
-            case "pickaxe" -> PICKAXE;
-            case "blocks", "blocks2" -> ItemStack.of(Material.WHITE_TERRACOTTA, 64);
-            case "gapple" -> ItemStack.of(Material.GOLDEN_APPLE, 8);
-            default -> ItemStack.of(Material.ARROW);
-        });
+        KitLayouts.editable("bridge", KIT);
 
         Duels.kind(new Duels.Kind("bridge", type, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(),
@@ -226,7 +219,7 @@ public final class Bridge {
         ProjectileTypeConfig baseArrow = base != null ? base.typeConfig(Arrow.KEY) : null;
         ProjectileTypeConfig arrow = (baseArrow != null
                 ? ProjectileTypeConfig.builder(baseArrow) : ProjectileTypeConfig.builder(Arrow.KEY))
-                .removeOnBlockHit(true).build();
+                .removeOnBlockHit(true).stuckInBody(false).build(); // no cosmetic body arrows in bridge
         ProjectileConfig vanish = ProjectileConfig.builder().typeConfigs(arrow).build();
         return base != null ? vanish.fromBase(base) : vanish;
     }

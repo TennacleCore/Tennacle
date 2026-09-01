@@ -1,6 +1,7 @@
 package tennacle.games;
 
 import tennacle.Msg;
+import tennacle.PlayerPrefs;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.kit.Kit;
@@ -8,10 +9,9 @@ import io.github.term4.grotto.vault.VaultKey;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.command.builder.Command;
+import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.inventory.InventoryCloseEvent;
-import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
-import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.Nullable;
@@ -21,21 +21,24 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
- * Per-player kit slot arrangements: vault-backed, prefetched at login, kit-default fallback on anything
- * missing or malformed. {@code /kitbeta} is the bare editor - the kit lands in your inventory, arrange it,
- * close to save. (The Canvas screen replaces the command later; the data layer stays.)
+ * Per-player kit slot arrangements: one vault value for all kits, prefetched through {@link PlayerPrefs},
+ * kit-default fallback on anything missing or malformed. {@code /kitbeta [kit]} is the bare editor - the
+ * kit lands in your inventory, arrange it, close to save. (A Canvas screen replaces the command later;
+ * the data layer stays.)
  */
 public final class KitLayouts {
 
     // one value for all kits: "bridge>sword:0,bow:1|other>..." - room to grow without new keys
     private static final VaultKey<String> LAYOUTS = VaultKey.of("kits:layouts", Codec.STRING, "");
+    private static final PlayerPrefs.Entry<String, Map<String, Map<String, Integer>>> STORE =
+            PlayerPrefs.register(LAYOUTS, KitLayouts::parse, KitLayouts::serialize);
     private static final Tag<String> ROLE = Tag.String("tennacle:kit-role");
 
-    private static final Map<UUID, Map<String, Map<String, Integer>>> CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, Kit> EDITABLE = new LinkedHashMap<>();
     private static final Map<UUID, Edit> EDITING = new ConcurrentHashMap<>();
+    private static volatile boolean wired;
 
     private record Edit(String kitId, Kit kit, ItemStack[] stash) {}
 
@@ -43,48 +46,63 @@ public final class KitLayouts {
 
     /** The stored remap for {@code kitId}, or null = the kit's defaults. */
     public static @Nullable Map<String, Integer> of(Player player, String kitId) {
-        Map<String, Map<String, Integer>> kits = CACHE.get(player.getUuid());
+        Map<String, Map<String, Integer>> kits = STORE.of(player.getUuid());
         return kits != null ? kits.get(kitId) : null;
     }
 
-    /** Wire login prefetch, disconnect eviction, the close-to-save hook, and {@code /kitbeta} for {@code kit}. */
-    public static void install(String betaKitId, Kit betaKit, Function<String, ItemStack> display) {
-        var node = MinecraftServer.getGlobalEventHandler();
-        node.addListener(AsyncPlayerConfigurationEvent.class, e -> preload(e.getPlayer().getUuid()));
-        node.addListener(PlayerDisconnectEvent.class, e -> {
-            CACHE.remove(e.getPlayer().getUuid());
-            EDITING.remove(e.getPlayer().getUuid()); // the lobby flow rebuilds the inventory next login
-        });
-        node.addListener(InventoryCloseEvent.class, e -> {
+    /** Registers {@code kit} with the editor; the first call wires the close-to-save hook and the command. */
+    public static void editable(String kitId, Kit kit) {
+        EDITABLE.put(kitId, kit);
+        if (wired) return;
+        wired = true;
+        MinecraftServer.getGlobalEventHandler().addListener(InventoryCloseEvent.class, e -> {
             if (e.getInventory() != e.getPlayer().getInventory()) return;
             Edit edit = EDITING.remove(e.getPlayer().getUuid());
             if (edit != null) finish(e.getPlayer(), edit);
         });
+        MinecraftServer.getGlobalEventHandler().addListener(
+                net.minestom.server.event.player.PlayerDisconnectEvent.class,
+                e -> EDITING.remove(e.getPlayer().getUuid())); // the lobby flow rebuilds next login
 
         Command cmd = new Command("kitbeta");
+        var kitArg = ArgumentType.Word("kit");
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            if (Game.of(p) != null) {
-                Msg.err(p, "kit", "not mid-game - use the lobby");
-                return;
-            }
-            if (EDITING.containsKey(p.getUuid())) {
-                Msg.err(p, "kit", "already editing - close your inventory to save");
-                return;
-            }
-            var inv = p.getInventory();
-            ItemStack[] stash = new ItemStack[inv.getSize()];
-            for (int i = 0; i < stash.length; i++) stash[i] = inv.getItemStack(i);
-            inv.clear();
-            Map<String, Integer> current = new LinkedHashMap<>(betaKit.defaultSlots());
-            Map<String, Integer> mine = of(p, betaKitId);
-            if (mine != null) current.putAll(mine);
-            current.forEach((role, slot) ->
-                    inv.setItemStack(slot, display.apply(role).withTag(ROLE, role)));
-            EDITING.put(p.getUuid(), new Edit(betaKitId, betaKit, stash));
-            Msg.tag(p, "kit", "arrange the " + betaKitId + " kit, then close your inventory to save");
+            open(p, EDITABLE.keySet().iterator().next());
         });
+        cmd.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            open(p, ctx.get(kitArg));
+        }, kitArg);
         MinecraftServer.getCommandManager().register(cmd);
+    }
+
+    private static void open(Player p, String kitId) {
+        Kit kit = EDITABLE.get(kitId);
+        if (kit == null) {
+            Msg.err(p, "kit", "no editable kit '" + kitId + "' (" + String.join(", ", EDITABLE.keySet()) + ")");
+            return;
+        }
+        if (Game.of(p) != null) {
+            Msg.err(p, "kit", "not mid-game - use the lobby");
+            return;
+        }
+        if (EDITING.containsKey(p.getUuid())) {
+            Msg.err(p, "kit", "already editing - close your inventory to save");
+            return;
+        }
+        var inv = p.getInventory();
+        ItemStack[] stash = new ItemStack[inv.getSize()];
+        for (int i = 0; i < stash.length; i++) stash[i] = inv.getItemStack(i);
+        inv.clear();
+        Map<String, Integer> current = new LinkedHashMap<>(kit.defaultSlots());
+        Map<String, Integer> mine = of(p, kitId);
+        if (mine != null) current.putAll(mine);
+        Map<String, ItemStack> displays = kit.displays();
+        current.forEach((role, slot) ->
+                inv.setItemStack(slot, displays.getOrDefault(role, ItemStack.AIR).withTag(ROLE, role)));
+        EDITING.put(p.getUuid(), new Edit(kitId, kit, stash));
+        Msg.tag(p, "kit", "arrange the " + kitId + " kit, then close your inventory to save");
     }
 
     private static void finish(Player player, Edit edit) {
@@ -98,14 +116,12 @@ public final class KitLayouts {
         }
         for (int i = 0; i < edit.stash().length; i++) inv.setItemStack(i, edit.stash()[i]);
         inv.update();
-        CACHE.computeIfAbsent(player.getUuid(), u -> new ConcurrentHashMap<>()).put(edit.kitId(), layout);
-        Duels.grotto().vault().set(player.getUuid(), LAYOUTS, serialize(CACHE.get(player.getUuid())));
+        Map<String, Map<String, Integer>> kits = STORE.of(player.getUuid());
+        Map<String, Map<String, Integer>> next =
+                kits != null ? new ConcurrentHashMap<>(kits) : new ConcurrentHashMap<>();
+        next.put(edit.kitId(), layout);
+        STORE.set(player, next);
         Msg.tag(player, "kit", edit.kitId() + " layout saved");
-    }
-
-    private static void preload(UUID player) {
-        Duels.grotto().vault().get(player, LAYOUTS)
-                .thenAccept(stored -> CACHE.put(player, parse(stored)));
     }
 
     private static String serialize(Map<String, Map<String, Integer>> kits) {

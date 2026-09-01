@@ -54,7 +54,12 @@ public final class HotArena implements Supplier<Arena> {
             return;
         }
         System.out.println("[" + name + "] arena reloaded - the next game uses your edit");
-        var stale = old == null ? null : old.instantiated(); // first save may beat the first launch
+        drain(old); // first save may beat the first launch
+    }
+
+    /** Unregisters a replaced arena's instance once no game or player still stands in it. */
+    static void drain(@org.jetbrains.annotations.Nullable Arena old) {
+        var stale = old == null ? null : old.instantiated();
         if (stale == null) return;
         MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
             boolean inUse = !stale.getPlayers().isEmpty()
