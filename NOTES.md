@@ -33,7 +33,8 @@ FieldValue knob, so emitting knob tables makes every constant knob path-addressa
 declared by the feature that consumes them (`cages:seconds`, `score:target` - NOT bridge:*), availability
 derived from installed modules. A Ruleset = named map over tiers 1+2 (+ optional tier-0 transform for
 shipped presets); launch folds defaults <- ruleset <- overrides into a MechanicsProfile + seeded state.
-Step 1 = polyp only: `Builder.mutate` + processor knob tables + PathEdit. Path values
+Step 1 + the first fold are BUILT: polyp Builder.mutate + generated KNOBS tables + PathEdits;
+tennacle Ruleset; the three bridge looks are rulesets (arrowsVanishOver(look) is gone). Path values
 are constants OR `fn:<name>(args)` references to registered FieldFns, bound to real lambdas at fold
 time (no hot-path interpretation); only user-authored code-as-data stays impossible (tier 0).
 

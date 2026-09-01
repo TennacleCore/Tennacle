@@ -65,6 +65,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     @Test
     void aFullRound() {
         Game game = Duels.grotto().launch(Bridge.type(), fixture());
+        Duels.kindOf(game).onLaunch().accept(game); // what Duels.start runs: the ruleset fold + profile
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BridgeRed");
         FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BridgeBlue");
         try {
@@ -75,6 +76,13 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertTrue(game.join(blue.player), "blue seat claimed");
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
             assertEquals("countdown", game.state().get(Scope.GAME, Duels.PHASE), "rounds start caged");
+            // the ruleset fold: bridge's default look is scrims - trail on, roll off, mmc18 tuning intact
+            var arrow = Mechanics.polyp.profiles().resolve(red.player,
+                    io.github.term4.polyp.MechanicsKeys.PROJECTILES).typeConfig(
+                    io.github.term4.polyp.mechanics.projectile.types.Arrow.KEY);
+            assertEquals(Boolean.FALSE, arrow.critDamage.constantOrNull(), "scrims ruleset: no crit roll");
+            assertEquals(Boolean.TRUE, arrow.critParticles.constantOrNull(), "scrims ruleset: trail stays");
+            assertEquals(Boolean.TRUE, arrow.removeOnBlockHit.constantOrNull(), "bridge default rides along");
             await("kit applied", () -> swordOf(red.player) && swordOf(blue.player));
             // 1.8 leather chest+legs+boots = 3+2+1; if this drops to 0 nothing mitigates and TTK collapses
             assertEquals(6, (int) red.player.getAttributeValue(Attribute.ARMOR), "kit armor points");

@@ -5,6 +5,7 @@ import tennacle.Msg;
 import tennacle.games.Duels;
 import tennacle.games.KitLayouts;
 import tennacle.games.MapPool;
+import tennacle.games.Ruleset;
 
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.LimitMarker;
@@ -165,16 +166,20 @@ public final class Bridge {
         KitLayouts.editable("bridge", KIT);
 
         Duels.kind(new Duels.Kind("bridge", TYPE, arena,
-                game -> Mechanics.polyp.profiles().setWorld(game.shard(),
-                        io.github.term4.polyp.MechanicsProfile.builder()
-                                .set(io.github.term4.polyp.MechanicsKeys.DAMAGE,
-                                        Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
-                                .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES,
-                                        arrowsVanishOver(null, Duels.lookNameOf(game)))
-                                .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
-                                .set(io.github.term4.polyp.MechanicsKeys.VRI, NO_TOSS)
-                                .set(io.github.term4.polyp.MechanicsKeys.CONSUMABLES, bridgeAppleOver(null))
-                                .build()),
+                game -> {
+                    // tier 0: what bridge IS, on every server (docs/rulesets.md)
+                    var profile = io.github.term4.polyp.MechanicsProfile.builder()
+                            .set(io.github.term4.polyp.MechanicsKeys.DAMAGE,
+                                    Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
+                            .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES, arrowsVanishOver(null))
+                            .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
+                            .set(io.github.term4.polyp.MechanicsKeys.VRI, NO_TOSS)
+                            .set(io.github.term4.polyp.MechanicsKeys.CONSUMABLES, bridgeAppleOver(null));
+                    Ruleset rules = RULESETS.getOrDefault(Duels.lookNameOf(game), VANILLA_RULES);
+                    rules.apply(profile, Mechanics.polyp.profiles().global());
+                    Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
+                    rules.seed(game);
+                },
                 Duels.SCRIMS,
                 false, // no death animation or spectate: everyone stays where they stand
                 List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
@@ -183,6 +188,17 @@ public final class Bridge {
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 GOALS)); // a SCORING kind: hypixel ends on "<TEAM> WINS!" over the final score
     }
+
+    // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
+    private static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
+    private static final Map<String, Ruleset> RULESETS = Map.of(
+            "hypixel", Ruleset.named("hypixel")
+                    .path("projectiles/minecraft:arrow/critDamage", false)
+                    .path("projectiles/minecraft:arrow/critParticles", false),
+            "scrims", Ruleset.named("scrims")
+                    .path("projectiles/minecraft:arrow/critDamage", false)
+                    .path("projectiles/minecraft:arrow/critParticles", true),
+            "minemen", VANILLA_RULES);
 
     // hypixel parity: mined clay drops and gets picked up - TOSSING is the only thing bridge removes
     private static final VriConfig NO_TOSS = VriConfig.builder().blockBreakProgress(true)
@@ -217,12 +233,8 @@ public final class Bridge {
         return base != null ? apple.fromBase(base) : apple;
     }
 
-    /**
-     * Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. Bow crits
-     * are per-look (captured 2026-08-31): hypixel and scrims drop the damage roll, minemen keeps vanilla, and
-     * scrims still shows the trail - so the flag and the roll are set independently.
-     */
-    private static ProjectileConfig arrowsVanishOver(ProjectileConfig base, String look) {
+    /** Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. */
+    private static ProjectileConfig arrowsVanishOver(ProjectileConfig base) {
         if (base == null) {
             var global = Mechanics.polyp.profiles().global();
             base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.PROJECTILES) : null;
@@ -231,10 +243,7 @@ public final class Bridge {
         ProjectileTypeConfig baseArrow = base != null ? base.typeConfig(Arrow.KEY) : null;
         ProjectileTypeConfig arrow = (baseArrow != null
                 ? ProjectileTypeConfig.builder(baseArrow) : ProjectileTypeConfig.builder(Arrow.KEY))
-                .removeOnBlockHit(true).stuckInBody(false) // no cosmetic body arrows in bridge
-                .critDamage(!"hypixel".equals(look) && !"scrims".equals(look))
-                .critParticles("scrims".equals(look) ? Boolean.TRUE : "hypixel".equals(look) ? Boolean.FALSE : null)
-                .build();
+                .removeOnBlockHit(true).stuckInBody(false).build(); // no cosmetic body arrows in bridge
         ProjectileConfig vanish = ProjectileConfig.builder().typeConfigs(arrow).build();
         return base != null ? vanish.fromBase(base) : vanish;
     }

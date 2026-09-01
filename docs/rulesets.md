@@ -1,6 +1,10 @@
 # Rulesets: modular mechanics + rules per match
 
-Status: proposal, round 2. Supersedes the "Gamerules" sketch that used to live in NOTES.md.
+Status: step 1 + the first fold are BUILT (constants; `fn:` values still reserved). Polyp has
+`Builder.mutate`, generated `KNOBS` tables on every `@GenerateBuilder` config, and `PathEdits`
+(members: projectiles/consumables/damage typed, attack/explosion/tnt/death/knockback flat).
+Tennacle has `Ruleset` (paths + rules + fold), and bridge's three looks are rulesets - the
+`arrowsVanishOver(look)` conditional is gone. Open questions below stand.
 
 ## The problem
 
@@ -113,7 +117,7 @@ never ride a presentation switch again.
 - "What can this mode change?" = generated mechanics tree + union of installed modules' rule settings.
 - Unknown path / unsupported rule / wrong type = launch-time error with a message, not a silent no-op.
 
-## Step 1 (the only decision taken so far)
+## Step 1 (built)
 
 Polyp foundation, independently useful regardless of the rest:
 1. `MechanicsProfile.Builder.mutate(MechanicsKey<C>, UnaryOperator<C>)` - retires the fromBase wipe class.
