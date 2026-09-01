@@ -56,6 +56,7 @@ public final class Cages implements GameModule {
 
     static final String RECAGE_ALARM = "bridge:recage";
     private static final String COUNT_ALARM = "bridge:cage-count";
+    private static final String STAMP_ALARM = "bridge:cage-stamp";
 
     // the authoring arena: /arena new cages, build, /marker region cage + /marker pos cage my, /arena save
     private static final HotArena CAGES = HotArena.of("cages");
@@ -94,6 +95,12 @@ public final class Cages implements GameModule {
             }
         });
         st.alarms().register(COUNT_ALARM, (tick, payload) -> beat(game, payload.getInt("n")));
+        st.alarms().register(STAMP_ALARM, (tick, payload) -> {
+            if (!caged) {
+                caged = true;
+                stamp(game); // seats are filled by now - picks resolve, players wait inside the cage
+            }
+        });
         st.alarms().register(RECAGE_ALARM, (tick, payload) -> recage(game, payload));
 
         // cancelling would resync with ABSOLUTE view (the client's look rewinds mid-flick); instead let
@@ -122,8 +129,8 @@ public final class Cages implements GameModule {
             e.setCancelled(true);
         });
 
-        // the first beat stamps (a tick after install) so the seats are filled and picks resolve
-        st.alarms().arm(COUNT_ALARM, st.tick() + 1,
+        st.alarms().arm(STAMP_ALARM, st.tick() + 2);
+        st.alarms().arm(COUNT_ALARM, st.tick() + Duels.START_GRACE_TICKS,
                 CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
     }
 
