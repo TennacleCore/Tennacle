@@ -47,7 +47,12 @@ Data in rules, lambdas in modules/kinds, platform feel in profiles:
 ## Open
 - Stats, end-screen win/lose sounds, Canvas screens (cage/kit/map GUIs), scrims re-capture for its
   title+sound layer, minemen bridge voice is extrapolated. Gamerules generalization awaits the rework.
-- Capture-verify (run-damage-duo.bat in minemen-capture): scrims Discord claims hypixel+scrims bridge
-  disable BOW CRITS (no full-draw random bonus) and cut sword blocking to 45% (vanilla ~50%). Knobs are
-  ready once measured: ArrowEntity's crit roll wants a projectile-config switch; blocking is already
-  `reductionBase`/`reductionFactor`. Analyzer tags blocked hits + arrow crit flags.
+- Capture-verify (run-damage.bat / -duo in minemen-capture), still open:
+  - BOW CRITS: scrims/hypixel bridge reportedly drop the full-draw random bonus. Would want a
+    projectile-config switch on ArrowEntity's roll (codegen, like `stuckInBody`).
+  - ARMOR FORMULA: a scrims dev's "higher damage reduces the armour reduction" only holds on the 1.9+
+    curve - 1.8 armor is a flat percentage. We ship `LEGACY_LINEAR`. The crit/plain damage ratio settles
+    it: exactly 1.50 = linear, ~1.6 = modern.
+  Resolved: sword blocking is `(damage+1)/2` pre-armor (scrims dev), i.e. plain vanilla 1.8 and already
+  what `Vanilla18.Blocking` computes - the "45%" was folklore (vanilla's effective cut RISES with damage:
+  41.7% on a 6, 44.4% on a 9). That batch is now the capture's control.
