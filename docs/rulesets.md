@@ -2,7 +2,8 @@
 
 Status: step 1 + the first fold are BUILT (constants; `fn:` values still reserved). Polyp has
 `Builder.mutate`, generated `KNOBS` tables on every `@GenerateBuilder` config, and `PathEdits`
-(members: projectiles/consumables/damage typed, attack/explosion/tnt/death/knockback flat).
+(members: projectiles/consumables/damage typed, attack/explosion/tnt/death/knockback flat,
+fx by named handler).
 Tennacle has `Ruleset` (paths + rules + fold), and bridge's three looks are rulesets - the
 `arrowsVanishOver(look)` conditional is gone. Open questions below stand.
 
@@ -128,17 +129,18 @@ Open (deliberately undecided): what a saved custom setup is and where it lives; 
 surface; alias curation; whether rule settings also get path-style addressing for uniformity; the
 initial `FieldFn` vocabulary (which combinators and facts to register first).
 
-Known limits surfaced by review:
-- **Overlays cannot unset** - fromBase merges let an unset knob fall through to the base, so presence-
-  encoded choices ("flatDamage set means flat damage") are one-way from data. The fix is to promote the
-  discriminator to an explicit enum, which overlays cleanly in both directions. DONE for explosions:
-  `explosion/damageModel = flat|curve` (unset = the legacy presence encoding), so hypixel's flat TNT
-  becomes vanilla-curve TNT for SkyWars with one path. Apply the same treatment to any future
-  presence-encoded model rather than inventing unset semantics.
-- **FX entries are behavior objects**, not FieldValue knobs, so they are not path-addressable yet -
-  that needs a named FxHandler registry (`fx/pearl-teleport = game-wide|positional|none`), the first
-  customer for the `fn:`-style reference layer. Note this is only about DATA addressing: `FxEvent` is
-  already cancellable and swappable, so a game-scoped listener can suppress or replace any effect today.
+Resolved by review:
+- **Overlays cannot unset**, so presence-encoded choices ("flatDamage set means flat damage") were
+  one-way from data. Fixed at the source rather than worked around: the discriminator is now one enum
+  knob, `explosion/damageModel = curve|flat` (default CURVE, `flatDamage` demoted to just FLAT's
+  amount), matching the `ArmorConfig.Formula` idiom. Hypixel's preset says `.damageModel(FLAT)`
+  explicitly, and SkyWars' vanilla-curve TNT is one path write. **Rule for new configs: never let a
+  field's presence pick a mode - name the mode.**
+- **FX handlers are lambdas**, so they get names instead of paths-into-fields: `FxHandlers.register(key,
+  name, handler)` and `fx/<key> = <name>` (e.g. `fx/polyp:pearl_teleport = game-wide`, `none` works for
+  every key). That makes the entire `Hypixel.bedwars()` delta expressible as one line of data.
+  Separately, `FxEvent` was always cancellable AND swappable, so a game-scoped listener can suppress or
+  replace any effect - the registry is simply the better seam for unconditional per-world feel.
 
 ## Measured values the bridge rulesets must reproduce (captured 2026-08-31)
 
