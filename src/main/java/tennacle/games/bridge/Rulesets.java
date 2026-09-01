@@ -29,14 +29,20 @@ final class Rulesets {
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel")
                     .path("projectiles/minecraft:arrow/critDamage", false)
-                    .path("projectiles/minecraft:arrow/critParticles", false),
+                    .path("projectiles/minecraft:arrow/critParticles", false)
+                    .over(BASE),
             "scrims", Ruleset.named("scrims")
                     .path("projectiles/minecraft:arrow/critDamage", false)
-                    .path("projectiles/minecraft:arrow/critParticles", true),
-            "minemen", VANILLA_RULES);
+                    .path("projectiles/minecraft:arrow/critParticles", true)
+                    .over(BASE),
+            "minemen", VANILLA_RULES.over(BASE));
 
-    /** The look's ruleset; an unknown name plays vanilla (minemen). */
+    /** The look's ruleset over {@link #BASE}; an unknown name plays vanilla (minemen). */
     static Ruleset forLook(String look) {
-        return RULESETS.getOrDefault(look, VANILLA_RULES);
+        return RULESETS.getOrDefault(look, RULESETS.get("minemen"));
+    }
+
+    static void check(io.github.term4.polyp.MechanicsProfile global) {
+        for (Ruleset ruleset : RULESETS.values()) ruleset.check(global);
     }
 }

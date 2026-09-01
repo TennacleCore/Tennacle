@@ -30,13 +30,11 @@ public final class Ruleset {
     private final List<Path> paths;
     private final List<Rule<?>> rules;
 
-    private static final List<Ruleset> ALL = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     private Ruleset(String name, List<Path> paths, List<Rule<?>> rules) {
         this.name = name;
         this.paths = paths;
         this.rules = rules;
-        ALL.add(this);
     }
 
     /** Every problem a fold of this ruleset would hit, as messages; empty when it is sound. */
@@ -56,18 +54,27 @@ public final class Ruleset {
             PathEdits.apply(MechanicsProfile.builder(), fallback, p.path(), p.value(), player -> false);
             return null;
         } catch (RuntimeException e) {
-            return e.getMessage();
+            return e.getMessage() != null ? e.getMessage() : e.toString();
         }
     }
 
-    /**
-     * {@link #validate} over every ruleset built so far - the boot sweep a server runs AFTER its modes install,
-     * when every named behaviour they register exists. A typo then fails startup instead of the first match.
-     */
-    public static List<String> validateAll(@Nullable MechanicsProfile fallback) {
-        List<String> problems = new ArrayList<>();
-        for (Ruleset ruleset : ALL) problems.addAll(ruleset.validate(fallback));
-        return problems;
+    /** {@link #validate} as an install-time gate: a bad entry stops the mode before any match can find it. */
+    public Ruleset check(@Nullable MechanicsProfile fallback) {
+        List<String> problems = validate(fallback);
+        if (!problems.isEmpty()) throw new IllegalStateException("bad ruleset entries:\n" + String.join("\n", problems));
+        return this;
+    }
+
+    /** This ruleset's entries over {@code base}'s: a look over its mode's base is ONE ruleset to fold, seed and check. */
+    public Ruleset over(@NotNull Ruleset base) {
+        Ruleset merged = base;
+        for (Path p : paths) merged = merged.path(p.scope(), p.path(), p.value());
+        for (Rule<?> r : rules) merged = merged.add(r);
+        return new Ruleset(base.name + "+" + name, merged.paths, merged.rules);
+    }
+
+    private <T> Ruleset add(Rule<T> r) {
+        return rule(r.scope(), r.key(), r.value());
     }
 
     public static Ruleset named(@NotNull String name) {
@@ -97,6 +104,7 @@ public final class Ruleset {
     /** A rule value seeded at {@code scope} - a team's own respawn delay, a seat's own kit. */
     public <T> Ruleset rule(@NotNull Scope scope, @NotNull StateKey<T> key, @NotNull T value) {
         List<Rule<?>> next = new ArrayList<>(rules);
+        next.removeIf(r -> r.scope().equals(scope) && r.key().equals(key));
         next.add(new Rule<>(scope, key, value));
         return new Ruleset(name, paths, List.copyOf(next));
     }

@@ -179,15 +179,14 @@ public final class Bridge {
         MinecraftServer.getCommandManager().register(cageCmd);
         KitLayouts.editable("bridge", KIT);
 
+        Rulesets.check(Mechanics.polyp.profiles().global());
         Duels.kind(new Duels.Kind("bridge", TYPE, arena,
                 game -> {
                     var profile = io.github.term4.polyp.MechanicsProfile.builder();
-                    var global = Mechanics.polyp.profiles().global();
-                    Rulesets.BASE.apply(profile, global);
-                    Ruleset look = Rulesets.forLook(Duels.lookNameOf(game));
-                    look.apply(profile, global);
+                    Ruleset rules = Rulesets.forLook(Duels.lookNameOf(game));
+                    rules.apply(profile, Mechanics.polyp.profiles().global(), game);
                     Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
-                    look.seed(game);
+                    rules.seed(game);
                 },
                 Duels.SCRIMS,
                 false, // no death animation or spectate: everyone stays where they stand

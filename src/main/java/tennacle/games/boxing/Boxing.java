@@ -94,6 +94,7 @@ public final class Boxing {
                                 .counter(SPRINT_HITS, CAREER_SPRINT)
                                 .best(BEST_COMBO, CAREER_COMBO))
                 .build();
+        RULES.check(Mechanics.polyp.profiles().global());
         Duels.kind(new Duels.Kind("boxing", type, arena,
                 game -> {
                     MechanicsProfile.Builder profile = MechanicsProfile.builder();
