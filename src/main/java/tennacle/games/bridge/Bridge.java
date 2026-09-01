@@ -14,15 +14,6 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.kit.Kit;
-import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
-import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
-import io.github.term4.polyp.mechanics.consumable.ConsumableConfig;
-import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver;
-import io.github.term4.polyp.mechanics.consumable.ConsumableTypeConfig;
-import io.github.term4.polyp.mechanics.consumable.catalog.VanillaConsumables;
-import net.minestom.server.entity.attribute.Attribute;
-import net.minestom.server.potion.Potion;
-import net.minestom.server.potion.PotionEffect;
 import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.state.StateKey;
@@ -162,11 +153,7 @@ public final class Bridge {
 
         Duels.kind(new Duels.Kind("bridge", TYPE, arena,
                 game -> {
-                    var profile = io.github.term4.polyp.MechanicsProfile.builder()
-                            // code, because they are not one-knob edits: a damage-type switch list and the apple's behavior
-                            .set(io.github.term4.polyp.MechanicsKeys.DAMAGE,
-                                    Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
-                            .set(io.github.term4.polyp.MechanicsKeys.CONSUMABLES, bridgeAppleOver(null));
+                    var profile = io.github.term4.polyp.MechanicsProfile.builder();
                     var global = Mechanics.polyp.profiles().global();
                     BASE.apply(profile, global);
                     Ruleset look = RULESETS.getOrDefault(Duels.lookNameOf(game), VANILLA_RULES);
@@ -189,7 +176,12 @@ public final class Bridge {
             .path("projectiles/minecraft:arrow/stuckInBody", false)   // no cosmetic body arrows
             .path("hunger/enabled", false)
             .path("hunger/naturalRegen", false)                       // healing is the apple only
-            .path("vri/itemDrop", false);                             // hypixel parity: mined clay still drops
+            .path("vri/itemDrop", false)                              // hypixel parity: mined clay still drops
+            // only swings and arrows hurt: a selection over the damage catalog, not a switch per type
+            .path("damage/enabledTypes", "only(minecraft:player_attack, minecraft:thrown)")
+            // the hypixel heal apple: the vanilla golden apple, dishing out different effects
+            .path("consumables/minecraft:golden_apple/behavior",
+                    "payload(heal(0), if-absent(minecraft:absorption, effect(minecraft:absorption, 1, 1200)))");
 
     // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
     private static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
@@ -201,34 +193,6 @@ public final class Bridge {
                     .path("projectiles/minecraft:arrow/critDamage", false)
                     .path("projectiles/minecraft:arrow/critParticles", true),
             "minemen", VANILLA_RULES);
-
-    // the hypixel heal apple: full health, absorption I 60s only if absent - and nothing else (no regen)
-    private static final ConsumableBehavior BRIDGE_APPLE = new ConsumableBehavior() {
-        @Override
-        public void onFinish(ConsumableConfigResolver.ConsumableContext ctx) {
-            Player eater = ctx.user();
-            eater.setHealth((float) eater.getAttributeValue(Attribute.MAX_HEALTH));
-            boolean absorbed = eater.getActiveEffects().stream()
-                    .anyMatch(effect -> effect.potion().effect().equals(PotionEffect.ABSORPTION));
-            if (!absorbed) eater.addEffect(new Potion(PotionEffect.ABSORPTION, 0, 20 * 60));
-        }
-    };
-
-    /** Replaces the vanilla gapple effects for this world; type entries layer whole, so the 1.8 eat gate rides along. */
-    private static ConsumableConfig bridgeAppleOver(ConsumableConfig base) {
-        if (base == null) {
-            var global = Mechanics.polyp.profiles().global();
-            base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.CONSUMABLES) : null;
-        }
-        ConsumableTypeConfig gapple = ConsumableTypeConfig.builder(VanillaConsumables.GOLDEN_APPLE.key())
-                .canConsume(ctx -> VanillaConsumables.legacyCanEat(ctx, true))
-                .behavior(BRIDGE_APPLE)
-                .build();
-        ConsumableTypeConfig baseGapple = base != null ? base.typeConfig(VanillaConsumables.GOLDEN_APPLE.key()) : null;
-        if (baseGapple != null) gapple = gapple.fromBase(baseGapple); // eat time etc. stay preset-tuned
-        ConsumableConfig apple = ConsumableConfig.builder().typeConfigs(gapple).build();
-        return base != null ? apple.fromBase(base) : apple;
-    }
 
     static String teamOf(Game game, Player player) {
         var seat = game.roster().slotOf(player);
