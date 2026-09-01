@@ -94,8 +94,9 @@ public final class Duels {
     public static final int COUNT_FROM = 5;
     /** Arm tick -> GO: one beat out, then a beat per second down from {@link #COUNT_FROM}. */
     public static final int COUNT_TICKS = 20 * (COUNT_FROM + 1);
-    /** Every game start idles this long before the first beat - laggy joins land, launch work settles. */
-    public static final int START_GRACE_TICKS = 30;
+    /** Every game start idles this long before the first beat - laggy joins land, launch work settles.
+     * Kept on the 20-tick grid: the scoreboard refresh runs 20s from install, so beats and second-flips align. */
+    public static final int START_GRACE_TICKS = 40;
 
     /** Renders a kill line; {@code winner}/{@code verb} null = a forfeit with no killer. */
     @FunctionalInterface
