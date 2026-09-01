@@ -33,7 +33,17 @@ Data in rules, lambdas in modules/kinds, platform feel in profiles:
 - GameType declares supported rules (`.rule(KEY)` beside `.expect(...)`) - discoverable, validatable.
 - Custom predicates = a Kind lambda slot (HitPolicy) selected by rule value; polyp never learns teams.
 
+## Audit pass (done)
+- PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
+  registers a VaultKey and reads synchronously forever after).
+- Deepen follows flush floors like extend follows far ends; shift moves limits (group `pinned` stays)
+  and stamp payload anchors.
+- MapPool forgets deleted files; drain shared via HotArena; MarkerCommands split from BloomCommands;
+  Countdown extracted from Duels; Kit carries editor display stacks; stuckInBody is a projectile knob
+  (bridge sets it false - no body arrows); InventorySync tracks a SET of unverified slots.
+- BridgeRoundTest: full round on a synthetic map (launch, grace, count, GO, goal + re-cage, void respawn),
+  self-ticking harness via game.instance().tick(monotonic).
+
 ## Open
-- Kit layouts (in progress): per-player slot arrangement, vault-backed, default fallback; /kitbeta editor.
 - Stats, end-screen win/lose sounds, Canvas screens (cage/kit/map GUIs), scrims re-capture for its
-  title+sound layer, minemen bridge voice is extrapolated.
+  title+sound layer, minemen bridge voice is extrapolated. Gamerules generalization awaits the rework.
