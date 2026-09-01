@@ -204,8 +204,12 @@ A game owns ONE world profile, folded once at launch and gone with the shard. A 
 
 The subject a targeted knob tests is the entity that system resolves its profile against (`Subjects`): damage,
 knockback and death are about the VICTIM; attack and projectiles about the doer. "Red takes half damage" and
-"red hits harder" are therefore different members, not different scopes. Plain-value configs (hunger, vri) have
-no context and cannot be targeted - they vary per world only.
+"red hits harder" are therefore different members, not different scopes. Every member carries a subject - hunger, vri, item damage and player platform config too - so any
+knob can be targeted.
+
+Removing a scope (`without(Scope.team("red"))`, or `retaining(s -> s instanceof Scope.Game)` for game-wide
+only) is a re-fold over the base profile with the trimmed ruleset. Never edit a folded profile: a scoped knob
+WRAPS the game-wide value, so the only correct way to un-wrap is to fold again without it.
 
 Why this and not a per-player profile stack: the effective profile is a derivation of (world, game, team,
 powerups), and materialising a derivation as pushed state is a cache to invalidate - every lifecycle event was

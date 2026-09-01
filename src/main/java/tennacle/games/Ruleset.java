@@ -76,6 +76,22 @@ public final class Ruleset {
         return path(scope, path, value);
     }
 
+    /**
+     * Every entry - path and rule - except those at {@code scope}: "red's handicap is off". Mid-game that is a
+     * RE-FOLD over the base profile with the trimmed ruleset, never surgery on the built one, which is why a
+     * scoped knob wraps the game-wide value rather than replacing it.
+     */
+    public Ruleset without(@NotNull Scope scope) {
+        return retaining(s -> !s.equals(scope));
+    }
+
+    /** Only the entries whose scope {@code keep} accepts - {@code s -> s instanceof Scope.Game} is "game-wide only". */
+    public Ruleset retaining(@NotNull Predicate<Scope> keep) {
+        return new Ruleset(name,
+                paths.stream().filter(p -> keep.test(p.scope())).toList(),
+                rules.stream().filter(r -> keep.test(r.scope())).toList());
+    }
+
     /** Folds the game-wide mechanics half onto {@code b}; a scoped entry needs a game - use {@link #apply(MechanicsProfile.Builder, MechanicsProfile, Game)}. */
     public void apply(@NotNull MechanicsProfile.Builder b, @Nullable MechanicsProfile fallback) {
         for (Path p : paths) {

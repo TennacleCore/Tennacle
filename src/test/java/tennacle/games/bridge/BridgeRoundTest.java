@@ -102,6 +102,18 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertEquals(Boolean.TRUE, crits.apply(red.player), "team-scoped: red rolls crits");
             assertEquals(Boolean.FALSE, crits.apply(blue.player), "blue keeps the scrims value");
             assertNull(Mechanics.polyp.profiles().player(red.player), "and nothing was pushed onto a player");
+
+            // dropping a scope is a RE-FOLD over the base, never surgery on the built profile
+            var handicap = tennacle.games.Ruleset.named("proof")
+                    .path(io.github.term4.grotto.state.Scope.team(redTeam), "projectiles/minecraft:arrow/critDamage", true);
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    () -> handicap.apply(io.github.term4.polyp.MechanicsProfile.builder(), null),
+                    "a scoped entry cannot fold without the game");
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                    () -> handicap.without(io.github.term4.grotto.state.Scope.team(redTeam))
+                            .apply(io.github.term4.polyp.MechanicsProfile.builder(), null));
+            Duels.kindOf(game).onLaunch().accept(game); // the launch fold again, without the handicap
+            assertEquals(Boolean.FALSE, crits.apply(red.player), "re-folded from the base: red is back on the look");
             assertEquals(Boolean.TRUE, arrow.removeOnBlockHit.constantOrNull(), "bridge default rides along");
             await("kit applied", () -> swordOf(red.player) && swordOf(blue.player));
             // 1.8 leather chest+legs+boots = 3+2+1; if this drops to 0 nothing mitigates and TTK collapses
