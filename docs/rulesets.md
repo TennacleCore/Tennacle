@@ -138,10 +138,14 @@ server can express to whatever someone predeclared.
 - `ExplosionConfig.damageModel` is a `DamageModel` (the `BlockingBehavior`/`ConsumableBehavior` idiom):
   `DamageModel.CURVE` or `DamageModel.flat(2.0)`, one field holding the choice AND its parameter, open to
   a server's own lambda. The `flatDamage` field and its presence-magic are gone.
-- Fx values are built the same way: `FxHandler.globalSound(...)` etc., no named instances.
+- Fx goes one step further, because "who hears it" is a SECOND axis and pairing it with each effect would
+  be a grid: `FxAudience` (shard / viewers / predicted / source / everywhere / within(n)) and `FxEffect`
+  (sound / particle / animation) are registered separately and composed - `to(everywhere, sound(...))`.
+  A new audience works with every effect and vice versa; a bare effect keeps the vanilla shard audience.
+  **Whenever a vocabulary starts looking like a product of two lists, split the axes.**
 - `FieldFns` gives behaviour types a data grammar of named FACTORIES WITH ARGUMENTS -
-  `explosion/damageModel = flat(3.5)`, `fx/polyp:pearl_teleport = global-sound(entity.player.teleport,
-  player, 1, 1)`. Registering a factory extends the vocabulary for that type everywhere; arguments cover
+  `explosion/damageModel = flat(3.5)`, `fx/polyp:pearl_teleport = to(everywhere,
+  sound(entity.player.teleport, player, 1, 1))` - nested calls included. Registering a factory extends the vocabulary for that type everywhere; arguments cover
   every parameterisation, so nothing has to be enumerated in advance. Parsing happens once at fold time -
   what lands in the config is the built lambda, identical to what a preset would write.
 - This is the `fn:` layer from the design, arriving where it was actually needed. The whole
