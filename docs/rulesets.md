@@ -37,8 +37,25 @@ Segments: profile member -> (optional type entry, for containers with typeConfig
 come from the field's type (Boolean/Integer/Double/String/enums first; complex-typed fields such as
 KnockbackConfig or Set<Key> stay Tier 0 until given codecs). Setting a path = `mutate()` + the generated
 setter, so it EDITS the inherited config - a path write cannot wipe preset tuning by construction.
-Lambda-valued knobs are code, not data: a path write replaces them with a constant, which is exactly
-what "the user overrode it" should mean.
+**Dynamic values.** A path value is not limited to constants. The grammar reserves a second form -
+a reference to a REGISTERED function:
+
+```
+damage/melee/critMultiplier = 1.5                      # constant
+damage/melee/critMultiplier = fn:scale-when(airborne, 2.0)   # registered FieldFn + args
+```
+
+A `FieldFn` is registered in code once (id, applicable context, arg codecs, the lambda) and the fold
+BINDS the reference into a real `FieldValue.of(fn)` at launch - so there is no interpreter on the hot
+path; per-hit resolution runs the same compiled lambda a preset would. Conditions draw on the existing
+fact vocabulary (`CombatFacts` etc.), which is enumerable, so a UI can offer them. This is the same
+pattern tier 2 already uses for rules ("values grow richer instead of becoming lambdas" -
+`games:friendly-fire = off|melee|arrows|all` selects a registered HitPolicy).
+
+What stays impossible is only user-AUTHORED lambdas as data - arbitrary code cannot be serialized
+(and should not be executed if it could). Anything beyond the registered vocabulary is tier 0.
+Step 1 implements constants only, but the value grammar carries the `fn:` form from day one so
+dynamic values are an addition, not a redesign.
 
 The whole tree is enumerable from the generated tables, so "what mechanics can I change" is a browse,
 not a documentation page - and it never drifts from the code because it IS the code.
@@ -104,7 +121,8 @@ Polyp foundation, independently useful regardless of the rest:
    `member[/type]/field = value` through `mutate()` + generated setters.
 
 Open (deliberately undecided): what a saved custom setup is and where it lives; per-match override
-surface; alias curation; whether rule settings also get path-style addressing for uniformity.
+surface; alias curation; whether rule settings also get path-style addressing for uniformity; the
+initial `FieldFn` vocabulary (which combinators and facts to register first).
 
 ## Measured values the bridge rulesets must reproduce (captured 2026-08-31)
 
