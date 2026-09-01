@@ -36,9 +36,11 @@ import net.minestom.server.item.Material;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.sound.SoundEvent;
+import net.minestom.server.event.entity.EntityDamageEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerMoveEvent;
+import net.minestom.server.network.packet.server.play.DamageEventPacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -97,14 +99,7 @@ public final class Rules implements GameModule {
             // arrows resolve source to the shooter (snapshot contract), so this credits bow kills too
             Player source = e.source() instanceof Player p ? p : null;
             if (source == victim) { // a bow boost: never a "hit" - no credit, no protection forfeit
-                if (!bowBoost || !"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) {
-                    e.amount(0);
-                    return;
-                }
-                if (victim.getHealth() - e.amount() <= 0) {
-                    e.amount(0);
-                    killed(game, victim, seat, null);
-                }
+                if (!bowBoost || !"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) e.amount(0);
                 return;
             }
             if (source != null) {
@@ -121,14 +116,24 @@ public final class Rules implements GameModule {
                 e.amount(0);
                 return;
             }
-            if (!"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) {
-                e.amount(0);
-                return;
-            }
-            if (victim.getHealth() - e.amount() <= 0) {
-                e.amount(0); // a kill respawns behind protection - never the death screen
-                killed(game, victim, seat, source);
-            }
+            if (!"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) e.amount(0);
+        });
+        // a DamageEvent's amount is the raw swing - armor, absorption, and the i-frame overdamage diff land
+        // after it, so lethality is only decidable here, on the final applied amount
+        game.on(EntityDamageEvent.class, e -> {
+            if (!(e.getEntity() instanceof Player victim)) return;
+            Slot seat = game.roster().slotOf(victim);
+            if (seat == null) return;
+            var damage = e.getDamage();
+            if (victim.getHealth() + victim.getAdditionalHearts() > damage.getAmount()) return;
+            e.setCancelled(true); // a kill respawns behind protection - never the death screen
+            victim.sendPacketToViewersAndSelf(new DamageEventPacket( // cancelled = no hurt flash; resend it
+                    victim.getEntityId(), damage.getTypeId(),
+                    damage.getAttacker() == null ? 0 : damage.getAttacker().getEntityId() + 1,
+                    damage.getSource() == null ? 0 : damage.getSource().getEntityId() + 1,
+                    damage.getSourcePosition()));
+            killed(game, victim, seat,
+                    damage.getSource() instanceof Player by && by != victim ? by : null);
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;

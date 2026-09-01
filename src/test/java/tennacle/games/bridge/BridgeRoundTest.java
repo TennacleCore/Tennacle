@@ -15,6 +15,9 @@ import io.github.term4.grotto.state.Scope;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.attribute.Attribute;
+import net.minestom.server.entity.damage.Damage;
+import net.minestom.server.entity.damage.DamageType;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.instance.block.Block;
@@ -90,6 +93,14 @@ class BridgeRoundTest extends HeadlessServerTest {
             EventDispatcher.call(new PlayerMoveEvent(faller, new Pos(0.5, 50, 0.5), true));
             tickUntil(game, "void respawn", () -> Math.abs(faller.getPosition().x() - home) < 0.01
                     && faller.getPosition().y() > 60);
+
+            // a lethal hit (final applied amount) respawns behind protection - never the death screen
+            int kills = game.state().get(Scope.slot(game.roster().slotOf(scorer).index()), Bridge.KILLS);
+            faller.damage(new Damage(DamageType.PLAYER_ATTACK, scorer, scorer, null, 100f));
+            assertTrue(!faller.isDead(), "a kill never reaches the death screen");
+            assertEquals(faller.getAttributeValue(Attribute.MAX_HEALTH), faller.getHealth(), "respawned refit");
+            assertEquals(kills + 1, game.state().get(Scope.slot(game.roster().slotOf(scorer).index()), Bridge.KILLS),
+                    "the killer is credited");
 
             game.decide(Outcome.draw(), 1);
         } finally {
