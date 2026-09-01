@@ -143,10 +143,16 @@ server can express to whatever someone predeclared.
   effect keeps the default (shard) audience. **When a vocabulary looks like the product of two lists, split
   the axes.**
 - And the audience side is an ALGEBRA, not a list of scopes: primitives (`members`, `watchers`, `instance`,
-  `viewers`, `source`, `nobody`) closed under `both` / `except` / `only` / `tree` / `within` / `legacy` /
-  `at-listener`. "On the instance but not this shard" is `except(instance, shard)`; `shard`, `everywhere`
-  and `predicted` are aliases spelled out as the compositions they equal. **When you catch yourself naming
-  the next case, name the operator instead.**
+  `viewers`, `source`, `nobody`) closed under `both` / `except` / `only` / `tree` / `within` /
+  `protocol-below` / `at-listener`. "On the instance but not this shard" is `except(instance, watchers)`.
+  **When you catch yourself naming the next case, name the operator instead.**
+- Names must not overpromise. `everywhere` and `shard` were deleted: `everywhere` sounded server-wide but
+  meant "members, full volume" (and wrongly excluded spectators), and `shard` was just `watchers` under a
+  scope-sounding name. BedWars' pearl is `at-listener(watchers)`, which says exactly what it does. Only
+  `predicted` keeps a name, and its doc gives the composition it equals.
+- Every factory registers a SIGNATURE and a one-line doc, so `FieldFns.vocabulary(type)` prints the whole
+  surface (`within(blocks, audience) - the audience, limited to that radius`) and errors name what exists.
+  A vocabulary nobody can enumerate is not usable by anyone but its author.
 - The world RELATION that `tree` walks lives on `MechanicsWorld` (`parent`/`children`/`family`) in the
   shared polyp-world module - not in Archipelago. Shard's existing accessors already satisfy it, so the
   tree audience works with zero Archipelago-side fx code, which is the point of the shared seam.
