@@ -17,41 +17,57 @@ composed, persisted, or shown in a UI. Capture work forced the point: hypixel ru
 bridge and ON in bedwars, so mechanics cannot hang off the platform/look - which is what
 `arrowsVanishOver(look)` currently does.
 
-## Shape
+## Step 1: two kinds of setting, one type
 
-**One catalog of typed knobs; layered value maps; each knob knows how to apply itself.**
+Some settings belong to the mechanics engine and mean the same thing in any gamemode (`bow-crits`).
+Others only exist because a mode has a feature (`cage-seconds` needs cages). Collapsing them into one
+flat catalog is wrong; so is building two parallel systems. One type, two sinks, two availability rules:
+
+|                        | mechanics setting                    | rule setting                                  |
+|------------------------|--------------------------------------|-----------------------------------------------|
+| example                | `mechanics:bow-crits`                | `bridge:cage-seconds`, `games:friendly-fire`   |
+| declared by            | the mechanics layer (a polyp knob)   | the MODULE that reads it                       |
+| available in           | every mode - polyp is always there   | only modes that install the owning module      |
+| value lands in         | the shard's `MechanicsProfile`       | a `StateKey` in `GameState`                    |
+| means anything alone?  | yes                                  | no - it needs its feature                      |
+
+**The rule that decides availability: a setting is declared by the feature that CONSUMES it, and a mode
+supports it iff that feature is installed.** `Cages` declares `cage-seconds`, so every mode that installs
+`Cages` supports it automatically and every mode that doesn't rejects it at launch - no hand-maintained
+per-mode list, and no way for the two to drift. Mechanics settings need no gate at all: the whole
+mechanics catalog is available to every mode, so `bow-crits` in a sumo ruleset is legal and does exactly
+what it says.
 
 ```java
-// declared once, in the catalog - id, type, default, and where the value lands
-Knob<Boolean> BOW_CRITS = Knob.mechanics("mechanics:bow-crits", Codec.BOOLEAN, true,
+// mechanics: universal, folds into the profile
+Setting<Boolean> BOW_CRITS = Setting.mechanics("mechanics:bow-crits", Codec.BOOLEAN, true,
         (profile, on) -> profile.mutate(MechanicsKeys.PROJECTILES, cfg -> Arrows.crits(cfg, on)));
 
-Knob<Boolean> FRIENDLY_FIRE = Knob.rule(Bridge.FRIENDLY_FIRE);   // a StateKey, already serializable
-Knob<Integer> CAGE_SECONDS  = Knob.rule(Bridge.CAGE_SECONDS);
+// rule: declared by the module that reads it, so support is derived from modules(...)
+final class Cages implements GameModule {
+    static final Setting<Integer> SECONDS = Setting.rule(Bridge.CAGE_SECONDS);
+    public List<Setting<?>> settings() { return List.of(SECONDS); }
+}
 ```
 
-A **Ruleset** is an immutable `Knob -> value` map with a name, and composes:
+A **Ruleset** is then just a named `Setting -> value` map over both kinds, and composes:
 
 ```java
-Ruleset HYPIXEL_BRIDGE = Ruleset.named("hypixel")
-        .set(BOW_CRITS, false).set(BOW_CRIT_PARTICLES, false)
-        .set(CAGE_SECONDS, 3);
-
 Ruleset SCRIMS_BRIDGE = Ruleset.named("scrims")
         .set(BOW_CRITS, false).set(BOW_CRIT_PARTICLES, true)   // trail, no bonus (captured)
-        .set(CAGE_SECONDS, 5);
+        .set(Cages.SECONDS, 5);
 
-Ruleset custom = SCRIMS_BRIDGE.with(BOW_CRITS, true);          // the user's "scrims + bow crits"
+Ruleset custom = SCRIMS_BRIDGE.with(BOW_CRITS, true);          // "scrims + bow crits"
 ```
 
-At launch the stack folds in order, last writer wins per knob:
+At launch the stack folds in order, last writer wins per setting:
 
 ```
-GameType defaults  <-  ruleset (hypixel|scrims|minemen|saved custom)  <-  per-match overrides
+GameType defaults  <-  ruleset  <-  per-match overrides
 ```
 
-producing exactly two outputs: a `MechanicsProfile` set on the game's shard, and the seeded rule values
-in `GameState`. Nothing else in the game reads the ruleset - modules keep reading StateKeys as they do now.
+producing exactly two outputs - a `MechanicsProfile` set on the game's shard, and seeded values in
+`GameState`. Nothing else reads the ruleset; modules keep reading their StateKeys as they do today.
 
 ## Why knobs carry VALUES, not configs
 
