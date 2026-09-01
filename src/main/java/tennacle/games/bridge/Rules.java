@@ -88,16 +88,34 @@ public final class Rules implements GameModule {
         minBuildY = floor; // never beneath the bridge's underside
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
 
+        boolean bowBoost = game.rules().resolve(Scope.GAME, Bridge.BOW_BOOST);
+        boolean friendlyFire = game.rules().resolve(Scope.GAME, Bridge.FRIENDLY_FIRE);
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
-            // arrows resolve source to the shooter (snapshot contract), so this credits bow kills too
-            Player attacker = e.source() instanceof Player p && p != victim ? p : null;
-            if (attacker != null) {
-                protectedUntil.remove(attacker.getUuid()); // swinging forfeits your own protection
-                lastHit.put(victim.getUuid(), new Hit(attacker, st.tick()));
-            }
             Slot seat = game.roster().slotOf(victim);
             if (seat == null) return;
+            // arrows resolve source to the shooter (snapshot contract), so this credits bow kills too
+            Player source = e.source() instanceof Player p ? p : null;
+            if (source == victim) { // a bow boost: never a "hit" - no credit, no protection forfeit
+                if (!bowBoost || !"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) {
+                    e.amount(0);
+                    return;
+                }
+                if (victim.getHealth() - e.amount() <= 0) {
+                    e.amount(0);
+                    killed(game, victim, seat, null);
+                }
+                return;
+            }
+            if (source != null) {
+                Slot from = game.roster().slotOf(source);
+                if (!friendlyFire && from != null && from.team().equals(seat.team())) {
+                    e.amount(0); // gamerule: teammates never hurt each other
+                    return;
+                }
+                protectedUntil.remove(source.getUuid()); // swinging forfeits your own protection
+                lastHit.put(victim.getUuid(), new Hit(source, st.tick()));
+            }
             Long shield = protectedUntil.get(victim.getUuid());
             if (shield != null && st.tick() < shield) {
                 e.amount(0);
@@ -109,11 +127,24 @@ public final class Rules implements GameModule {
             }
             if (victim.getHealth() - e.amount() <= 0) {
                 e.amount(0); // a kill respawns behind protection - never the death screen
-                killed(game, victim, seat, attacker);
+                killed(game, victim, seat, source);
             }
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
+            Player source = e.source() instanceof Player p ? p : null;
+            if (source == victim) {
+                if (!bowBoost) e.setCancelled(true); // boosting off = self arrows push nothing
+                return; // protection never blocks your own boost
+            }
+            if (source != null && !friendlyFire) {
+                Slot a = game.roster().slotOf(source);
+                Slot b = game.roster().slotOf(victim);
+                if (a != null && b != null && a.team().equals(b.team())) {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
             Long until = protectedUntil.get(victim.getUuid());
             if (until != null && st.tick() < until) e.setCancelled(true);
         });

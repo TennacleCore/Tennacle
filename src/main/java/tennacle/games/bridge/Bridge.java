@@ -80,6 +80,10 @@ public final class Bridge {
     public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
     /** Knockback immunity after a respawn; forfeited by swinging or touching blocks. */
     public static final StateKey<Integer> PROTECT = StateKey.of("bridge:protect-ticks", Codec.INT, 40);
+    /** Your own arrow boosts you (KB + its damage); off = self hits are inert. */
+    public static final StateKey<Boolean> BOW_BOOST = StateKey.of("bridge:bow-boost", Codec.BOOLEAN, true);
+    /** Teammates can hurt each other; off = team hits are inert (matters from 2v2v2v2 up). */
+    public static final StateKey<Boolean> FRIENDLY_FIRE = StateKey.of("bridge:friendly-fire", Codec.BOOLEAN, false);
 
     // explicit per-team blocks - the team NAME never dictates the material
     private static final Map<String, Material> BLOCKS = Map.of(
@@ -191,12 +195,13 @@ public final class Bridge {
             var global = Mechanics.polyp.profiles().global();
             base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.CONSUMABLES) : null;
         }
-        ConsumableConfig apple = ConsumableConfig.builder()
-                .typeConfigs(ConsumableTypeConfig.builder(VanillaConsumables.GOLDEN_APPLE.key())
-                        .canConsume(ctx -> VanillaConsumables.legacyCanEat(ctx, true))
-                        .behavior(BRIDGE_APPLE)
-                        .build())
+        ConsumableTypeConfig gapple = ConsumableTypeConfig.builder(VanillaConsumables.GOLDEN_APPLE.key())
+                .canConsume(ctx -> VanillaConsumables.legacyCanEat(ctx, true))
+                .behavior(BRIDGE_APPLE)
                 .build();
+        ConsumableTypeConfig baseGapple = base != null ? base.typeConfig(VanillaConsumables.GOLDEN_APPLE.key()) : null;
+        if (baseGapple != null) gapple = gapple.fromBase(baseGapple); // eat time etc. stay preset-tuned
+        ConsumableConfig apple = ConsumableConfig.builder().typeConfigs(gapple).build();
         return base != null ? apple.fromBase(base) : apple;
     }
 
@@ -206,9 +211,12 @@ public final class Bridge {
             var global = Mechanics.polyp.profiles().global();
             base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.PROJECTILES) : null;
         }
-        ProjectileConfig vanish = ProjectileConfig.builder()
-                .typeConfigs(ProjectileTypeConfig.builder(Arrow.KEY).removeOnBlockHit(true).build())
-                .build();
+        // type entries layer WHOLE over base's - build from its arrow so the 1.8 tuning rides along
+        ProjectileTypeConfig baseArrow = base != null ? base.typeConfig(Arrow.KEY) : null;
+        ProjectileTypeConfig arrow = (baseArrow != null
+                ? ProjectileTypeConfig.builder(baseArrow) : ProjectileTypeConfig.builder(Arrow.KEY))
+                .removeOnBlockHit(true).build();
+        ProjectileConfig vanish = ProjectileConfig.builder().typeConfigs(arrow).build();
         return base != null ? vanish.fromBase(base) : vanish;
     }
 
