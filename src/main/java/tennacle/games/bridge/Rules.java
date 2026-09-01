@@ -51,7 +51,7 @@ import java.util.UUID;
 /** Goals, the void line, respawn protection, and the build band. Shoves never hurt. */
 public final class Rules implements GameModule {
 
-    private static final String TIME_UP_ALARM = "bridge:time-up";
+    static final String TIME_UP_ALARM = "bridge:time-up"; // armed by Cages at the first GO
     /** A shove credits the void kill for this long. */
     private static final long CREDIT_TICKS = 100;
 
@@ -223,7 +223,6 @@ public final class Rules implements GameModule {
             }
         });
         st.alarms().register(TIME_UP_ALARM, (tick, payload) -> timeUp(game));
-        st.alarms().arm(TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
     }
 
     // one arrow in the quiver: shooting starts the 3.5s return, the XP bar drains it down

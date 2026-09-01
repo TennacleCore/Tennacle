@@ -1,6 +1,7 @@
 package tennacle.games.bridge;
 
 import tennacle.Msg;
+import tennacle.games.Duels;
 import tennacle.looks.Frames;
 
 import io.github.term4.grotto.Game;
@@ -27,7 +28,8 @@ final class Boards {
     static Scoreboard scrims() {
         return Frames.scrims("Bridge", b -> b
                 .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.good(clock(Math.max(0, g.rules().resolve(Scope.GAME, Bridge.LIMIT) - g.tick())))))
+                        .append(Msg.SCRIMS.good(clock(Math.max(0,
+                                g.rules().resolve(Scope.GAME, Bridge.LIMIT) - Duels.sinceStart(g))))))
                 .blank()
                 .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS)
                 .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS)
@@ -39,7 +41,7 @@ final class Boards {
     // captured: [R]/[B] circle meters, Kills/Goals
     static Scoreboard hypixel() {
         return Frames.hypixel("BRIDGE", "Bridge Duel",
-                g -> g.rules().resolve(Scope.GAME, Bridge.LIMIT) - g.tick(), b -> b
+                g -> g.rules().resolve(Scope.GAME, Bridge.LIMIT) - Duels.sinceStart(g), b -> b
                 .line((g, me) -> circles(g, teamAt(g, 0), false), Bridge.GOALS)
                 .line((g, me) -> circles(g, teamAt(g, 1), false), Bridge.GOALS)
                 .blank()
@@ -56,7 +58,7 @@ final class Boards {
                 .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Time Left: ",
-                        Frames.clock(Math.max(0, g.rules().resolve(Scope.GAME, Bridge.LIMIT) - g.tick())))));
+                        Frames.clock(Math.max(0, g.rules().resolve(Scope.GAME, Bridge.LIMIT) - Duels.sinceStart(g))))));
     }
 
     static Team teamAt(Game game, int index) {

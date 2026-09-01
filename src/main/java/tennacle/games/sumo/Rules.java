@@ -44,8 +44,9 @@ public final class Rules implements GameModule {
             Duels.each(game, p -> p.sendMessage(Msg.HYPIXEL.prose("Time's up - draw.")));
             game.decide(Outcome.draw(), 60);
         });
-        game.state().alarms().arm(TIME_UP_ALARM,
-                game.state().tick() + game.rules().resolve(Scope.GAME, Sumo.LIMIT));
+        game.state().alarms().arm(TIME_UP_ALARM, game.state().tick()
+                + tennacle.games.Duels.START_GRACE_TICKS + tennacle.games.Duels.COUNT_TICKS
+                + game.rules().resolve(Scope.GAME, Sumo.LIMIT)); // the count runs before the clock does
     }
 
     private static void add(Game game, Player player, StateKey<Integer> key) {

@@ -86,6 +86,8 @@ public final class Duels {
     public static final StateKey<String> PHASE = StateKey.of("duel:phase", Codec.STRING, "countdown");
     // the tick the duel settled: the final hit's knockback (same cascade, same tick) must still land
     public static final StateKey<Long> DONE_AT = StateKey.of("duel:done-at", Codec.LONG, -1L);
+    /** The first GO's tick, -1 until then - clocks and time limits anchor here, not at launch. */
+    public static final StateKey<Long> STARTED_AT = StateKey.of("duel:started-at", Codec.LONG, -1L);
 
     /** Re-armable mid-game (bridge re-cages on a goal): same beats, same GO. */
     public static final String COUNT_ALARM = "duel:count";
@@ -495,6 +497,12 @@ public final class Duels {
     }
 
     /** Plays the look's sound for {@code cue} to everyone in the game; a look without one stays silent. */
+    /** Match ticks elapsed - zero until the first GO, so grace and countdowns never eat the clock. */
+    public static long sinceStart(Game game) {
+        long started = game.state().get(Scope.GAME, STARTED_AT);
+        return started < 0 ? 0 : game.state().tick() - started;
+    }
+
     public static void cue(Game game, String cue) {
         var sound = lookOf(game).sounds().get(cue);
         if (sound != null) each(game, p -> p.playSound(sound));
@@ -601,6 +609,7 @@ public final class Duels {
                     game.decide(Outcome.draw(), 1);
                 } else {
                     st.set(Scope.GAME, PHASE, "fighting");
+                    if (st.get(Scope.GAME, STARTED_AT) < 0) st.set(Scope.GAME, STARTED_AT, tick);
                     Look look = lookOf(game);
                     // captured: the beat title fades out empty (10, 0, 10)
                     Title clear = look.count().title() != null ? Title.title(Component.empty(), Component.empty(),
