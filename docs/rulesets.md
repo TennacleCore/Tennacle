@@ -153,11 +153,15 @@ server can express to whatever someone predeclared.
 - Every factory registers a SIGNATURE and a one-line doc, so `FieldFns.vocabulary(type)` prints the whole
   surface (`within(blocks, audience) - the audience, limited to that radius`) and errors name what exists.
   A vocabulary nobody can enumerate is not usable by anyone but its author.
-- The same split settles polyp's catalogs, which is what killed the last of bridge's bespoke helpers:
-  WHICH types are live is a `KeySet` selection (`damage/enabledTypes = only(...)` / `except(...)`), not one
-  `enabled=false` per type; and WHAT a consumable dishes out is a list of `ConsumeEffect` with
-  `ConsumeCondition` as its own axis - `when(not(has-effect(x)), effect(...))`, never a `chance-effect` or
-  an `if-absent` variant. Bridge's whole mechanical identity is now seven paths.
+- **Data SELECTS; it never AUTHORS.** Two shapes, and picking the wrong one is what produced every "premade
+  options" smell in this design:
+  - a genuine axis with few orthogonal primitives -> an ALGEBRA (fx `audience x effect`; `KeySet`
+    `only(...)`/`except(...)` for which damage types are live).
+  - open-ended game logic -> a REGISTRY. The behaviour is a lambda in code, where it is already unlimited,
+    and `FieldFns.register` NAMES it so a rule can point at it:
+    `consumables/minecraft:golden_apple/behavior = heal-apple`. No effect/condition vocabulary, because
+    every primitive in such a vocabulary is itself a premade option - the exact thing being avoided.
+  Bridge's whole mechanical identity is now seven paths plus one named behaviour.
 - The world RELATION that `tree` walks lives on `MechanicsWorld` (`parent`/`children`/`family`) in the
   shared polyp-world module - not in Archipelago. Shard's existing accessors already satisfy it, so the
   tree audience works with zero Archipelago-side fx code, which is the point of the shared seam.

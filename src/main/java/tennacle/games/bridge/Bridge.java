@@ -11,6 +11,12 @@ import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
+import io.github.term4.polyp.config.FieldFns;
+import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
+import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver;
+import net.minestom.server.entity.attribute.Attribute;
+import net.minestom.server.potion.Potion;
+import net.minestom.server.potion.PotionEffect;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.kit.Kit;
@@ -101,6 +107,22 @@ public final class Bridge {
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
             .dyedArmor(EquipmentSlot.BOOTS, Material.LEATHER_BOOTS);
 
+    /**
+     * The hypixel heal apple: full health, and Absorption I for a minute only if the eater has none. Code,
+     * because it is game logic rather than a knob - {@code registerFactories} NAMES it so a ruleset can point
+     * the golden apple at it without anyone writing behaviour as data.
+     */
+    private static final ConsumableBehavior HEAL_APPLE = new ConsumableBehavior() {
+        @Override
+        public void onFinish(ConsumableConfigResolver.ConsumableContext ctx) {
+            Player eater = ctx.user();
+            eater.setHealth((float) eater.getAttributeValue(Attribute.MAX_HEALTH));
+            boolean absorbed = eater.getActiveEffects().stream()
+                    .anyMatch(effect -> effect.potion().effect().equals(PotionEffect.ABSORPTION));
+            if (!absorbed) eater.addEffect(new Potion(PotionEffect.ABSORPTION, 0, 20 * 60));
+        }
+    };
+
     private static GameType TYPE;
 
     /** The installed type - the round harness launches on synthetic arenas through it. */
@@ -111,6 +133,10 @@ public final class Bridge {
     private Bridge() {}
 
     public static void install() {
+        // the named definitions this mode's rules may point at
+        FieldFns.register(ConsumableBehavior.class, "heal-apple",
+                "full health, plus Absorption I for a minute when the eater has none", args -> HEAL_APPLE);
+
         MapPool arena = MapPool.of("bridge");
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
@@ -179,9 +205,8 @@ public final class Bridge {
             .path("vri/itemDrop", false)                              // hypixel parity: mined clay still drops
             // only swings and arrows hurt: a selection over the damage catalog, not a switch per type
             .path("damage/enabledTypes", "only(minecraft:player_attack, minecraft:thrown)")
-            // the hypixel heal apple: the vanilla golden apple, dishing out different effects
-            .path("consumables/minecraft:golden_apple/behavior",
-                    "payload(heal(20), when(not(has-effect(minecraft:absorption)), effect(minecraft:absorption, 1, 1200)))");
+            // the golden apple keeps its item, eat time and gate - only what it dishes out is swapped
+            .path("consumables/minecraft:golden_apple/behavior", "heal-apple");
 
     // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
     private static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
