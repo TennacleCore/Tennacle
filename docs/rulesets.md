@@ -138,11 +138,18 @@ server can express to whatever someone predeclared.
 - `ExplosionConfig.damageModel` is a `DamageModel` (the `BlockingBehavior`/`ConsumableBehavior` idiom):
   `DamageModel.CURVE` or `DamageModel.flat(2.0)`, one field holding the choice AND its parameter, open to
   a server's own lambda. The `flatDamage` field and its presence-magic are gone.
-- Fx goes one step further, because "who hears it" is a SECOND axis and pairing it with each effect would
-  be a grid: `FxAudience` (shard / viewers / predicted / source / everywhere / within(n)) and `FxEffect`
-  (sound / particle / animation) are registered separately and composed - `to(everywhere, sound(...))`.
-  A new audience works with every effect and vice versa; a bare effect keeps the vanilla shard audience.
-  **Whenever a vocabulary starts looking like a product of two lists, split the axes.**
+- Fx goes further, because "who hears it" is a second axis and pairing it with each effect would be a grid:
+  `FxAudience` and `FxEffect` are registered separately and composed - `to(everywhere, sound(...))`. A bare
+  effect keeps the default (shard) audience. **When a vocabulary looks like the product of two lists, split
+  the axes.**
+- And the audience side is an ALGEBRA, not a list of scopes: primitives (`members`, `watchers`, `instance`,
+  `viewers`, `source`, `nobody`) closed under `both` / `except` / `only` / `tree` / `within` / `legacy` /
+  `at-listener`. "On the instance but not this shard" is `except(instance, shard)`; `shard`, `everywhere`
+  and `predicted` are aliases spelled out as the compositions they equal. **When you catch yourself naming
+  the next case, name the operator instead.**
+- The world RELATION that `tree` walks lives on `MechanicsWorld` (`parent`/`children`/`family`) in the
+  shared polyp-world module - not in Archipelago. Shard's existing accessors already satisfy it, so the
+  tree audience works with zero Archipelago-side fx code, which is the point of the shared seam.
 - `FieldFns` gives behaviour types a data grammar of named FACTORIES WITH ARGUMENTS -
   `explosion/damageModel = flat(3.5)`, `fx/polyp:pearl_teleport = to(everywhere,
   sound(entity.player.teleport, player, 1, 1))` - nested calls included. Registering a factory extends the vocabulary for that type everywhere; arguments cover
