@@ -15,9 +15,10 @@ import io.github.term4.grotto.state.Scope;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
+import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
 import net.minestom.server.entity.attribute.Attribute;
-import net.minestom.server.entity.damage.Damage;
-import net.minestom.server.entity.damage.DamageType;
+import tennacle.Mechanics;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.instance.block.Block;
@@ -74,7 +75,9 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertTrue(game.join(blue.player), "blue seat claimed");
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
             assertEquals("countdown", game.state().get(Scope.GAME, Duels.PHASE), "rounds start caged");
-            await("kit applied", () -> swordOf(red.player) || swordOf(blue.player));
+            await("kit applied", () -> swordOf(red.player) && swordOf(blue.player));
+            // 1.8 leather chest+legs+boots = 3+2+1; if this drops to 0 nothing mitigates and TTK collapses
+            assertEquals(6, (int) red.player.getAttributeValue(Attribute.ARMOR), "kit armor points");
 
             tickUntil(game, "GO", () -> "fighting".equals(game.state().get(Scope.GAME, Duels.PHASE)));
             assertTrue(game.state().get(Scope.GAME, Duels.STARTED_AT) >= 0, "the clock anchored at the first beat");
@@ -94,9 +97,13 @@ class BridgeRoundTest extends HeadlessServerTest {
             tickUntil(game, "void respawn", () -> Math.abs(faller.getPosition().x() - home) < 0.01
                     && faller.getPosition().y() > 60);
 
-            // a lethal hit (final applied amount) respawns behind protection - never the death screen
+            // respawn protection must lapse before a hit can land
+            long shieldOver = game.state().tick() + 45;
+            tickUntil(game, "protection lapses", () -> game.state().tick() >= shieldOver);
+            // a lethal hit cancels its FatalDamageEvent and respawns - never the death screen
             int kills = game.state().get(Scope.slot(game.roster().slotOf(scorer).index()), Bridge.KILLS);
-            faller.damage(new Damage(DamageType.PLAYER_ATTACK, scorer, scorer, null, 100f));
+            Mechanics.polyp.services().damage().apply(DamageSnapshot.of(faller, MeleeDamage.INSTANCE)
+                    .withSource(scorer).withAmount(100f));
             assertTrue(!faller.isDead(), "a kill never reaches the death screen");
             assertEquals(faller.getAttributeValue(Attribute.MAX_HEALTH), faller.getHealth(), "respawned refit");
             assertEquals(kills + 1, game.state().get(Scope.slot(game.roster().slotOf(scorer).index()), Bridge.KILLS),

@@ -17,6 +17,7 @@ import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
+import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.polyp.mechanics.projectile.types.Arrow;
@@ -36,11 +37,9 @@ import net.minestom.server.item.Material;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.sound.SoundEvent;
-import net.minestom.server.event.entity.EntityDamageEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerMoveEvent;
-import net.minestom.server.network.packet.server.play.DamageEventPacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -118,22 +117,12 @@ public final class Rules implements GameModule {
             }
             if (!"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) e.amount(0);
         });
-        // a DamageEvent's amount is the raw swing - armor, absorption, and the i-frame overdamage diff land
-        // after it, so lethality is only decidable here, on the final applied amount
-        game.on(EntityDamageEvent.class, e -> {
-            if (!(e.getEntity() instanceof Player victim)) return;
+        game.on(FatalDamageEvent.class, FatalDamageEvent::target, e -> {
+            if (!(e.target() instanceof Player victim)) return;
             Slot seat = game.roster().slotOf(victim);
             if (seat == null) return;
-            var damage = e.getDamage();
-            if (victim.getHealth() + victim.getAdditionalHearts() > damage.getAmount()) return;
-            e.setCancelled(true); // a kill respawns behind protection - never the death screen
-            victim.sendPacketToViewersAndSelf(new DamageEventPacket( // cancelled = no hurt flash; resend it
-                    victim.getEntityId(), damage.getTypeId(),
-                    damage.getAttacker() == null ? 0 : damage.getAttacker().getEntityId() + 1,
-                    damage.getSource() == null ? 0 : damage.getSource().getEntityId() + 1,
-                    damage.getSourcePosition()));
-            killed(game, victim, seat,
-                    damage.getSource() instanceof Player by && by != victim ? by : null);
+            e.cancel(); // a kill respawns behind protection - never the death screen
+            killed(game, victim, seat, e.source() instanceof Player by && by != victim ? by : null);
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
