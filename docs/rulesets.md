@@ -189,3 +189,26 @@ replace any effect - the registry is simply the better seam for unconditional pe
 
 Bow base is vanilla `ceil(speed x 2)` everywhere; hypixel BEDWARS runs critDamage ON - settings are
 per (mode, ruleset), never per platform.
+
+## Scoped entries: per-player variation is a value, not a scope
+
+A game owns ONE world profile, folded once at launch and gone with the shard. A ruleset entry may carry a grotto
+`Scope`, and the two halves treat it the same way:
+
+- `path(Scope.team("red"), "projectiles/minecraft:arrow/critDamage", true)` - the knob becomes
+  `FieldValue.targeted(who, value, inherited)`: red shooters get `true`, everyone else gets whatever the knob
+  held after the game-wide entries folded. Nothing is written per player, so there is nothing to order, clear
+  or leak, and a substitution or team switch is read live off the roster at the next resolve.
+- `rule(Scope.team("red"), Respawns.RESPAWN_TICKS, 60L)` - set at that scope, where `rules().resolve(player, key)`
+  already walks `slot -> team -> game`.
+
+The subject a targeted knob tests is the entity that system resolves its profile against (`Subjects`): damage,
+knockback and death are about the VICTIM; attack and projectiles about the doer. "Red takes half damage" and
+"red hits harder" are therefore different members, not different scopes. Plain-value configs (hunger, vri) have
+no context and cannot be targeted - they vary per world only.
+
+Why this and not a per-player profile stack: the effective profile is a derivation of (world, game, team,
+powerups), and materialising a derivation as pushed state is a cache to invalidate - every lifecycle event was
+a place to get it wrong. `FieldValue` was already polyp's per-context mechanism; targeting reuses it.
+Player scope stays as the plain single-tag override for dev and admin use.
+

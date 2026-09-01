@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import tennacle.games.Duels;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The whole round on a synthetic map: grace, cage count, GO, a goal + re-cage, a void death + respawn. */
@@ -82,6 +83,25 @@ class BridgeRoundTest extends HeadlessServerTest {
                     io.github.term4.polyp.mechanics.projectile.types.Arrow.KEY);
             assertEquals(Boolean.FALSE, arrow.critDamage.constantOrNull(), "scrims ruleset: no crit roll");
             assertEquals(Boolean.TRUE, arrow.critParticles.constantOrNull(), "scrims ruleset: trail stays");
+
+            // a TEAM-scoped entry lands in the SAME world profile: red's arrows roll crits, blue's keep the look
+            String redTeam = Bridge.teamOf(game, red.player);
+            var reFold = Mechanics.polyp.profiles().world(game.shard()).toBuilder();
+            tennacle.games.Ruleset.named("proof")
+                    .path(io.github.term4.grotto.state.Scope.team(redTeam), "projectiles/minecraft:arrow/critDamage", true)
+                    .apply(reFold, Mechanics.polyp.profiles().global(), game);
+            Mechanics.polyp.profiles().setWorld(game.shard(), reFold.build());
+            java.util.function.Function<Player, Boolean> crits = shooter -> {
+                var snap = io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot.of(shooter,
+                        io.github.term4.polyp.mechanics.projectile.types.Arrow.INSTANCE);
+                var ctx = io.github.term4.polyp.mechanics.projectile.ProjectileConfigResolver.ProjectileContext.of(snap,
+                        Mechanics.polyp.services());
+                return Mechanics.polyp.profiles().resolve(shooter, io.github.term4.polyp.MechanicsKeys.PROJECTILES)
+                        .typeConfig(io.github.term4.polyp.mechanics.projectile.types.Arrow.KEY).critDamage.resolve(ctx);
+            };
+            assertEquals(Boolean.TRUE, crits.apply(red.player), "team-scoped: red rolls crits");
+            assertEquals(Boolean.FALSE, crits.apply(blue.player), "blue keeps the scrims value");
+            assertNull(Mechanics.polyp.profiles().player(red.player), "and nothing was pushed onto a player");
             assertEquals(Boolean.TRUE, arrow.removeOnBlockHit.constantOrNull(), "bridge default rides along");
             await("kit applied", () -> swordOf(red.player) && swordOf(blue.player));
             // 1.8 leather chest+legs+boots = 3+2+1; if this drops to 0 nothing mitigates and TTK collapses
