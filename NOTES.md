@@ -47,22 +47,24 @@ Data in rules, lambdas in modules/kinds, platform feel in profiles:
 ## Open
 - Stats, end-screen win/lose sounds, Canvas screens (cage/kit/map GUIs), scrims re-capture for its
   title+sound layer, minemen bridge voice is extrapolated. Gamerules generalization awaits the rework.
-- Damage MEASURED on hypixel bridge 2026-08-31 (captures/2026-08-31_23-42-09_damage, both seats, 6 armor
-  = leather chest+legs+boots, no helmet - same as our kit). Every raw value is exactly vanilla 1.8:
-  | quantity        | raw   | note                                            |
-  |-----------------|-------|-------------------------------------------------|
-  | sword hit       | 7.00  | iron sword: 1.0 player base + 6.0 modifier      |
-  | crit            | 10.50 | x1.5 exactly; crit/plain ratio 1.500            |
-  | armor           | x0.76 | FLAT (25-6)/25 - LEGACY_LINEAR confirmed        |
-  | blocked plain   | 4.00  | (7+1)/2                                         |
-  | blocked crit    | 5.75  | (10.5+1)/2                                      |
-  | bow, full draw  | 6.00  | ceil(3.0 speed x 2.0); one 7.00 = faster arrow  |
-  So: blocking is vanilla `(d+1)/2` (the "45%" was folklore - the cut RISES with damage, 42.9% -> 45.2%),
-  and armor is flat, NOT the 1.9+ curve (Ray's "higher damage reduces armour reduction" is wrong for
-  hypixel; still unmeasured on scrims).
-- BOW CRITS ARE DISABLED on hypixel bridge: 0/22 arrows carried the critical metadata flag, though
-  vanilla flags every full draw. Wants a projectile-config switch on ArrowEntity's roll (codegen, like
-  `stuckInBody`); we currently roll the vanilla +rand(0..dmg/2+1).
+- Damage MEASURED 2026-08-31 on four sessions (minemen-capture/captures/{hpxlbridge,hpxlbw,scrimsbridge,
+  mmcbridge}, duo captures, `analyze_damage.py` merges both seats' clocks off their log headers):
+  | server / mode      | armor | sword | crit  | ratio | bow full  | bow crits          |
+  |--------------------|-------|-------|-------|-------|-----------|--------------------|
+  | hypixel bridge     | 6     | 7.00  | 10.50 | 1.500 | 6 flat    | OFF                |
+  | scrims bridge      | 6     | 7.02  | 10.53 | 1.500 | 6 flat    | OFF (flag on only) |
+  | minemen bridge     | 6     | 7.00  | 10.50 | 1.500 | 6..9      | ON                 |
+  | hypixel bow duel   | 7     | 5.00  | 7.50  | 1.500 | 7..11     | ON                 |
+  All raw (pre-armor). Every bridge kit = 6 armor (leather chest+legs+boots, no helmet) + iron sword.
+  - CRIT is x1.5 exactly and ARMOR IS FLAT LINEAR on all four (ratio 1.500 to 3 decimals; the 1.9+ curve
+    would give ~1.6). Ray's "higher damage reduces the armour reduction" is wrong even on scrims.
+  - BLOCKING = vanilla `(d+1)/2` (hypixel: 4.00 blocked from 7.00, 5.75 from 10.50). The "45%" is folklore
+    - the cut RISES with damage (42.9% -> 45.2%). Already what `Vanilla18.Blocking` computes.
+  - BOW CRITS off on hypixel+scrims bridge, ON for minemen bridge -> wants a per-profile projectile knob
+    on ArrowEntity's roll (codegen, like `stuckInBody`), not a global change.
+  - Reading captures: hypixel never sets the arrow critical metadata flag (even in bow duels where the
+    roll is clearly live), and scrims sets it with no damage bonus - judge by the damage SPREAD (~4 wide
+    when live), never the flag. Scrims also rounds health to integers on the wire (deltas alternate 5/6).
 - MELEE TABLE IS 1.0 LOW (all weapons, every 1.8 preset). 1.8 damage = player's 1.0 base ATTACK_DAMAGE
   plus the item modifier (`ItemSword.a = 4.0 + material`), so an iron sword totals 7.0 - measured above.
   `VanillaItems.weapons()` stores the modern totals (iron 6, diamond 7) and uses them AS the total, so
