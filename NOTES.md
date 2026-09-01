@@ -25,13 +25,11 @@
 - Gamerules so far: `bridge:bow-boost` (default on), `bridge:friendly-fire` (default off).
 - Codes: HMAC ids, board code letter-first Crockford (scrims dim = dark gray).
 
-## Gamerules - proposed shape (not built; rework pending)
-Data in rules, lambdas in modules/kinds, platform feel in profiles:
-- Rules stay StateKeys (serializable: UIs, DB, replays, /gamerule). Values grow richer instead of becoming
-  lambdas (`games:friendly-fire = off|melee|arrows|all`).
-- Shared catalog namespace `games:*` for cross-mode rules; mode-specific stay `bridge:*`.
-- GameType declares supported rules (`.rule(KEY)` beside `.expect(...)`) - discoverable, validatable.
-- Custom predicates = a Kind lambda slot (HitPolicy) selected by rule value; polyp never learns teams.
+## Rulesets (modular mechanics + rules) - proposal
+See `docs/rulesets.md`. One catalog of typed knobs; a Ruleset is a named knob->value map; launch folds
+`type defaults <- ruleset <- overrides` into a MechanicsProfile + seeded StateKeys. Knobs carry VALUES and
+mutate the inherited config (never replace it - that is the `fromBase` wipe bug). Look stays a separate
+axis. Needs `MechanicsProfile.Builder.mutate` in polyp first.
 
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
