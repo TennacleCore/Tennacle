@@ -129,14 +129,16 @@ surface; alias curation; whether rule settings also get path-style addressing fo
 initial `FieldFn` vocabulary (which combinators and facts to register first).
 
 Known limits surfaced by review:
-- **Overlays cannot unset.** fromBase merges let an overlay's unset knob fall through to the base, so a
-  path write can flip curve->flat explosion damage (`explosion/flatDamage=2.0`) but not flat->curve
-  (that needs flatDamage ABSENT). Presence-encoded model switches are hostile to data overlays; when a
-  mode actually needs to switch models, promote the discriminator to an enum knob (`damageModel =
-  FLAT|CURVE`, presence as legacy fallback) rather than inventing unset semantics.
-- **FX entries are behavior objects**, not FieldValue knobs - path addressing for them means a named
-  FxHandler registry (`fx/pearl-teleport = game-wide|positional|none`), the first customer for the
-  `fn:`-style reference layer. Until then an FX swap is tier 0 (what Hypixel.bedwars() is).
+- **Overlays cannot unset** - fromBase merges let an unset knob fall through to the base, so presence-
+  encoded choices ("flatDamage set means flat damage") are one-way from data. The fix is to promote the
+  discriminator to an explicit enum, which overlays cleanly in both directions. DONE for explosions:
+  `explosion/damageModel = flat|curve` (unset = the legacy presence encoding), so hypixel's flat TNT
+  becomes vanilla-curve TNT for SkyWars with one path. Apply the same treatment to any future
+  presence-encoded model rather than inventing unset semantics.
+- **FX entries are behavior objects**, not FieldValue knobs, so they are not path-addressable yet -
+  that needs a named FxHandler registry (`fx/pearl-teleport = game-wide|positional|none`), the first
+  customer for the `fn:`-style reference layer. Note this is only about DATA addressing: `FxEvent` is
+  already cancellable and swappable, so a game-scoped listener can suppress or replace any effect today.
 
 ## Measured values the bridge rulesets must reproduce (captured 2026-08-31)
 
