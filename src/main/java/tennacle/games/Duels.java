@@ -31,6 +31,7 @@ import net.minestom.server.codec.Codec;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.attribute.Attribute;
@@ -230,6 +231,7 @@ public final class Duels {
         lobbyRoute = player -> {
             player.setGameMode(GameMode.SURVIVAL);
             player.setFlying(false);
+            resetVitals(player);
             player.setInstance(lobby, lobbySpawn);
             restoreKit(player);
         };
@@ -327,8 +329,7 @@ public final class Duels {
         for (Player p : new Player[]{a, b}) {
             stashKit(p);
             p.setGameMode(GameMode.ADVENTURE);
-            p.setHealth((float) p.getAttributeValue(Attribute.MAX_HEALTH));
-            p.setFood(20);
+            resetVitals(p);
             game.join(p);
         }
         // name the active look: the REQUESTER's mode and look win an accept, which is invisible otherwise
@@ -339,7 +340,7 @@ public final class Duels {
 
     /** Ends with NO kill line - score and time endings speak through the verdict and end screen. */
     public static void settle(Game game, Player loser) {
-        settle(game, loser, null, false);
+        settle(game, loser, teamOf(game, loser), null, false);
     }
 
     /**
@@ -348,17 +349,16 @@ public final class Duels {
      * {@code null} = a forfeit with no killer.
      */
     public static void settle(Game game, Player loser, @Nullable String verb) {
-        settle(game, loser, verb, true);
+        settle(game, loser, teamOf(game, loser), verb, true);
     }
 
-    private static void settle(Game game, Player loser, @Nullable String verb, boolean announce) {
+    private static void settle(Game game, Player loser, String losingTeam, @Nullable String verb, boolean announce) {
         GameState st = game.state();
         if ("done".equals(st.get(Scope.GAME, PHASE))) return;
         st.set(Scope.GAME, PHASE, "done");
         st.set(Scope.GAME, DONE_AT, st.tick());
         // the winner is the other TEAM; its first member speaks for it in the verdict. A 2v2 loser's own
         // teammate must never be crowned
-        String losingTeam = teamOf(game, loser);
         Player winner = game.firstMember(m -> {
             Slot seat = game.roster().slotOf(m);
             return seat != null && !seat.team().equals(losingTeam);
@@ -490,14 +490,20 @@ public final class Duels {
 
     /** Time's up with no winner: the look's own voice, then a draw. */
     public static void draw(Game game) {
-        game.state().set(Scope.GAME, PHASE, "done");
+        GameState st = game.state();
+        if ("done".equals(st.get(Scope.GAME, PHASE))) return;
+        st.set(Scope.GAME, PHASE, "done");
+        st.set(Scope.GAME, DONE_AT, st.tick());
         each(game, p -> p.sendMessage(lookOf(game).theme().prose("Time's up - draw.")));
         game.decide(Outcome.draw(), 60);
     }
 
     /** The shared onLeave: a held seat waits out its window; an outright quit settles against the quitter. */
     public static void settleOnLeave(Game game, Player quitter, Game.Departure departure) {
-        if (!departure.reserved()) settle(game, quitter, null);
+        // the seat is released before this fires: the departure carries the team, and a seatless leaver
+        // (a spectator) settles nothing
+        if (departure.seat() == null || departure.reserved()) return;
+        settle(game, quitter, departure.seat().team(), null, true);
     }
 
     /** Bumps a per-seat counter for {@code player}; a seatless player (spectator) counts nothing. */
@@ -582,6 +588,19 @@ public final class Duels {
         for (int i = 0; i < kit.length; i++) kit[i] = inv.getItemStack(i);
         kits.putIfAbsent(player.getUuid(), kit);
         inv.clear();
+    }
+
+    /** Everything a match marks on the body - health, food, effects, the XP bar, fire, absorption - back to fresh. */
+    public static void resetVitals(Player p) {
+        p.setHealth((float) p.getAttributeValue(Attribute.MAX_HEALTH));
+        p.setFood(20);
+        p.setFoodSaturation(5f);
+        p.clearEffects();
+        p.setExp(0f);
+        p.setLevel(0);
+        p.setFireTicks(0);
+        p.setAdditionalHearts(0f);
+        p.setVelocity(Vec.ZERO);
     }
 
     private static void restoreKit(Player player) {
