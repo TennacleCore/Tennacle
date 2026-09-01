@@ -181,7 +181,7 @@ public final class Bridge {
             .path("damage/enabledTypes", "only(minecraft:player_attack, minecraft:thrown)")
             // the hypixel heal apple: the vanilla golden apple, dishing out different effects
             .path("consumables/minecraft:golden_apple/behavior",
-                    "payload(heal(0), if-absent(minecraft:absorption, effect(minecraft:absorption, 1, 1200)))");
+                    "payload(heal(20), when(not(has-effect(minecraft:absorption)), effect(minecraft:absorption, 1, 1200)))");
 
     // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
     private static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
