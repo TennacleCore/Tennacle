@@ -47,3 +47,7 @@ Data in rules, lambdas in modules/kinds, platform feel in profiles:
 ## Open
 - Stats, end-screen win/lose sounds, Canvas screens (cage/kit/map GUIs), scrims re-capture for its
   title+sound layer, minemen bridge voice is extrapolated. Gamerules generalization awaits the rework.
+- Capture-verify (run-damage-duo.bat in minemen-capture): scrims Discord claims hypixel+scrims bridge
+  disable BOW CRITS (no full-draw random bonus) and cut sword blocking to 45% (vanilla ~50%). Knobs are
+  ready once measured: ArrowEntity's crit roll wants a projectile-config switch; blocking is already
+  `reductionBase`/`reductionFactor`. Analyzer tags blocked hits + arrow crit flags.
