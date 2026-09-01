@@ -1,6 +1,7 @@
 package tennacle.games.bridge;
 
-import tennacle.Msg;
+import tennacle.games.Freeze;
+import tennacle.games.Ghosting;
 import tennacle.games.Duels;
 import tennacle.games.HotArena;
 
@@ -13,22 +14,16 @@ import io.github.term4.barnacle.template.Facing;
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
-import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.RelativeFlags;
-import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
@@ -36,13 +31,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The bridge round. Cages are authored as real blocks in the {@code cages} arena - per variant (marker
@@ -86,15 +78,7 @@ public final class Cages implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         GameState st = game.state();
-        st.alarms().register("duel:ghost", (tick, payload) -> { // the shared settle path arms it by name
-            UUID uuid = UUID.fromString(payload.getString("uuid"));
-            for (Player p : game.members()) {
-                if (p.getUuid().equals(uuid)) {
-                    game.ghost(p);
-                    return;
-                }
-            }
-        });
+        Ghosting.install(game);
         st.alarms().register(COUNT_ALARM, (tick, payload) -> beat(game, payload.getInt("n")));
         st.alarms().register(STAMP_ALARM, (tick, payload) -> {
             if (!caged) {
@@ -104,31 +88,7 @@ public final class Cages implements GameModule {
         });
         st.alarms().register(RECAGE_ALARM, (tick, payload) -> recage(game, payload));
 
-        // cancelling would resync with ABSOLUTE view (the client's look rewinds mid-flick); instead let
-        // the packet land, then pin back to the seat with yaw/pitch as zero RELATIVE deltas
-        Set<UUID> pinning = new HashSet<>();
-        game.on(PlayerMoveEvent.class, e -> {
-            if (!"countdown".equals(st.get(Scope.GAME, Duels.PHASE))) return;
-            Player p = e.getPlayer();
-            Pos from = p.getPosition();
-            Pos to = e.getNewPosition();
-            if (from.x() == to.x() && from.y() == to.y() && from.z() == to.z()) return;
-            Slot seat = game.roster().slotOf(p);
-            Pos anchor = seat != null && seat.spawn() != null ? seat.spawn() : from;
-            if (!pinning.add(p.getUuid())) return;
-            MinecraftServer.getSchedulerManager().scheduleEndOfTick(() -> {
-                pinning.remove(p.getUuid());
-                if (!"countdown".equals(st.get(Scope.GAME, Duels.PHASE))) return;
-                p.teleport(anchor.withView(0, 0), null, RelativeFlags.VIEW);
-            });
-        });
-        game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
-            String phase = st.get(Scope.GAME, Duels.PHASE);
-            if ("fighting".equals(phase)) return;
-            // the settling tick's KB is the final hit - it lands; anything later in "done" is swallowed
-            if ("done".equals(phase) && st.tick() == st.get(Scope.GAME, Duels.DONE_AT)) return;
-            e.setCancelled(true);
-        });
+        Freeze.pin(game);
 
         st.alarms().arm(STAMP_ALARM, st.tick() + 2);
         st.alarms().arm(COUNT_ALARM, st.tick() + Duels.START_GRACE_TICKS,
@@ -175,12 +135,7 @@ public final class Cages implements GameModule {
             st.alarms().arm(COUNT_ALARM, st.tick() + 20, CompoundBinaryTag.builder().putInt("n", n - 1).build());
             return;
         }
-        if (game.shard().members().size() < 2) { // a duelist never arrived (logged out mid-transfer)
-            st.set(Scope.GAME, Duels.PHASE, "done");
-            Duels.each(game, p -> Msg.tag(p, "duel", "duel cancelled - your opponent never showed"));
-            game.decide(Outcome.draw(), 1);
-            return;
-        }
+        if (Duels.abortIfAlone(game)) return;
         open(game);
         held = null;
         st.set(Scope.GAME, Duels.PHASE, "fighting");

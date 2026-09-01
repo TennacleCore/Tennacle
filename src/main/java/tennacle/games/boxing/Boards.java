@@ -33,7 +33,7 @@ final class Boards {
     // the hypixel duels frame with boxing content
     static Scoreboard hypixel() {
         return Frames.hypixel("BOXING", "Boxing Duel",
-                g -> g.rules().resolve(Scope.GAME, Boxing.LIMIT) - g.tick(), b -> b
+                g -> Duels.timeLeft(g, Boxing.LIMIT), b -> b
                 .line((g, me) -> Frames.hypixelRow("Hits: ", Boxing.hits(g, me)), Boxing.HITS)
                 .line((g, me) -> Frames.hypixelRow("Combo: ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO));
     }

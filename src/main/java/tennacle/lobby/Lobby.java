@@ -42,7 +42,7 @@ public final class Lobby {
 
     private static int playing() {
         int count = 0;
-        for (var game : Duels.grotto().games()) count += game.members().size();
+        for (var game : Duels.grotto().games()) count += game.memberCount();
         return count;
     }
 }

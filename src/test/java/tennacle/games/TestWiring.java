@@ -20,6 +20,7 @@ public final class TestWiring {
         Duels.install(lobby, new Pos(0.5, 65, 0.5), new ShardManager());
         tennacle.GameIds.install(Duels.grotto(), "tennacle-dev-secret");
         Sumo.install();
+        tennacle.games.boxing.Boxing.install();
         tennacle.games.bridge.Bridge.install();
         tennacle.commands.LobbyCommands.register();
     }

@@ -108,8 +108,8 @@ never ride a presentation switch again.
 | layer | owns |
 |-------|------|
 | polyp | `Builder.mutate(key, edit)`; processor emits knob tables; a `PathEdit` applier (parse, validate, type-check, apply). No game concepts. |
-| grotto | `Ruleset` (map + fold), rule-setting declaration on `GameModule`, availability check at launch. Game-agnostic. |
-| tennacle | named rulesets per mode, the alias table, command/GUI surface. |
+| grotto | `Scope` (game / team / slot) and `Rules.resolve`; no ruleset knowledge. Game-agnostic. |
+| tennacle | `Ruleset` (paths + rules, scoped, the fold, boot validation), named rulesets per mode, command/GUI surface. |
 
 ## What it buys
 

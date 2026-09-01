@@ -1,6 +1,7 @@
 package tennacle.games.boxing;
 
 import tennacle.Mechanics;
+import tennacle.games.Ruleset;
 import tennacle.Msg;
 import tennacle.games.Countdown;
 import tennacle.games.Duels;
@@ -17,9 +18,7 @@ import io.github.term4.grotto.modules.Stats;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.vault.VaultKey;
-import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.MechanicsProfile;
-import io.github.term4.polyp.mechanics.hunger.HungerConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -56,6 +55,11 @@ public final class Boxing {
     public static final StateKey<Integer> TARGET = StateKey.of("boxing:target", Codec.INT, 10);
     public static final StateKey<Integer> LIMIT = StateKey.of("boxing:limit-ticks", Codec.INT, 15 * 60 * 20);
 
+    /** No hunger drain and only swings hurt: what boxing IS, as paths over whatever preset the server runs. */
+    static final Ruleset RULES = Ruleset.named("boxing")
+            .path("hunger/exhaustionScale", 0)
+            .path("damage/enabledTypes", "only(minecraft:player_attack)");
+
     // career truth, in the vault
     public static final VaultKey<Integer> CAREER_HITS = VaultKey.of("boxing:career-hits", Codec.INT, 0);
     public static final VaultKey<Integer> CAREER_SPRINT = VaultKey.of("boxing:career-sprint-hits", Codec.INT, 0);
@@ -90,15 +94,13 @@ public final class Boxing {
                                 .counter(SPRINT_HITS, CAREER_SPRINT)
                                 .best(BEST_COMBO, CAREER_COMBO))
                 .build();
-        // world members replace the global's wholesale - build both over what they displace
-        MechanicsProfile global = Mechanics.polyp.profiles().global();
-        HungerConfig globalHunger = global != null ? global.get(MechanicsKeys.HUNGER) : null;
-        MechanicsProfile profile = MechanicsProfile.builder()
-                .set(MechanicsKeys.HUNGER, HungerConfig.builder(globalHunger).exhaustionScale(0f).build())
-                .set(MechanicsKeys.DAMAGE, Duels.meleeOnlyOver(null))
-                .build();
         Duels.kind(new Duels.Kind("boxing", type, arena,
-                game -> Mechanics.polyp.profiles().setWorld(game.shard(), profile),
+                game -> {
+                    MechanicsProfile.Builder profile = MechanicsProfile.builder();
+                    RULES.apply(profile, Mechanics.polyp.profiles().global(), game);
+                    Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
+                    RULES.seed(game);
+                },
                 Duels.MINEMEN, true,
                 // no boxing capture - sumo's single-bold-line pattern
                 List.of(Component.text("First player to land 10 hits wins!",

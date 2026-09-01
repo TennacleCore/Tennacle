@@ -6,7 +6,6 @@ import tennacle.looks.Frames;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.Scoreboard;
-import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -22,7 +21,7 @@ final class Boards {
     // the captured in-fight hypixel duels board: a bold Opponent: header with "⬆ name health❤"
     static Scoreboard hypixel() {
         return Frames.hypixel("SUMO", "Sumo Duel",
-                g -> g.rules().resolve(Scope.GAME, Sumo.LIMIT) - Duels.sinceStart(g), b -> b
+                g -> Duels.timeLeft(g, Sumo.LIMIT), b -> b
                 .line(Component.text("Opponent:", NamedTextColor.WHITE, TextDecoration.BOLD))
                 .line((g, me) -> {
                     Player them = Duels.opponent(g, me);
@@ -37,14 +36,14 @@ final class Boards {
     static Scoreboard minemen() {
         return Frames.minemen("Sumo", b -> b
                 .line((g, me) -> Frames.minemenRow("Time Left: ",
-                        Frames.clock(Math.max(0, g.rules().resolve(Scope.GAME, Sumo.LIMIT) - Duels.sinceStart(g))))));
+                        Frames.clock(Duels.timeLeft(g, Sumo.LIMIT)))));
     }
 
     // the scrims frame (no sumo capture exists - their board look, sumo content)
     static Scoreboard scrims() {
         return Frames.scrims("Sumo", b -> b
                 .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.good(Frames.clock(Math.max(0, g.rules().resolve(Scope.GAME, Sumo.LIMIT) - Duels.sinceStart(g))))))
+                        .append(Msg.SCRIMS.good(Frames.clock(Duels.timeLeft(g, Sumo.LIMIT)))))
                 .blank()
                 .line((g, me) -> playerLine(g, 0))
                 .line((g, me) -> playerLine(g, 1)));

@@ -13,7 +13,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.component.DataComponents;
-import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 
@@ -31,7 +30,7 @@ final class Ends {
                 .row("W-Taps", (g, side, th, c) ->
                         th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))))
                 .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + opponentName(g, me) + " boxing hypixel"));
+                        Summary.won(g, me), "/duel " + Duels.opponentName(g, me) + " boxing hypixel"));
     }
 
     static Summary scrims() {
@@ -63,8 +62,4 @@ final class Ends {
         return game.state().get(Scope.slot(seat.index()), key);
     }
 
-    private static String opponentName(Game game, Player me) {
-        Player them = Duels.opponent(game, me);
-        return them != null ? them.getUsername() : "";
-    }
 }

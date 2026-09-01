@@ -30,10 +30,44 @@ public final class Ruleset {
     private final List<Path> paths;
     private final List<Rule<?>> rules;
 
+    private static final List<Ruleset> ALL = new java.util.concurrent.CopyOnWriteArrayList<>();
+
     private Ruleset(String name, List<Path> paths, List<Rule<?>> rules) {
         this.name = name;
         this.paths = paths;
         this.rules = rules;
+        ALL.add(this);
+    }
+
+    /** Every problem a fold of this ruleset would hit, as messages; empty when it is sound. */
+    public List<String> validate(@Nullable MechanicsProfile fallback) {
+        List<String> problems = new ArrayList<>();
+        for (Path p : paths) {
+            String reason = p.scope() instanceof Scope.Game
+                    ? PathEdits.validate(fallback, p.path(), p.value())
+                    : validateScoped(fallback, p);
+            if (reason != null) problems.add(name + ": " + p.path() + " = " + p.value() + " [" + p.scope().encode() + "]: " + reason);
+        }
+        return problems;
+    }
+
+    private static @Nullable String validateScoped(@Nullable MechanicsProfile fallback, Path p) {
+        try {
+            PathEdits.apply(MechanicsProfile.builder(), fallback, p.path(), p.value(), player -> false);
+            return null;
+        } catch (RuntimeException e) {
+            return e.getMessage();
+        }
+    }
+
+    /**
+     * {@link #validate} over every ruleset built so far - the boot sweep a server runs AFTER its modes install,
+     * when every named behaviour they register exists. A typo then fails startup instead of the first match.
+     */
+    public static List<String> validateAll(@Nullable MechanicsProfile fallback) {
+        List<String> problems = new ArrayList<>();
+        for (Ruleset ruleset : ALL) problems.addAll(ruleset.validate(fallback));
+        return problems;
     }
 
     public static Ruleset named(@NotNull String name) {

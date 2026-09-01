@@ -1,6 +1,5 @@
 package tennacle.games;
 
-import tennacle.Mechanics;
 import tennacle.Msg;
 
 import io.github.term4.barnacle.Arena;
@@ -20,24 +19,6 @@ import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.archipelago.shard.ShardManager;
-import io.github.term4.polyp.MechanicsKeys;
-import io.github.term4.polyp.MechanicsProfile;
-import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
-import io.github.term4.polyp.mechanics.damage.DamageConfig;
-import io.github.term4.polyp.mechanics.damage.types.DamageTypeConfig;
-import io.github.term4.polyp.mechanics.damage.types.breathing.DrowningDamage;
-import io.github.term4.polyp.mechanics.damage.types.breathing.SuffocationDamage;
-import io.github.term4.polyp.mechanics.damage.types.burning.BurningDamage;
-import io.github.term4.polyp.mechanics.damage.types.burning.InFireDamage;
-import io.github.term4.polyp.mechanics.damage.types.burning.LavaDamage;
-import io.github.term4.polyp.mechanics.damage.types.cactus.CactusDamage;
-import io.github.term4.polyp.mechanics.damage.types.explosion.ExplosionDamage;
-import io.github.term4.polyp.mechanics.damage.types.fall.FallDamage;
-import io.github.term4.polyp.mechanics.damage.types.generic.GenericDamage;
-import io.github.term4.polyp.mechanics.damage.types.magic.MagicDamage;
-import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
-import io.github.term4.polyp.mechanics.damage.types.starvation.StarvationDamage;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
@@ -52,10 +33,8 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.RelativeFlags;
 import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
-import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
@@ -63,11 +42,9 @@ import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -92,8 +69,6 @@ public final class Duels {
     /** Re-armable mid-game (bridge re-cages on a goal): same beats, same GO. */
     public static final String COUNT_ALARM = "duel:count";
     public static final int COUNT_FROM = 5;
-    /** Arm tick -> GO: one beat out, then a beat per second down from {@link #COUNT_FROM}. */
-    public static final int COUNT_TICKS = 20 * (COUNT_FROM + 1);
     /** Every game start idles this long before the first beat - laggy joins land, launch work settles.
      * Kept on the 20-tick grid: the scoreboard refresh runs 20s from install, so beats and second-flips align. */
     public static final int START_GRACE_TICKS = 40;
@@ -175,10 +150,14 @@ public final class Duels {
     private static final Map<String, Look> looks = new LinkedHashMap<>(Map.of(
             "minemen", MINEMEN, "scrims", SCRIMS, "hypixel", HYPIXEL));
 
-    /** The game's presentation preset: the duel-time override when set, else the kind's default. */
     /** The one other side in a 1v1 (ghosts included, so boards hold through the linger), or {@code null}. */
     public static @Nullable Player opponent(@NotNull Game game, @NotNull Player me) {
-        return game.opponents(me).stream().findFirst().orElse(null);
+        Slot mine = game.roster().slotOf(me);
+        if (mine == null) return null;
+        return game.firstMember(p -> {
+            Slot theirs = game.roster().slotOf(p);
+            return theirs != null && !theirs.team().equals(mine.team());
+        });
     }
 
     /** End screens carrying the game's look - what every duel mode's {@code Ends} starts from. */
@@ -190,6 +169,7 @@ public final class Duels {
         return Results.of().theme(g -> lookOf(g).theme());
     }
 
+    /** The game's presentation preset: the duel-time override when set, else the kind's default. */
     public static Look lookOf(Game game) {
         Look override = looks.get(game.state().get(Scope.GAME, LOOK));
         if (override != null) return override;
@@ -204,11 +184,16 @@ public final class Duels {
 
     /** {@link #lookOf} as its registry name - what a structural variant switches on. */
     public static String lookNameOf(Game game) {
-        Look look = lookOf(game);
-        for (Map.Entry<String, Look> entry : looks.entrySet()) {
-            if (entry.getValue() == look) return entry.getKey();
-        }
-        return "minemen";
+        return LOOK_NAMES.getOrDefault(lookOf(game), "minemen");
+    }
+
+    // the reverse of looks, built once: this runs per kill, goal and board line
+    private static final Map<Look, String> LOOK_NAMES = reverse(looks);
+
+    private static Map<Look, String> reverse(Map<String, Look> byName) {
+        Map<Look, String> out = new java.util.IdentityHashMap<>();
+        byName.forEach((name, look) -> out.put(look, name));
+        return out;
     }
 
     private record Request(UUID target, String kind, @Nullable String look, long at) {
@@ -326,9 +311,19 @@ public final class Duels {
             return;
         }
         // the look stamps BEFORE modules install - a Choice board picks its variant at install time
-        Game game = grotto.launch(kind.type(), arena, null,
-                g -> { if (look != null) g.state().set(Scope.GAME, LOOK, look); });
-        kind.onLaunch().accept(game);
+        Game game;
+        try {
+            // the look stamps and the ruleset folds BEFORE modules install, so a module snapshotting a seeded
+            // rule at install sees the match's value, not the key's default
+            game = grotto.launch(kind.type(), arena, null, g -> {
+                if (look != null) g.state().set(Scope.GAME, LOOK, look);
+                kind.onLaunch().accept(g);
+            });
+        } catch (RuntimeException e) {
+            // a bad ruleset path fails inside the launch, which tears its own shard down - nothing is orphaned
+            for (Player p : new Player[]{a, b}) Msg.err(p, "duel", "could not start: " + e.getMessage());
+            return;
+        }
         for (Player p : new Player[]{a, b}) {
             stashKit(p);
             p.setGameMode(GameMode.ADVENTURE);
@@ -342,16 +337,16 @@ public final class Duels {
         Msg.tag(b, "duel", tag + " vs ", Msg.v(a.getUsername()));
     }
 
-    /**
-     * Announces the death, shows the verdicts, ghosts the loser (kinds that want it), and ends after a
-     * 3s linger. {@code verb} reads {@code "<loser> <verb> <winner>!"} ("was knocked out of the ring by");
-     * {@code null} = a forfeit with no killer.
-     */
     /** Ends with NO kill line - score and time endings speak through the verdict and end screen. */
     public static void settle(Game game, Player loser) {
         settle(game, loser, null, false);
     }
 
+    /**
+     * Announces the death, shows the verdicts, ghosts the loser (kinds that want it), and ends after a
+     * 3s linger. {@code verb} reads {@code "<loser> <verb> <winner>!"} ("was knocked out of the ring by");
+     * {@code null} = a forfeit with no killer.
+     */
     public static void settle(Game game, Player loser, @Nullable String verb) {
         settle(game, loser, verb, true);
     }
@@ -361,7 +356,13 @@ public final class Duels {
         if ("done".equals(st.get(Scope.GAME, PHASE))) return;
         st.set(Scope.GAME, PHASE, "done");
         st.set(Scope.GAME, DONE_AT, st.tick());
-        Player winner = game.shard().members().stream().filter(m -> m != loser).findFirst().orElse(null);
+        // the winner is the other TEAM; its first member speaks for it in the verdict. A 2v2 loser's own
+        // teammate must never be crowned
+        String losingTeam = teamOf(game, loser);
+        Player winner = game.firstMember(m -> {
+            Slot seat = game.roster().slotOf(m);
+            return seat != null && !seat.team().equals(losingTeam);
+        });
         Kind kind = kindOf(game);
         Look look = lookOf(game); // the duel-time override wins here too
         if (announce) {
@@ -369,7 +370,7 @@ public final class Duels {
             each(game, p -> p.sendMessage(death));
         }
         if (winner != null) {
-            each(game, p -> look.verdict().show(game, p, p != loser, winner));
+            each(game, p -> look.verdict().show(game, p, !teamOf(game, p).equals(losingTeam), winner));
         }
         if (kind == null || kind.ghostLoser()) {
             // everyone watching (spectators included) sees a vanilla death: pose now, and the ghosting's
@@ -484,7 +485,52 @@ public final class Duels {
 
     // game.members(), not shard members: ghosts still get announcements and end-of-game cleanup
     public static void each(Game game, Consumer<Player> action) {
-        for (Player p : game.members()) action.accept(p);
+        game.forEachMember(action);
+    }
+
+    /** Time's up with no winner: the look's own voice, then a draw. */
+    public static void draw(Game game) {
+        game.state().set(Scope.GAME, PHASE, "done");
+        each(game, p -> p.sendMessage(lookOf(game).theme().prose("Time's up - draw.")));
+        game.decide(Outcome.draw(), 60);
+    }
+
+    /** The shared onLeave: a held seat waits out its window; an outright quit settles against the quitter. */
+    public static void settleOnLeave(Game game, Player quitter, Game.Departure departure) {
+        if (!departure.reserved()) settle(game, quitter, null);
+    }
+
+    /** Bumps a per-seat counter for {@code player}; a seatless player (spectator) counts nothing. */
+    public static void addSeat(Game game, Player player, StateKey<Integer> key) {
+        Slot seat = game.roster().slotOf(player);
+        if (seat == null) return;
+        Scope scope = Scope.slot(seat.index());
+        game.state().set(scope, key, game.state().get(scope, key) + 1);
+    }
+
+    /** The player's team id, or {@code ""} when they hold no seat. */
+    public static String teamOf(Game game, Player player) {
+        Slot seat = game.roster().slotOf(player);
+        return seat != null ? seat.team() : "";
+    }
+
+    public static String opponentName(Game game, Player me) {
+        Player them = opponent(game, me);
+        return them != null ? them.getUsername() : "";
+    }
+
+    /** Match ticks left under {@code limit}, never negative - the one board clock. */
+    public static long timeLeft(Game game, StateKey<Integer> limit) {
+        return Math.max(0, game.rules().resolve(Scope.GAME, limit) - sinceStart(game));
+    }
+
+    /** A duelist never arrived (logged out mid-transfer): cancel rather than fight a ghost. True when cancelled. */
+    public static boolean abortIfAlone(Game game) {
+        if (game.shard().members().size() >= 2) return false;
+        game.state().set(Scope.GAME, PHASE, "done");
+        each(game, p -> Msg.tag(p, "duel", "duel cancelled - your opponent never showed"));
+        game.decide(Outcome.draw(), 1);
+        return true;
     }
 
     /** Title times in GAME ticks, stretched to wall clock so a rate-scaled game's titles track its beats. */
@@ -497,13 +543,13 @@ public final class Duels {
                 java.time.Duration.ofMillis(Math.round(fadeOut * ms)));
     }
 
-    /** Plays the look's sound for {@code cue} to everyone in the game; a look without one stays silent. */
     /** Match ticks elapsed - zero until the first GO, so grace and countdowns never eat the clock. */
     public static long sinceStart(Game game) {
         long started = game.state().get(Scope.GAME, STARTED_AT);
         return started < 0 ? 0 : game.state().tick() - started;
     }
 
+    /** Plays the look's sound for {@code cue} to everyone in the game; a look without one stays silent. */
     public static void cue(Game game, String cue) {
         var sound = lookOf(game).sounds().get(cue);
         if (sound != null) each(game, p -> p.playSound(sound));
@@ -530,31 +576,6 @@ public final class Duels {
                 .append(theme.prose("!"));
     }
 
-    /**
-     * A duel world's damage member: every non-melee type switched off, over {@code base} (else the global's
-     * damage member) - a world member REPLACES the outer scope's wholesale, so the switches must ride on the
-     * config they displace or the preset tuning drops to the vanilla floor. The melee entry is untouched.
-     */
-    public static DamageConfig meleeOnlyOver(DamageConfig base) {
-        return meleeAndOver(base, java.util.Set.of());
-    }
-
-    /** {@link #meleeOnlyOver} keeping the listed extra types too (bridge keeps arrows). */
-    public static DamageConfig meleeAndOver(DamageConfig base, java.util.Set<Key> alsoKept) {
-        if (base == null) {
-            MechanicsProfile global = Mechanics.polyp.profiles().global();
-            base = global != null ? global.get(MechanicsKeys.DAMAGE) : null;
-        }
-        DamageConfig.Builder damage = DamageConfig.builder();
-        for (Key key : List.of(FallDamage.KEY, CactusDamage.KEY, BurningDamage.KEY, InFireDamage.KEY,
-                LavaDamage.KEY, DrowningDamage.KEY, SuffocationDamage.KEY, StarvationDamage.KEY,
-                ProjectileDamage.KEY, MagicDamage.KEY, ExplosionDamage.KEY, GenericDamage.KEY)) {
-            if (!alsoKept.contains(key)) damage.typeConfig(DamageTypeConfig.builder(key).enabled(false).build());
-        }
-        DamageConfig switches = damage.build();
-        return base != null ? switches.fromBase(base) : switches;
-    }
-
     private static void stashKit(Player player) {
         var inv = player.getInventory();
         ItemStack[] kit = new ItemStack[inv.getSize()];
@@ -570,7 +591,5 @@ public final class Duels {
         inv.clear();
         for (int i = 0; i < kit.length; i++) inv.setItemStack(i, kit[i]);
     }
-
-    /** 5-1 with both players frozen (moves cancelled, knockback swallowed), the look voicing the beats. */
 
 }

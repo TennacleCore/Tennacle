@@ -92,6 +92,9 @@ public final class TestServer {
         Sumo.install();   // hypixel-preset ring-out
         Boxing.install(); // speed 2, first to 100 hits; /stats for career numbers
         Bridge.install(); // red vs blue, first to five goals
+        // every ruleset the modes built, checked against the global profile now - not at somebody's first launch
+        var badPaths = tennacle.games.Ruleset.validateAll(Mechanics.polyp.profiles().global());
+        if (!badPaths.isEmpty()) throw new IllegalStateException("bad ruleset paths:\n" + String.join("\n", badPaths));
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(Path.of("arenas"), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));

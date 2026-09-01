@@ -52,8 +52,7 @@ final class Ends {
                 .row("Golden Apples Eaten", (g, side, th, c) -> th.value(0))
                 .row("Blocks Placed", (g, side, th, c) -> th.value(0))
                 .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + (Duels.opponent(g, me) != null
-                                ? Duels.opponent(g, me).getUsername() : "") + " bridge hypixel"));
+                        Summary.won(g, me), "/duel " + Duels.opponentName(g, me) + " bridge hypixel"));
     }
 
     static Results minemen() {

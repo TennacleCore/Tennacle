@@ -24,8 +24,8 @@ public final class Rules implements GameModule {
         // boxing never hurts; non-melee types are off in the world profile
         game.on(DamageEvent.class, DamageEvent::target, e -> e.amount(0));
         game.state().alarms().register("boxing:time-up", (tick, payload) -> timeUp(game));
-        game.state().alarms().arm("boxing:time-up",
-                game.state().tick() + game.rules().resolve(Scope.GAME, Boxing.LIMIT));
+        game.state().alarms().arm("boxing:time-up", // the clock starts with the first beat, like every duel
+                game.state().tick() + Duels.START_GRACE_TICKS + game.rules().resolve(Scope.GAME, Boxing.LIMIT));
         // the pipeline's verdict, not the attack packets: FRESH_DAMAGE = landed outside the i-frame window
         game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
             if (e.outcome() != DamageSystem.DamageOutcome.FRESH_DAMAGE) return;
@@ -57,7 +57,7 @@ public final class Rules implements GameModule {
     @Override
     public void onLeave(@NotNull Game game, @NotNull Player quitter, @NotNull Game.Departure departure) {
         quitter.removeEffect(PotionEffect.SPEED);
-        if (!departure.reserved()) Duels.settle(game, quitter, null); // a held seat waits out its window
+        Duels.settleOnLeave(game, quitter, departure);
     }
 
     private static void timeUp(Game game) {
@@ -75,9 +75,7 @@ public final class Rules implements GameModule {
             Duels.settle(game, loser);
             return;
         }
-        game.state().set(Scope.GAME, Duels.PHASE, "done");
-        Duels.each(game, p -> p.sendMessage(Duels.lookOf(game).theme().prose("Time's up - draw.")));
-        game.decide(Outcome.draw(), 60);
+        Duels.draw(game);
     }
 
     @Override

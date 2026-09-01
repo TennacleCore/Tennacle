@@ -3,19 +3,16 @@ package tennacle.games.bridge;
 import tennacle.Msg;
 import tennacle.games.Duels;
 
-import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
-import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
@@ -25,7 +22,6 @@ import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -34,8 +30,6 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
-import net.minestom.server.potion.Potion;
-import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
@@ -65,12 +59,13 @@ public final class Rules implements GameModule {
             Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1f);
 
     private long goalCooldownUntil;
-    private final Map<UUID, Long> arrowDue = new HashMap<>();
+    private final Map<Player, Long> arrowDue = new HashMap<>();
     private final Map<UUID, Hit> lastHit = new HashMap<>();
     private final Map<UUID, Long> protectedUntil = new HashMap<>();
     private final Set<Point> placed = new HashSet<>();
     private int minBuildY;
     private int maxBuildY;
+    private List<RegionMarker> goals;
 
     @Override
     public void install(@NotNull Game game) {
@@ -88,6 +83,7 @@ public final class Rules implements GameModule {
         double voidY = plane(game, Bridge.VOID);
         minBuildY = floor; // never beneath the bridge's underside
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
+        goals = game.arena().markers(Bridge.GOAL); // fixed for the map: never re-queried per move packet
 
         boolean bowBoost = game.rules().resolve(Scope.GAME, Bridge.BOW_BOOST);
         boolean friendlyFire = game.rules().resolve(Scope.GAME, Bridge.FRIENDLY_FIRE);
@@ -177,7 +173,7 @@ public final class Rules implements GameModule {
             }
             if (!"fighting".equals(st.get(Scope.GAME, Duels.PHASE))) return;
             if (st.tick() < goalCooldownUntil) return;
-            for (RegionMarker goal : game.arena().markers(Bridge.GOAL)) {
+            for (RegionMarker goal : goals) {
                 if (goal.group().equals(seat.team()) || !goal.contains(to)) continue;
                 goalCooldownUntil = st.tick() + 40;
                 score(game, player, seat);
@@ -222,7 +218,7 @@ public final class Rules implements GameModule {
     // one arrow in the quiver: shooting starts the 3.5s return, the XP bar drains it down
     private void startQuiver(Game game, Player shooter) {
         boolean idle = arrowDue.isEmpty();
-        arrowDue.put(shooter.getUuid(), game.state().tick() + ARROW_TICKS);
+        arrowDue.put(shooter, game.state().tick() + ARROW_TICKS);
         shooter.setLevel(4);
         shooter.setExp(1f);
         if (idle) game.state().alarms().arm(QUIVER_ALARM, game.state().tick() + 1);
@@ -233,9 +229,8 @@ public final class Rules implements GameModule {
         var pending = arrowDue.entrySet().iterator();
         while (pending.hasNext()) {
             var entry = pending.next();
-            Player owner = game.members().stream()
-                    .filter(m -> m.getUuid().equals(entry.getKey())).findFirst().orElse(null);
-            if (owner == null) {
+            Player owner = entry.getKey();
+            if (Game.of(owner) != game) { // left mid-flight
                 pending.remove();
                 continue;
             }
@@ -272,7 +267,7 @@ public final class Rules implements GameModule {
 
     /** Round-fresh: full health and food, effects gone, kit re-applied, the quiver reset. */
     private void refit(Game game, Player player, Slot seat) {
-        arrowDue.remove(player.getUuid());
+        arrowDue.remove(player);
         player.setExp(0f);
         player.setLevel(0);
         player.setHealth((float) player.getAttributeValue(Attribute.MAX_HEALTH));
@@ -296,7 +291,7 @@ public final class Rules implements GameModule {
                 game.state().tick() + game.rules().resolve(Scope.GAME, Bridge.PROTECT));
         lastHit.remove(victim.getUuid());
         if (by != null) {
-            addSeat(game, by, Bridge.KILLS);
+            Duels.addSeat(game, by, Bridge.KILLS);
             if ("minemen".equals(Duels.lookNameOf(game))) by.sendMessage(Banners.kill(game, victim));
         }
         Component line = Banners.killedLine(game, victim, by);
@@ -348,18 +343,11 @@ public final class Rules implements GameModule {
         Hit hit = lastHit.remove(fallen.getUuid());
         Player by = hit != null && game.state().tick() - hit.tick() <= CREDIT_TICKS ? hit.by() : null;
         if (by != null) {
-            addSeat(game, by, Bridge.KILLS);
+            Duels.addSeat(game, by, Bridge.KILLS);
             if ("minemen".equals(Duels.lookNameOf(game))) by.sendMessage(Banners.kill(game, fallen));
         }
         Component line = Banners.fallLine(game, fallen, by);
         Duels.each(game, p -> p.sendMessage(line));
-    }
-
-    private static void addSeat(Game game, Player player, StateKey<Integer> key) {
-        Slot seat = game.roster().slotOf(player);
-        if (seat == null) return;
-        Scope scope = Scope.slot(seat.index());
-        game.state().set(scope, key, game.state().get(scope, key) + 1);
     }
 
     private static void timeUp(Game game) {
@@ -383,9 +371,7 @@ public final class Rules implements GameModule {
             Duels.settle(game, loser);
             return;
         }
-        st.set(Scope.GAME, Duels.PHASE, "done");
-        Duels.each(game, p -> p.sendMessage(Msg.SCRIMS.prose("Time's up - draw.")));
-        game.decide(Outcome.draw(), 60);
+        Duels.draw(game);
     }
 
     @Override
@@ -395,7 +381,7 @@ public final class Rules implements GameModule {
 
     @Override
     public void onLeave(@NotNull Game game, @NotNull Player quitter, @NotNull Game.Departure departure) {
-        if (!departure.reserved()) Duels.settle(game, quitter, null); // a held seat waits out its window
+        Duels.settleOnLeave(game, quitter, departure);
     }
 
     private void score(Game game, Player scorer, Slot seat) {

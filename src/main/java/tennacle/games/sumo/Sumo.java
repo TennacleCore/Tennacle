@@ -1,6 +1,7 @@
 package tennacle.games.sumo;
 
 import tennacle.Mechanics;
+import tennacle.games.Ruleset;
 import tennacle.games.Countdown;
 import tennacle.games.Duels;
 import tennacle.games.HotArena;
@@ -31,6 +32,9 @@ public final class Sumo {
     /** Captured: hypixel sumo counts down from 2:00. */
     public static final StateKey<Integer> LIMIT = StateKey.of("sumo:limit-ticks", Codec.INT, 2 * 60 * 20);
 
+    /** Only swings hurt - a selection over the damage catalog, as a path. */
+    static final Ruleset RULES = Ruleset.named("sumo").path("damage/enabledTypes", "only(minecraft:player_attack)");
+
     private Sumo() {}
 
     public static void install() {
@@ -45,14 +49,15 @@ public final class Sumo {
                         () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();
-        // world scope over the global: hypixel mechanics + compat, melee-only damage
-        MechanicsProfile hypixel = Preset.HYPIXEL.profile();
-        MechanicsProfile profile = hypixel.toBuilder()
-                .set(MechanicsKeys.DAMAGE, Duels.meleeOnlyOver(hypixel.get(MechanicsKeys.DAMAGE)))
-                .set(MechanicsKeys.COMPAT, Preset.HYPIXEL.compat())
-                .build();
         Duels.kind(new Duels.Kind("sumo", type, arena,
-                game -> Mechanics.polyp.profiles().setWorld(game.shard(), profile),
+                game -> {
+                    // hypixel mechanics + compat are what sumo IS; the ruleset folds over that base
+                    MechanicsProfile.Builder profile = Preset.HYPIXEL.profile().toBuilder()
+                            .set(MechanicsKeys.COMPAT, Preset.HYPIXEL.compat());
+                    RULES.apply(profile, Mechanics.polyp.profiles().global(), game);
+                    Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
+                    RULES.seed(game);
+                },
                 Duels.HYPIXEL, true,
                 List.of(Component.text("Eliminate your opponents!", NamedTextColor.YELLOW, TextDecoration.BOLD))));
     }

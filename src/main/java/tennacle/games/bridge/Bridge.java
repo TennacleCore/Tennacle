@@ -134,8 +134,10 @@ public final class Bridge {
 
     public static void install() {
         // the named definitions this mode's rules may point at
-        FieldFns.register(ConsumableBehavior.class, "heal-apple",
-                "full health, plus Absorption I for a minute when the eater has none", args -> HEAL_APPLE);
+        if (!FieldFns.names(ConsumableBehavior.class).contains("heal-apple")) { // re-installs (tests) must not clash
+            FieldFns.register(ConsumableBehavior.class, "heal-apple",
+                    "full health, plus Absorption I for a minute when the eater has none", args -> HEAL_APPLE);
+        }
 
         MapPool arena = MapPool.of("bridge");
         TYPE = GameType.builder("bridge")
@@ -220,8 +222,7 @@ public final class Bridge {
             "minemen", VANILLA_RULES);
 
     static String teamOf(Game game, Player player) {
-        var seat = game.roster().slotOf(player);
-        return seat != null ? seat.team() : "";
+        return Duels.teamOf(game, player);
     }
 
     private static Material blocks(String team) {

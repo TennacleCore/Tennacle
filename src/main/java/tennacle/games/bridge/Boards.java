@@ -28,8 +28,7 @@ final class Boards {
     static Scoreboard scrims() {
         return Frames.scrims("Bridge", b -> b
                 .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.good(clock(Math.max(0,
-                                g.rules().resolve(Scope.GAME, Bridge.LIMIT) - Duels.sinceStart(g))))))
+                        .append(Msg.SCRIMS.good(clock(Duels.timeLeft(g, Bridge.LIMIT)))))
                 .blank()
                 .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS)
                 .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS)
@@ -41,7 +40,7 @@ final class Boards {
     // captured: [R]/[B] circle meters, Kills/Goals
     static Scoreboard hypixel() {
         return Frames.hypixel("BRIDGE", "Bridge Duel",
-                g -> g.rules().resolve(Scope.GAME, Bridge.LIMIT) - Duels.sinceStart(g), b -> b
+                g -> Duels.timeLeft(g, Bridge.LIMIT), b -> b
                 .line((g, me) -> circles(g, teamAt(g, 0), false), Bridge.GOALS)
                 .line((g, me) -> circles(g, teamAt(g, 1), false), Bridge.GOALS)
                 .blank()
@@ -58,7 +57,7 @@ final class Boards {
                 .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Time Left: ",
-                        Frames.clock(Math.max(0, g.rules().resolve(Scope.GAME, Bridge.LIMIT) - Duels.sinceStart(g))))));
+                        Frames.clock(Duels.timeLeft(g, Bridge.LIMIT)))));
     }
 
     static Team teamAt(Game game, int index) {
