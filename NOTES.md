@@ -47,12 +47,24 @@ Data in rules, lambdas in modules/kinds, platform feel in profiles:
 ## Open
 - Stats, end-screen win/lose sounds, Canvas screens (cage/kit/map GUIs), scrims re-capture for its
   title+sound layer, minemen bridge voice is extrapolated. Gamerules generalization awaits the rework.
-- Capture-verify (run-damage.bat / -duo in minemen-capture), still open:
-  - BOW CRITS: scrims/hypixel bridge reportedly drop the full-draw random bonus. Would want a
-    projectile-config switch on ArrowEntity's roll (codegen, like `stuckInBody`).
-  - ARMOR FORMULA: a scrims dev's "higher damage reduces the armour reduction" only holds on the 1.9+
-    curve - 1.8 armor is a flat percentage. We ship `LEGACY_LINEAR`. The crit/plain damage ratio settles
-    it: exactly 1.50 = linear, ~1.6 = modern.
-  Resolved: sword blocking is `(damage+1)/2` pre-armor (scrims dev), i.e. plain vanilla 1.8 and already
-  what `Vanilla18.Blocking` computes - the "45%" was folklore (vanilla's effective cut RISES with damage:
-  41.7% on a 6, 44.4% on a 9). That batch is now the capture's control.
+- Damage MEASURED on hypixel bridge 2026-08-31 (captures/2026-08-31_23-42-09_damage, both seats, 6 armor
+  = leather chest+legs+boots, no helmet - same as our kit). Every raw value is exactly vanilla 1.8:
+  | quantity        | raw   | note                                            |
+  |-----------------|-------|-------------------------------------------------|
+  | sword hit       | 7.00  | iron sword: 1.0 player base + 6.0 modifier      |
+  | crit            | 10.50 | x1.5 exactly; crit/plain ratio 1.500            |
+  | armor           | x0.76 | FLAT (25-6)/25 - LEGACY_LINEAR confirmed        |
+  | blocked plain   | 4.00  | (7+1)/2                                         |
+  | blocked crit    | 5.75  | (10.5+1)/2                                      |
+  | bow, full draw  | 6.00  | ceil(3.0 speed x 2.0); one 7.00 = faster arrow  |
+  So: blocking is vanilla `(d+1)/2` (the "45%" was folklore - the cut RISES with damage, 42.9% -> 45.2%),
+  and armor is flat, NOT the 1.9+ curve (Ray's "higher damage reduces armour reduction" is wrong for
+  hypixel; still unmeasured on scrims).
+- BOW CRITS ARE DISABLED on hypixel bridge: 0/22 arrows carried the critical metadata flag, though
+  vanilla flags every full draw. Wants a projectile-config switch on ArrowEntity's roll (codegen, like
+  `stuckInBody`); we currently roll the vanilla +rand(0..dmg/2+1).
+- MELEE TABLE IS 1.0 LOW (all weapons, every 1.8 preset). 1.8 damage = player's 1.0 base ATTACK_DAMAGE
+  plus the item modifier (`ItemSword.a = 4.0 + material`), so an iron sword totals 7.0 - measured above.
+  `VanillaItems.weapons()` stores the modern totals (iron 6, diamond 7) and uses them AS the total, so
+  every armed hit lands 1.0 light; the fist (1.0) is right. `ItemRegistryParityTest` golden-pins the
+  wrong values. Fix = +1.0 on every weapon row + repin. NOT APPLIED - shifts TTK in every preset.
