@@ -114,11 +114,18 @@ public final class Bridge {
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
             .dyedArmor(EquipmentSlot.BOOTS, Material.LEATHER_BOOTS);
 
+    private static GameType TYPE;
+
+    /** The installed type - the round harness launches on synthetic arenas through it. */
+    static GameType type() {
+        return TYPE;
+    }
+
     private Bridge() {}
 
     public static void install() {
         MapPool arena = MapPool.of("bridge");
-        GameType type = GameType.builder("bridge")
+        TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
                 .team("red", NamedTextColor.RED)
                 .team("blue", NamedTextColor.BLUE)
@@ -157,7 +164,7 @@ public final class Bridge {
         MinecraftServer.getCommandManager().register(cageCmd);
         KitLayouts.editable("bridge", KIT);
 
-        Duels.kind(new Duels.Kind("bridge", type, arena,
+        Duels.kind(new Duels.Kind("bridge", TYPE, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(),
                         io.github.term4.polyp.MechanicsProfile.builder()
                                 .set(io.github.term4.polyp.MechanicsKeys.DAMAGE,
