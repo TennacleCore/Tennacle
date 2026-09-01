@@ -128,6 +128,16 @@ Open (deliberately undecided): what a saved custom setup is and where it lives; 
 surface; alias curation; whether rule settings also get path-style addressing for uniformity; the
 initial `FieldFn` vocabulary (which combinators and facts to register first).
 
+Known limits surfaced by review:
+- **Overlays cannot unset.** fromBase merges let an overlay's unset knob fall through to the base, so a
+  path write can flip curve->flat explosion damage (`explosion/flatDamage=2.0`) but not flat->curve
+  (that needs flatDamage ABSENT). Presence-encoded model switches are hostile to data overlays; when a
+  mode actually needs to switch models, promote the discriminator to an enum knob (`damageModel =
+  FLAT|CURVE`, presence as legacy fallback) rather than inventing unset semantics.
+- **FX entries are behavior objects**, not FieldValue knobs - path addressing for them means a named
+  FxHandler registry (`fx/pearl-teleport = game-wide|positional|none`), the first customer for the
+  `fn:`-style reference layer. Until then an FX swap is tier 0 (what Hypixel.bedwars() is).
+
 ## Measured values the bridge rulesets must reproduce (captured 2026-08-31)
 
 | knob | hypixel | scrims | minemen |
