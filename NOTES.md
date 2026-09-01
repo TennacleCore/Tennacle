@@ -65,8 +65,12 @@ Data in rules, lambdas in modules/kinds, platform feel in profiles:
   - Reading captures: hypixel never sets the arrow critical metadata flag (even in bow duels where the
     roll is clearly live), and scrims sets it with no damage bonus - judge by the damage SPREAD (~4 wide
     when live), never the flag. Scrims also rounds health to integers on the wire (deltas alternate 5/6).
-- MELEE TABLE IS 1.0 LOW (all weapons, every 1.8 preset). 1.8 damage = player's 1.0 base ATTACK_DAMAGE
-  plus the item modifier (`ItemSword.a = 4.0 + material`), so an iron sword totals 7.0 - measured above.
-  `VanillaItems.weapons()` stores the modern totals (iron 6, diamond 7) and uses them AS the total, so
-  every armed hit lands 1.0 light; the fist (1.0) is right. `ItemRegistryParityTest` golden-pins the
-  wrong values. Fix = +1.0 on every weapon row + repin. NOT APPLIED - shifts TTK in every preset.
+- MELEE TABLE FIXED (was 1.0 low in every 1.8 preset). Verified in paper 1.8: `EntityHuman.initAttributes`
+  sets base ATTACK_DAMAGE 1.0, items add an operation-0 (additive) modifier - sword `4+mat`, axe `3+`,
+  pickaxe `2+`, shovel `1+` - and `attack()` reads the TOTAL. So iron sword 7, wood 5, diamond 8. Both
+  captures agree (bridge iron 7.00, bedwars wood 5.00). `VanillaItems.weapons()` had stored the modern
+  totals; every row +1, `ItemRegistryParityTest` repinned, and 13 golden values across the attribute /
+  armor / resistance tests moved with it (all re-derived by hand, not accepted blind).
+- BOW CRITS: `critDamage` and `critParticles` are now separate tri-state projectile knobs (null = follow
+  the arrow). Bridge sets them per look - hypixel both off, scrims trail-only (flag TRUE, roll off),
+  minemen vanilla. `ArrowCritKnobsTest` pins the flag in all three directions.

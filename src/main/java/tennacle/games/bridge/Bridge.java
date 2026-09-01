@@ -169,7 +169,8 @@ public final class Bridge {
                         io.github.term4.polyp.MechanicsProfile.builder()
                                 .set(io.github.term4.polyp.MechanicsKeys.DAMAGE,
                                         Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
-                                .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES, arrowsVanishOver(null))
+                                .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES,
+                                        arrowsVanishOver(null, Duels.lookNameOf(game)))
                                 .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
                                 .set(io.github.term4.polyp.MechanicsKeys.VRI, NO_TOSS)
                                 .set(io.github.term4.polyp.MechanicsKeys.CONSUMABLES, bridgeAppleOver(null))
@@ -216,8 +217,12 @@ public final class Bridge {
         return base != null ? apple.fromBase(base) : apple;
     }
 
-    /** Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. */
-    private static ProjectileConfig arrowsVanishOver(ProjectileConfig base) {
+    /**
+     * Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. Bow crits
+     * are per-look (captured 2026-08-31): hypixel and scrims drop the damage roll, minemen keeps vanilla, and
+     * scrims still shows the trail - so the flag and the roll are set independently.
+     */
+    private static ProjectileConfig arrowsVanishOver(ProjectileConfig base, String look) {
         if (base == null) {
             var global = Mechanics.polyp.profiles().global();
             base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.PROJECTILES) : null;
@@ -226,7 +231,10 @@ public final class Bridge {
         ProjectileTypeConfig baseArrow = base != null ? base.typeConfig(Arrow.KEY) : null;
         ProjectileTypeConfig arrow = (baseArrow != null
                 ? ProjectileTypeConfig.builder(baseArrow) : ProjectileTypeConfig.builder(Arrow.KEY))
-                .removeOnBlockHit(true).stuckInBody(false).build(); // no cosmetic body arrows in bridge
+                .removeOnBlockHit(true).stuckInBody(false) // no cosmetic body arrows in bridge
+                .critDamage(!"hypixel".equals(look) && !"scrims".equals(look))
+                .critParticles("scrims".equals(look) ? Boolean.TRUE : "hypixel".equals(look) ? Boolean.FALSE : null)
+                .build();
         ProjectileConfig vanish = ProjectileConfig.builder().typeConfigs(arrow).build();
         return base != null ? vanish.fromBase(base) : vanish;
     }
