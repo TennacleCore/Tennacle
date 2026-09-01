@@ -1,131 +1,121 @@
 # Rulesets: modular mechanics + rules per match
 
-Status: proposal. Supersedes the "Gamerules - proposed shape" sketch in NOTES.md.
+Status: proposal, round 2. Supersedes the "Gamerules" sketch that used to live in NOTES.md.
 
 ## The problem
 
-One bridge map must be playable as a minemen game, a hypixel game, a scrims game, or a custom mix
-("scrims, but bow crits on"). Two kinds of setting decide that, and today they live in different worlds:
+One bridge map must play as a minemen game, a hypixel game, a scrims game, or a custom mix ("scrims,
+but bow crits on"). Capture work made the constraint concrete: hypixel runs bow crits OFF in bridge and
+ON in bedwars - so no setting can hang off the platform, and `arrowsVanishOver(look)` is the wrong shape.
 
-- **mechanics** - polyp `MechanicsProfile` entries (bow crits, hunger, natural regen, item toss, arrow
-  behaviour, gapple). Currently assembled by hand in `Bridge.install()` as `xOver(null)` helpers.
-- **rules** - `StateKey`s read at runtime (`bridge:friendly-fire`, `bridge:bow-boost`, goal target,
-  time limit, cage seconds).
+Two failed extremes frame the design:
+- **Hand-declare a key per mechanic** - horrendous. Polyp has ~340 config knobs today and grows; a
+  parallel catalog would lag it forever and cap what users can touch.
+- **Pass raw configs around** - the `fromBase` wipe trap (self-bow KB loss, gapple double-apply, arrow
+  entry wipe were all this one bug), and nothing is serializable or discoverable.
 
-Neither is addressable by name, so every new setting means editing `Bridge.install`, and nothing can be
-composed, persisted, or shown in a UI. Capture work forced the point: hypixel runs bow crits OFF in
-bridge and ON in bedwars, so mechanics cannot hang off the platform/look - which is what
-`arrowsVanishOver(look)` currently does.
+## Three tiers of configurability
 
-## Step 1: two kinds of setting, one type
+**Tier 0 - code: a profile transform.** `UnaryOperator<MechanicsProfile.Builder>`. Unlimited - lambdas,
+custom behaviors, new damage types. This is what presets (mmc18, hypixel) already are. Not serializable,
+never will be; it is the escape hatch and the ceiling.
 
-Some settings belong to the mechanics engine and mean the same thing in any gamemode (`bow-crits`).
-Others only exist because a mode has a feature (`cage-seconds` needs cages). Collapsing them into one
-flat catalog is wrong; so is building two parallel systems. One type, two sinks, two availability rules:
+**Tier 1 - mechanics paths: the DERIVED surface.** The `@GenerateBuilder` processor already enumerates
+every `FieldValue` knob of every config class (it generates the builders from exactly that list). Emit
+one more artifact - a knob table per config (name, value type, getter, builder setter) - and every
+constant-valued mechanics knob becomes addressable with zero per-knob declarations:
 
-|                        | mechanics setting                    | rule setting                                  |
-|------------------------|--------------------------------------|-----------------------------------------------|
-| example                | `mechanics:bow-crits`                | `bridge:cage-seconds`, `games:friendly-fire`   |
-| declared by            | the mechanics layer (a polyp knob)   | the MODULE that reads it                       |
-| available in           | every mode - polyp is always there   | only modes that install the owning module      |
-| value lands in         | the shard's `MechanicsProfile`       | a `StateKey` in `GameState`                    |
-| means anything alone?  | yes                                  | no - it needs its feature                      |
+```
+projectiles/minecraft:arrow/critDamage = false
+projectiles/minecraft:arrow/critParticles = true
+consumables/minecraft:golden_apple/eatTicks = 32
+damage/melee/critMultiplier = 1.5
+hunger/naturalRegen = false
+```
 
-**The rule that decides availability: a setting is declared by the feature that CONSUMES it, and a mode
-supports it iff that feature is installed.** `Cages` declares `cage-seconds`, so every mode that installs
-`Cages` supports it automatically and every mode that doesn't rejects it at launch - no hand-maintained
-per-mode list, and no way for the two to drift. Mechanics settings need no gate at all: the whole
-mechanics catalog is available to every mode, so `bow-crits` in a sumo ruleset is legal and does exactly
-what it says.
+Segments: profile member -> (optional type entry, for containers with typeConfigs) -> field. Leaf codecs
+come from the field's type (Boolean/Integer/Double/String/enums first; complex-typed fields such as
+KnockbackConfig or Set<Key> stay Tier 0 until given codecs). Setting a path = `mutate()` + the generated
+setter, so it EDITS the inherited config - a path write cannot wipe preset tuning by construction.
+Lambda-valued knobs are code, not data: a path write replaces them with a constant, which is exactly
+what "the user overrode it" should mean.
+
+The whole tree is enumerable from the generated tables, so "what mechanics can I change" is a browse,
+not a documentation page - and it never drifts from the code because it IS the code.
+
+**Tier 2 - rule settings: StateKeys, declared by the feature that consumes them.** `cages:seconds` is
+declared by the Cages module - NOT `bridge:*`; bridge is merely one installer, and any caged mode gets
+the setting by installing Cages. `score:target` is declared by the scoring seam, so bridge (first to 5),
+sumo (bo3), and pearl fight all expose it. `games:friendly-fire` / `games:bow-boost` belong to the
+team-combat rules module. A mode supports a rule setting iff the declaring module is installed -
+availability is derived from `GameType.modules(...)`, no hand-maintained list, nothing to drift.
+
+## Ruleset
+
+A Ruleset is a named value map over tiers 1+2, plus an optional tier-0 transform for the long tail:
 
 ```java
-// mechanics: universal, folds into the profile
-Setting<Boolean> BOW_CRITS = Setting.mechanics("mechanics:bow-crits", Codec.BOOLEAN, true,
-        (profile, on) -> profile.mutate(MechanicsKeys.PROJECTILES, cfg -> Arrows.crits(cfg, on)));
+Ruleset SCRIMS = Ruleset.named("scrims")
+        .path("projectiles/minecraft:arrow/critDamage", false)
+        .path("projectiles/minecraft:arrow/critParticles", true)   // trail, no bonus (captured)
+        .rule(Cages.SECONDS, 5)
+        .look("scrims");                                           // default presentation, overridable
 
-// rule: declared by the module that reads it, so support is derived from modules(...)
-final class Cages implements GameModule {
-    static final Setting<Integer> SECONDS = Setting.rule(Bridge.CAGE_SECONDS);
-    public List<Setting<?>> settings() { return List.of(SECONDS); }
-}
+Ruleset custom = SCRIMS.with("projectiles/minecraft:arrow/critDamage", true);  // "scrims + bow crits"
 ```
 
-A **Ruleset** is then just a named `Setting -> value` map over both kinds, and composes:
+Launch folds `GameType defaults <- ruleset <- per-match overrides` (last writer wins per key) into
+exactly two outputs: a MechanicsProfile on the game's shard, and seeded StateKeys in GameState. Modules
+keep reading StateKeys as they do today; nothing else ever sees the ruleset.
 
-```java
-Ruleset SCRIMS_BRIDGE = Ruleset.named("scrims")
-        .set(BOW_CRITS, false).set(BOW_CRIT_PARTICLES, true)   // trail, no bonus (captured)
-        .set(Cages.SECONDS, 5);
+Because tiers 1+2 are plain `string -> value` maps they persist to the vault, ride replays, diff in a
+UI, and round-trip through commands. A ruleset carrying a tier-0 transform is code-defined (a shipped
+preset); user-SAVED rulesets are tiers 1+2 only - that is the natural power boundary, not an arbitrary one.
 
-Ruleset custom = SCRIMS_BRIDGE.with(BOW_CRITS, true);          // "scrims + bow crits"
-```
-
-At launch the stack folds in order, last writer wins per setting:
-
-```
-GameType defaults  <-  ruleset  <-  per-match overrides
-```
-
-producing exactly two outputs - a `MechanicsProfile` set on the game's shard, and seeded values in
-`GameState`. Nothing else reads the ruleset; modules keep reading their StateKeys as they do today.
-
-## Why knobs carry VALUES, not configs
-
-Layering whole `ProjectileConfig` / `ConsumableConfig` objects is what bit us repeatedly: type entries
-merge by wholesale `putAll`, so an override silently wipes the preset's tuning (the self-bow knockback
-loss, the gapple double-apply, the arrow-entry wipe - all the same bug). A knob carries a value; its
-applier MUTATES the inherited config. Value merges cannot wipe anything.
-
-That needs one polyp addition:
-
-```java
-MechanicsProfile.Builder.mutate(MechanicsKey<C> key, UnaryOperator<C> edit)
-```
-
-i.e. edit what you inherit instead of replacing it. This removes the whole `fromBase` trap class.
+**Aliases** (optional sugar, added on demand): `bow-crits` -> the arrow critDamage path. A tiny curated
+table for GUIs and chat commands; capability never depends on it.
 
 ## Look is a separate axis
 
-Presentation (boards, banners, countdown voice, sounds) stays `Duels.byLook`. Keeping it independent is
-what makes "scrims rules with hypixel visuals" expressible, and stops mechanics from being smuggled into
-a presentation switch. A ruleset MAY name a default look; an override can replace it.
+Presentation (boards, banners, countdown voice, sounds) stays `Duels.byLook`. A ruleset names a default
+look; an override can swap it - "scrims rules with hypixel visuals" stays expressible, and mechanics can
+never ride a presentation switch again.
 
 ## Where the code lives
 
 | layer | owns |
 |-------|------|
-| polyp | `mutate()` on the profile builder. No game concepts. |
-| grotto | `Knob`, `Ruleset`, and the fold into (profile, state). Game-agnostic. |
-| tennacle | the catalog of knobs a mode supports + the named rulesets. |
-
-`GameType.knob(KNOB)` declares support, mirroring `.expect(marker)` - so an unknown or unsupported knob
-is a launch-time error, not a silent no-op, and a UI can enumerate exactly what a mode exposes.
+| polyp | `Builder.mutate(key, edit)`; processor emits knob tables; a `PathEdit` applier (parse, validate, type-check, apply). No game concepts. |
+| grotto | `Ruleset` (map + fold), rule-setting declaration on `GameModule`, availability check at launch. Game-agnostic. |
+| tennacle | named rulesets per mode, the alias table, command/GUI surface. |
 
 ## What it buys
 
-- `/duel bridge scrims`, a host GUI, and a saved custom setup are all the same code path.
-- A match config is `map<key, value>`: persists to the vault, rides replays, diffs on a scoreboard.
-- A new setting = one `Knob` declaration + one applier lambda. `Bridge.install` stops growing.
-- Labels + validation from the declaration, so `/gamerule` and a GUI come free.
+- `/duel bridge scrims`, a host GUI, and a saved custom setup are one code path.
+- Every mechanics knob polyp ever grows is configurable the day it lands - no catalog to update.
+- "What can this mode change?" = generated mechanics tree + union of installed modules' rule settings.
+- Unknown path / unsupported rule / wrong type = launch-time error with a message, not a silent no-op.
 
-## Migration (each step ships on its own)
+## Step 1 (the only decision taken so far)
 
-1. polyp: add `MechanicsProfile.Builder.mutate`.
-2. grotto: `Knob` / `Ruleset` / fold; no behaviour change yet.
-3. tennacle: express today's three looks as rulesets; `Bridge.install`'s profile lambda becomes a fold.
-   The `arrowsVanishOver(look)` conditional dies here.
-4. per-match overrides + persistence; then the GUI.
+Polyp foundation, independently useful regardless of the rest:
+1. `MechanicsProfile.Builder.mutate(MechanicsKey<C>, UnaryOperator<C>)` - retires the fromBase wipe class.
+2. `ConfigBuilderProcessor` additionally emits per-config knob tables; a `PathEdit` resolves and applies
+   `member[/type]/field = value` through `mutate()` + generated setters.
 
-## Measured values the bridge rulesets must reproduce
+Open (deliberately undecided): what a saved custom setup is and where it lives; per-match override
+surface; alias curation; whether rule settings also get path-style addressing for uniformity.
+
+## Measured values the bridge rulesets must reproduce (captured 2026-08-31)
 
 | knob | hypixel | scrims | minemen |
 |------|---------|--------|---------|
-| bow crit damage | off | off | on (vanilla) |
-| bow crit particles | off | on | follow |
+| arrow critDamage | off | off | on (vanilla roll) |
+| arrow critParticles | off | on | follow the draw |
 | cage seconds | 3 | 5 | 3 |
 | melee crit | x1.5 | x1.5 | x1.5 |
 | armor | flat 1.8 linear | flat 1.8 linear | flat 1.8 linear |
 | sword block | (d+1)/2 | (d+1)/2 | (d+1)/2 |
 
-Hypixel BEDWARS runs bow crits ON - same platform, other mode - which is why these are per (mode, ruleset)
-and never per platform.
+Bow base is vanilla `ceil(speed x 2)` everywhere; hypixel BEDWARS runs critDamage ON - settings are
+per (mode, ruleset), never per platform.

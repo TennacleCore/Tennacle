@@ -25,11 +25,15 @@
 - Gamerules so far: `bridge:bow-boost` (default on), `bridge:friendly-fire` (default off).
 - Codes: HMAC ids, board code letter-first Crockford (scrims dim = dark gray).
 
-## Rulesets (modular mechanics + rules) - proposal
-See `docs/rulesets.md`. One catalog of typed knobs; a Ruleset is a named knob->value map; launch folds
-`type defaults <- ruleset <- overrides` into a MechanicsProfile + seeded StateKeys. Knobs carry VALUES and
-mutate the inherited config (never replace it - that is the `fromBase` wipe bug). Look stays a separate
-axis. Needs `MechanicsProfile.Builder.mutate` in polyp first.
+## Rulesets (modular mechanics + rules) - proposal round 2
+See `docs/rulesets.md`. Three tiers: tier 0 = code profile transforms (unlimited, the preset layer);
+tier 1 = the DERIVED mechanics surface - the @GenerateBuilder processor already enumerates every
+FieldValue knob, so emitting knob tables makes every constant knob path-addressable
+(`projectiles/minecraft:arrow/critDamage=false`) with zero hand-declared keys; tier 2 = rule StateKeys
+declared by the feature that consumes them (`cages:seconds`, `score:target` - NOT bridge:*), availability
+derived from installed modules. A Ruleset = named map over tiers 1+2 (+ optional tier-0 transform for
+shipped presets); launch folds defaults <- ruleset <- overrides into a MechanicsProfile + seeded state.
+Step 1 = polyp only: `Builder.mutate` + processor knob tables + PathEdit.
 
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
