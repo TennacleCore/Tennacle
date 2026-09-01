@@ -129,18 +129,26 @@ Open (deliberately undecided): what a saved custom setup is and where it lives; 
 surface; alias curation; whether rule settings also get path-style addressing for uniformity; the
 initial `FieldFn` vocabulary (which combinators and facts to register first).
 
-Resolved by review:
-- **Overlays cannot unset**, so presence-encoded choices ("flatDamage set means flat damage") were
-  one-way from data. Fixed at the source rather than worked around: the discriminator is now one enum
-  knob, `explosion/damageModel = curve|flat` (default CURVE, `flatDamage` demoted to just FLAT's
-  amount), matching the `ArmorConfig.Formula` idiom. Hypixel's preset says `.damageModel(FLAT)`
-  explicitly, and SkyWars' vanilla-curve TNT is one path write. **Rule for new configs: never let a
-  field's presence pick a mode - name the mode.**
-- **FX handlers are lambdas**, so they get names instead of paths-into-fields: `FxHandlers.register(key,
-  name, handler)` and `fx/<key> = <name>` (e.g. `fx/polyp:pearl_teleport = game-wide`, `none` works for
-  every key). That makes the entire `Hypixel.bedwars()` delta expressible as one line of data.
-  Separately, `FxEvent` was always cancellable AND swappable, so a game-scoped listener can suppress or
-  replace any effect - the registry is simply the better seam for unconditional per-world feel.
+Resolved by review - both by the same move, and it is the general rule:
+
+**A choice between behaviours is a behaviour-typed field, and its VALUES are named factories.** Not an
+enum discriminator with a parallel parameter field, and not a menu of preset instances - both cap what a
+server can express to whatever someone predeclared.
+
+- `ExplosionConfig.damageModel` is a `DamageModel` (the `BlockingBehavior`/`ConsumableBehavior` idiom):
+  `DamageModel.CURVE` or `DamageModel.flat(2.0)`, one field holding the choice AND its parameter, open to
+  a server's own lambda. The `flatDamage` field and its presence-magic are gone.
+- Fx values are built the same way: `FxHandler.globalSound(...)` etc., no named instances.
+- `FieldFns` gives behaviour types a data grammar of named FACTORIES WITH ARGUMENTS -
+  `explosion/damageModel = flat(3.5)`, `fx/polyp:pearl_teleport = global-sound(entity.player.teleport,
+  player, 1, 1)`. Registering a factory extends the vocabulary for that type everywhere; arguments cover
+  every parameterisation, so nothing has to be enumerated in advance. Parsing happens once at fold time -
+  what lands in the config is the built lambda, identical to what a preset would write.
+- This is the `fn:` layer from the design, arriving where it was actually needed. The whole
+  `Hypixel.bedwars()` delta is now one line of data.
+
+Separately: `FxEvent` was always cancellable AND swappable, so a game-scoped listener can suppress or
+replace any effect - the registry is simply the better seam for unconditional per-world feel.
 
 ## Measured values the bridge rulesets must reproduce (captured 2026-08-31)
 
