@@ -210,6 +210,13 @@ public final class Rules implements GameModule {
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
+        game.on(io.github.term4.polyp.api.event.projectile.ProjectileHitEvent.class,
+                io.github.term4.polyp.api.event.projectile.ProjectileHitEvent::shooter, e -> {
+            if (!(e.snapshot().type() instanceof Arrow) || !(e.target() instanceof Player victim)) return;
+            // no cosmetic body arrows in bridge - clear after the hit's own add lands
+            MinecraftServer.getSchedulerManager().scheduleNextTick(() ->
+                    io.github.term4.polyp.mechanics.projectile.entities.arrow.StuckArrows.set(victim, 0));
+        });
         game.on(ProjectileLaunchEvent.class, e -> e.snapshot().shooter(), e -> {
             if (!(e.snapshot().type() instanceof Arrow) || !(e.snapshot().shooter() instanceof Player shooter)) return;
             if (game.roster().slotOf(shooter) == null) return;
@@ -247,7 +254,7 @@ public final class Rules implements GameModule {
             }
             long left = entry.getValue() - now;
             if (left <= 0) {
-                owner.getInventory().setItemStack(9, ItemStack.of(Material.ARROW));
+                giveArrow(owner);
                 owner.playSound(ARROW_BACK);
                 owner.setExp(0f);
                 owner.setLevel(0);
@@ -258,6 +265,22 @@ public final class Rules implements GameModule {
             owner.setLevel((int) Math.ceil(left / 20.0));
         }
         if (!arrowDue.isEmpty()) game.state().alarms().arm(QUIVER_ALARM, now + 1);
+    }
+
+    // regen stacks onto an existing arrow first; a fresh one lands where the player's layout puts it
+    private static void giveArrow(Player owner) {
+        var inv = owner.getInventory();
+        for (int slot = 0; slot < 36; slot++) {
+            ItemStack in = inv.getItemStack(slot);
+            if (in.material() == Material.ARROW) {
+                inv.setItemStack(slot, in.withAmount(in.amount() + 1));
+                return;
+            }
+        }
+        Map<String, Integer> layout = tennacle.games.KitLayouts.of(owner, "bridge");
+        int fallback = Bridge.KIT.defaultSlots().getOrDefault("arrow", 9);
+        inv.setItemStack(layout != null ? layout.getOrDefault("arrow", fallback) : fallback,
+                ItemStack.of(Material.ARROW));
     }
 
     /** Round-fresh: full health and food, effects gone, kit re-applied, the quiver reset. */
