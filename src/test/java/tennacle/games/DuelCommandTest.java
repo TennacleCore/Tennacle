@@ -23,11 +23,7 @@ class DuelCommandTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        tennacle.Mechanics.polyp = MechanicsBoot.ensure(); // the launch hooks read the live boot's static
-        Duels.install(instance, new Pos(0.5, 65, 0.5), new ShardManager());
-        tennacle.GameIds.install(Duels.grotto(), "tennacle-dev-secret");
-        Sumo.install();
-        tennacle.commands.LobbyCommands.register();
+        TestWiring.ensure(instance);
     }
 
     @Test

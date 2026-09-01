@@ -31,9 +31,7 @@ class BridgeRoundTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        tennacle.Mechanics.polyp = MechanicsBoot.ensure();
-        Duels.install(instance, new Pos(0.5, 65, 0.5), new ShardManager());
-        Bridge.install();
+        tennacle.games.TestWiring.ensure(instance);
     }
 
     /** Deck along x, red west / blue east, goals at the far ends - every expected marker aboard. */
