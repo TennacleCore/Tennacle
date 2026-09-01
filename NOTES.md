@@ -5,7 +5,7 @@
   `/arena save templates`. Maps: `/arena new <map> <starter> [colors...]`, tag `bridge` joins the pool.
 - Section verbs: add/remove/reset (pull colors from the starter), extend/set (length, away from center),
   deepen (downward - the deck never moves), mirror (rotate markers + wand-selected blocks about the center),
-  shift (whole map vertically; `bridge:height`/`bridge:void` limit planes stay pinned).
+  shift (whole map vertically, limit planes included).
 - `bridge:height` ships y=99 (y=100 is the texture-pack refused row), `bridge:void` y=80 - per-map limit
   markers carried by the starter, not code fallbacks.
 - Bloom.install is API-only; Tennacle opts into `registerDefaultCommands()`. Editor lifecycle is server
@@ -41,8 +41,8 @@ time (no hot-path interpretation); only user-authored code-as-data stays impossi
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
   registers a VaultKey and reads synchronously forever after).
-- Deepen follows flush floors like extend follows far ends; shift moves limits (group `pinned` stays)
-  and stamp payload anchors.
+- Deepen follows flush floors like extend follows far ends; shift moves every y limit plane and the
+  stamp payload anchors.
 - MapPool forgets deleted files; drain shared via HotArena; MarkerCommands split from BloomCommands;
   Countdown extracted from Duels; Kit carries editor display stacks; stuckInBody is a projectile knob
   (bridge sets it false - no body arrows); InventorySync tracks a SET of unverified slots.

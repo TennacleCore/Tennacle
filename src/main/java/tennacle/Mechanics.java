@@ -50,6 +50,7 @@ public final class Mechanics {
     public static void install() {
         polyp = Polyp.getInstance();
         polyp.viaProxyDetails = true;
+        polyp.installViaBridge = true; // the proxies run the ViaBridge plugin
         polyp.init();
         polyp.profiles().setGlobal(PRESET.profile().toBuilder()
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)

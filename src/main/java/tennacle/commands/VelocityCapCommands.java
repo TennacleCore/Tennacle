@@ -40,6 +40,10 @@ public final class VelocityCapCommands {
     }
 
     public static void applyBridgeCap(@NotNull Player player) {
+        if (!ViaBridgeRpc.isInstalled()) {
+            player.sendMessage("ViaBridge is not installed (Polyp.installViaBridge)");
+            return;
+        }
         Vec snapped = LegacyVelocity.snap(capPerSecond());
         player.setTag(SUPPRESS_VELOCITY_PACKET, true);
         player.setVelocity(snapped);
