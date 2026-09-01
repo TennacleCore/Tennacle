@@ -3,6 +3,7 @@ package tennacle.games.bridge;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
+import tennacle.games.KitLayouts;
 import tennacle.games.MapPool;
 
 import io.github.term4.barnacle.marker.MarkerKey;
@@ -99,13 +100,14 @@ public final class Bridge {
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
 
     static final Kit KIT = Kit.of("bridge")
-            .item(0, SWORD)
-            .item(1, BOW)
-            .item(2, PICKAXE)
-            .item(3, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
-            .item(4, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
-            .item(5, ItemStack.of(Material.GOLDEN_APPLE, 8))
-            .item(9, ItemStack.of(Material.ARROW))
+            .item("sword", 0, SWORD)
+            .item("bow", 1, BOW)
+            .item("pickaxe", 2, PICKAXE)
+            .item("blocks", 3, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
+            .item("blocks2", 4, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
+            .item("gapple", 5, ItemStack.of(Material.GOLDEN_APPLE, 8))
+            .item("arrow", 9, ItemStack.of(Material.ARROW))
+            .layouts((g, p) -> KitLayouts.of(p, "bridge"))
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
             .dyedArmor(EquipmentSlot.BOOTS, Material.LEATHER_BOOTS);
@@ -152,6 +154,15 @@ public final class Bridge {
         }, variantArg);
         MinecraftServer.getCommandManager().register(cageCmd);
         Cages.installPreload();
+        KitLayouts.install("bridge", KIT, role -> switch (role) {
+            // editor stand-ins: same materials, team-neutral where the real kit derives from the seat
+            case "sword" -> SWORD;
+            case "bow" -> BOW;
+            case "pickaxe" -> PICKAXE;
+            case "blocks", "blocks2" -> ItemStack.of(Material.WHITE_TERRACOTTA, 64);
+            case "gapple" -> ItemStack.of(Material.GOLDEN_APPLE, 8);
+            default -> ItemStack.of(Material.ARROW);
+        });
 
         Duels.kind(new Duels.Kind("bridge", type, arena,
                 game -> Mechanics.polyp.profiles().setWorld(game.shard(),
