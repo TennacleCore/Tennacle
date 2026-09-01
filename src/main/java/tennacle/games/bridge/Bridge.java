@@ -15,19 +15,14 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.kit.Kit;
 import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
-import io.github.term4.polyp.mechanics.hunger.HungerConfig;
-import io.github.term4.polyp.mechanics.projectile.ProjectileConfig;
 import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
 import io.github.term4.polyp.mechanics.consumable.ConsumableConfig;
 import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver;
 import io.github.term4.polyp.mechanics.consumable.ConsumableTypeConfig;
 import io.github.term4.polyp.mechanics.consumable.catalog.VanillaConsumables;
-import io.github.term4.polyp.vri.VriConfig;
 import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
-import io.github.term4.polyp.mechanics.projectile.types.Arrow;
-import io.github.term4.polyp.mechanics.projectile.types.ProjectileTypeConfig;
 import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.state.StateKey;
@@ -167,18 +162,17 @@ public final class Bridge {
 
         Duels.kind(new Duels.Kind("bridge", TYPE, arena,
                 game -> {
-                    // tier 0: what bridge IS, on every server (docs/rulesets.md)
                     var profile = io.github.term4.polyp.MechanicsProfile.builder()
+                            // code, because they are not one-knob edits: a damage-type switch list and the apple's behavior
                             .set(io.github.term4.polyp.MechanicsKeys.DAMAGE,
                                     Duels.meleeAndOver(null, java.util.Set.of(ProjectileDamage.KEY)))
-                            .set(io.github.term4.polyp.MechanicsKeys.PROJECTILES, arrowsVanishOver(null))
-                            .set(io.github.term4.polyp.MechanicsKeys.HUNGER, hungerOff(null))
-                            .set(io.github.term4.polyp.MechanicsKeys.VRI, NO_TOSS)
                             .set(io.github.term4.polyp.MechanicsKeys.CONSUMABLES, bridgeAppleOver(null));
-                    Ruleset rules = RULESETS.getOrDefault(Duels.lookNameOf(game), VANILLA_RULES);
-                    rules.apply(profile, Mechanics.polyp.profiles().global());
+                    var global = Mechanics.polyp.profiles().global();
+                    BASE.apply(profile, global);
+                    Ruleset look = RULESETS.getOrDefault(Duels.lookNameOf(game), VANILLA_RULES);
+                    look.apply(profile, global);
                     Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
-                    rules.seed(game);
+                    look.seed(game);
                 },
                 Duels.SCRIMS,
                 false, // no death animation or spectate: everyone stays where they stand
@@ -188,6 +182,14 @@ public final class Bridge {
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 GOALS)); // a SCORING kind: hypixel ends on "<TEAM> WINS!" over the final score
     }
+
+    /** What bridge IS on every server: arrows vanish and never stick, no hunger or natural regen, no tossing. */
+    private static final Ruleset BASE = Ruleset.named("bridge")
+            .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
+            .path("projectiles/minecraft:arrow/stuckInBody", false)   // no cosmetic body arrows
+            .path("hunger/enabled", false)
+            .path("hunger/naturalRegen", false)                       // healing is the apple only
+            .path("vri/itemDrop", false);                             // hypixel parity: mined clay still drops
 
     // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
     private static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
@@ -199,11 +201,6 @@ public final class Bridge {
                     .path("projectiles/minecraft:arrow/critDamage", false)
                     .path("projectiles/minecraft:arrow/critParticles", true),
             "minemen", VANILLA_RULES);
-
-    // hypixel parity: mined clay drops and gets picked up - TOSSING is the only thing bridge removes
-    private static final VriConfig NO_TOSS = VriConfig.builder().blockBreakProgress(true)
-            .blockDrops(io.github.term4.polyp.vri.BlockDrops.VANILLA)
-            .itemPickup(true).fireBreaks(true).tntIgnite(true).build();
 
     // the hypixel heal apple: full health, absorption I 60s only if absent - and nothing else (no regen)
     private static final ConsumableBehavior BRIDGE_APPLE = new ConsumableBehavior() {
@@ -231,31 +228,6 @@ public final class Bridge {
         if (baseGapple != null) gapple = gapple.fromBase(baseGapple); // eat time etc. stay preset-tuned
         ConsumableConfig apple = ConsumableConfig.builder().typeConfigs(gapple).build();
         return base != null ? apple.fromBase(base) : apple;
-    }
-
-    /** Bridge arrows never stick - despawn on landing; rides over {@code base} like the damage gate. */
-    private static ProjectileConfig arrowsVanishOver(ProjectileConfig base) {
-        if (base == null) {
-            var global = Mechanics.polyp.profiles().global();
-            base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.PROJECTILES) : null;
-        }
-        // type entries layer WHOLE over base's - build from its arrow so the 1.8 tuning rides along
-        ProjectileTypeConfig baseArrow = base != null ? base.typeConfig(Arrow.KEY) : null;
-        ProjectileTypeConfig arrow = (baseArrow != null
-                ? ProjectileTypeConfig.builder(baseArrow) : ProjectileTypeConfig.builder(Arrow.KEY))
-                .removeOnBlockHit(true).stuckInBody(false).build(); // no cosmetic body arrows in bridge
-        ProjectileConfig vanish = ProjectileConfig.builder().typeConfigs(arrow).build();
-        return base != null ? vanish.fromBase(base) : vanish;
-    }
-
-    /** Food locked, healing only by apple: hunger and natural regen both off. */
-    private static HungerConfig hungerOff(HungerConfig base) {
-        if (base == null) {
-            var global = Mechanics.polyp.profiles().global();
-            base = global != null ? global.get(io.github.term4.polyp.MechanicsKeys.HUNGER) : null;
-        }
-        HungerConfig off = HungerConfig.builder().enabled(false).naturalRegen(false).build();
-        return base != null ? off.fromBase(base) : off;
     }
 
     static String teamOf(Game game, Player player) {
