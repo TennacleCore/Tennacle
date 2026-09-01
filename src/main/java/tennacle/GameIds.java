@@ -55,7 +55,8 @@ public final class GameIds {
                     // salt leads so codes read random; the low 11 bits carry the UTC minute-of-day for derive()
                     int packed = ThreadLocalRandom.current().nextInt(1 << 14) << 11 | (int) (minute % 1440);
                     code = encode(packed);
-                } while (live(grotto, code) || !issued.add(code));
+                    // letter-first: an all-digit roll reads like a timestamp (and the networks' codes lead with one)
+                } while (Character.isDigit(code.charAt(0)) || live(grotto, code) || !issued.add(code));
             }
             return new Grotto.Identity(idFor(secret, minute, code), code);
         });
