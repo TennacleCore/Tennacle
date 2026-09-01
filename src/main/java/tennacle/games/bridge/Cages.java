@@ -183,9 +183,9 @@ public final class Cages implements GameModule {
             BlockVec anchor = new BlockVec(spot.pos().blockX(), spot.pos().blockY(), spot.pos().blockZ());
             List<Cell> cells = new ArrayList<>();
             for (RegionMarker.Cuboid part : box.boxes()) {
+                preload(source, part.min().blockX() >> 4, part.max().blockX() >> 4, part.min().blockZ() >> 4, part.max().blockZ() >> 4);
                 for (int x = part.min().blockX(); x <= part.max().blockX(); x++) {
                     for (int z = part.min().blockZ(); z <= part.max().blockZ(); z++) {
-                        if (!source.isChunkLoaded(x >> 4, z >> 4)) source.loadChunk(x >> 4, z >> 4).join();
                         for (int y = part.min().blockY(); y <= part.max().blockY(); y++) {
                             Block block = source.getBlock(x, y, z);
                             if (block.isAir()) continue;
@@ -261,13 +261,18 @@ public final class Cages implements GameModule {
             // the map marker already faces the center - rotate the authored front onto it
             int turns = cage.front().quarterTurnsTo(Facing.fromYaw(at.yaw()));
             String dye = TEAM_DYE.getOrDefault(spawn.group(), "RED");
+            int minCx = Integer.MAX_VALUE, maxCx = Integer.MIN_VALUE, minCz = Integer.MAX_VALUE, maxCz = Integer.MIN_VALUE;
+            for (Cell cell : cage.cells()) {
+                BlockVec turned = Facing.rotate(cell.offset(), turns);
+                int cx = (at.blockX() + turned.blockX()) >> 4, cz = (at.blockZ() + turned.blockZ()) >> 4;
+                minCx = Math.min(minCx, cx); maxCx = Math.max(maxCx, cx);
+                minCz = Math.min(minCz, cz); maxCz = Math.max(maxCz, cz);
+            }
+            if (minCx <= maxCx) preload(game.instance(), minCx, maxCx, minCz, maxCz);
             for (Cell cell : cage.cells()) {
                 BlockVec turned = Facing.rotate(cell.offset(), turns);
                 BlockVec pos = new BlockVec(at.blockX() + turned.blockX(), at.blockY() + turned.blockY(),
                         at.blockZ() + turned.blockZ());
-                if (!game.instance().isChunkLoaded(pos.blockX() >> 4, pos.blockZ() >> 4)) {
-                    game.instance().loadChunk(pos.blockX() >> 4, pos.blockZ() >> 4).join();
-                }
                 Block block = cell.block();
                 if (cell.recolor() != null) {
                     Block dyed = Block.fromKey("minecraft:" + (dye + "_" + cell.recolor()).toLowerCase(Locale.ROOT));
@@ -282,5 +287,16 @@ public final class Cages implements GameModule {
     private void open(Game game) {
         replaced.forEach((pos, block) -> game.shard().setBlock(pos, block));
         replaced.clear();
+    }
+
+    /** Every chunk in the range loaded with ONE wait - a re-cage after a goal must not stall the tick per cell. */
+    private static void preload(net.minestom.server.instance.Instance instance, int minCx, int maxCx, int minCz, int maxCz) {
+        List<java.util.concurrent.CompletableFuture<?>> loads = new ArrayList<>();
+        for (int cx = minCx; cx <= maxCx; cx++) {
+            for (int cz = minCz; cz <= maxCz; cz++) {
+                if (!instance.isChunkLoaded(cx, cz)) loads.add(instance.loadChunk(cx, cz));
+            }
+        }
+        if (!loads.isEmpty()) java.util.concurrent.CompletableFuture.allOf(loads.toArray(java.util.concurrent.CompletableFuture[]::new)).join();
     }
 }

@@ -183,8 +183,8 @@ public final class Bridge {
                 game -> {
                     var profile = io.github.term4.polyp.MechanicsProfile.builder();
                     var global = Mechanics.polyp.profiles().global();
-                    BASE.apply(profile, global);
-                    Ruleset look = RULESETS.getOrDefault(Duels.lookNameOf(game), VANILLA_RULES);
+                    Rulesets.BASE.apply(profile, global);
+                    Ruleset look = Rulesets.forLook(Duels.lookNameOf(game));
                     look.apply(profile, global);
                     Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
                     look.seed(game);
@@ -197,29 +197,6 @@ public final class Bridge {
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 GOALS)); // a SCORING kind: hypixel ends on "<TEAM> WINS!" over the final score
     }
-
-    /** What bridge IS on every server: arrows vanish and never stick, no hunger or natural regen, no tossing. */
-    private static final Ruleset BASE = Ruleset.named("bridge")
-            .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
-            .path("projectiles/minecraft:arrow/stuckInBody", false)   // no cosmetic body arrows
-            .path("hunger/enabled", false)
-            .path("hunger/naturalRegen", false)                       // healing is the apple only
-            .path("vri/itemDrop", false)                              // hypixel parity: mined clay still drops
-            // only swings and arrows hurt: a selection over the damage catalog, not a switch per type
-            .path("damage/enabledTypes", "only(minecraft:player_attack, minecraft:thrown)")
-            // the golden apple keeps its item, eat time and gate - only what it dishes out is swapped
-            .path("consumables/minecraft:golden_apple/behavior", "heal-apple");
-
-    // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
-    private static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
-    private static final Map<String, Ruleset> RULESETS = Map.of(
-            "hypixel", Ruleset.named("hypixel")
-                    .path("projectiles/minecraft:arrow/critDamage", false)
-                    .path("projectiles/minecraft:arrow/critParticles", false),
-            "scrims", Ruleset.named("scrims")
-                    .path("projectiles/minecraft:arrow/critDamage", false)
-                    .path("projectiles/minecraft:arrow/critParticles", true),
-            "minemen", VANILLA_RULES);
 
     static String teamOf(Game game, Player player) {
         return Duels.teamOf(game, player);

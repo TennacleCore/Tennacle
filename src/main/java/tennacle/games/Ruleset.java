@@ -116,14 +116,14 @@ public final class Ruleset {
      * scoped knob wraps the game-wide value rather than replacing it.
      */
     public Ruleset without(@NotNull Scope scope) {
-        return retaining(s -> !s.equals(scope));
+        return keep(s -> !s.equals(scope));
     }
 
-    /** Only the entries whose scope {@code keep} accepts - {@code s -> s instanceof Scope.Game} is "game-wide only". */
-    public Ruleset retaining(@NotNull Predicate<Scope> keep) {
+    /** Only the entries whose scope {@code test} accepts - {@code s -> s instanceof Scope.Game} is "game-wide only". */
+    public Ruleset keep(@NotNull Predicate<Scope> test) {
         return new Ruleset(name,
-                paths.stream().filter(p -> keep.test(p.scope())).toList(),
-                rules.stream().filter(r -> keep.test(r.scope())).toList());
+                paths.stream().filter(p -> test.test(p.scope())).toList(),
+                rules.stream().filter(r -> test.test(r.scope())).toList());
     }
 
     /** Folds the game-wide mechanics half onto {@code b}; a scoped entry needs a game - use {@link #apply(MechanicsProfile.Builder, MechanicsProfile, Game)}. */

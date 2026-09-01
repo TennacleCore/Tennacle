@@ -139,7 +139,7 @@ server can express to whatever someone predeclared.
   `DamageModel.CURVE` or `DamageModel.flat(2.0)`, one field holding the choice AND its parameter, open to
   a server's own lambda. The `flatDamage` field and its presence-magic are gone.
 - Fx goes further, because "who hears it" is a second axis and pairing it with each effect would be a grid:
-  `FxAudience` and `FxEffect` are registered separately and composed - `to(everywhere, sound(...))`. A bare
+  `Recipients` and `FxEffect` are registered separately and composed - `to(at-listener(watchers), sound(...))`. A bare
   effect keeps the default (shard) audience. **When a vocabulary looks like the product of two lists, split
   the axes.**
 - And the audience side is an ALGEBRA, not a list of scopes: primitives (`members`, `watchers`, `instance`,
@@ -166,7 +166,7 @@ server can express to whatever someone predeclared.
   shared polyp-world module - not in Archipelago. Shard's existing accessors already satisfy it, so the
   tree audience works with zero Archipelago-side fx code, which is the point of the shared seam.
 - `FieldFns` gives behaviour types a data grammar of named FACTORIES WITH ARGUMENTS -
-  `explosion/damageModel = flat(3.5)`, `fx/polyp:pearl_teleport = to(everywhere,
+  `explosion/damageModel = flat(3.5)`, `fx/polyp:pearl_teleport = to(at-listener(watchers),
   sound(entity.player.teleport, player, 1, 1))` - nested calls included. Registering a factory extends the vocabulary for that type everywhere; arguments cover
   every parameterisation, so nothing has to be enumerated in advance. Parsing happens once at fold time -
   what lands in the config is the built lambda, identical to what a preset would write.
@@ -207,7 +207,7 @@ knockback and death are about the VICTIM; attack and projectiles about the doer.
 "red hits harder" are therefore different members, not different scopes. Every member carries a subject - hunger, vri, item damage and player platform config too - so any
 knob can be targeted.
 
-Removing a scope (`without(Scope.team("red"))`, or `retaining(s -> s instanceof Scope.Game)` for game-wide
+Removing a scope (`without(Scope.team("red"))`, or `keep(s -> s instanceof Scope.Game)` for game-wide
 only) is a re-fold over the base profile with the trimmed ruleset. Never edit a folded profile: a scoped knob
 WRAPS the game-wide value, so the only correct way to un-wrap is to fold again without it.
 
