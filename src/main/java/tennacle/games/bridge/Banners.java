@@ -1,7 +1,7 @@
 package tennacle.games.bridge;
 
 import tennacle.Msg;
-import tennacle.games.Duels;
+import tennacle.games.Matches;
 
 import io.github.term4.canvas.theme.ChatWidth;
 import io.github.term4.grotto.Game;
@@ -71,7 +71,7 @@ final class Banners {
     // minemen footage: only the name rides the team color, "scored!" stays yellow;
     // hypixel captured: the whole "<name> scored!" in the team color (scrims follows it)
     static Component scoredTitle(Game game, Player scorer, TextColor color) {
-        return "minemen".equals(Duels.lookNameOf(game))
+        return "minemen".equals(Matches.lookNameOf(game))
                 ? Component.text(scorer.getUsername(), color)
                         .append(Component.text(" scored!", NamedTextColor.YELLOW))
                 : Component.text(scorer.getUsername() + " scored!", color);
@@ -81,7 +81,7 @@ final class Banners {
     // team names, gray prose, "."
     // captured - hypixel: green number always, trailing "..."; scrims: no dots, green 5-4 / yellow 3-2 / red 1
     static Component cageCount(Game game, int n) {
-        boolean hypixel = "hypixel".equals(Duels.lookNameOf(game));
+        boolean hypixel = "hypixel".equals(Matches.lookNameOf(game));
         NamedTextColor tone = hypixel ? NamedTextColor.GREEN
                 : n >= 4 ? NamedTextColor.GREEN : n >= 2 ? NamedTextColor.YELLOW : NamedTextColor.RED;
         Component line = Component.text("Cages open in ", NamedTextColor.GRAY)
@@ -95,7 +95,7 @@ final class Banners {
 
     /** {@link #scoredTitle} by name - the scorer may be gone by the time the re-cage count renders it. */
     static Component scoredHeld(Game game, String scorer, TextColor color) {
-        return "minemen".equals(Duels.lookNameOf(game))
+        return "minemen".equals(Matches.lookNameOf(game))
                 ? Component.text(scorer, color).append(Component.text(" scored!", NamedTextColor.YELLOW))
                 : Component.text(scorer + " scored!", color);
     }
@@ -103,7 +103,7 @@ final class Banners {
     static Component fallLine(Game game, Player fallen, @Nullable Player by) {
         var roster = game.roster();
         Component name = Component.text(fallen.getUsername() + " ", roster.team(Bridge.teamOf(game, fallen)).color());
-        if ("minemen".equals(Duels.lookNameOf(game))) {
+        if ("minemen".equals(Matches.lookNameOf(game))) {
             if (by == null) return name.append(Component.text("fell into the void!", NamedTextColor.YELLOW));
             return name.append(Component.text("was hit into the void by ", NamedTextColor.YELLOW))
                     .append(Component.text(by.getUsername(), roster.team(Bridge.teamOf(game, by)).color()))
@@ -119,7 +119,7 @@ final class Banners {
     static Component killedLine(Game game, Player victim, @Nullable Player by) {
         var roster = game.roster();
         Component name = Component.text(victim.getUsername() + " ", roster.team(Bridge.teamOf(game, victim)).color());
-        boolean minemen = "minemen".equals(Duels.lookNameOf(game));
+        boolean minemen = "minemen".equals(Matches.lookNameOf(game));
         NamedTextColor prose = minemen ? NamedTextColor.YELLOW : NamedTextColor.GRAY;
         if (by == null) return name.append(Component.text(minemen ? "died!" : "died.", prose));
         return name.append(Component.text("was killed by ", prose))

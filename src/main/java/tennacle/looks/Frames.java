@@ -1,7 +1,7 @@
 package tennacle.looks;
 
 import tennacle.Msg;
-import tennacle.games.Duels;
+import tennacle.games.Match;
 
 import io.github.term4.canvas.theme.Shine;
 import io.github.term4.grotto.Game;
@@ -37,7 +37,7 @@ public final class Frames {
                 .blank()
                 .line((g, me) -> minemenRow("Your Ping: ", me.getLatency() + " ms"))
                 .line((g, me) -> {
-                    Player them = Duels.opponent(g, me);
+                    Player them = Match.opponent(g, me);
                     return minemenRow("Their Ping: ", them != null ? them.getLatency() + " ms" : "?");
                 })
                 .blank()

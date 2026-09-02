@@ -5,39 +5,53 @@ import tennacle.Msg;
 import tennacle.games.Duels;
 import tennacle.games.KitLayouts;
 import tennacle.games.MapPool;
-import tennacle.games.Ruleset;
+import tennacle.games.Match;
+import tennacle.games.Matches;
+import tennacle.games.Mode;
+import tennacle.games.Presentation;
 
-import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.LimitMarker;
+import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
-import io.github.term4.polyp.config.FieldFns;
-import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
-import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver;
-import net.minestom.server.entity.attribute.Attribute;
-import net.minestom.server.potion.Potion;
-import net.minestom.server.potion.PotionEffect;
+import io.github.term4.grotto.Body;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.kit.Kit;
-import io.github.term4.grotto.roster.SlotLayout;
+import io.github.term4.grotto.modules.Freeze;
+import io.github.term4.grotto.modules.KillCredit;
 import io.github.term4.grotto.modules.Kits;
+import io.github.term4.grotto.modules.LastStanding;
+import io.github.term4.grotto.modules.Limits;
+import io.github.term4.grotto.modules.Phases;
+import io.github.term4.grotto.modules.Respawns;
+import io.github.term4.grotto.modules.Score;
+import io.github.term4.grotto.modules.TimeLimit;
+import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.vault.VaultKey;
+import io.github.term4.polyp.MechanicsProfile;
+import io.github.term4.polyp.config.FieldFns;
+import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
+import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minestom.server.codec.Codec;
-import net.minestom.server.command.builder.arguments.ArgumentType;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.codec.Codec;
+import net.minestom.server.command.builder.Command;
+import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.component.DataComponents;
-import net.minestom.server.item.component.EnchantmentList;
-import net.minestom.server.item.enchant.Enchantment;
-import net.minestom.server.utils.Unit;
 import net.minestom.server.entity.EquipmentSlot;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import net.minestom.server.item.component.EnchantmentList;
+import net.minestom.server.item.enchant.Enchantment;
+import net.minestom.server.potion.Potion;
+import net.minestom.server.potion.PotionEffect;
+import net.minestom.server.utils.Unit;
 
 import java.util.List;
 import java.util.Map;
@@ -67,13 +81,9 @@ public final class Bridge {
     public static final MarkerKey<RegionMarker> CENTER = MarkerKey.region("center");
 
     public static final StateKey<Integer> GOALS = StateKey.of("bridge:goals", Codec.INT, 0, true);
-    public static final StateKey<Integer> TARGET = StateKey.of("bridge:target", Codec.INT, 5);
-    public static final StateKey<Integer> LIMIT = StateKey.of("bridge:limit-ticks", Codec.INT, 15 * 60 * 20);
     public static final StateKey<Integer> KILLS = StateKey.of("bridge:kills", Codec.INT, 0, true);
     /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
     public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
-    /** Knockback immunity after a respawn; forfeited by swinging or touching blocks. */
-    public static final StateKey<Integer> PROTECT = StateKey.of("bridge:protect-ticks", Codec.INT, 40);
     /** Your own arrow boosts you (KB + its damage); off = self hits are inert. */
     public static final StateKey<Boolean> BOW_BOOST = StateKey.of("bridge:bow-boost", Codec.BOOLEAN, true);
     /** Teammates can hurt each other; off = team hits are inert (matters from 2v2v2v2 up). */
@@ -83,7 +93,6 @@ public final class Bridge {
     private static final Map<String, Material> BLOCKS = Map.of(
             "red", Material.RED_TERRACOTTA, "blue", Material.BLUE_TERRACOTTA,
             "green", Material.LIME_TERRACOTTA, "yellow", Material.YELLOW_TERRACOTTA);
-
     private static final ItemStack SWORD = ItemStack.of(Material.IRON_SWORD)
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
     private static final ItemStack BOW = ItemStack.of(Material.BOW)
@@ -91,7 +100,6 @@ public final class Bridge {
     private static final ItemStack PICKAXE = ItemStack.of(Material.DIAMOND_PICKAXE)
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2)))
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-
     static final Kit KIT = Kit.of("bridge")
             .item("sword", 0, SWORD)
             .item("bow", 1, BOW)
@@ -138,7 +146,6 @@ public final class Bridge {
             FieldFns.register(ConsumableBehavior.class, "heal-apple",
                     "full health, plus Absorption I for a minute when the eater has none", args -> HEAL_APPLE);
         }
-
         MapPool arena = MapPool.of("bridge");
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
@@ -152,9 +159,27 @@ public final class Bridge {
                 .expect(VOID, 1)
                 .expect(SECTION, 2)
                 .expect(CENTER, 1)
-                .modules(Cages::new, () -> Kits.of(KIT), Rules::new,
-                        () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
-                        () -> Duels.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
+                .body(Body.fresh().gamemode(GameMode.SURVIVAL)) // bridge digs and builds
+                .rule(Score.TARGET, 5)
+                .rule(TimeLimit.LIMIT, 15L * 60 * 20)
+                .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing or a block touch forfeits it
+                .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
+                .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
+                        Cages::new, // the opener, and the re-cage after a goal
+                        () -> Freeze.during(Match.OPENING).after(Match.OVER),
+                        () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
+                        () -> Score.teams(GOALS).target(Score.TARGET),
+                        () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(GOALS)),
+                        () -> Respawns.manual().anchor(RESPAWN),
+                        KillCredit::new,
+                        () -> Limits.of().below(VOID, (p, plane) -> {
+                            Game game = Game.of(p);
+                            Rules rules = game != null ? game.module(Rules.class) : null;
+                            if (rules != null) rules.fell(p);
+                        }),
+                        () -> Kits.of(KIT), Rules::new, Presentation::new,
+                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
+                        () -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();
         Command cageCmd = new Command("cage");
         cageCmd.setDefaultExecutor((sender, ctx) -> {
@@ -178,27 +203,18 @@ public final class Bridge {
         }, variantArg);
         MinecraftServer.getCommandManager().register(cageCmd);
         KitLayouts.editable("bridge", KIT);
-
         Rulesets.check(Mechanics.polyp.profiles().global());
-        Duels.kind(new Duels.Kind("bridge", TYPE, arena,
-                game -> {
-                    var profile = io.github.term4.polyp.MechanicsProfile.builder();
-                    Ruleset rules = Rulesets.forLook(Duels.lookNameOf(game));
-                    rules.apply(profile, Mechanics.polyp.profiles().global(), game);
-                    Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
-                    rules.seed(game);
-                },
-                Duels.SCRIMS,
-                false, // no death animation or spectate: everyone stays where they stand
+        Duels.mode(new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(), "scrims",
                 List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
                         Component.text("Knock off your opponent to gain a clear path.", NamedTextColor.YELLOW),
                         Component.empty(),
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
-                GOALS)); // a SCORING kind: hypixel ends on "<TEAM> WINS!" over the final score
+                false, // no death animation or spectate: everyone stays where they stand
+                GOALS)); // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
     }
 
     static String teamOf(Game game, Player player) {
-        return Duels.teamOf(game, player);
+        return Match.teamOf(game, player);
     }
 
     private static Material blocks(String team) {

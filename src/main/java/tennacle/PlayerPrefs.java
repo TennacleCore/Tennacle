@@ -1,6 +1,7 @@
 package tennacle;
 
-import tennacle.games.Duels;
+
+import tennacle.games.Matches;
 
 import io.github.term4.grotto.vault.VaultKey;
 import net.minestom.server.MinecraftServer;
@@ -43,7 +44,7 @@ public final class PlayerPrefs {
 
         public void set(@NotNull Player player, @NotNull T value) {
             cache.put(player.getUuid(), value);
-            Duels.grotto().vault().set(player.getUuid(), key, encode.apply(value));
+            Matches.grotto().vault().set(player.getUuid(), key, encode.apply(value));
         }
     }
 
@@ -78,7 +79,7 @@ public final class PlayerPrefs {
     }
 
     private static <S, T> void fetch(Entry<S, T> entry, UUID player) {
-        Duels.grotto().vault().get(player, entry.key)
+        Matches.grotto().vault().get(player, entry.key)
                 .thenAccept(stored -> entry.cache.put(player, entry.decode.apply(stored)));
     }
 }

@@ -63,7 +63,7 @@ public final class HotArena implements Supplier<Arena> {
         if (stale == null) return;
         MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
             boolean inUse = !stale.getPlayers().isEmpty()
-                    || Duels.grotto().games().stream().anyMatch(g -> g.instance() == stale);
+                    || Matches.grotto().games().stream().anyMatch(g -> g.instance() == stale);
             if (!inUse) MinecraftServer.getInstanceManager().unregisterInstance(stale);
         });
     }

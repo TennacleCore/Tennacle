@@ -1,17 +1,17 @@
 # Game lifecycle: the layer between Grotto's Game and a mode
 
-Status: AGREED, nothing built yet. Companion to `rulesets.md` (what a match plays) - this is what a
-match IS from request to lobby. Three nouns, kept apart on purpose: a MODE is the game (bridge), a
+Status: BUILT (steps 1 and 2; step 3 is the growth list). Companion to `rulesets.md` (what a match
+plays) - this is what a match IS from request to lobby. Three nouns, kept apart on purpose: a MODE is the game (bridge), a
 RULESET is its gamerules (crit bows off, five-second cages), a LOOK is only how it speaks (boards,
 chat, titles, cues). A PLATFORM bundles one ruleset with one look under the name a player says
 (`hypixel`), and nothing but the command needs the bundle.
 
-## Where the seams are today
+## Where the seams were
 
 Grotto already owns the skeleton: `Grotto.launch` allocates the world tree, ledger, roster and
 modules; `Game.join/leave/depart/disconnected` seat and unseat; `decide(outcome, linger)` then `end`
 tear down through one exit policy; `GameModule` hears join, leave, reclaim-expired, decided, end.
-Every mode-agnostic thing ABOVE that skeleton lives in Tennacle, hand-rolled per duel:
+Before the build, every mode-agnostic thing ABOVE that skeleton lived in Tennacle, hand-rolled per duel:
 
 | concern | today | shape |
 |---|---|---|
@@ -103,11 +103,11 @@ real eliminations.
 ### 4. Score and TimeLimit
 
 ```java
-Score.teams(Bridge.GOALS).target(Bridge.TARGET)      // watches team-scope writes; first to target wins
-Score.seats(Boxing.HITS).target(Boxing.TARGET)        // per-seat target, resolved at the scoring seat
-TimeLimit.of(Sumo.LIMIT).from(Match.LIVE).onExpire(TimeLimit.draw())
-TimeLimit.of(Boxing.LIMIT).from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLoses(Boxing.HITS))
-TimeLimit.of(Bridge.LIMIT_TICKS).from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(Bridge.GOALS))
+Score.teams(Bridge.GOALS).target(Score.TARGET)        // watches team-scope writes; first to target wins
+Score.seats(Boxing.HITS).target(Score.TARGET)         // per-seat target, resolved at the scoring seat
+TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.draw())
+TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLoses(Boxing.HITS))
+TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(Bridge.GOALS))
 ```
 
 `Score` rides `rules().watch`, which already reports the scope of every committed write, so a
@@ -238,7 +238,7 @@ GameType.builder("bridge")
                  Presentation::new, byLook(Boards...), byLook(Ends...))
 ```
 
-## Deleted by the adoption
+## Deleted by the adoption (done)
 
 `Duels.PHASE/DONE_AT/STARTED_AT`, `settle` (three overloads), `draw`, `settleOnLeave`,
 `abortIfAlone`, `timeLeft`, `sinceStart`, `stashKit/restoreKit/resetVitals`, `Countdown`, `Freeze`,

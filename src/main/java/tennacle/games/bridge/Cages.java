@@ -1,9 +1,8 @@
 package tennacle.games.bridge;
 
-import tennacle.games.Freeze;
-import tennacle.games.Ghosting;
-import tennacle.games.Duels;
 import tennacle.games.HotArena;
+import tennacle.games.Match;
+import tennacle.games.Matches;
 
 import io.github.term4.barnacle.Arena;
 import io.github.term4.barnacle.marker.Marker;
@@ -14,13 +13,16 @@ import io.github.term4.barnacle.template.Facing;
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.modules.Phases;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
+import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
+import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
@@ -37,26 +39,29 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The bridge round. Cages are authored as real blocks in the {@code cages} arena - per variant (marker
- * group): a {@code cage} region over the volume and a {@code cage} pos standing where the player stands,
- * facing the FRONT. {@code accent}/{@code accent.<family>} regions mark cells whose authored RED blocks
- * recolor to the seat's team. Players pick a variant ({@code /cage}, vault-backed); each spot stamps its
- * seat's pick rotated so the front faces the map center. The countdown is the captured per-network voice;
- * bridge never runs the shared duel countdown, so the freeze lives here too.
+ * The bridge opener, and the re-cage after a goal. Cages are authored as real blocks in the {@code cages}
+ * arena - per variant (marker group): a {@code cage} region over the volume and a {@code cage} pos standing
+ * where the player stands, facing the FRONT. {@code accent}/{@code accent.<family>} regions mark cells whose
+ * authored RED blocks recolor to the seat's team. Players pick a variant ({@code /cage}, vault-backed); each
+ * spot stamps its seat's pick rotated so the front faces the map center. The count is the captured per-network
+ * voice; GO advances the {@link Phases}, the freeze is the {@code Freeze} module's.
  */
 public final class Cages implements GameModule {
+
+    /** Seconds on the cage count; captured: 3 on hypixel, 5 on scrims. */
+    public static final StateKey<Integer> SECONDS = StateKey.of("cages:seconds", Codec.INT, 3);
+    /** Off: no cage blocks and no re-cage after a goal - the count still opens the match, goals play on. */
+    public static final StateKey<Boolean> ENABLED = StateKey.of("cages:enabled", Codec.BOOLEAN, true);
 
     static final String RECAGE_ALARM = "bridge:recage";
     private static final String COUNT_ALARM = "bridge:cage-count";
     private static final String STAMP_ALARM = "bridge:cage-stamp";
-
     // the authoring arena: /arena new cages, build, /marker region cage + /marker pos cage my, /arena save
     private static final HotArena CAGES = HotArena.of("cages");
     private static final MarkerKey<PosMarker> CAGE_SPOT = MarkerKey.pos("cage");
     private static final MarkerKey<RegionMarker> CAGE_BOX = MarkerKey.region("cage");
     private static final Map<String, String> TEAM_DYE = Map.of(
             "red", "RED", "blue", "BLUE", "green", "LIME", "yellow", "YELLOW");
-
     // captured hypixel: note.hat vol 1 each beat, note.harp at GO; scrims/minemen cues UNCAPTURED - pling
     private static final Sound HAT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 1f, 1f);
     private static final Sound HARP = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HARP, Sound.Source.MASTER, 1f, 1f);
@@ -65,6 +70,7 @@ public final class Cages implements GameModule {
 
     private record Cell(BlockVec offset, Block block, @Nullable String recolor) {}
     private record CageDef(Facing front, List<Cell> cells) {}
+
     private static Arena cageSource;
     private static Map<String, CageDef> cageDefs = Map.of();
     private static final tennacle.PlayerPrefs.Entry<String, String> PICK =
@@ -72,15 +78,24 @@ public final class Cages implements GameModule {
 
     private final Map<Point, Block> replaced = new HashMap<>();
     private String look;
+    private boolean enabled;
+    private Phases phases;
     private Component held;
     private boolean introShown;
     private boolean caged;
 
     @Override
+    public @NotNull Set<StateKey<?>> rules() {
+        return Set.of(SECONDS, ENABLED);
+    }
+
+    @Override
     public void install(@NotNull Game game) {
         GameState st = game.state();
-        look = Duels.lookNameOf(game); // stamped before modules install, never changes
-        Ghosting.install(game);
+        look = Matches.lookNameOf(game); // stamped before modules install, never changes
+        enabled = game.rules().resolve(Scope.GAME, ENABLED);
+        phases = game.module(Phases.class);
+        if (phases == null) throw new IllegalStateException("Cages needs Phases installed before it");
         st.alarms().register(COUNT_ALARM, (tick, payload) -> beat(game, payload.getInt("n")));
         st.alarms().register(STAMP_ALARM, (tick, payload) -> {
             if (!caged) {
@@ -89,60 +104,51 @@ public final class Cages implements GameModule {
             }
         });
         st.alarms().register(RECAGE_ALARM, (tick, payload) -> recage(game, payload));
-
-        Freeze.pin(game);
-
         st.alarms().arm(STAMP_ALARM, st.tick() + 2);
-        st.alarms().arm(COUNT_ALARM, st.tick() + Duels.START_GRACE_TICKS,
-                CompoundBinaryTag.builder().putInt("n", seconds()).build());
+        st.alarms().arm(COUNT_ALARM, st.tick() + Match.START_GRACE_TICKS,
+                CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
     }
 
-    /** Captured: 3s on hypixel, 5s on scrims; minemen uncaptured (their bridge doesn't exist) - 3s. */
-    private int seconds() {
-        return "scrims".equals(look) ? 5 : 3;
+    private static int seconds(Game game) {
+        return game.rules().resolve(Scope.GAME, SECONDS);
     }
 
     private void beat(Game game, int n) {
         GameState st = game.state();
-        if (!"countdown".equals(st.get(Scope.GAME, Duels.PHASE))) return;
+        if (!Match.opening(game)) return;
         boolean hypixel = "hypixel".equals(look);
         if (!caged) {
             caged = true;
             stamp(game);
         }
-        // the clock starts with the first beat (captured: Time Left ticks through the cage count)
-        if (st.get(Scope.GAME, Duels.STARTED_AT) < 0) {
-            st.set(Scope.GAME, Duels.STARTED_AT, st.tick());
-            st.alarms().arm(Rules.TIME_UP_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Bridge.LIMIT));
-        }
         if (!introShown) {
             introShown = true;
             if (hypixel) { // captured: the instruction block lands right before the first cage beat
-                Duels.each(game, p -> {
-                    Component started = Duels.lookOf(game).count().started().apply(game, p);
+                Match.each(game, p -> {
+                    Component started = Matches.lookOf(game).count().started().apply(game, p);
                     if (started != null) p.sendMessage(started);
                 });
             }
         }
         if (n > 0) {
             Title beat = Title.title(held != null ? held : Component.empty(),
-                    Banners.cageCount(game, n), Duels.times(game, 0, 40, 0));
+                    Banners.cageCount(game, n), Match.times(game, 0, 40, 0));
             Component chat = "scrims".equals(look) ? Banners.cageCount(game, n) : null;
-            Duels.each(game, p -> {
+            Match.each(game, p -> {
                 p.showTitle(beat);
                 if (chat != null) p.sendMessage(chat); // captured: scrims mirrors the count into chat
                 p.playSound(hypixel ? HAT : TICK);
             });
-            if (held != null) Duels.cue(game, SoundSet.SCORED); // captured: the goal firework rides every beat
+            if (held != null) Matches.cue(game, SoundSet.SCORED); // captured: the goal firework rides every beat
             st.alarms().arm(COUNT_ALARM, st.tick() + 20, CompoundBinaryTag.builder().putInt("n", n - 1).build());
             return;
         }
-        if (Duels.abortIfAlone(game)) return;
         open(game);
         held = null;
-        st.set(Scope.GAME, Duels.PHASE, "fighting");
-        Title fight = Title.title(Component.empty(), Banners.fight(game), Duels.times(game, 0, 20, 10));
-        Duels.each(game, p -> {
+        phases.advance(); // LIVE; a seat nobody filled aborts the game right here
+        if (game.decided() != null) return;
+        Title fight = Title.title(Component.empty(), Banners.fight(game), Match.times(game, 0, 20, 10));
+        Match.each(game, p -> {
             p.showTitle(fight);
             p.playSound(hypixel ? HARP : GO);
         });
@@ -152,12 +158,14 @@ public final class Cages implements GameModule {
         String scorer = payload.getString("scorer");
         held = scorer.isEmpty() ? null
                 : Banners.scoredHeld(game, scorer, game.roster().team(payload.getString("team")).color());
-        game.state().set(Scope.GAME, Duels.PHASE, "countdown");
+        phases.enter(Match.OPENING);
         caged = true;
         stamp(game);
-        game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
+        if (game.rules().resolve(Scope.GAME, Rules.REFIT_ON_GOAL)) {
+            game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
+        }
         game.state().alarms().arm(COUNT_ALARM, game.state().tick() + 1,
-                CompoundBinaryTag.builder().putInt("n", seconds()).build());
+                CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
     }
 
     /** The authored cages by variant; re-extracted when /arena save swaps the arena. */
@@ -255,6 +263,7 @@ public final class Cages implements GameModule {
 
     // all writes ride the game's shard - the arena container is shared by concurrent games
     private void stamp(Game game) {
+        if (!enabled) return;
         Map<String, CageDef> defs = cages();
         if (defs.isEmpty()) return;
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {

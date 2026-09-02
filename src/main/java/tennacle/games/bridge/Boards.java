@@ -1,13 +1,14 @@
 package tennacle.games.bridge;
 
 import tennacle.Msg;
-import tennacle.games.Duels;
 import tennacle.looks.Frames;
 
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.Score;
+import io.github.term4.grotto.modules.Scoreboard;
+import io.github.term4.grotto.modules.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
-import io.github.term4.grotto.modules.Scoreboard;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
@@ -28,7 +29,7 @@ final class Boards {
     static Scoreboard scrims() {
         return Frames.scrims("Bridge", b -> b
                 .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.good(clock(Duels.timeLeft(g, Bridge.LIMIT)))))
+                        .append(Msg.SCRIMS.good(clock(TimeLimit.left(g)))))
                 .blank()
                 .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS)
                 .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS)
@@ -40,7 +41,7 @@ final class Boards {
     // captured: [R]/[B] circle meters, Kills/Goals
     static Scoreboard hypixel() {
         return Frames.hypixel("BRIDGE", "Bridge Duel",
-                g -> Duels.timeLeft(g, Bridge.LIMIT), b -> b
+                g -> TimeLimit.left(g), b -> b
                 .line((g, me) -> circles(g, teamAt(g, 0), false), Bridge.GOALS)
                 .line((g, me) -> circles(g, teamAt(g, 1), false), Bridge.GOALS)
                 .blank()
@@ -57,7 +58,7 @@ final class Boards {
                 .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Time Left: ",
-                        Frames.clock(Duels.timeLeft(g, Bridge.LIMIT)))));
+                        Frames.clock(TimeLimit.left(g)))));
     }
 
     static Team teamAt(Game game, int index) {
@@ -70,7 +71,7 @@ final class Boards {
         return Component.empty()
                 .append(Component.text("➜ ", team.color(), TextDecoration.BOLD))
                 .append(Msg.SCRIMS.meter(game.state().get(Scope.team(team.id()), Bridge.GOALS),
-                        game.rules().resolve(Scope.GAME, Bridge.TARGET), team.color()));
+                        game.rules().resolve(Scope.GAME, Score.TARGET), team.color()));
     }
 
     private static Component teamLine(Game game, Team team) {
@@ -85,7 +86,7 @@ final class Boards {
     // captured on both networks: "[R] " team label + team-colored filled circles, gray empties
     private static Component circles(Game game, Team team, boolean boldLabel) {
         int goals = game.state().get(Scope.team(team.id()), Bridge.GOALS);
-        int target = Math.max(goals, game.rules().resolve(Scope.GAME, Bridge.TARGET));
+        int target = Math.max(goals, game.rules().resolve(Scope.GAME, Score.TARGET));
         String tag = "[" + team.id().substring(0, 1).toUpperCase(Locale.ROOT) + "] ";
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);

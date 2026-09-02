@@ -1,9 +1,13 @@
 package tennacle.games.bridge;
 
+import tennacle.Mechanics;
+import tennacle.games.Match;
+import tennacle.games.Matches;
+import tennacle.games.Mode;
+
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
-import io.github.term4.archipelago.testsupport.MechanicsBoot;
 import io.github.term4.barnacle.Arena;
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.PosMarker;
@@ -11,21 +15,20 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.bloom.Session;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.Phases;
 import io.github.term4.grotto.state.Scope;
+import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
+import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
-import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
-import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
 import net.minestom.server.entity.attribute.Attribute;
-import tennacle.Mechanics;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.Material;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.games.Duels;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -65,8 +68,8 @@ class BridgeRoundTest extends HeadlessServerTest {
 
     @Test
     void aFullRound() {
-        Game game = Duels.grotto().launch(Bridge.type(), fixture());
-        Duels.kindOf(game).onLaunch().accept(game); // what Duels.start runs: the ruleset fold + profile
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), fixture()); // the launch fold, nobody seated
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BridgeRed");
         FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BridgeBlue");
         try {
@@ -76,7 +79,7 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertTrue(game.join(red.player), "red seat claimed");
             assertTrue(game.join(blue.player), "blue seat claimed");
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
-            assertEquals("countdown", game.state().get(Scope.GAME, Duels.PHASE), "rounds start caged");
+            assertTrue(Match.opening(game), "rounds start caged");
             // the ruleset fold: bridge's default look is scrims - trail on, roll off, mmc18 tuning intact
             var arrow = Mechanics.polyp.profiles().resolve(red.player,
                     io.github.term4.polyp.MechanicsKeys.PROJECTILES).typeConfig(
@@ -117,15 +120,15 @@ class BridgeRoundTest extends HeadlessServerTest {
             org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
                     () -> typo.apply(io.github.term4.polyp.MechanicsProfile.builder(), null, game),
                     "a team the roster lacks fails the fold, it does not apply to nobody");
-            Duels.kindOf(game).onLaunch().accept(game); // the launch fold again, without the handicap
+            Matches.fold(game); // the launch fold again, without the handicap
             assertEquals(Boolean.FALSE, crits.apply(red.player), "re-folded from the base: red is back on the look");
             assertEquals(Boolean.TRUE, arrow.removeOnBlockHit.constantOrNull(), "bridge default rides along");
             await("kit applied", () -> swordOf(red.player) && swordOf(blue.player));
             // 1.8 leather chest+legs+boots = 3+2+1; if this drops to 0 nothing mitigates and TTK collapses
             assertEquals(6, (int) red.player.getAttributeValue(Attribute.ARMOR), "kit armor points");
 
-            tickUntil(game, "GO", () -> "fighting".equals(game.state().get(Scope.GAME, Duels.PHASE)));
-            assertTrue(game.state().get(Scope.GAME, Duels.STARTED_AT) >= 0, "the clock anchored at the first beat");
+            tickUntil(game, "GO", () -> Match.live(game));
+            assertTrue(Phases.enteredAt(game, Match.LIVE) >= 0, "the clock anchored at the first beat");
 
             Player scorer = "blue".equals(Bridge.teamOf(game, blue.player)) ? blue.player : red.player;
             // the scorer steps into the OTHER team's goal
@@ -133,9 +136,9 @@ class BridgeRoundTest extends HeadlessServerTest {
             EventDispatcher.call(new PlayerMoveEvent(scorer, goal, true));
             String team = Bridge.teamOf(game, scorer);
             tickUntil(game, "goal counted", () -> game.state().get(Scope.team(team), Bridge.GOALS) == 1);
-            tickUntil(game, "a goal re-cages", () -> "countdown".equals(game.state().get(Scope.GAME, Duels.PHASE)));
+            tickUntil(game, "a goal re-cages", () -> Match.opening(game));
 
-            tickUntil(game, "GO again", () -> "fighting".equals(game.state().get(Scope.GAME, Duels.PHASE)));
+            tickUntil(game, "GO again", () -> Match.live(game));
             Player faller = scorer == red.player ? blue.player : red.player;
             double home = faller.getPosition().x();
             EventDispatcher.call(new PlayerMoveEvent(faller, new Pos(0.5, 50, 0.5), true));

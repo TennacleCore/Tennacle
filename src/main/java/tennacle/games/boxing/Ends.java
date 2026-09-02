@@ -1,6 +1,8 @@
 package tennacle.games.boxing;
 
-import tennacle.games.Duels;
+
+import tennacle.games.Match;
+import tennacle.games.Matches;
 
 import io.github.term4.canvas.theme.HypixelCard;
 import io.github.term4.grotto.Game;
@@ -24,17 +26,17 @@ final class Ends {
     private Ends() {}
 
     static Summary hypixel() {
-        return Duels.summary().hypixel("Boxing Duel")
+        return Matches.summary().hypixel("Boxing Duel")
                 .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
                 .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
                 .row("W-Taps", (g, side, th, c) ->
                         th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))))
                 .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Duels.opponentName(g, me) + " boxing hypixel"));
+                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " boxing hypixel"));
     }
 
     static Summary scrims() {
-        return Duels.summary()
+        return Matches.summary()
                 .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
                 .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
                 .row("W-Taps", "Sprint hits over total hits", (g, side, th, c) ->
@@ -43,7 +45,7 @@ final class Ends {
 
     // first in the module list: snapshots must capture Speed II before Rules.onEnd strips it
     static Results results() {
-        return Duels.results().item((g, p) -> {
+        return Matches.results().item((g, p) -> {
             int hits = Boxing.seatStat(g, p, Boxing.HITS);
             String wtap = Boxing.wtap(hits, Boxing.seatStat(g, p, Boxing.SPRINT_HITS));
             return ItemStack.of(Material.DIAMOND_SWORD)

@@ -5,8 +5,8 @@ import tennacle.games.Ruleset;
 import java.util.Map;
 
 /**
- * Bridge's rulesets: {@link #BASE} is what the mode IS on every server; each look is a preset over it, the
- * measured delta of one platform. A custom setup derives from one of these with {@code with(...)}.
+ * Bridge's rulesets: {@link #BASE} is what the mode IS on every server; each platform's is a preset over it,
+ * the measured delta of that platform. A custom setup derives from one of these with {@code with(...)}.
  */
 final class Rulesets {
 
@@ -34,12 +34,13 @@ final class Rulesets {
             "scrims", Ruleset.named("scrims")
                     .path("projectiles/minecraft:arrow/critDamage", false)
                     .path("projectiles/minecraft:arrow/critParticles", true)
+                    .rule(Cages.SECONDS, 5) // captured: five on scrims, three elsewhere
                     .over(BASE),
             "minemen", VANILLA_RULES.over(BASE));
 
-    /** The look's ruleset over {@link #BASE}; an unknown name plays vanilla (minemen). */
-    static Ruleset forLook(String look) {
-        return RULESETS.getOrDefault(look, RULESETS.get("minemen"));
+    /** The platform rulesets, each over {@link #BASE}; a platform naming none of them plays the base. */
+    static Map<String, Ruleset> variants() {
+        return RULESETS;
     }
 
     static void check(io.github.term4.polyp.MechanicsProfile global) {

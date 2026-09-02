@@ -1,6 +1,8 @@
 package tennacle.games.sumo;
 
-import tennacle.games.Duels;
+
+import tennacle.games.Match;
+import tennacle.games.Matches;
 
 import io.github.term4.canvas.theme.HypixelCard;
 import io.github.term4.grotto.Game;
@@ -16,18 +18,18 @@ final class Ends {
 
     // captured hypixel sumo end block + the play-again line
     static Summary hypixel() {
-        return Duels.summary().hypixel("Sumo Duel")
+        return Matches.summary().hypixel("Sumo Duel")
                 .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())))
                 .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Duels.opponentName(g, me) + " sumo"));
+                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " sumo"));
     }
 
     static Results minemen() {
-        return Duels.results();
+        return Matches.results();
     }
 
     static Summary scrims() {
-        return Duels.summary()
+        return Matches.summary()
                 .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())));
     }
 

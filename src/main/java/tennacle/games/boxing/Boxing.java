@@ -1,20 +1,30 @@
 package tennacle.games.boxing;
 
 import tennacle.Mechanics;
-import tennacle.games.Ruleset;
 import tennacle.Msg;
-import tennacle.games.Countdown;
 import tennacle.games.Duels;
 import tennacle.games.HotArena;
+import tennacle.games.Match;
+import tennacle.games.Matches;
+import tennacle.games.Mode;
+import tennacle.games.Presentation;
+import tennacle.games.Ruleset;
 
+import io.github.term4.grotto.Body;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.kit.Kit;
+import io.github.term4.grotto.modules.Countdown;
+import io.github.term4.grotto.modules.Freeze;
+import io.github.term4.grotto.modules.Kits;
+import io.github.term4.grotto.modules.LastStanding;
+import io.github.term4.grotto.modules.Phases;
+import io.github.term4.grotto.modules.Score;
+import io.github.term4.grotto.modules.Stats;
+import io.github.term4.grotto.modules.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.SlotLayout;
-import io.github.term4.grotto.modules.Kits;
-import io.github.term4.grotto.modules.Stats;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.vault.VaultKey;
@@ -27,11 +37,13 @@ import net.minestom.server.codec.Codec;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.component.DataComponents;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
+import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.utils.Unit;
 
 import java.util.List;
@@ -51,9 +63,6 @@ public final class Boxing {
     public static final StateKey<Integer> SPRINT_HITS = StateKey.of("boxing:sprint-hits", Codec.INT, 0, true);
     public static final StateKey<Integer> COMBO = StateKey.of("boxing:combo", Codec.INT, 0, true);
     public static final StateKey<Integer> BEST_COMBO = StateKey.of("boxing:best-combo", Codec.INT, 0, true);
-    /** The win condition, as a RULE - a private game writes {@code Scope.GAME} to box to 50. */
-    public static final StateKey<Integer> TARGET = StateKey.of("boxing:target", Codec.INT, 10);
-    public static final StateKey<Integer> LIMIT = StateKey.of("boxing:limit-ticks", Codec.INT, 15 * 60 * 20);
 
     /** No hunger drain and only swings hurt: what boxing IS, as paths over whatever preset the server runs. */
     static final Ruleset RULES = Ruleset.named("boxing")
@@ -72,8 +81,8 @@ public final class Boxing {
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(
                     Enchantment.SHARPNESS, 10, Enchantment.UNBREAKING, 10)))
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-
-    private static final Kit KIT = Kit.of("boxing").item(0, SWORD);
+    // Speed II rides the kit: a player reads it as part of the gloves
+    private static final Kit KIT = Kit.of("boxing").item(0, SWORD).effect(PotionEffect.SPEED, 1);
 
     private Boxing() {}
 
@@ -84,28 +93,28 @@ public final class Boxing {
                 .team("red", NamedTextColor.RED)
                 .team("blue", NamedTextColor.BLUE)
                 .expect(Markers.SPAWN, 2)
-                .modules(
-                        // ends first: snapshots must capture Speed II before Rules.onEnd strips it
-                        () -> Duels.byLook(Ends::hypixel, Ends::results, Ends::scrims),
-                        Countdown::new, () -> Kits.of(KIT), Rules::new,
-                        () -> Duels.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
+                .body(Body.fresh().gamemode(GameMode.ADVENTURE))
+                .rule(Score.TARGET, 10)
+                .rule(TimeLimit.LIMIT, 15L * 60 * 20)
+                .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
+                        () -> Countdown.of(Match.COUNT_FROM).grace(Match.START_GRACE_TICKS).voice(Presentation::voice),
+                        () -> Freeze.during(Match.OPENING).after(Match.OVER),
+                        () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
+                        () -> Score.seats(HITS).target(Score.TARGET),
+                        () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
+                        () -> Kits.of(KIT), Rules::new, Presentation::new,
+                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
+                        () -> Matches.byLook(Ends::hypixel, Ends::results, Ends::scrims),
                         () -> Stats.of()
                                 .counter(HITS, CAREER_HITS)
                                 .counter(SPRINT_HITS, CAREER_SPRINT)
                                 .best(BEST_COMBO, CAREER_COMBO))
                 .build();
         RULES.check(Mechanics.polyp.profiles().global());
-        Duels.kind(new Duels.Kind("boxing", type, arena,
-                game -> {
-                    MechanicsProfile.Builder profile = MechanicsProfile.builder();
-                    RULES.apply(profile, Mechanics.polyp.profiles().global(), game);
-                    Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
-                    RULES.seed(game);
-                },
-                Duels.MINEMEN, true,
+        Duels.mode(new Mode("boxing", type, arena, MechanicsProfile::builder, RULES, Map.of(), "minemen",
                 // no boxing capture - sumo's single-bold-line pattern
-                List.of(Component.text("First player to land 10 hits wins!",
-                        NamedTextColor.YELLOW, TextDecoration.BOLD))));
+                List.of(Component.text("First player to land 10 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
+                true, null));
         registerStats();
     }
 
@@ -141,7 +150,7 @@ public final class Boxing {
     }
 
     private static void show(Object to, String username, UUID uuid) {
-        var vault = Duels.grotto().vault();
+        var vault = Matches.grotto().vault();
         vault.get(uuid, CAREER_HITS).thenAccept(hits ->
                 vault.get(uuid, CAREER_SPRINT).thenAccept(sprint ->
                         vault.get(uuid, CAREER_COMBO).thenAccept(combo -> {

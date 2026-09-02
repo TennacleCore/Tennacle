@@ -1,5 +1,9 @@
 package tennacle.commands;
 
+import tennacle.GameIds;
+import tennacle.Msg;
+import tennacle.games.Matches;
+
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.grotto.Game;
@@ -14,9 +18,6 @@ import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
-import tennacle.GameIds;
-import tennacle.Msg;
-import tennacle.games.Duels;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -64,7 +65,7 @@ public final class GrottoCommands {
         Msg.tag(sender, "grotto", Msg.v(code), " on " + day + " - ",
                 Msg.v(id).clickEvent(ClickEvent.copyToClipboard(id))
                         .hoverEvent(Component.text("click to copy")));
-        for (Game live : Duels.grotto().games()) {
+        for (Game live : Matches.grotto().games()) {
             if (live.id().equals(id)) {
                 Msg.tag(sender, "grotto", "  matches the live ", Msg.v(live.type().id() + "#" + live.code()));
                 return;
@@ -77,7 +78,7 @@ public final class GrottoCommands {
     private static void spectate(CommandSender sender, String name) {
         if (!(sender instanceof Player p)) return;
         if (name.equals("off")) {
-            for (Grotto.InstanceView row : Duels.grotto().instances()) {
+            for (Grotto.InstanceView row : Matches.grotto().instances()) {
                 for (Game game : row.games()) {
                     if (game.spectators().contains(p)) {
                         game.unspectate(p);
@@ -112,7 +113,7 @@ public final class GrottoCommands {
     private static final Component BNCL = Component.text("◆", NamedTextColor.GREEN, TextDecoration.BOLD);
 
     private static void list(CommandSender sender, ShardManager shards) {
-        List<Grotto.InstanceView> rows = Duels.grotto().instances();
+        List<Grotto.InstanceView> rows = Matches.grotto().instances();
         if (rows.isEmpty()) {
             Msg.tag(sender, "grotto", "no live games or shard trees");
             return;

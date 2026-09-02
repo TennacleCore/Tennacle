@@ -7,6 +7,7 @@ import tennacle.commands.ReplayCommands;
 import tennacle.commands.ShardCommands;
 import tennacle.commands.SimTpsCommands;
 import tennacle.games.Duels;
+import tennacle.games.Matches;
 import tennacle.games.boxing.Boxing;
 import tennacle.games.bridge.Bridge;
 import tennacle.games.sumo.Sumo;
@@ -21,9 +22,9 @@ import io.github.term4.canvas.Canvas;
 import io.github.term4.polyp.tracking.ClientVersion;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.timer.TaskSchedule;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.InstanceContainer;
+import net.minestom.server.timer.TaskSchedule;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,10 +83,11 @@ public final class TestServer {
         ReplayCommands.register(shards, world);
         DevCommands.register(Mechanics.polyp);
         SimTpsCommands.register(Mechanics.polyp, shards, world);
-        Duels.install(world, new Pos(0.5, 42, 0.5), shards); // /duel <player> [mode]: 1v1s over Grotto
+        Matches.install(world, new Pos(0.5, 42, 0.5), shards);
+        Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         PlayerPrefs.install();
-        GameIds.install(Duels.grotto(),
+        GameIds.install(Matches.grotto(),
                 System.getenv().getOrDefault("TENNACLE_GAME_SECRET", "tennacle-dev-secret"));
         GrottoCommands.register(shards); // /grotto: the live map (instances, games, players, shard trees)
         LobbyCommands.register(); // /spawn|/lobby|/l - a seated player departs their game first
@@ -100,7 +102,7 @@ public final class TestServer {
             var editing = Bloom.session();
             if (editing == null || p.getInstance() != editing.instance()) return null;
             return () -> {
-                Duels.toLobby(p);
+                Matches.toLobby(p);
                 Msg.tag(p, "arena", editing.id() + " stays open - /arena edit steps back in; it closes after "
                         + EDITOR_IDLE_MINUTES + "m empty (autosave kept)");
             };

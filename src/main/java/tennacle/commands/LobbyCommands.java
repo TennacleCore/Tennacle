@@ -1,12 +1,13 @@
 package tennacle.commands;
 
+import tennacle.Msg;
+import tennacle.Sessions;
+import tennacle.games.Matches;
+
 import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
-import tennacle.Msg;
-import tennacle.Sessions;
-import tennacle.games.Duels;
 
 /** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
  *  departs their game - the seat follows the resolved reclaim rule, and {@code /rejoin} re-claims it. */
@@ -19,7 +20,7 @@ public final class LobbyCommands {
         Command cmd = new Command("spawn", "lobby", "l");
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            if (!Sessions.depart(p)) Duels.toLobby(p);
+            if (!Sessions.depart(p)) Matches.toLobby(p);
         });
         MinecraftServer.getCommandManager().register(cmd);
 
@@ -30,7 +31,7 @@ public final class LobbyCommands {
                 Msg.err(p, "lobby", "you're already in a game");
                 return;
             }
-            Game held = Duels.grotto().reclaimable(p);
+            Game held = Matches.grotto().reclaimable(p);
             if (held == null) {
                 Msg.err(p, "lobby", "no seat is being held for you");
                 return;
@@ -44,7 +45,7 @@ public final class LobbyCommands {
     private static Runnable gameDeparture(Player p) {
         Game seated = Game.of(p);
         if (seated == null) {
-            for (Game game : Duels.grotto().games()) { // ghosts are unbound - the tag can't route them
+            for (Game game : Matches.grotto().games()) { // ghosts are unbound - the tag can't route them
                 if (game.isGhost(p)) {
                     seated = game;
                     break;
@@ -60,14 +61,14 @@ public final class LobbyCommands {
                 } else {
                     Msg.tag(p, "lobby", "left the game");
                 }
-                Duels.toLobby(p);
+                Matches.toLobby(p);
             };
         }
-        for (Game game : Duels.grotto().games()) {
+        for (Game game : Matches.grotto().games()) {
             if (game.spectators().contains(p)) {
                 return () -> {
                     game.unspectate(p);
-                    Duels.toLobby(p);
+                    Matches.toLobby(p);
                 };
             }
         }

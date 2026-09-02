@@ -86,7 +86,7 @@ Ruleset SCRIMS = Ruleset.named("scrims")
 
 Ruleset custom = SCRIMS.with("projectiles/minecraft:arrow/critDamage", true);  // "scrims + bow crits"
 Ruleset handicap = custom.path(Scope.team("red"), "projectiles/minecraft:arrow/critDamage", false)
-        .rule(Scope.team("red"), Bridge.TARGET, 3);               // one team's knob, one team's rule
+        .rule(Scope.team("red"), Score.TARGET, 3);                // one team's knob, one team's rule
 ```
 
 Launch folds the ruleset (`apply(builder, global, game)`: game-wide entries first, then the targeted

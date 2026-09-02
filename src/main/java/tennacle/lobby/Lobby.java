@@ -1,10 +1,11 @@
 package tennacle.lobby;
 
-import tennacle.games.Duels;
 
+import tennacle.games.Matches;
+
+import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.board.Board;
 import io.github.term4.canvas.board.Boards;
-import io.github.term4.canvas.Canvas;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
@@ -42,7 +43,7 @@ public final class Lobby {
 
     private static int playing() {
         int count = 0;
-        for (var game : Duels.grotto().games()) count += game.memberCount();
+        for (var game : Matches.grotto().games()) count += game.memberCount();
         return count;
     }
 }
