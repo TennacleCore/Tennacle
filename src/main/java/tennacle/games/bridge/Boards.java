@@ -31,8 +31,8 @@ final class Boards {
                 .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
                         .append(Msg.SCRIMS.good(clock(TimeLimit.left(g)))))
                 .blank()
-                .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS)
-                .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS)
+                .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS, Score.TARGET)
                 .blank()
                 .line((g, me) -> teamLine(g, teamAt(g, 0)))
                 .line((g, me) -> teamLine(g, teamAt(g, 1))));
@@ -42,8 +42,8 @@ final class Boards {
     static Scoreboard hypixel() {
         return Frames.hypixel("BRIDGE", "Bridge Duel",
                 g -> TimeLimit.left(g), b -> b
-                .line((g, me) -> circles(g, teamAt(g, 0), false), Bridge.GOALS)
-                .line((g, me) -> circles(g, teamAt(g, 1), false), Bridge.GOALS)
+                .line((g, me) -> circles(g, teamAt(g, 0), false), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> circles(g, teamAt(g, 1), false), Bridge.GOALS, Score.TARGET)
                 .blank()
                 .line((g, me) -> Frames.hypixelRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .line((g, me) -> Frames.hypixelRow("Goals: ", myTeamGoals(g, me)), Bridge.GOALS));
@@ -52,8 +52,8 @@ final class Boards {
     // captured: bold [B]/[R] circle meters, Kills, Time Left
     static Scoreboard minemen() {
         return Frames.minemen("Bridge", b -> b
-                .line((g, me) -> circles(g, teamAt(g, 1), true), Bridge.GOALS)
-                .line((g, me) -> circles(g, teamAt(g, 0), true), Bridge.GOALS)
+                .line((g, me) -> circles(g, teamAt(g, 1), true), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> circles(g, teamAt(g, 0), true), Bridge.GOALS, Score.TARGET)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
@@ -91,8 +91,7 @@ final class Boards {
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);
         return Component.empty().append(label)
-                .append(Component.text("⬤".repeat(goals), team.color()))
-                .append(Component.text("⬤".repeat(target - goals), NamedTextColor.GRAY));
+                .append((boldLabel ? Msg.MINEMEN : Msg.HYPIXEL).circles(goals, target, team.color()));
     }
 
     private static int mySeat(Game game, Player me, StateKey<Integer> key) {

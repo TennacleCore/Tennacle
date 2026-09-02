@@ -14,6 +14,7 @@ import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.modules.Countdown;
 import io.github.term4.grotto.modules.Freeze;
+import io.github.term4.grotto.modules.HealthDisplay;
 import io.github.term4.grotto.modules.KillCredit;
 import io.github.term4.grotto.modules.LastStanding;
 import io.github.term4.grotto.modules.Phases;
@@ -61,6 +62,7 @@ public final class Sumo {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.draw()),
+                        HealthDisplay::of,
                         KillCredit::new, Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))

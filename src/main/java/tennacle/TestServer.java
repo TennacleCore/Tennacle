@@ -1,5 +1,6 @@
 package tennacle;
 
+import io.github.term4.canvas.tab.TabList;
 import tennacle.commands.DevCommands;
 import tennacle.commands.GrottoCommands;
 import tennacle.commands.LobbyCommands;
@@ -94,7 +95,9 @@ public final class TestServer {
         Queues.install();  // /queue <mode> [platform]: the first two matching sides start
         SpectateCommands.register();
         Spectators.install();
-        Chat.install(); // who hears whom: game, spectators, party, room
+        Rooms.install(); // who hears whom: game, spectators, party, shard tree
+        TabList.header(p -> Msg.gradient("Tennacle"));
+        TabList.footer(p -> Msg.THEME.dim("the Archipelago + Polyp playground"));
         RulesCommands.register(); // /rules: live modifiers over the running game
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         PlayerPrefs.install();

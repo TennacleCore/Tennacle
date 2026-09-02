@@ -19,6 +19,7 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.modules.Freeze;
+import io.github.term4.grotto.modules.HealthDisplay;
 import io.github.term4.grotto.modules.FriendlyFire;
 import io.github.term4.grotto.modules.Goals;
 import io.github.term4.grotto.modules.KillCredit;
@@ -179,6 +180,7 @@ public final class Bridge {
                             Rules rules = game != null ? game.module(Rules.class) : null;
                             if (rules != null) rules.fell(p);
                         }),
+                        HealthDisplay::of,
                         () -> Kits.of(KIT),
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
                         Rules::new, Presentation::new,

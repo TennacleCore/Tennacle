@@ -24,7 +24,7 @@ public final class TestWiring {
         Queues.install();
         tennacle.commands.SpectateCommands.register();
         Spectators.install();
-        tennacle.Chat.install();
+        tennacle.Rooms.install();
         tennacle.commands.RulesCommands.register();
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");
         Sumo.install();

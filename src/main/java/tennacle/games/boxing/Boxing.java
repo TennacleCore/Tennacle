@@ -17,6 +17,7 @@ import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.modules.Countdown;
 import io.github.term4.grotto.modules.Freeze;
+import io.github.term4.grotto.modules.HealthDisplay;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.modules.LastStanding;
 import io.github.term4.grotto.modules.Phases;
@@ -102,6 +103,7 @@ public final class Boxing {
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.seats(HITS).target(Score.TARGET),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
+                        HealthDisplay::of,
                         () -> Kits.of(KIT), Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Matches.byLook(Ends::hypixel, Ends::results, Ends::scrims),
