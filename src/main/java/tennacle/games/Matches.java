@@ -62,6 +62,7 @@ public final class Matches {
     public static void install(@NotNull InstanceContainer lobby, @NotNull Pos lobbySpawn, @NotNull ShardManager shards) {
         grotto = Grotto.install(shards); // shared manager: /shard tree shows the game trees
         lobbyRoute = player -> {
+            Spectators.exit(player); // a game's end routes its spectators here; restore the body and the HUD
             player.setInstance(lobby, lobbySpawn); // the body is the type's; the route is ours
             TabList.refresh(player); // the chrome is the lobby's again
         };
