@@ -35,7 +35,13 @@ import java.util.function.IntFunction;
  */
 public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verdict verdict, @NotNull Count count,
                    @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth,
-                   @NotNull HitReport.Line hit) {
+                   @NotNull HitReport.Line hit, @NotNull Tiebreak tiebreak) {
+
+    /** The call when a drawn clock plays on as a tiebreaker. */
+    @FunctionalInterface
+    public interface Tiebreak {
+        void show(Game game, Player viewer);
+    }
 
     /** A member's chat line in this look. */
     @FunctionalInterface
@@ -77,7 +83,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                     (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
             SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
             (g, speaker, message) -> Chat.plain(speaker, message),
-            new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit);
+            new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak);
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
@@ -90,7 +96,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
             new Tab(p -> Component.text("TENNACLE", NamedTextColor.AQUA, TextDecoration.BOLD)
                             .append(Component.text("\nPlaying on " + ADDRESS + "\n", NamedTextColor.YELLOW)),
-                    p -> Component.text("\n" + STORE, NamedTextColor.AQUA)), true, Look::scrimsHit);
+                    p -> Component.text("\n" + STORE, NamedTextColor.AQUA)), true, Look::scrimsHit, Look::scrimsTiebreak);
 
     /** Captured hypixel: scoring modes end on TEAM WINS! + the score; plain duels on VICTORY!/DEFEAT!. */
     public static final Look HYPIXEL = new Look(Msg.HYPIXEL, Look::hypixelDeath, Look::hypixelVerdict,
@@ -111,7 +117,26 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             new Tab(p -> Component.text("You are playing on ", NamedTextColor.GREEN)
                             .append(Component.text(ADDRESS.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD)),
                     p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
-                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit);
+                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak);
+
+    // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
+    private static void scrimsTiebreak(Game game, Player viewer) {
+        tiebreak(game, viewer, Msg.SCRIMS);
+    }
+
+    private static void hypixelTiebreak(Game game, Player viewer) {
+        tiebreak(game, viewer, Msg.HYPIXEL);
+    }
+
+    private static void minemenTiebreak(Game game, Player viewer) {
+        tiebreak(game, viewer, Msg.MINEMEN);
+    }
+
+    private static void tiebreak(Game game, Player viewer, Theme theme) {
+        viewer.showTitle(Title.title(theme.boardTitle(viewer, "SUDDEN DEATH"),
+                theme.prose("Next goal wins!"), Match.times(game, 5, 50, 10)));
+        viewer.sendMessage(theme.prose("Sudden death! ").append(theme.value("Next goal wins")).append(theme.prose(".")));
+    }
 
     // captured bow-duel callouts to the shooter, each network's own colours. `impact` is the signed health change:
     // negative for damage (shown -N in red), positive for a heal (+N in green). scrims/hypixel show only the health.

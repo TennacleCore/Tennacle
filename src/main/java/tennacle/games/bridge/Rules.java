@@ -2,6 +2,7 @@ package tennacle.games.bridge;
 
 import tennacle.Msg;
 import tennacle.games.Match;
+import tennacle.games.Matches;
 
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
@@ -28,8 +29,6 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -172,18 +171,24 @@ public final class Rules implements GameModule {
         respawns.queue(player);
     }
 
-    /** Sudden death: the next goal decides (drop the target to one over the tied score), announce it, and - per
-     *  {@code time:sudden-death-reset} - throw everyone back to the cages for a fresh round (kits per {@code round:reset}). */
-    static void suddenDeath(@NotNull Game game) {
+    /** The tiebreaker: the next goal decides (the target drops to one over the tied score), the look calls it,
+     *  and {@code time:tiebreaker-reset} says how the players go back - not at all, to their spawns, or to cages. */
+    static void tiebreaker(@NotNull Game game) {
         int max = 0;
         for (Team team : game.roster().teams()) max = Math.max(max, game.state().get(Scope.team(team.id()), Bridge.GOALS));
         game.state().set(Scope.GAME, Score.TARGET, max + 1);
-        Title title = Title.title(Component.text("SUDDEN DEATH", NamedTextColor.RED, TextDecoration.BOLD),
-                Component.text("Next goal wins!", NamedTextColor.GRAY), Match.times(game, 5, 50, 10));
-        game.forEachMember(member -> member.showTitle(title));
-        if (game.rules().resolve(Scope.GAME, TimeLimit.SUDDEN_DEATH_RESET)) {
-            game.state().alarms().arm(Cages.RECAGE_ALARM, game.state().tick() + 1,
+        game.forEachAudience(viewer -> Matches.lookOf(game).tiebreak().show(game, viewer));
+        switch (game.rules().resolve(Scope.GAME, TimeLimit.TIEBREAKER_RESET)) {
+            case TimeLimit.RESET_CAGES -> game.state().alarms().arm(Cages.RECAGE_ALARM, game.state().tick() + 1,
                     CompoundBinaryTag.builder().putString("scorer", "").putString("team", "").build());
+            case TimeLimit.RESET_SPAWN -> {
+                game.forEachMember(member -> {
+                    Slot seat = game.roster().slotOf(member);
+                    if (seat != null) member.teleport(spawnOf(game, seat));
+                });
+                game.state().alarms().arm(REFIT_ALARM, game.state().tick() + 1);
+            }
+            default -> { } // RESET_NONE: play on from where everyone stands
         }
     }
 
