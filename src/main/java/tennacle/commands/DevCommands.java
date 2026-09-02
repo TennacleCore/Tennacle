@@ -317,7 +317,10 @@ public final class DevCommands {
         ItemStack held = p.getItemInMainHand();
         if (held.isAir()) { Msg.err(p, "enchant", "hold an item first"); return; }
         Key key = Key.key(name.contains(":") ? name : "minecraft:" + name);
-        RegistryKey<Enchantment> ench = RegistryKey.unsafeOf(key);
+        // an unknown key still builds a component; it fails in every packet that carries the item, and the
+        // failing write kicks each connection it reaches
+        RegistryKey<Enchantment> ench = MinecraftServer.getEnchantmentRegistry().getKey(key);
+        if (ench == null) { Msg.err(p, "enchant", "unknown enchantment: ", Msg.v(key.asString())); return; }
         EnchantmentList existing = held.get(DataComponents.ENCHANTMENTS);
         EnchantmentList updated = (existing != null ? existing : EnchantmentList.EMPTY).with(ench, level);
         p.setItemInMainHand(held.with(DataComponents.ENCHANTMENTS, updated));
