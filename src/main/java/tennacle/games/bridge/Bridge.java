@@ -91,10 +91,6 @@ public final class Bridge {
     /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
     public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
 
-    // explicit per-team blocks - the team NAME never dictates the material
-    private static final Map<String, Material> BLOCKS = Map.of(
-            "red", Material.RED_TERRACOTTA, "blue", Material.BLUE_TERRACOTTA,
-            "green", Material.LIME_TERRACOTTA, "yellow", Material.YELLOW_TERRACOTTA);
     private static final ItemStack SWORD = ItemStack.of(Material.IRON_SWORD)
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
     private static final ItemStack BOW = ItemStack.of(Material.BOW)
@@ -151,8 +147,9 @@ public final class Bridge {
         MapPool arena = MapPool.of("bridge");
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
-                .team("red", NamedTextColor.RED)
-                .team("blue", NamedTextColor.BLUE)
+                .teams(tennacle.games.Palette.versus().stream()
+                        .map(s -> new io.github.term4.grotto.roster.Team(s, tennacle.games.Palette.of(s).color(), tennacle.games.Palette.of(s).dye()))
+                        .toList())
                 .expect(CAGE, 2)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)
@@ -226,6 +223,6 @@ public final class Bridge {
     }
 
     private static Material blocks(String team) {
-        return BLOCKS.getOrDefault(team, Material.WHITE_TERRACOTTA);
+        return tennacle.games.Palette.of(team).block();
     }
 }

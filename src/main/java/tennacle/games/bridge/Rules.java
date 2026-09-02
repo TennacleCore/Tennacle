@@ -170,8 +170,7 @@ public final class Rules implements GameModule {
     /** The kit back on a fresh body, the quiver reset - after a respawn and after a goal. */
     private void refit(Game game, Player player) {
         restock.reset(player);
-        player.getInventory().clear();
-        kits.apply(player);
+        kits.refit(player); // targeted: only the slots that changed, never a full inventory resend
     }
 
     private static double plane(Game game, MarkerKey<LimitMarker> key) {

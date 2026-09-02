@@ -53,8 +53,9 @@ public final class Sumo {
         HotArena arena = HotArena.of("sumo");
         GameType type = GameType.builder("sumo")
                 .slots(SlotLayout.groups(Markers.SPAWN, 1))
-                .team("red", NamedTextColor.RED)
-                .team("blue", NamedTextColor.BLUE)
+                .teams(tennacle.games.Palette.versus().stream()
+                        .map(s -> new io.github.term4.grotto.roster.Team(s, tennacle.games.Palette.of(s).color(), tennacle.games.Palette.of(s).dye()))
+                        .toList())
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
