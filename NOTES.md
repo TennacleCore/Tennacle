@@ -34,6 +34,11 @@ mode `check`s its rulesets at install, so a bad path fails at boot and a scope t
 never at a match. Path values are constants or registered FieldFns (`only(...)`, `heal-apple`,
 `to(at-listener(watchers), sound(...))`). Bridge = `bridge/Rulesets`: BASE + one look preset over it per platform.
 
+## Lifecycle (proposal)
+See `docs/lifecycle.md`: Body policy on the type, Phases with entry ticks, LastStanding / Score /
+TimeLimit deciders, Countdown + Freeze with a look voice, Respawns + KillCredit + Limits adoption,
+Results at the bell; Tennacle keeps Mode / Look / Matches / Presentation. Nothing built yet.
+
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
   registers a VaultKey and reads synchronously forever after).
