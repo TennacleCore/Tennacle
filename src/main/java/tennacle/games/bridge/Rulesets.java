@@ -23,7 +23,8 @@ final class Rulesets {
             .path("damage/enabledTypes", "only(minecraft:player_attack, minecraft:thrown)")
             // the golden apple keeps its item, eat time and gate - only what it dishes out is swapped
             .path("consumables/minecraft:golden_apple/behavior", "heal-apple")
-            .path("visuals/legacyArrowVisibility/enabled", false); // the game teams keep teammates' arrows visible
+            .path("visuals/legacyArrowVisibility/enabled", false) // the game teams keep teammates' arrows visible
+            .path("compat/disableEntityPush", false);              // ...and their collision rule, so Polyp's team stands down
 
     // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
     static final Ruleset VANILLA_RULES = Ruleset.named("minemen");

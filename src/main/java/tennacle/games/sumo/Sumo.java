@@ -45,7 +45,8 @@ public final class Sumo {
 
     /** Only swings hurt - a selection over the damage catalog, as a path. */
     static final Ruleset RULES = Ruleset.named("sumo").path("damage/enabledTypes", "only(minecraft:player_attack)")
-            .path("visuals/legacyArrowVisibility/enabled", false); // the game teams keep teammates' arrows visible
+            .path("visuals/legacyArrowVisibility/enabled", false) // the game teams keep teammates' arrows visible
+            .path("compat/disableEntityPush", false);              // ...and their collision rule, so Polyp's team stands down
 
     private Sumo() {}
 
@@ -64,7 +65,7 @@ public final class Sumo {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.draw()),
-                        Nametags::of,
+                        () -> Nametags.of().push(false), // 1.8 has no entity push; the team carries it
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
