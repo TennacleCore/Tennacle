@@ -18,11 +18,12 @@ import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.polyp.mechanics.projectile.types.Arrow;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
@@ -37,10 +38,8 @@ import net.minestom.server.event.player.PlayerMoveEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 /** Goals, the void line, respawn protection, and the build band. Shoves never hurt. */
@@ -62,7 +61,8 @@ public final class Rules implements GameModule {
     private final Map<Player, Long> arrowDue = new HashMap<>();
     private final Map<UUID, Hit> lastHit = new HashMap<>();
     private final Map<UUID, Long> protectedUntil = new HashMap<>();
-    private final Set<Point> placed = new HashSet<>();
+    private final LongSet placed = new LongOpenHashSet();
+    private String look;
     private int minBuildY;
     private int maxBuildY;
     private List<RegionMarker> goals;
@@ -84,6 +84,7 @@ public final class Rules implements GameModule {
         minBuildY = floor; // never beneath the bridge's underside
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
         goals = game.arena().markers(Bridge.GOAL); // fixed for the map: never re-queried per move packet
+        look = Duels.lookNameOf(game); // stamped before modules install, never changes
 
         boolean bowBoost = game.rules().resolve(Scope.GAME, Bridge.BOW_BOOST);
         boolean friendlyFire = game.rules().resolve(Scope.GAME, Bridge.FRIENDLY_FIRE);
@@ -147,14 +148,14 @@ public final class Rules implements GameModule {
                 Msg.err(player, "bridge", "you can't build there");
                 return;
             }
-            placed.add(new BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
+            placed.add(packed(pos));
             protectedUntil.remove(player.getUuid());
         });
         game.on(PlayerBlockBreakEvent.class, e -> {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
-            boolean own = placed.remove(new BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
+            boolean own = placed.remove(packed(pos));
             if (!own && !inBridge(game, pos)) {
                 e.setCancelled(true);
                 Msg.err(player, "bridge", "you can't break that");
@@ -207,10 +208,10 @@ public final class Rules implements GameModule {
         });
         st.alarms().register(QUIVER_ALARM, (tick, payload) -> quiverTick(game));
         st.alarms().register(REFIT_ALARM, (tick, payload) -> {
-            for (Player member : game.members()) {
+            game.forEachMember(member -> {
                 Slot ms = game.roster().slotOf(member);
                 if (ms != null) refit(game, member, ms);
-            }
+            });
         });
         st.alarms().register(TIME_UP_ALARM, (tick, payload) -> timeUp(game));
     }
@@ -292,7 +293,7 @@ public final class Rules implements GameModule {
         lastHit.remove(victim.getUuid());
         if (by != null) {
             Duels.addSeat(game, by, Bridge.KILLS);
-            if ("minemen".equals(Duels.lookNameOf(game))) by.sendMessage(Banners.kill(game, victim));
+            if ("minemen".equals(look)) by.sendMessage(Banners.kill(game, victim));
         }
         Component line = Banners.killedLine(game, victim, by);
         Duels.each(game, p -> p.sendMessage(line));
@@ -344,7 +345,7 @@ public final class Rules implements GameModule {
         Player by = hit != null && game.state().tick() - hit.tick() <= CREDIT_TICKS ? hit.by() : null;
         if (by != null) {
             Duels.addSeat(game, by, Bridge.KILLS);
-            if ("minemen".equals(Duels.lookNameOf(game))) by.sendMessage(Banners.kill(game, fallen));
+            if ("minemen".equals(look)) by.sendMessage(Banners.kill(game, fallen));
         }
         Component line = Banners.fallLine(game, fallen, by);
         Duels.each(game, p -> p.sendMessage(line));
@@ -362,11 +363,10 @@ public final class Rules implements GameModule {
             else if (goals == best) tie = true;
         }
         String winning = leader;
-        Player loser = tie ? null : game.members().stream()
-                .filter(m -> {
-                    Slot seat = game.roster().slotOf(m);
-                    return seat != null && !seat.team().equals(winning);
-                }).findFirst().orElse(null);
+        Player loser = tie ? null : game.firstMember(m -> {
+            Slot seat = game.roster().slotOf(m);
+            return seat != null && !seat.team().equals(winning);
+        });
         if (loser != null) {
             Duels.settle(game, loser);
             return;
@@ -389,33 +389,38 @@ public final class Rules implements GameModule {
         int goals = st.get(Scope.team(seat.team()), Bridge.GOALS) + 1;
         st.set(Scope.team(seat.team()), Bridge.GOALS, goals);
         var color = game.roster().team(seat.team()).color();
-        Component banner = switch (Duels.lookNameOf(game)) {
+        Component banner = switch (look) {
             case "minemen" -> null; // captured: minemen announces goals on the board and title only
             case "hypixel" -> Banners.hypixel(game, scorer, color, goals);
             default -> Banners.scrims(game, scorer, color);
         };
         if (banner != null) Duels.each(game, p -> p.sendMessage(banner));
         if (goals >= game.rules().resolve(Scope.GAME, Bridge.TARGET)) {
-            Player loser = game.members().stream()
-                    .filter(m -> game.roster().slotOf(m) != null
-                            && !seat.team().equals(game.roster().slotOf(m).team()))
-                    .findFirst().orElse(null);
+            Player loser = game.firstMember(m -> {
+                Slot theirs = game.roster().slotOf(m);
+                return theirs != null && !seat.team().equals(theirs.team());
+            });
             if (loser != null) Duels.settle(game, loser);
             return;
         }
         // the held title + firework beats take over from the re-cage count one tick later (captured)
         Title scored = Title.title(Banners.scoredTitle(game, scorer, color), Component.empty(),
                 Duels.times(game, 0, 40, 0));
-        for (Player member : game.members()) {
+        game.forEachMember(member -> {
             member.showTitle(scored);
             Slot memberSeat = game.roster().slotOf(member);
             if (memberSeat != null) member.teleport(spawnOf(game, memberSeat));
-        }
+        });
         st.alarms().arm(Cages.RECAGE_ALARM, st.tick() + 1, CompoundBinaryTag.builder()
                 .putString("scorer", scorer.getUsername()).putString("team", seat.team()).build());
     }
 
     private static Pos spawnOf(Game game, Slot seat) {
         return seat.spawn() != null ? seat.spawn() : game.arena().meta().spawn();
+    }
+
+    // vanilla's BlockPos.asLong packing: one primitive per placed block, no key object per place or break
+    private static long packed(Point pos) {
+        return ((long) pos.blockX() & 0x3FFFFFFL) << 38 | ((long) pos.blockZ() & 0x3FFFFFFL) << 12 | (pos.blockY() & 0xFFFL);
     }
 }

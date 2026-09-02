@@ -419,7 +419,7 @@ public final class Duels {
         String mode = Character.toUpperCase(kind.name().charAt(0)) + kind.name().substring(1) + " Duel";
         HypixelIntro intro = HypixelIntro.of(mode);
         kind.intro().forEach(intro::line);
-        Player foe = game.members().stream().filter(m -> m != viewer).findFirst().orElse(null);
+        Player foe = opponent(game, viewer);
         return intro.opponent(foe != null ? foe.getUsername() : null).render();
     }
 

@@ -71,6 +71,7 @@ public final class Cages implements GameModule {
             tennacle.PlayerPrefs.register(Bridge.CAGE_CHOICE);
 
     private final Map<Point, Block> replaced = new HashMap<>();
+    private String look;
     private Component held;
     private boolean introShown;
     private boolean caged;
@@ -78,6 +79,7 @@ public final class Cages implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         GameState st = game.state();
+        look = Duels.lookNameOf(game); // stamped before modules install, never changes
         Ghosting.install(game);
         st.alarms().register(COUNT_ALARM, (tick, payload) -> beat(game, payload.getInt("n")));
         st.alarms().register(STAMP_ALARM, (tick, payload) -> {
@@ -92,18 +94,18 @@ public final class Cages implements GameModule {
 
         st.alarms().arm(STAMP_ALARM, st.tick() + 2);
         st.alarms().arm(COUNT_ALARM, st.tick() + Duels.START_GRACE_TICKS,
-                CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
+                CompoundBinaryTag.builder().putInt("n", seconds()).build());
     }
 
     /** Captured: 3s on hypixel, 5s on scrims; minemen uncaptured (their bridge doesn't exist) - 3s. */
-    private static int seconds(Game game) {
-        return "scrims".equals(Duels.lookNameOf(game)) ? 5 : 3;
+    private int seconds() {
+        return "scrims".equals(look) ? 5 : 3;
     }
 
     private void beat(Game game, int n) {
         GameState st = game.state();
         if (!"countdown".equals(st.get(Scope.GAME, Duels.PHASE))) return;
-        boolean hypixel = "hypixel".equals(Duels.lookNameOf(game));
+        boolean hypixel = "hypixel".equals(look);
         if (!caged) {
             caged = true;
             stamp(game);
@@ -125,7 +127,7 @@ public final class Cages implements GameModule {
         if (n > 0) {
             Title beat = Title.title(held != null ? held : Component.empty(),
                     Banners.cageCount(game, n), Duels.times(game, 0, 40, 0));
-            Component chat = "scrims".equals(Duels.lookNameOf(game)) ? Banners.cageCount(game, n) : null;
+            Component chat = "scrims".equals(look) ? Banners.cageCount(game, n) : null;
             Duels.each(game, p -> {
                 p.showTitle(beat);
                 if (chat != null) p.sendMessage(chat); // captured: scrims mirrors the count into chat
@@ -155,7 +157,7 @@ public final class Cages implements GameModule {
         stamp(game);
         game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
         game.state().alarms().arm(COUNT_ALARM, game.state().tick() + 1,
-                CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
+                CompoundBinaryTag.builder().putInt("n", seconds()).build());
     }
 
     /** The authored cages by variant; re-extracted when /arena save swaps the arena. */
@@ -230,10 +232,11 @@ public final class Cages implements GameModule {
 
     /** The seated player's pick for that team's spot ("" until their vault answer lands). */
     private static String choiceFor(Game game, String team) {
-        for (Player member : game.members()) {
+        Player seated = game.firstMember(member -> {
             Slot seat = game.roster().slotOf(member);
-            if (seat != null && seat.team().equals(team)) return choiceOf(member);
-        }
+            return seat != null && seat.team().equals(team);
+        });
+        if (seated != null) return choiceOf(seated);
         return "";
     }
 

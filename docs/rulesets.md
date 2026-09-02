@@ -1,11 +1,11 @@
 # Rulesets: modular mechanics + rules per match
 
-Status: step 1 + the first fold are BUILT (constants; `fn:` values still reserved). Polyp has
-`Builder.mutate`, generated `KNOBS` tables on every `@GenerateBuilder` config, and `PathEdits`
-(members: projectiles/consumables/damage typed, attack/explosion/tnt/death/knockback flat,
-fx by named handler).
-Tennacle has `Ruleset` (paths + rules + fold), and bridge's three looks are rulesets - the
-`arrowsVanishOver(look)` conditional is gone. Open questions below stand.
+Status: BUILT. Polyp has generated `KNOBS` tables on every `@GenerateBuilder` config and `PathEdits`
+over all 23 profile members (typed families, flat configs, scalars, fx by named handler), with values
+that are constants or registered `FieldFns` (`only(...)`, `flat(3.5)`, `heal-apple`). Tennacle has
+`Ruleset` (scoped paths + scoped rules, the fold, `with`/`without`/`keep`/`over`, install-time `check`),
+and bridge's three looks are rulesets over one base. The tier-2 rule keys are still the mode's own
+(`bridge:target`, `bridge:limit-ticks`); the module-declared shape below is the intent, not the code.
 
 ## The problem
 
@@ -80,15 +80,17 @@ A Ruleset is a named value map over tiers 1+2, plus an optional tier-0 transform
 Ruleset SCRIMS = Ruleset.named("scrims")
         .path("projectiles/minecraft:arrow/critDamage", false)
         .path("projectiles/minecraft:arrow/critParticles", true)   // trail, no bonus (captured)
-        .rule(Cages.SECONDS, 5)
-        .look("scrims");                                           // default presentation, overridable
+        .over(BASE);                                               // the mode's base underneath
 
 Ruleset custom = SCRIMS.with("projectiles/minecraft:arrow/critDamage", true);  // "scrims + bow crits"
+Ruleset handicap = custom.path(Scope.team("red"), "projectiles/minecraft:arrow/critDamage", false)
+        .rule(Scope.team("red"), Bridge.TARGET, 3);               // one team's knob, one team's rule
 ```
 
-Launch folds `GameType defaults <- ruleset <- per-match overrides` (last writer wins per key) into
-exactly two outputs: a MechanicsProfile on the game's shard, and seeded StateKeys in GameState. Modules
-keep reading StateKeys as they do today; nothing else ever sees the ruleset.
+Launch folds the ruleset (`apply(builder, global, game)`: game-wide entries first, then the targeted
+ones as per-subject values inside the same profile) into exactly two outputs: a MechanicsProfile on the
+game's shard, and seeded StateKeys in GameState. Modules keep reading StateKeys as they do today;
+nothing else ever sees the ruleset. A scope the roster lacks fails the launch.
 
 Because tiers 1+2 are plain `string -> value` maps they persist to the vault, ride replays, diff in a
 UI, and round-trip through commands. A ruleset carrying a tier-0 transform is code-defined (a shipped
@@ -143,7 +145,7 @@ server can express to whatever someone predeclared.
   effect keeps the default (shard) audience. **When a vocabulary looks like the product of two lists, split
   the axes.**
 - And the audience side is an ALGEBRA, not a list of scopes: primitives (`members`, `watchers`, `instance`,
-  `viewers`, `source`, `nobody`) closed under `both` / `except` / `only` / `tree` / `within` /
+  `viewers`, `source`) closed under `both` / `except` / `only` / `tree` / `within` /
   `protocol-below` / `at-listener`. "On the instance but not this shard" is `except(instance, watchers)`.
   **When you catch yourself naming the next case, name the operator instead.**
 - Names must not overpromise. `everywhere` and `shard` were deleted: `everywhere` sounded server-wide but
@@ -161,7 +163,7 @@ server can express to whatever someone predeclared.
     and `FieldFns.register` NAMES it so a rule can point at it:
     `consumables/minecraft:golden_apple/behavior = heal-apple`. No effect/condition vocabulary, because
     every primitive in such a vocabulary is itself a premade option - the exact thing being avoided.
-  Bridge's whole mechanical identity is now seven paths plus one named behaviour.
+  Bridge's whole mechanical identity is now seven paths, one of which names a behaviour.
 - The world RELATION that `tree` walks lives on `MechanicsWorld` (`parent`/`children`/`family`) in the
   shared polyp-world module - not in Archipelago. Shard's existing accessors already satisfy it, so the
   tree audience works with zero Archipelago-side fx code, which is the point of the shared seam.
@@ -182,7 +184,7 @@ replace any effect - the registry is simply the better seam for unconditional pe
 |------|---------|--------|---------|
 | arrow critDamage | off | off | on (vanilla roll) |
 | arrow critParticles | off | on | follow the draw |
-| cage seconds | 3 | 5 | 3 |
+| cage seconds (Cages, by look) | 3 | 5 | 3 |
 | melee crit | x1.5 | x1.5 | x1.5 |
 | armor | flat 1.8 linear | flat 1.8 linear | flat 1.8 linear |
 | sword block | (d+1)/2 | (d+1)/2 | (d+1)/2 |

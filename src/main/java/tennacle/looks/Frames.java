@@ -22,6 +22,7 @@ import java.util.function.ToLongFunction;
  * A game pours only its own rows into {@code content}.
  */
 public final class Frames {
+    private static final DateTimeFormatter US_DATE = DateTimeFormatter.ofPattern("MM/dd/yy");
 
     private Frames() {}
 
@@ -50,7 +51,7 @@ public final class Frames {
         Scoreboard board = Scoreboard.of((g, me) -> Shine.HYPIXEL.frame(shineName, (int) (g.tick() / 2)))
                 .titleEvery(2)
                 // date + gray game code, the captured hypixel layout - a screenshot names the game
-                .line((g, me) -> Msg.HYPIXEL.prose(LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yy")))
+                .line((g, me) -> Msg.HYPIXEL.prose(LocalDate.now().format(US_DATE))
                         .append(Msg.HYPIXEL.dim("  " + g.code())))
                 .blank();
         if (ticksLeft != null) {

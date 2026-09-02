@@ -5,7 +5,7 @@
   `/arena save templates`. Maps: `/arena new <map> <starter> [colors...]`, tag `bridge` joins the pool.
 - Section verbs: add/remove/reset (pull colors from the starter), extend/set (length, away from center),
   deepen (downward - the deck never moves), mirror (rotate markers + wand-selected blocks about the center),
-  shift (whole map vertically, limit planes included).
+  shift (whole map vertically; limit planes in group `pinned` stay - the starter pins `bridge:height`, not `bridge:void`).
 - `bridge:height` ships y=99 (y=100 is the texture-pack refused row), `bridge:void` y=80 - per-map limit
   markers carried by the starter, not code fallbacks.
 - Bloom.install is API-only; Tennacle opts into `registerDefaultCommands()`. Editor lifecycle is server
@@ -15,7 +15,7 @@
 - Maps: `MapPool.of("bridge")` - every arena tagged `bridge` is in rotation, named freely.
 - Round: Cages owns the countdown (captured voices - hypixel 3s subtitle "Cages open in Ns..." hat/harp,
   scrims 5s + chat mirror, minemen uncaptured 3s), held "scored!" title through re-cages, firework each
-  held beat. 1.5s start grace (`Duels.START_GRACE_TICKS`) before every first beat, all kinds.
+  held beat. 2s start grace (`Duels.START_GRACE_TICKS`) before every first beat, all kinds.
 - Cages authored as blocks in the `cages` arena: `cage` region + `cage` pos (stand spot, facing the front)
   per variant group; `accent`/`accent.<family>` regions recolor authored RED blocks to the seat's team
   (red/blue/lime/yellow). `/cage <name>` picks, vault-backed, prefetched at login.
@@ -25,24 +25,20 @@
 - Gamerules so far: `bridge:bow-boost` (default on), `bridge:friendly-fire` (default off).
 - Codes: HMAC ids, board code letter-first Crockford (scrims dim = dark gray).
 
-## Rulesets (modular mechanics + rules) - proposal round 2
-See `docs/rulesets.md`. Three tiers: tier 0 = code profile transforms (unlimited, the preset layer);
-tier 1 = the DERIVED mechanics surface - the @GenerateBuilder processor already enumerates every
-FieldValue knob, so emitting knob tables makes every constant knob path-addressable
-(`projectiles/minecraft:arrow/critDamage=false`) with zero hand-declared keys; tier 2 = rule StateKeys
-declared by the feature that consumes them (`cages:seconds`, `score:target` - NOT bridge:*), availability
-derived from installed modules. A Ruleset = named map over tiers 1+2 (+ optional tier-0 transform for
-shipped presets); launch folds defaults <- ruleset <- overrides into a MechanicsProfile + seeded state.
-Step 1 + the first fold are BUILT: polyp Builder.mutate + generated KNOBS tables + PathEdits;
-tennacle Ruleset; the three bridge looks are rulesets (arrowsVanishOver(look) is gone). Path values
-are constants OR `fn:<name>(args)` references to registered FieldFns, bound to real lambdas at fold
-time (no hot-path interpretation); only user-authored code-as-data stays impossible (tier 0).
+## Rulesets (modular mechanics + rules)
+See `docs/rulesets.md`. Built: every `@GenerateBuilder` knob is path-addressable through the generated KNOBS
+tables and polyp `PathEdits` (all 23 profile members); tennacle `Ruleset` = scoped paths (grotto `Scope`: game,
+team, seat) + scoped rule StateKeys, folded into the game's ONE world profile at launch
+(`apply(b, fallback, game)`) and seeded into GameState; `with`/`without`/`keep`/`over` derive variants; every
+mode `check`s its rulesets at install, so a bad path fails at boot and a scope the roster lacks fails at launch,
+never at a match. Path values are constants or registered FieldFns (`only(...)`, `heal-apple`,
+`to(at-listener(watchers), sound(...))`). Bridge = `bridge/Rulesets`: BASE + one look preset over it per platform.
 
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
   registers a VaultKey and reads synchronously forever after).
-- Deepen follows flush floors like extend follows far ends; shift moves every y limit plane and the
-  stamp payload anchors.
+- Deepen follows flush floors like extend follows far ends; shift moves limits (group `pinned` stays)
+  and stamp payload anchors.
 - MapPool forgets deleted files; drain shared via HotArena; MarkerCommands split from BloomCommands;
   Countdown extracted from Duels; Kit carries editor display stacks; stuckInBody is a projectile knob
   (bridge sets it false - no body arrows); InventorySync tracks a SET of unverified slots.

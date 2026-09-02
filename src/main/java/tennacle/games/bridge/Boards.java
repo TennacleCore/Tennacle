@@ -75,10 +75,10 @@ final class Boards {
 
     private static Component teamLine(Game game, Team team) {
         List<String> names = new ArrayList<>();
-        for (Player member : game.members()) {
+        game.forEachMember(member -> {
             Slot seat = game.roster().slotOf(member);
             if (seat != null && seat.team().equals(team.id())) names.add(member.getUsername());
-        }
+        });
         return Component.text(String.join(" ", names), team.color());
     }
 

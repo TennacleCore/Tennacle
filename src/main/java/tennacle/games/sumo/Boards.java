@@ -11,7 +11,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.entity.Player;
 
-import java.util.List;
 
 /** Sumo's board rows per network; the chrome comes from {@link Frames}. */
 final class Boards {
@@ -50,9 +49,9 @@ final class Boards {
     }
 
     private static Component playerLine(Game game, int index) {
-        List<Player> members = game.members();
-        if (index >= members.size()) return Component.empty();
-        Player member = members.get(index);
+        int[] left = {index};
+        Player member = game.firstMember(m -> left[0]-- == 0);
+        if (member == null) return Component.empty();
         var seat = game.roster().slotOf(member);
         return Component.text(member.getUsername(),
                 game.roster().team(seat != null ? seat.team() : null).color());
