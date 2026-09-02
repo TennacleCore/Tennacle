@@ -17,8 +17,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The 1v1 front: {@code /duel <player> [mode] [platform]} requests, dueling back accepts (the REQUESTER's mode
- * and platform win), and {@link Matches#start} does the rest. Modes register at boot (sumo, boxing, bridge).
+ * The duel front: {@code /duel <player> [mode] [platform]} requests, dueling back accepts (the REQUESTER's mode
+ * and platform win), and {@link Matches#start} seats each party as a side. Modes register at boot.
  */
 public final class Duels {
 
@@ -79,13 +79,21 @@ public final class Duels {
             Msg.err(me, "duel", "you can't duel yourself");
             return;
         }
-        if (Game.of(me) != null) {
-            Msg.err(me, "duel", "you're already in a duel");
+        if (!Parties.leads(me)) {
+            Msg.err(me, "duel", "your party leader duels for you");
             return;
         }
-        if (Game.of(target) != null) {
-            Msg.err(me, "duel", Msg.v(target.getUsername()), " is already in a duel");
-            return;
+        for (Player member : Parties.of(me)) {
+            if (Game.of(member) != null) {
+                Msg.err(me, "duel", member == me ? "you're already in a duel" : member.getUsername() + " is already in a duel");
+                return;
+            }
+        }
+        for (Player member : Parties.of(target)) {
+            if (Game.of(member) != null) {
+                Msg.err(me, "duel", Msg.v(member.getUsername()), " is already in a duel");
+                return;
+            }
         }
         Request theirs = requests.get(target.getUuid());
         if (theirs != null && theirs.expired()) {
@@ -107,7 +115,7 @@ public final class Duels {
     private static void start(Mode mode, @Nullable String platformName, Player a, Player b) {
         Platform platform = Matches.platformFor(mode, platformName);
         try {
-            Matches.start(mode, platform, List.of(a, b));
+            Matches.start(mode, platform, List.of(Parties.of(a), Parties.of(b)));
         } catch (IllegalStateException e) { // the map may not be authored yet
             for (Player p : new Player[]{a, b}) Msg.err(p, "duel", e.getMessage());
             return;

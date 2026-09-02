@@ -110,7 +110,7 @@ public final class Boxing {
                                 .counter(SPRINT_HITS, CAREER_SPRINT)
                                 .best(BEST_COMBO, CAREER_COMBO))
                 .build();
-        RULES.check(Mechanics.polyp.profiles().global());
+        RULES.check(Mechanics.polyp.profiles().global(), type);
         Duels.mode(new Mode("boxing", type, arena, MechanicsProfile::builder, RULES, Map.of(), "minemen",
                 // no boxing capture - sumo's single-bold-line pattern
                 List.of(Component.text("First player to land 10 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),

@@ -20,6 +20,10 @@ public final class TestWiring {
         tennacle.Mechanics.polyp = MechanicsBoot.ensure();
         Matches.install(lobby, new Pos(0.5, 65, 0.5), new ShardManager());
         Duels.install();
+        Parties.install();
+        Queues.install();
+        tennacle.commands.SpectateCommands.register();
+        tennacle.commands.RulesCommands.register();
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");
         Sumo.install();
         tennacle.games.boxing.Boxing.install();

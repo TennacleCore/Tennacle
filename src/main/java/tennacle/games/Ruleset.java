@@ -1,7 +1,9 @@
 package tennacle.games;
 
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.roster.Slot;
+import io.github.term4.grotto.state.RuleValues;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.MechanicsProfile;
@@ -12,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 /**
@@ -19,25 +22,34 @@ import java.util.function.Predicate;
  * {@link MechanicsProfile} through {@link PathEdits} (layering, never wiping), and rule values seeded into
  * {@link Game#state()}. Both halves take a grotto {@link Scope}: a team- or seat-scoped path becomes a knob
  * that varies by the context's subject inside that same profile, and a scoped rule is set at that scope
- * where {@code rules().resolve} already finds it. Immutable; {@link #with} derives a custom variant.
+ * where {@code rules().resolve} already finds it. A rule can be named by its key or, from data, by its id -
+ * resolved against the type's supported rules at the fold. Immutable; {@link #with} derives a custom variant.
  */
 public final class Ruleset {
 
     private record Path(Scope scope, String path, String value) {}
     private record Rule<T>(Scope scope, StateKey<T> key, T value) {}
+    private record DataRule(Scope scope, String id, String value) {}
 
     private final String name;
     private final List<Path> paths;
     private final List<Rule<?>> rules;
+    private final List<DataRule> data;
 
-
-    private Ruleset(String name, List<Path> paths, List<Rule<?>> rules) {
+    private Ruleset(String name, List<Path> paths, List<Rule<?>> rules, List<DataRule> data) {
         this.name = name;
         this.paths = paths;
         this.rules = rules;
+        this.data = data;
     }
 
-    /** Every problem a fold of this ruleset would hit, as messages; empty when it is sound. */
+    public static Ruleset named(@NotNull String name) {
+        return new Ruleset(name, List.of(), List.of(), List.of());
+    }
+
+    public String name() { return name; }
+
+    /** Every problem with the mechanics half against {@code fallback}; rules by id need {@link #validate(MechanicsProfile, GameType)}. */
     public List<String> validate(@Nullable MechanicsProfile fallback) {
         List<String> problems = new ArrayList<>();
         for (Path p : paths) {
@@ -45,6 +57,25 @@ public final class Ruleset {
                     ? PathEdits.validate(fallback, p.path(), p.value())
                     : validateScoped(fallback, p);
             if (reason != null) problems.add(name + ": " + p.path() + " = " + p.value() + " [" + p.scope().encode() + "]: " + reason);
+        }
+        return problems;
+    }
+
+    /** {@link #validate(MechanicsProfile)} plus the rules by id, against what {@code type} can carry. */
+    public List<String> validate(@Nullable MechanicsProfile fallback, @NotNull GameType type) {
+        List<String> problems = validate(fallback);
+        Map<String, StateKey<?>> supported = type.supportedRules();
+        for (DataRule d : data) {
+            StateKey<?> key = supported.get(d.id());
+            if (key == null) {
+                problems.add(name + ": " + d.id() + " is not a rule of " + type.id() + " (known: " + supported.keySet() + ")");
+                continue;
+            }
+            try {
+                RuleValues.parse(key, d.value());
+            } catch (IllegalArgumentException e) {
+                problems.add(name + ": " + d.id() + " = " + d.value() + " [" + d.scope().encode() + "]: " + e.getMessage());
+            }
         }
         return problems;
     }
@@ -60,7 +91,14 @@ public final class Ruleset {
 
     /** {@link #validate} as an install-time gate: a bad entry stops the mode before any match can find it. */
     public Ruleset check(@Nullable MechanicsProfile fallback) {
-        List<String> problems = validate(fallback);
+        return checked(validate(fallback));
+    }
+
+    public Ruleset check(@Nullable MechanicsProfile fallback, @NotNull GameType type) {
+        return checked(validate(fallback, type));
+    }
+
+    private Ruleset checked(List<String> problems) {
         if (!problems.isEmpty()) throw new IllegalStateException("bad ruleset entries:\n" + String.join("\n", problems));
         return this;
     }
@@ -70,46 +108,48 @@ public final class Ruleset {
         Ruleset merged = base;
         for (Path p : paths) merged = merged.path(p.scope(), p.path(), p.value());
         for (Rule<?> r : rules) merged = merged.add(r);
-        return new Ruleset(base.name + "+" + name, merged.paths, merged.rules);
+        for (DataRule d : data) merged = merged.rule(d.scope(), d.id(), d.value());
+        return new Ruleset(base.name + "+" + name, merged.paths, merged.rules, merged.data);
     }
 
     private <T> Ruleset add(Rule<T> r) {
         return rule(r.scope(), r.key(), r.value());
     }
 
-    public static Ruleset named(@NotNull String name) {
-        return new Ruleset(name, List.of(), List.of());
-    }
-
-    public String name() { return name; }
-
-    /** A game-wide mechanics path write ({@code member[/typeKey]/knob}); the value serializes via {@code String.valueOf}. */
     public Ruleset path(@NotNull String path, @NotNull Object value) {
         return path(Scope.GAME, path, value);
     }
 
-    /** A mechanics path write for one scope: {@code Scope.team("red")} makes red's arrows differ, nobody else's. */
     public Ruleset path(@NotNull Scope scope, @NotNull String path, @NotNull Object value) {
         List<Path> next = new ArrayList<>(paths);
         next.removeIf(p -> p.scope().equals(scope) && p.path().equals(path));
         next.add(new Path(scope, path, String.valueOf(value)));
-        return new Ruleset(name, List.copyOf(next), rules);
+        return new Ruleset(name, List.copyOf(next), rules, data);
     }
 
-    /** A rule value seeded at game scope (modules read their StateKeys as always). */
     public <T> Ruleset rule(@NotNull StateKey<T> key, @NotNull T value) {
         return rule(Scope.GAME, key, value);
     }
 
-    /** A rule value seeded at {@code scope} - a team's own respawn delay, a seat's own kit. */
     public <T> Ruleset rule(@NotNull Scope scope, @NotNull StateKey<T> key, @NotNull T value) {
         List<Rule<?>> next = new ArrayList<>(rules);
         next.removeIf(r -> r.scope().equals(scope) && r.key().equals(key));
         next.add(new Rule<>(scope, key, value));
-        return new Ruleset(name, paths, List.copyOf(next));
+        return new Ruleset(name, paths, List.copyOf(next), data);
     }
 
-    /** Derives an override variant ("scrims + bow crits"): same settings, one path replaced. */
+    /** A rule by id, as data ({@code grotto:score:target = 3}); the key and the value resolve against the game's type at the fold. */
+    public Ruleset rule(@NotNull String id, @NotNull String value) {
+        return rule(Scope.GAME, id, value);
+    }
+
+    public Ruleset rule(@NotNull Scope scope, @NotNull String id, @NotNull String value) {
+        List<DataRule> next = new ArrayList<>(data);
+        next.removeIf(d -> d.scope().equals(scope) && d.id().equals(id));
+        next.add(new DataRule(scope, id, value));
+        return new Ruleset(name, paths, rules, List.copyOf(next));
+    }
+
     public Ruleset with(@NotNull String path, @NotNull Object value) {
         return path(path, value);
     }
@@ -118,11 +158,7 @@ public final class Ruleset {
         return path(scope, path, value);
     }
 
-    /**
-     * Every entry - path and rule - except those at {@code scope}: "red's handicap is off". Mid-game that is a
-     * RE-FOLD over the base profile with the trimmed ruleset, never surgery on the built one, which is why a
-     * scoped knob wraps the game-wide value rather than replacing it.
-     */
+    /** Everything but the entries at {@code scope} - dropping a team's handicap re-folds from the base. */
     public Ruleset without(@NotNull Scope scope) {
         return keep(s -> !s.equals(scope));
     }
@@ -131,10 +167,11 @@ public final class Ruleset {
     public Ruleset keep(@NotNull Predicate<Scope> test) {
         return new Ruleset(name,
                 paths.stream().filter(p -> test.test(p.scope())).toList(),
-                rules.stream().filter(r -> test.test(r.scope())).toList());
+                rules.stream().filter(r -> test.test(r.scope())).toList(),
+                data.stream().filter(d -> test.test(d.scope())).toList());
     }
 
-    /** Folds the game-wide mechanics half onto {@code b}; a scoped entry needs a game - use {@link #apply(MechanicsProfile.Builder, MechanicsProfile, Game)}. */
+    /** Folds the game-wide mechanics paths; a scoped entry needs {@link #apply(MechanicsProfile.Builder, MechanicsProfile, Game)}. */
     public void apply(@NotNull MechanicsProfile.Builder b, @Nullable MechanicsProfile fallback) {
         for (Path p : paths) {
             if (!(p.scope() instanceof Scope.Game)) {
@@ -145,10 +182,7 @@ public final class Ruleset {
         }
     }
 
-    /**
-     * Folds every mechanics entry onto {@code b}. Game-wide entries first, then scoped ones, so a scoped knob
-     * wraps the FINAL game-wide value as its fallback regardless of declaration order.
-     */
+    /** Game-wide entries first, then the targeted ones as per-subject values inside the same profile. */
     public void apply(@NotNull MechanicsProfile.Builder b, @Nullable MechanicsProfile fallback, @NotNull Game game) {
         for (Path p : paths) {
             if (p.scope() instanceof Scope.Game) PathEdits.apply(b, fallback, p.path(), p.value());
@@ -160,13 +194,38 @@ public final class Ruleset {
         }
     }
 
-    /** Seeds the rule half into the game, each at its scope. */
+    /** Seeds every rule into the game's state at its scope; a rule by id resolves through the type's supported rules. */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void seed(@NotNull Game game) {
         for (Rule<?> rule : rules) {
             requireScope(game, rule.scope(), name + ": " + rule.key().id());
             game.state().set(rule.scope(), (StateKey) rule.key(), rule.value());
         }
+        Map<String, StateKey<?>> supported = game.type().supportedRules();
+        for (DataRule d : data) {
+            StateKey<?> key = supported.get(d.id());
+            if (key == null) {
+                throw new IllegalStateException(name + ": " + d.id() + " is not a rule of " + game.type().id()
+                        + " (known: " + supported.keySet() + ")");
+            }
+            requireScope(game, d.scope(), name + ": " + d.id());
+            game.state().set(d.scope(), (StateKey) key, RuleValues.parse(key, d.value()));
+        }
+    }
+
+    private static Predicate<Player> targeting(Game game, Scope scope) {
+        return switch (scope) {
+            case Scope.Team team -> player -> {
+                Slot seat = game.roster().slotOf(player);
+                return seat != null && seat.team().equals(team.id());
+            };
+            case Scope.Slot slot -> player -> {
+                Slot seat = game.roster().slotOf(player);
+                return seat != null && seat.index() == slot.index();
+            };
+            case Scope.Game g -> throw new IllegalStateException("game scope is not targeted");
+            case Scope.Ent e -> throw new IllegalArgumentException("mechanics cannot target an entity scope: " + e.encode());
+        };
     }
 
     // a typo'd team or seat must fail the launch, not quietly apply to nobody
@@ -184,21 +243,5 @@ public final class Ruleset {
             }
             default -> { }
         }
-    }
-
-    /** A scope as the players it names, read live off the roster - a substitution or team switch just works. */
-    private static Predicate<Player> targeting(Game game, Scope scope) {
-        return switch (scope) {
-            case Scope.Team team -> player -> {
-                Slot seat = game.roster().slotOf(player);
-                return seat != null && seat.team().equals(team.id());
-            };
-            case Scope.Slot slot -> player -> {
-                Slot seat = game.roster().slotOf(player);
-                return seat != null && seat.index() == slot.index();
-            };
-            case Scope.Game g -> throw new IllegalStateException("game scope is not targeted");
-            case Scope.Ent e -> throw new IllegalArgumentException("mechanics cannot target an entity scope: " + e.encode());
-        };
     }
 }

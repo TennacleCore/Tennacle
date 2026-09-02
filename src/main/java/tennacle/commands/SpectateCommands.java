@@ -1,0 +1,54 @@
+package tennacle.commands;
+
+import tennacle.Msg;
+import tennacle.games.Matches;
+
+import io.github.term4.grotto.Game;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.builder.Command;
+import net.minestom.server.command.builder.arguments.ArgumentType;
+import net.minestom.server.entity.Player;
+
+/** {@code /spectate <player>}: a view of their game without a seat; {@code /l} steps back out. */
+public final class SpectateCommands {
+
+    private SpectateCommands() {}
+
+    public static void register() {
+        Command spectate = new Command("spectate", "spec");
+        var name = ArgumentType.Word("player");
+        spectate.setDefaultExecutor((sender, ctx) -> Msg.tag(sender, "spectate", "usage: ", Msg.run("/spectate <player>")));
+        spectate.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player me)) return;
+            if (Game.of(me) != null) {
+                Msg.err(me, "spectate", "you're in a game - ", Msg.run("/l"), " first");
+                return;
+            }
+            Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(ctx.get(name));
+            if (target == null) {
+                Msg.err(me, "spectate", "no player named ", Msg.v(ctx.get(name)));
+                return;
+            }
+            Game game = Game.of(target);
+            if (game == null) {
+                for (Game candidate : Matches.grotto().games()) { // a ghost is unbound - the tag can't route them
+                    if (candidate.isGhost(target)) {
+                        game = candidate;
+                        break;
+                    }
+                }
+            }
+            if (game == null || game.status() != Game.Status.OPEN) {
+                Msg.err(me, "spectate", Msg.v(target.getUsername()), " is not in a game");
+                return;
+            }
+            for (Game other : Matches.grotto().games()) {
+                if (other != game && other.spectators().contains(me)) other.unspectate(me);
+            }
+            game.spectate(me);
+            Msg.tag(me, "spectate", "watching ", Msg.v(target.getUsername()), "'s " + game.type().id() + " - ",
+                    Msg.run("/l"), " to leave");
+        }, name);
+        MinecraftServer.getCommandManager().register(spectate);
+    }
+}

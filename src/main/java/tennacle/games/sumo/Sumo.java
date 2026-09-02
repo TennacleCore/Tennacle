@@ -65,7 +65,7 @@ public final class Sumo {
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();
-        RULES.check(Mechanics.polyp.profiles().global());
+        RULES.check(Mechanics.polyp.profiles().global(), type);
         // hypixel mechanics + compat are what sumo IS; the ruleset folds over that base
         Duels.mode(new Mode("sumo", type, arena,
                 () -> Preset.HYPIXEL.profile().toBuilder().set(MechanicsKeys.COMPAT, Preset.HYPIXEL.compat()),

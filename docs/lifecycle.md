@@ -1,6 +1,6 @@
 # Game lifecycle: the layer between Grotto's Game and a mode
 
-Status: BUILT (steps 1 and 2; step 3 is the growth list). Companion to `rulesets.md` (what a match
+Status: BUILT (steps 1 to 3; the layer rung stays open). Companion to `rulesets.md` (what a match
 plays) - this is what a match IS from request to lobby. Three nouns, kept apart on purpose: a MODE is the game (bridge), a
 RULESET is its gamerules (crit bows off, five-second cages), a LOOK is only how it speaks (boards,
 chat, titles, cues). A PLATFORM bundles one ruleset with one look under the name a player says
@@ -261,10 +261,13 @@ teams). Every `"fighting".equals(...)`.
    goal fireworks, cage counts) stay bit-for-bit: the looks do not change, only who calls them.
    Every gameplay constant becomes a declared rule key on the way (`Ruleset.rule(id, value)` gets
    its `check` against the mode's supported rules at the same time).
-3. Later, on the same shapes: parties (N seats through `Matches.start`), a queue, `/spectate`
-   (`game.spectate` exists), runtime modifiers (a ruleset re-fold onto the live world profile - the
-   player-config push already follows profile changes), and a `Scope.layer` rung for rules if a mode
-   ever needs per-dimension rules (mechanics already vary per layer through world profiles).
+3. Built on the same shapes: parties (`/party`; a party is one SIDE, seated on one team through
+   `Matches.start(mode, platform, sides)` and `Game.join(player, team)`), a queue (`/queue <mode> [platform]`,
+   the first two sides of the same size start), `/spectate <player>`, and live modifiers
+   (`Matches.modify(game, ruleset)` re-folds the world profile and re-seeds; `/rules` lists a game's rules
+   and layers one entry by id or path). Rules by id (`Ruleset.rule("grotto:score:target", "3")`) resolve
+   against the type's supported rules and are checked at install. Still open: a `Scope.layer` rung for
+   rules if a mode ever needs per-dimension rules (mechanics already vary per layer through world profiles).
 
 ## Decisions taken
 

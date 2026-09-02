@@ -43,7 +43,7 @@ final class Rulesets {
         return RULESETS;
     }
 
-    static void check(io.github.term4.polyp.MechanicsProfile global) {
-        for (Ruleset ruleset : RULESETS.values()) ruleset.check(global);
+    static void check(io.github.term4.polyp.MechanicsProfile global, io.github.term4.grotto.GameType type) {
+        for (Ruleset ruleset : RULESETS.values()) ruleset.check(global, type);
     }
 }

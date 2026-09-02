@@ -203,7 +203,7 @@ public final class Bridge {
         }, variantArg);
         MinecraftServer.getCommandManager().register(cageCmd);
         KitLayouts.editable("bridge", KIT);
-        Rulesets.check(Mechanics.polyp.profiles().global());
+        Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
         Duels.mode(new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(), "scrims",
                 List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
                         Component.text("Knock off your opponent to gain a clear path.", NamedTextColor.YELLOW),

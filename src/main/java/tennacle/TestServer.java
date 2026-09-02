@@ -4,10 +4,14 @@ import tennacle.commands.DevCommands;
 import tennacle.commands.GrottoCommands;
 import tennacle.commands.LobbyCommands;
 import tennacle.commands.ReplayCommands;
+import tennacle.commands.RulesCommands;
 import tennacle.commands.ShardCommands;
 import tennacle.commands.SimTpsCommands;
+import tennacle.commands.SpectateCommands;
 import tennacle.games.Duels;
 import tennacle.games.Matches;
+import tennacle.games.Parties;
+import tennacle.games.Queues;
 import tennacle.games.boxing.Boxing;
 import tennacle.games.bridge.Bridge;
 import tennacle.games.sumo.Sumo;
@@ -85,6 +89,10 @@ public final class TestServer {
         SimTpsCommands.register(Mechanics.polyp, shards, world);
         Matches.install(world, new Pos(0.5, 42, 0.5), shards);
         Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto
+        Parties.install(); // /party: a side that duels and queues together
+        Queues.install();  // /queue <mode> [platform]: the first two matching sides start
+        SpectateCommands.register();
+        RulesCommands.register(); // /rules: live modifiers over the running game
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         PlayerPrefs.install();
         GameIds.install(Matches.grotto(),

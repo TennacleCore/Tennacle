@@ -7,9 +7,12 @@ import io.github.term4.barnacle.Arena;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Grotto;
+import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.Choice;
 import io.github.term4.grotto.modules.Results;
 import io.github.term4.grotto.modules.Summary;
+import io.github.term4.grotto.roster.Slot;
+import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.MechanicsProfile;
@@ -21,17 +24,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * The one launch for any seating: a mode, a ruleset, a look, the players. The look name is stamped and the
- * ruleset folded into the game's world profile BEFORE modules install; the type's body policy takes each
- * player from there. Modes, looks and platforms register at boot; the lobby route is the app's only exit.
+ * The one launch for any seating: a mode, a platform (its ruleset and look), the sides. The look name is
+ * stamped and the ruleset folded into the game's world profile BEFORE modules install; the type's body policy
+ * takes each player from there. A live {@link #modify} layers a further ruleset over the running game. Modes,
+ * looks and platforms register at boot; the lobby route is the app's only exit.
  */
 public final class Matches {
 
@@ -45,6 +51,8 @@ public final class Matches {
             "minemen", Look.MINEMEN, "scrims", Look.SCRIMS, "hypixel", Look.HYPIXEL));
     private static final Map<String, Platform> platforms = new LinkedHashMap<>(Map.of(
             "minemen", Platform.of("minemen"), "scrims", Platform.of("scrims"), "hypixel", Platform.of("hypixel")));
+    // live modifiers by game id - pruned as games end
+    private static final Map<String, Ruleset> modifiers = new ConcurrentHashMap<>();
     private static Grotto grotto;
     private static Consumer<Player> lobbyRoute = player -> {};
 
@@ -143,23 +151,61 @@ public final class Matches {
         });
     }
 
-    /** Folds the game's ruleset into its world profile and seeds it - the launch does this; a test re-folds. */
+    /** Folds the game's ruleset (and any live modifiers) into its world profile and seeds it. */
     public static void fold(@NotNull Game game) {
         Mode mode = modeOf(game);
         if (mode == null) throw new IllegalStateException("not a registered mode: " + game.type().id());
         Platform platform = platformFor(mode, game.state().get(Scope.GAME, PLATFORM));
         Ruleset rules = mode.ruleset(platform.ruleset());
+        Ruleset live = modifiers.get(game.id());
+        if (live != null) rules = live.over(rules);
         MechanicsProfile.Builder profile = mode.profile().get();
         rules.apply(profile, Mechanics.polyp.profiles().global(), game);
         Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
         rules.seed(game);
     }
 
-    /** {@link #launch}, then every player seated - the type's body policy stashes, freshens and kits them. */
-    public static @NotNull Game start(@NotNull Mode mode, @NotNull Platform platform, @NotNull Collection<Player> seating) {
+    /**
+     * Layers {@code ruleset} over the running game and re-folds: the world profile swaps (polyp pushes the
+     * per-player config on the change) and the rules re-seed. Checked first - a bad entry changes nothing.
+     */
+    public static void modify(@NotNull Game game, @NotNull Ruleset ruleset) {
+        if (game.status() != Game.Status.OPEN) throw new IllegalStateException("the game is over");
+        ruleset.check(Mechanics.polyp.profiles().global(), game.type());
+        modifiers.keySet().removeIf(id -> grotto.games().stream().noneMatch(g -> g.id().equals(id) && g.status() == Game.Status.OPEN));
+        modifiers.merge(game.id(), ruleset, (older, newer) -> newer.over(older));
+        fold(game);
+    }
+
+    /**
+     * {@link #launch} on the mode's own map, then every side seated on its own team - the type's body policy
+     * stashes, freshens and kits them. A side the map cannot seat aborts the launch and throws.
+     */
+    public static @NotNull Game start(@NotNull Mode mode, @NotNull Platform platform,
+                                      @NotNull List<? extends Collection<Player>> sides) {
         Game game = launch(mode, platform, mode.arena().get());
-        for (Player player : seating) game.join(player);
+        List<Team> teams = game.roster().teams();
+        if (sides.size() > teams.size()) {
+            game.end(Outcome.aborted());
+            throw new IllegalStateException(mode.name() + " seats " + teams.size() + " sides, not " + sides.size());
+        }
+        for (int i = 0; i < sides.size(); i++) {
+            for (Player player : sides.get(i)) {
+                if (!game.join(player, teams.get(i).id())) {
+                    game.end(Outcome.aborted());
+                    throw new IllegalStateException(mode.name() + " has no seat left on " + teams.get(i).id()
+                            + " for " + player.getUsername());
+                }
+            }
+        }
         return game;
+    }
+
+    /** How many a side of {@code mode} seats on its map - what a queue pairs by. */
+    public static int seatsPerSide(@NotNull Mode mode) {
+        Map<String, Integer> perTeam = new HashMap<>();
+        for (Slot slot : mode.type().slots().resolve(mode.arena().get())) perTeam.merge(slot.team(), 1, Integer::sum);
+        return perTeam.values().stream().mapToInt(Integer::intValue).max().orElse(1);
     }
 
     /** The platform a request named, the mode's default when it named none. */
