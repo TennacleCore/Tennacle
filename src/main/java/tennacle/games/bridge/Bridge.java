@@ -181,7 +181,7 @@ public final class Bridge {
                             Rules rules = game != null ? game.module(Rules.class) : null;
                             if (rules != null) rules.fell(p);
                         }),
-                        () -> Nametags.of().push(false), // 1.8 has no entity push; the team carries it
+                        Nametags::of,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT),
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
