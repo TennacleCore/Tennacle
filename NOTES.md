@@ -82,3 +82,4 @@ presentation only (a platform pairs a ruleset with a look); effects ride the kit
 - BOW CRITS: `critDamage` and `critParticles` are now separate tri-state projectile knobs (null = follow
   the arrow). Bridge sets them per look - hypixel both off, scrims trail-only (flag TRUE, roll off),
   minemen vanilla. `ArrowCritKnobsTest` pins the flag in all three directions.
+- Chat rooms: a member speaks to the game (spectators hear), a spectator to the spectators, everyone else to their shard tree or instance; /p party, /msg and /r. /spectate lands inside the watched player, adventure + invisible + hovering; /l hands the body back.

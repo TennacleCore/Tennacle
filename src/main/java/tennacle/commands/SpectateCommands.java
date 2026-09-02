@@ -2,6 +2,7 @@ package tennacle.commands;
 
 import tennacle.Msg;
 import tennacle.games.Matches;
+import tennacle.games.Spectators;
 
 import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;
@@ -42,10 +43,8 @@ public final class SpectateCommands {
                 Msg.err(me, "spectate", Msg.v(target.getUsername()), " is not in a game");
                 return;
             }
-            for (Game other : Matches.grotto().games()) {
-                if (other != game && other.spectators().contains(me)) other.unspectate(me);
-            }
-            game.spectate(me);
+            Spectators.exit(me); // a view elsewhere ends first
+            Spectators.enter(game, me, target);
             Msg.tag(me, "spectate", "watching ", Msg.v(target.getUsername()), "'s " + game.type().id() + " - ",
                     Msg.run("/l"), " to leave");
         }, name);

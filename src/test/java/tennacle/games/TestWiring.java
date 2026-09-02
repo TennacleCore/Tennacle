@@ -23,6 +23,8 @@ public final class TestWiring {
         Parties.install();
         Queues.install();
         tennacle.commands.SpectateCommands.register();
+        Spectators.install();
+        tennacle.Chat.install();
         tennacle.commands.RulesCommands.register();
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");
         Sumo.install();

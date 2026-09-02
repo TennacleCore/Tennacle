@@ -31,9 +31,9 @@ public final class Match {
         return Phases.is(game, OPENING);
     }
 
-    // game.members(), not shard members: ghosts still get announcements and end-of-game cleanup
+    // game.members(), not shard members: ghosts still get announcements and end-of-game cleanup; spectators watch along
     public static void each(@NotNull Game game, @NotNull Consumer<Player> action) {
-        game.forEachMember(action);
+        game.forEachAudience(action);
     }
 
     /** The one other side in a 1v1 (ghosts included, so boards hold through the linger), or {@code null}. */

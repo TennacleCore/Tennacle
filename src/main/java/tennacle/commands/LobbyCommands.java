@@ -3,6 +3,7 @@ package tennacle.commands;
 import tennacle.Msg;
 import tennacle.Sessions;
 import tennacle.games.Matches;
+import tennacle.games.Spectators;
 
 import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;
@@ -64,13 +65,11 @@ public final class LobbyCommands {
                 Matches.toLobby(p);
             };
         }
-        for (Game game : Matches.grotto().games()) {
-            if (game.spectators().contains(p)) {
-                return () -> {
-                    game.unspectate(p);
-                    Matches.toLobby(p);
-                };
-            }
+        if (Matches.grotto().spectating(p) != null) {
+            return () -> {
+                Spectators.exit(p);
+                Matches.toLobby(p);
+            };
         }
         return null;
     }

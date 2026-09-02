@@ -12,6 +12,7 @@ import tennacle.games.Duels;
 import tennacle.games.Matches;
 import tennacle.games.Parties;
 import tennacle.games.Queues;
+import tennacle.games.Spectators;
 import tennacle.games.boxing.Boxing;
 import tennacle.games.bridge.Bridge;
 import tennacle.games.sumo.Sumo;
@@ -92,6 +93,8 @@ public final class TestServer {
         Parties.install(); // /party: a side that duels and queues together
         Queues.install();  // /queue <mode> [platform]: the first two matching sides start
         SpectateCommands.register();
+        Spectators.install();
+        Chat.install(); // who hears whom: game, spectators, party, room
         RulesCommands.register(); // /rules: live modifiers over the running game
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         PlayerPrefs.install();
