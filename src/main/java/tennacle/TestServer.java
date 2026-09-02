@@ -26,6 +26,7 @@ import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.bloom.Bloom;
 import io.github.term4.canvas.Canvas;
 import io.github.term4.polyp.tracking.ClientVersion;
+import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -96,8 +97,12 @@ public final class TestServer {
         SpectateCommands.register();
         Spectators.install();
         Rooms.install(); // who hears whom: game, spectators, party, shard tree
-        TabList.header(p -> Msg.gradient("Tennacle"));
+        TabList.header(p -> Msg.boardTitle(p, "Tennacle")); // flat brand color for a legacy viewer, like chat
         TabList.footer(p -> Msg.THEME.dim("the Archipelago + Polyp playground"));
+        // the first send lands before Via reveals the protocol; resend once it is known
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
+            if (e.isFirstSpawn()) Msg.onceProtocolKnown(e.getPlayer(), 60, () -> TabList.refresh(e.getPlayer()));
+        });
         RulesCommands.register(); // /rules: live modifiers over the running game
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         PlayerPrefs.install();
