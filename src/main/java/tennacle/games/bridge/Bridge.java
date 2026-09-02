@@ -178,7 +178,7 @@ public final class Bridge {
                             Rules rules = game != null ? game.module(Rules.class) : null;
                             if (rules != null) rules.fell(p);
                         }),
-                        Nametags::of,
+                        () -> Nametags.of().push(false),
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT),
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
@@ -223,6 +223,6 @@ public final class Bridge {
     }
 
     private static Material blocks(String team) {
-        return tennacle.games.Palette.of(team).block();
+        return tennacle.games.Palette.of(team).terracotta();
     }
 }

@@ -70,7 +70,8 @@ public final class Boxing {
     static final Ruleset RULES = Ruleset.named("boxing")
             .path("hunger/exhaustionScale", 0)
             .path("damage/enabledTypes", "only(minecraft:player_attack)")
-            ;
+            .path("visuals/legacyArrowVisibility/enabled", false)
+            .path("compat/disableEntityPush", false);
 
     // career truth, in the vault
     public static final VaultKey<Integer> CAREER_HITS = VaultKey.of("boxing:career-hits", Codec.INT, 0);
@@ -106,7 +107,7 @@ public final class Boxing {
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.seats(HITS).target(Score.TARGET),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
-                        Nametags::of,
+                        () -> Nametags.of().push(false),
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),

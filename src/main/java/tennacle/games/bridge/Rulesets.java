@@ -22,7 +22,9 @@ final class Rulesets {
             // only swings and arrows hurt: a selection over the damage catalog, not a switch per type
             .path("damage/enabledTypes", "only(minecraft:player_attack, minecraft:thrown)")
             // the golden apple keeps its item, eat time and gate - only what it dishes out is swapped
-            .path("consumables/minecraft:golden_apple/behavior", "heal-apple");
+            .path("consumables/minecraft:golden_apple/behavior", "heal-apple")
+            .path("visuals/legacyArrowVisibility/enabled", false)
+            .path("compat/disableEntityPush", false);
 
     // the crit META is never touched - a full-draw arrow shows the flag, a partial does not (its actual crit state).
     // hypixel and scrims drop the crit ROLL (critDamage false): the trail shows, the bonus does not; minemen rolls it.
