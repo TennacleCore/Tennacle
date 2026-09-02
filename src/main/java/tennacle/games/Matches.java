@@ -4,6 +4,7 @@ import tennacle.Mechanics;
 
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.barnacle.Arena;
+import io.github.term4.canvas.tab.TabList;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Grotto;
@@ -60,7 +61,10 @@ public final class Matches {
 
     public static void install(@NotNull InstanceContainer lobby, @NotNull Pos lobbySpawn, @NotNull ShardManager shards) {
         grotto = Grotto.install(shards); // shared manager: /shard tree shows the game trees
-        lobbyRoute = player -> player.setInstance(lobby, lobbySpawn); // the body is the type's; the route is ours
+        lobbyRoute = player -> {
+            player.setInstance(lobby, lobbySpawn); // the body is the type's; the route is ours
+            TabList.refresh(player); // the chrome is the lobby's again
+        };
         grotto.exit(lobbyRoute);
     }
 

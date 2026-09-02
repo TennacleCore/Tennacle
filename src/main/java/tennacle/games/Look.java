@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import java.util.function.Function;
+import io.github.term4.canvas.chat.Chat;
 import tennacle.Msg;
 
 import io.github.term4.canvas.theme.HypixelIntro;
@@ -31,7 +33,20 @@ import java.util.function.IntFunction;
  * reads game state (the phase, a score) and never sets a rule - the platform's gamerules are its ruleset.
  */
 public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verdict verdict, @NotNull Count count,
-                   @NotNull SoundSet sounds) {
+                   @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth) {
+
+    /** A member's chat line in this look. */
+    @FunctionalInterface
+    public interface ChatLine {
+        Component render(Game game, Player speaker, String message);
+    }
+
+    /** The tab menu's header and footer for a viewer inside a game of this look. */
+    public record Tab(@NotNull Function<Player, Component> header, @NotNull Function<Player, Component> footer) {}
+
+    /** The address and store lines the tab chrome names - the app's, whatever network shape wraps them. */
+    public static final String ADDRESS = "play.tennacle.gg";
+    public static final String STORE = "store.tennacle.gg";
 
     /** Renders a kill line; {@code winner}/{@code verb} null = a forfeit with no killer. */
     @FunctionalInterface
@@ -54,16 +69,25 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     private static final Sound TICK = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 1f);
     private static final Sound GO = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
 
-    /** Yellow names, gray prose, VICTORY!/DEFEATED! - the minemen profile. */
+    /** Yellow names, gray prose, VICTORY!/DEFEATED! - the minemen profile. Chat and tab are server-wide there. */
     public static final Look MINEMEN = new Look(Msg.MINEMEN, Look::minemenDeath, Look::minemenVerdict,
             new Count(n -> Component.text(n + "...", NamedTextColor.YELLOW), null,
                     (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
-            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO));
+            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
+            (g, speaker, message) -> Chat.plain(speaker, message),
+            new Tab(p -> minemenHeader(), p -> minemenFooter()), false);
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
             new Count(Look::scrimsNumber, null, (g, p) -> null),
-            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO));
+            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
+            // captured: [RED] Dogln: message - the team tag in the team color, the rest white
+            (g, speaker, message) -> Component.text("[" + Match.teamOf(g, speaker).toUpperCase(Locale.ROOT) + "] ", Match.teamColor(g, speaker))
+                    .append(Component.text(speaker.getUsername() + ": " + message, NamedTextColor.WHITE)),
+            // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
+            new Tab(p -> Component.text("TENNACLE", NamedTextColor.AQUA, TextDecoration.BOLD)
+                            .append(Component.text("\nPlaying on " + ADDRESS + "\n", NamedTextColor.YELLOW)),
+                    p -> Component.text("\n" + STORE, NamedTextColor.AQUA)), true);
 
     /** Captured hypixel: scoring modes end on TEAM WINS! + the score; plain duels on VICTORY!/DEFEAT!. */
     public static final Look HYPIXEL = new Look(Msg.HYPIXEL, Look::hypixelDeath, Look::hypixelVerdict,
@@ -75,7 +99,31 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                     .cue(SoundSet.COUNTDOWN,
                             Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 20f, 1f))
                     .cue(SoundSet.SCORED,
-                            Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f)));
+                            Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f)),
+            // captured: green [GAME], then rank + name (no ranks here: gray name), white message
+            (g, speaker, message) -> Component.text("[GAME] ", NamedTextColor.GREEN)
+                    .append(Component.text(speaker.getUsername(), NamedTextColor.GRAY))
+                    .append(Component.text(": " + message, NamedTextColor.WHITE)),
+            // captured: green "You are playing on" + bold yellow address; red pitch + bold yellow store
+            new Tab(p -> Component.text("You are playing on ", NamedTextColor.GREEN)
+                            .append(Component.text(ADDRESS.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD)),
+                    p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
+                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true);
+
+    // captured minemen: pink @ around a bold white title; a pink-label footer row and the address
+    static Component minemenHeader() {
+        return Component.text("@ ", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
+                .append(Component.text("Tennacle", NamedTextColor.WHITE, TextDecoration.BOLD))
+                .append(Component.text(" @", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD));
+    }
+
+    static Component minemenFooter() {
+        int online = net.minestom.server.MinecraftServer.getConnectionManager().getOnlinePlayerCount();
+        return Component.text("Discord: ", NamedTextColor.LIGHT_PURPLE).append(Component.text("/discord", NamedTextColor.WHITE))
+                .append(Component.text("    Players: ", NamedTextColor.LIGHT_PURPLE)).append(Component.text(online, NamedTextColor.WHITE))
+                .append(Component.text("    Store: ", NamedTextColor.LIGHT_PURPLE)).append(Component.text("/store", NamedTextColor.WHITE))
+                .append(Component.text("\n" + ADDRESS, NamedTextColor.LIGHT_PURPLE));
+    }
 
     // the MineMen line shape - themed names, themed prose, an exclamation - on the game look's palette
     private static Component minemenDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {

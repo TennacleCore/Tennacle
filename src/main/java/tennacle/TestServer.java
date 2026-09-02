@@ -97,9 +97,7 @@ public final class TestServer {
         SpectateCommands.register();
         Spectators.install();
         Rooms.install(); // who hears whom: game, spectators, party, shard tree
-        TabList.header(p -> Msg.boardTitle(p, "Tennacle")); // flat brand color for a legacy viewer, like chat
-        TabList.footer(p -> Msg.THEME.dim("the Archipelago + Polyp playground"));
-        // the first send lands before Via reveals the protocol; resend once it is known
+        // the chrome follows the viewer's game look (Rooms); the first send lands before Via reveals the protocol
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
             if (e.isFirstSpawn()) Msg.onceProtocolKnown(e.getPlayer(), 60, () -> TabList.refresh(e.getPlayer()));
         });

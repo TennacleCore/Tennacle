@@ -62,7 +62,7 @@ public final class Sumo {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.draw()),
-                        HealthDisplay::of,
+                        () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))

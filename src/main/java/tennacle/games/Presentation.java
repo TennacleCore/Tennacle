@@ -2,6 +2,7 @@ package tennacle.games;
 
 import tennacle.Msg;
 
+import io.github.term4.canvas.tab.TabList;
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
@@ -75,6 +76,16 @@ public final class Presentation implements GameModule {
             if (p.slot().equals(seat)) name = p.username();
         }
         return name;
+    }
+
+    @Override
+    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
+        TabList.refresh(player);
+    }
+
+    @Override
+    public void onSpectate(@NotNull Game game, @NotNull Player player) {
+        TabList.refresh(player);
     }
 
     @Override

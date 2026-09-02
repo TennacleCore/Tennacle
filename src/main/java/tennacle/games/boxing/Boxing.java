@@ -103,7 +103,7 @@ public final class Boxing {
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.seats(HITS).target(Score.TARGET),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
-                        HealthDisplay::of,
+                        () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Matches.byLook(Ends::hypixel, Ends::results, Ends::scrims),

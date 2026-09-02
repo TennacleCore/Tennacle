@@ -1,5 +1,8 @@
 package tennacle;
 
+import io.github.term4.canvas.tab.TabList;
+import net.kyori.adventure.text.Component;
+import tennacle.games.Look;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Parties;
@@ -28,6 +31,23 @@ public final class Rooms {
     public static void install() {
         Chat.install(Rooms::of);
         Chat.channel("p", "party", NamedTextColor.LIGHT_PURPLE, Parties::of, "you're not in a party", "pc");
+        TabList.header(Rooms::tabHeader);
+        TabList.footer(Rooms::tabFooter);
+    }
+
+    /** The viewer's game's look, else the server chrome (the minemen shape: server-wide, not per game). */
+    private static Look lookFor(Player viewer) {
+        Game game = gameOf(viewer);
+        if (game == null) game = Matches.grotto().spectating(viewer);
+        return game != null ? Matches.lookOf(game) : Look.MINEMEN;
+    }
+
+    static Component tabHeader(Player viewer) {
+        return lookFor(viewer).tab().header().apply(viewer);
+    }
+
+    static Component tabFooter(Player viewer) {
+        return lookFor(viewer).tab().footer().apply(viewer);
     }
 
     private static Chat.@Nullable Room of(@NotNull Player me, @NotNull String message) {
@@ -35,7 +55,7 @@ public final class Rooms {
         if (game != null) {
             List<Player> to = new ArrayList<>();
             game.forEachAudience(to::add);
-            return new Chat.Room(to, Chat.named(me, Match.teamColor(game, me), message));
+            return new Chat.Room(to, Matches.lookOf(game).chat().render(game, me, message));
         }
         Game watched = Matches.grotto().spectating(me);
         if (watched != null) return new Chat.Room(watched.spectators(), Chat.tagged("spec", me, message));

@@ -1,6 +1,7 @@
 package tennacle.games;
 
 import io.github.term4.grotto.Game;
+import io.github.term4.polyp.platform.compatibility.SpectatorHud;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
@@ -13,10 +14,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The body a viewer wears: spectator mode, landed inside the player they asked for. Spectator is the one
- * gamemode whose HUD drops the health and hunger bars on 1.8 and modern alike, and it flies, phases and is
- * invisible by itself. Grotto keeps their hands off the map; this keeps what they walked in with and hands
- * it back on the way out.
+ * The body a viewer wears: adventure and invisible, hovering, landed inside the player they asked for, with
+ * the health, hunger and armor bars off their screen the way scrims does it ({@link SpectatorHud}: the
+ * client is told a game mode it has no case for, the inventory stays the ordinary one). Grotto keeps their
+ * hands off the map; this keeps what they walked in with and hands it back on the way out.
  */
 public final class Spectators {
 
@@ -33,7 +34,9 @@ public final class Spectators {
     /** Puts {@code viewer} on {@code game}'s main world wearing the viewer's body: at {@code target}'s position, or the map's landing. */
     public static void enter(@NotNull Game game, @NotNull Player viewer, @Nullable Player target) {
         worn.putIfAbsent(viewer.getUuid(), new Worn(viewer.getGameMode(), viewer.isAllowFlying(), viewer.isFlying(), viewer.isInvisible()));
-        viewer.setGameMode(GameMode.SPECTATOR);
+        viewer.setGameMode(GameMode.ADVENTURE);
+        viewer.setInvisible(true);
+        SpectatorHud.hide(viewer);
         viewer.setAllowFlying(true);
         viewer.setFlying(true);
         game.spectate(viewer, target != null ? target.getPosition() : null);
@@ -45,6 +48,7 @@ public final class Spectators {
         Worn was = worn.remove(viewer.getUuid());
         if (watched == null && was == null) return false;
         if (watched != null) watched.unspectate(viewer);
+        SpectatorHud.show(viewer);
         if (was != null) {
             viewer.setInvisible(was.invisible());
             viewer.setGameMode(was.gamemode());
