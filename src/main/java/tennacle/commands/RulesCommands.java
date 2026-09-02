@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * {@code /rules}: the running game's rules with their live values; {@code /rules <id|path> <value>} layers one
- * entry over the game right now - a rule by id ({@code grotto:score:target 3}) or a mechanics path
+ * entry over the game right now - a rule by id ({@code score:target 3}) or a mechanics path
  * ({@code projectiles/minecraft:arrow/critDamage true}). Checked before it lands; a bad entry changes nothing.
  */
 public final class RulesCommands {

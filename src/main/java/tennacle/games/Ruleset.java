@@ -138,7 +138,7 @@ public final class Ruleset {
         return new Ruleset(name, paths, List.copyOf(next), data);
     }
 
-    /** A rule by id, as data ({@code grotto:score:target = 3}); the key and the value resolve against the game's type at the fold. */
+    /** A rule by id, as data ({@code score:target = 3}); the key and the value resolve against the game's type at the fold. */
     public Ruleset rule(@NotNull String id, @NotNull String value) {
         return rule(Scope.GAME, id, value);
     }

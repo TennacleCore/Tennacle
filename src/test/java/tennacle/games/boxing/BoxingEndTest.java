@@ -56,7 +56,7 @@ class BoxingEndTest extends HeadlessServerTest {
             game = awaitGame(a);
             assertNotNull(game, "the duel launched");
             // a long linger keeps the game open past the ghosting, so the teardown cannot race the assertions
-            Matches.modify(game, Ruleset.named("linger").rule("grotto:linger", "200"));
+            Matches.modify(game, Ruleset.named("linger").rule("end:linger", "200"));
 
             Slot seat = game.roster().slotOf(a.player);
             assertNotNull(seat);
