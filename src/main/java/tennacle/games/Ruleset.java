@@ -154,14 +154,36 @@ public final class Ruleset {
             if (p.scope() instanceof Scope.Game) PathEdits.apply(b, fallback, p.path(), p.value());
         }
         for (Path p : paths) {
-            if (!(p.scope() instanceof Scope.Game)) PathEdits.apply(b, fallback, p.path(), p.value(), targeting(game, p.scope()));
+            if (p.scope() instanceof Scope.Game) continue;
+            requireScope(game, p.scope(), name + ": " + p.path());
+            PathEdits.apply(b, fallback, p.path(), p.value(), targeting(game, p.scope()));
         }
     }
 
     /** Seeds the rule half into the game, each at its scope. */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void seed(@NotNull Game game) {
-        for (Rule<?> rule : rules) game.state().set(rule.scope(), (StateKey) rule.key(), rule.value());
+        for (Rule<?> rule : rules) {
+            requireScope(game, rule.scope(), name + ": " + rule.key().id());
+            game.state().set(rule.scope(), (StateKey) rule.key(), rule.value());
+        }
+    }
+
+    // a typo'd team or seat must fail the launch, not quietly apply to nobody
+    private static void requireScope(Game game, Scope scope, String what) {
+        switch (scope) {
+            case Scope.Team team -> {
+                if (game.roster().teams().stream().noneMatch(t -> t.id().equals(team.id()))) {
+                    throw new IllegalStateException(what + " targets team '" + team.id() + "', which this roster lacks");
+                }
+            }
+            case Scope.Slot slot -> {
+                if (game.roster().slot(slot.index()) == null) {
+                    throw new IllegalStateException(what + " targets seat " + slot.index() + ", which this roster lacks");
+                }
+            }
+            default -> { }
+        }
     }
 
     /** A scope as the players it names, read live off the roster - a substitution or team switch just works. */

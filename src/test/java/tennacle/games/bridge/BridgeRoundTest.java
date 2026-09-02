@@ -112,6 +112,11 @@ class BridgeRoundTest extends HeadlessServerTest {
             org.junit.jupiter.api.Assertions.assertDoesNotThrow(
                     () -> handicap.without(io.github.term4.grotto.state.Scope.team(redTeam))
                             .apply(io.github.term4.polyp.MechanicsProfile.builder(), null));
+            var typo = tennacle.games.Ruleset.named("typo")
+                    .path(io.github.term4.grotto.state.Scope.team("green"), "projectiles/minecraft:arrow/critDamage", true);
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    () -> typo.apply(io.github.term4.polyp.MechanicsProfile.builder(), null, game),
+                    "a team the roster lacks fails the fold, it does not apply to nobody");
             Duels.kindOf(game).onLaunch().accept(game); // the launch fold again, without the handicap
             assertEquals(Boolean.FALSE, crits.apply(red.player), "re-folded from the base: red is back on the look");
             assertEquals(Boolean.TRUE, arrow.removeOnBlockHit.constantOrNull(), "bridge default rides along");
