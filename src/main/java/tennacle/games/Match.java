@@ -21,11 +21,6 @@ public final class Match {
     public static final String LIVE = "live";
     public static final String OVER = "over";
 
-    public static final int COUNT_FROM = 5;
-    /** Every game start idles this long before the first beat - laggy joins land, launch work settles.
-     * Kept on the 20-tick grid: the scoreboard refresh runs 20s from install, so beats and second-flips align. */
-    public static final int START_GRACE_TICKS = 40;
-
     private Match() {}
 
     public static boolean live(@NotNull Game game) {

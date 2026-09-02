@@ -56,6 +56,8 @@ public final class Rules implements GameModule {
     public static final StateKey<Long> ARROW_TICKS = StateKey.of("bridge:arrow-ticks", Codec.LONG, 70L);
     /** Everyone re-kits (fresh body, quiver reset) after a goal. */
     public static final StateKey<Boolean> REFIT_ON_GOAL = StateKey.of("bridge:refit-on-goal", Codec.BOOLEAN, true);
+    /** Ticks after a goal before another can count. */
+    public static final StateKey<Long> GOAL_COOLDOWN = StateKey.of("bridge:goal-cooldown", Codec.LONG, 40L);
 
     static final String REFIT_ALARM = "bridge:refit";
     private static final String QUIVER_ALARM = "bridge:quiver";
@@ -76,7 +78,7 @@ public final class Rules implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(ARROW_TICKS, REFIT_ON_GOAL, Bridge.BOW_BOOST, Bridge.FRIENDLY_FIRE);
+        return Set.of(ARROW_TICKS, REFIT_ON_GOAL, GOAL_COOLDOWN, Bridge.BOW_BOOST, Bridge.FRIENDLY_FIRE);
     }
 
     @Override
@@ -179,7 +181,7 @@ public final class Rules implements GameModule {
             Pos to = e.getNewPosition();
             for (RegionMarker goal : goals) {
                 if (goal.group().equals(seat.team()) || !goal.contains(to)) continue;
-                goalCooldownUntil = st.tick() + 40;
+                goalCooldownUntil = st.tick() + game.rules().resolve(Scope.GAME, GOAL_COOLDOWN);
                 score(game, player, seat);
                 return;
             }

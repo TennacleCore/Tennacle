@@ -13,6 +13,7 @@ import io.github.term4.barnacle.template.Facing;
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.modules.Countdown;
 import io.github.term4.grotto.modules.Phases;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.GameState;
@@ -86,7 +87,7 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, ENABLED);
+        return Set.of(SECONDS, ENABLED, Countdown.GRACE, Countdown.INTERVAL);
     }
 
     @Override
@@ -105,7 +106,7 @@ public final class Cages implements GameModule {
         });
         st.alarms().register(RECAGE_ALARM, (tick, payload) -> recage(game, payload));
         st.alarms().arm(STAMP_ALARM, st.tick() + 2);
-        st.alarms().arm(COUNT_ALARM, st.tick() + Match.START_GRACE_TICKS,
+        st.alarms().arm(COUNT_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Countdown.GRACE),
                 CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
     }
 
@@ -140,7 +141,8 @@ public final class Cages implements GameModule {
                 p.playSound(hypixel ? HAT : TICK);
             });
             if (held != null) Matches.cue(game, SoundSet.SCORED); // captured: the goal firework rides every beat
-            st.alarms().arm(COUNT_ALARM, st.tick() + 20, CompoundBinaryTag.builder().putInt("n", n - 1).build());
+            st.alarms().arm(COUNT_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Countdown.INTERVAL),
+                    CompoundBinaryTag.builder().putInt("n", n - 1).build());
             return;
         }
         open(game);

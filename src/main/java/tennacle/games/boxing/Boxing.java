@@ -97,7 +97,7 @@ public final class Boxing {
                 .rule(Score.TARGET, 10)
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
-                        () -> Countdown.of(Match.COUNT_FROM).grace(Match.START_GRACE_TICKS).voice(Presentation::voice),
+                        () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.seats(HITS).target(Score.TARGET),

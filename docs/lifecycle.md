@@ -119,7 +119,7 @@ so grace and countdowns never eat it. Ties resolve to a draw unless the decider 
 The opener is mode-agnostic; only its voice is a look. Both move into Grotto:
 
 ```java
-Countdown.of(5).grace(40).voice(look::count)   // beat(game, n) / go(game); drives Phases.advance()
+Countdown.of().voice(look::count)              // FROM / GRACE / INTERVAL are rules; drives Phases.advance()
 Freeze.during(Match.OPENING)                   // pin to the seat, swallow knockback
 ```
 
@@ -154,7 +154,8 @@ players re-kit between goals: none of these is a polyp knob, and today half of t
 with a default on the type, seeded per scope by a ruleset, resolved seat -> team -> game by
 `Rules.resolve` - so the work is the shape around it, not a new tier:
 
-- **Declared by the consumer.** A module lists the keys it reads:
+- **Declared by the consumer.** A module lists the keys it reads (`Countdown` its beats, grace and interval,
+  the deciders their shared linger):
   `default Set<StateKey<?>> rules()` on `GameModule`. `Score` declares `grotto:score:target`,
   `Respawns` its two windows, `KillCredit` its credit ticks, `TimeLimit` its limit, `Cages`
   `cages:seconds` and `cages:enabled`, bridge `Rules` `bridge:arrow-ticks` and

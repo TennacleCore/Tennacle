@@ -57,7 +57,7 @@ public final class Sumo {
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(TimeLimit.LIMIT, 2L * 60 * 20) // captured: hypixel sumo counts down from 2:00
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
-                        () -> Countdown.of(Match.COUNT_FROM).grace(Match.START_GRACE_TICKS).voice(Presentation::voice),
+                        () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.draw()),
