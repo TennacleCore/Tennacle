@@ -113,35 +113,42 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                     p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
                             .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit);
 
-    // captured bow-duel callouts to the shooter, each network's own colours; an overkill shows 0
+    // captured bow-duel callouts to the shooter, each network's own colours. `impact` is the signed health change:
+    // negative for damage (shown -N in red), positive for a heal (+N in green). scrims/hypixel show only the health.
     // scrims: light-blue name, yellow "has", light-green health, a red heart
-    private static Component scrimsHit(Player target, float health, float delta) {
+    private static Component scrimsHit(Player target, float health, float impact) {
         return Component.text(target.getUsername(), NamedTextColor.AQUA)
                 .append(Component.text(" has ", NamedTextColor.YELLOW))
-                .append(Component.text(hp(health), NamedTextColor.GREEN))
+                .append(Component.text(num(Math.max(0f, health)), NamedTextColor.GREEN))
                 .append(Component.text("❤", NamedTextColor.RED));
     }
 
     // hypixel: light-blue name, grey "is on", red value, grey "HP!"
-    private static Component hypixelHit(Player target, float health, float delta) {
+    private static Component hypixelHit(Player target, float health, float impact) {
         return Component.text(target.getUsername(), NamedTextColor.AQUA)
                 .append(Component.text(" is on ", NamedTextColor.GRAY))
-                .append(Component.text(hp(health), NamedTextColor.RED))
+                .append(Component.text(num(Math.max(0f, health)), NamedTextColor.RED))
                 .append(Component.text(" HP!", NamedTextColor.GRAY));
     }
 
-    // minemen: yellow name, grey arrow, light-purple health+heart, then the drop in red inside grey parens
-    private static Component minemenHit(Player target, float health, float delta) {
+    // minemen: yellow name, bold grey arrow, light-purple health+heart, then the signed change in parens
+    // (damage -N red, heal +N green) - e.g. Dogln ➡ 7❤ (-3❤)
+    private static Component minemenHit(Player target, float health, float impact) {
+        boolean heal = impact > 0;
+        Component change = Component.text((heal ? "+" : "-") + num(Math.abs(impact)) + "❤",
+                heal ? NamedTextColor.GREEN : NamedTextColor.RED);
         return Component.text(target.getUsername(), NamedTextColor.YELLOW)
-                .append(Component.text(" → ", NamedTextColor.GRAY))
-                .append(Component.text(hp(health) + "❤", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text(" ➡ ", NamedTextColor.GRAY, TextDecoration.BOLD))
+                .append(Component.text(num(Math.max(0f, health)) + "❤", NamedTextColor.LIGHT_PURPLE))
                 .append(Component.text(" (", NamedTextColor.GRAY))
-                .append(Component.text(String.format(Locale.ROOT, "%.1f", delta), NamedTextColor.RED)) // signed: a heal reads negative
+                .append(change)
                 .append(Component.text(")", NamedTextColor.GRAY));
     }
 
-    private static String hp(float value) {
-        return String.format(Locale.ROOT, "%.1f", Math.max(0f, value));
+    // health to one decimal, but a whole value drops the ".0" (20, not 20.0; 15.4 stays)
+    private static String num(float value) {
+        String s = String.format(Locale.ROOT, "%.1f", value);
+        return s.endsWith(".0") ? s.substring(0, s.length() - 2) : s;
     }
 
     // captured minemen: pink @ around a bold white title; a pink-label footer row and the address
