@@ -128,6 +128,8 @@ public final class TestServer {
                 .repeat(TaskSchedule.seconds(30)).schedule();
         // legacy clients can't render the glowing region boxes - they get particle outlines
         Bloom.legacyViewers(p -> Mechanics.polyp.clientInfo().isLegacy(p));
+        // only 1.8 needs the tab sort-name trick; an unknown protocol stays modern (raw section codes would show)
+        ShardTabList.legacyViewers(p -> Mechanics.polyp.clientInfo().isLegacy(p));
         Canvas.theme(Msg.THEME);
         Canvas.profile("minemen", Msg.MINEMEN);
         Canvas.profile("scrims", Msg.SCRIMS);
