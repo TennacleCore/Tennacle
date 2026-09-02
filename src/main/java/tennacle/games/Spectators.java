@@ -2,6 +2,7 @@ package tennacle.games;
 
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.Spectating;
 import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorHud;
 import net.minestom.server.MinecraftServer;
@@ -36,7 +37,8 @@ public final class Spectators {
         ShardTabList.rule((viewer, subject) -> {
             Game watched = Matches.grotto().spectating(subject);
             if (watched == null) return null; // not a spectator: the viewer's scope decides
-            return Game.of(viewer) == watched || Matches.grotto().spectating(viewer) == watched;
+            if (Game.of(viewer) == watched) return Spectating.listed(watched); // spectate:listed - the members' view
+            return Matches.grotto().spectating(viewer) == watched;
         });
     }
 

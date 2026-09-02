@@ -1,5 +1,6 @@
 package tennacle.games.sumo;
 
+import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.games.Duels;
 import tennacle.games.HotArena;
@@ -16,6 +17,7 @@ import io.github.term4.grotto.modules.Countdown;
 import io.github.term4.grotto.modules.Freeze;
 import io.github.term4.grotto.modules.HealthDisplay;
 import io.github.term4.grotto.modules.Nametags;
+import io.github.term4.grotto.modules.Spectating;
 import io.github.term4.grotto.modules.KillCredit;
 import io.github.term4.grotto.modules.LastStanding;
 import io.github.term4.grotto.modules.Phases;
@@ -65,6 +67,7 @@ public final class Sumo {
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.OPENING).onExpire(TimeLimit.draw()),
                         Nametags::of,
+                        Spectating::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),

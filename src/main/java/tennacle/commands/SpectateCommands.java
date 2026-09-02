@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import io.github.term4.grotto.modules.Spectating;
 import java.util.List;
 import tennacle.Msg;
 import tennacle.games.Matches;
@@ -32,6 +33,7 @@ public final class SpectateCommands {
                 return;
             }
             Spectators.exit(me);
+            if (!Spectating.allowed(open.getFirst())) { Msg.err(me, "spectate", "that game doesn't allow spectators"); return; }
             Spectators.enter(open.getFirst(), me, null);
             Msg.tag(me, "spectate", "watching the " + open.getFirst().type().id() + " - ", Msg.run("/l"), " to leave");
         });
@@ -60,6 +62,7 @@ public final class SpectateCommands {
                 return;
             }
             Spectators.exit(me); // a view elsewhere ends first
+            if (!Spectating.allowed(game)) { Msg.err(me, "spectate", "that game doesn't allow spectators"); return; }
             Spectators.enter(game, me, target);
             Msg.tag(me, "spectate", "watching ", Msg.v(target.getUsername()), "'s " + game.type().id() + " - ",
                     Msg.run("/l"), " to leave");

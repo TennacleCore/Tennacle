@@ -1,5 +1,8 @@
 package tennacle.games.bridge;
 
+import java.util.Set;
+import net.minestom.server.codec.Codec;
+import io.github.term4.grotto.state.StateKey;
 import tennacle.Msg;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -58,14 +61,28 @@ public final class Rules implements GameModule {
     private String look;
     private int minBuildY;
     private int maxBuildY;
+    /** Absolute max build Y; {@code -1} keeps the {@code bridge:height} marker. */
+    public static final StateKey<Integer> HEIGHT = StateKey.of("build:height", Codec.INT, -1);
+    /** May place outside the {@code bridge:build} slices - still under the height and above the floor. */
+    public static final StateKey<Boolean> OUTSIDE = StateKey.of("build:outside", Codec.BOOLEAN, false);
+    /** May break MAP blocks outside the bridge sections; a block you placed is always yours to break. */
+    public static final StateKey<Boolean> BREAK_OUTSIDE = StateKey.of("build:break-outside", Codec.BOOLEAN, false);
+
+    private Game game;
     private Respawns respawns;
     private KillCredit credit;
     private Kits kits;
     private Restock restock;
 
     @Override
+    public @NotNull Set<StateKey<?>> rules() {
+        return Set.of(HEIGHT, OUTSIDE, BREAK_OUTSIDE);
+    }
+
+    @Override
     public void install(@NotNull Game game) {
         GameState st = game.state();
+        this.game = game;
         respawns = game.module(Respawns.class);
         credit = game.module(KillCredit.class);
         kits = game.module(Kits.class);
@@ -115,7 +132,9 @@ public final class Rules implements GameModule {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
-            if (!buildable(build, pos) || onASpawn(game, pos)) {
+            boolean allowed = buildable(build, pos)
+                    || (game.rules().resolve(Scope.GAME, OUTSIDE) && inBand(pos)); // off the slices, still in the band
+            if (!allowed || onASpawn(game, pos)) {
                 e.setCancelled(true);
                 Msg.err(player, "bridge", "you can't build there");
                 return;
@@ -128,7 +147,7 @@ public final class Rules implements GameModule {
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
             boolean own = placed.remove(packed(pos));
-            if (!own && !inBridge(game, pos)) {
+            if (!own && !inBridge(game, pos) && !game.rules().resolve(Scope.GAME, BREAK_OUTSIDE)) {
                 e.setCancelled(true);
                 Msg.err(player, "bridge", "you can't break that");
                 return;
@@ -223,10 +242,20 @@ public final class Rules implements GameModule {
                     || pos.blockZ() < box.min().blockZ() || pos.blockZ() > box.max().blockZ()) continue;
             boolean flat = box.min().blockY() == box.max().blockY();
             int lo = flat ? minBuildY : box.min().blockY();
-            int hi = flat ? maxBuildY : box.max().blockY();
+            int hi = flat ? ceiling() : box.max().blockY();
             if (pos.blockY() >= lo && pos.blockY() <= hi) return true;
         }
         return false;
+    }
+
+    // the global band: the bridge's underside up to the marker, or the rule when one is set
+    private int ceiling() {
+        int rule = game.rules().resolve(Scope.GAME, HEIGHT);
+        return rule >= 0 ? rule : maxBuildY;
+    }
+
+    private boolean inBand(Point pos) {
+        return pos.blockY() >= minBuildY && pos.blockY() <= ceiling();
     }
 
     private static boolean onASpawn(Game game, Point pos) {

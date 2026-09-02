@@ -164,7 +164,7 @@ public final class Matches {
         Ruleset rules = mode.ruleset(platform.ruleset());
         Ruleset live = modifiers.get(game.id());
         if (live != null) rules = live.over(rules);
-        MechanicsProfile.Builder profile = mode.profile().get();
+        MechanicsProfile.Builder profile = Presets.builderFor(game, mode); // mechanics:preset, else the mode's
         rules.apply(profile, Mechanics.polyp.profiles().global(), game);
         Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
         rules.seed(game);

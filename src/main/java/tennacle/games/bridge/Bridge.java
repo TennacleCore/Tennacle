@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
@@ -22,6 +23,7 @@ import io.github.term4.grotto.modules.Freeze;
 import io.github.term4.grotto.modules.HealthDisplay;
 import io.github.term4.grotto.modules.HitReport;
 import io.github.term4.grotto.modules.Nametags;
+import io.github.term4.grotto.modules.Spectating;
 import io.github.term4.grotto.modules.FriendlyFire;
 import io.github.term4.grotto.modules.Goals;
 import io.github.term4.grotto.modules.KillCredit;
@@ -183,6 +185,7 @@ public final class Bridge {
                             if (rules != null) rules.fell(p);
                         }),
                         Nametags::of,
+                        Spectating::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> HitReport.of().types(ProjectileDamage.KEY).line(g -> Matches.lookOf(g).hit()), // arrows are thrown-typed
                         () -> Kits.of(KIT),
