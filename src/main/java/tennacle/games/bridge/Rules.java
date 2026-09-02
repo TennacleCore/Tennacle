@@ -14,7 +14,10 @@ import io.github.term4.grotto.modules.KillCredit;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.modules.Respawns;
 import io.github.term4.grotto.modules.Restock;
+import io.github.term4.grotto.modules.Score;
+import io.github.term4.grotto.modules.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
+import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
@@ -25,6 +28,8 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -165,6 +170,21 @@ public final class Rules implements GameModule {
         if (game == null || game.roster().slotOf(player) == null) return;
         announceFall(game, player);
         respawns.queue(player);
+    }
+
+    /** Sudden death: the next goal decides (drop the target to one over the tied score), announce it, and - per
+     *  {@code time:sudden-death-reset} - throw everyone back to the cages for a fresh round (kits per {@code round:reset}). */
+    static void suddenDeath(@NotNull Game game) {
+        int max = 0;
+        for (Team team : game.roster().teams()) max = Math.max(max, game.state().get(Scope.team(team.id()), Bridge.GOALS));
+        game.state().set(Scope.GAME, Score.TARGET, max + 1);
+        Title title = Title.title(Component.text("SUDDEN DEATH", NamedTextColor.RED, TextDecoration.BOLD),
+                Component.text("Next goal wins!", NamedTextColor.GRAY), Match.times(game, 5, 50, 10));
+        game.forEachMember(member -> member.showTitle(title));
+        if (game.rules().resolve(Scope.GAME, TimeLimit.SUDDEN_DEATH_RESET)) {
+            game.state().alarms().arm(Cages.RECAGE_ALARM, game.state().tick() + 1,
+                    CompoundBinaryTag.builder().putString("scorer", "").putString("team", "").build());
+        }
     }
 
     /** The kit back on a fresh body, the quiver reset - after a respawn and after a goal. */

@@ -163,6 +163,7 @@ public final class Bridge {
                 .body(Body.fresh().gamemode(GameMode.SURVIVAL)) // bridge digs and builds
                 .rule(Score.TARGET, 5)
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
+                .rule(TimeLimit.SUDDEN_DEATH, false) // ranked turns this on: a drawn clock plays on
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing or a block touch forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
@@ -170,7 +171,8 @@ public final class Bridge {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.teams(GOALS).target(Score.TARGET),
-                        () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(GOALS)),
+                        () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(GOALS))
+                                .suddenDeath(Rules::suddenDeath),
                         () -> Respawns.manual().anchor(RESPAWN),
                         KillCredit::new,
                         FriendlyFire::new,
