@@ -42,6 +42,10 @@ GameType.builder("bridge")
                 .keepInventory(false))     // snapshot on entry, restore on exit (default)
 ```
 
+The snapshot is the whole body the game may touch: inventory, gamemode, flying and allow-flying
+(a ghosted loser hovers), plus the vitals list above. Restore means the snapshot, not "the lobby's
+idea of fresh" - the exit policy stops knowing anything about bodies.
+
 - `join` (fresh or reclaim): snapshot inventory once per player (never overwritten by a reclaim),
   clear it, apply gamemode, reset vitals, THEN dispatch `onJoin` (so `Kits` lands on an empty body).
 - `leave/depart/disconnect`: modules' `onLeave` first (Speed removal, arrows), then restore.
@@ -66,8 +70,9 @@ Phases.enteredAt(game, Match.OVER)   // DONE_AT
 Phases.is(game, Match.LIVE)          // the one check every rule makes
 ```
 
-Phase names are data; Tennacle's `Match` holds the three constants every duel mode shares. `decide`
-enters the last phase itself, so `OVER` and "decided" are one moment.
+Phase names are data; Tennacle's `Match` holds the three constants every duel mode shares. `Phases`
+enters its last phase from `onDecided`, so `OVER` and "decided" are one moment; a game that ends
+without deciding enters it from `onEnd`.
 
 ### 3. LastStanding: who is out, and when that ends the game
 
@@ -85,9 +90,11 @@ public final class LastStanding implements GameModule {
 
 - `onLeave`: seat null -> ignore (spectators settle nothing); reserved -> wait; else `out(FORFEIT)`.
 - `onReclaimExpired`: `out(FORFEIT)` - the window finally has an ending.
-- After every `out`: teams with a standing seat; one left -> `decide(winner(team))`; none ->
-  `decide(draw)`. A 2v2 loser's teammate is never crowned because the derivation is by team, not
-  by "first other member".
+- After every `out`: a team STANDS while it has a present member or a live reservation. One team
+  standing -> `decide(winner(team))`, unless nobody on it is present (both sides walked out with
+  windows open): then wait - a return wins, its own expiry draws. None standing -> `decide(draw)`.
+  A 2v2 loser's teammate is never crowned because the derivation is by team, not by "first other
+  member".
 - `requireAllSeatedAt(LIVE)`: replaces `abortIfAlone` - `Outcome.aborted()`, not a draw.
 
 Sumo's ring-out, bridge's nothing (bridge respawns), boxing's nothing: modes call `out` only for
@@ -103,8 +110,8 @@ TimeLimit.of(Boxing.LIMIT).from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLo
 TimeLimit.of(Bridge.LIMIT_TICKS).from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(Bridge.GOALS))
 ```
 
-`Score` rides `rules().watch` (the ledger write spine), so a scoreboard and the decider see the same
-write. `TimeLimit.left(game)` replaces `Duels.timeLeft`; the clock anchors on the phase entry tick,
+`Score` rides `rules().watch`, which already reports the scope of every committed write, so a
+scoreboard and the decider see the same write and the decider knows which team or seat crossed. `TimeLimit.left(game)` replaces `Duels.timeLeft`; the clock anchors on the phase entry tick,
 so grace and countdowns never eat it. Ties resolve to a draw unless the decider says otherwise.
 
 ### 5. Countdown and Freeze, with a Voice seam
@@ -134,8 +141,9 @@ becomes `manual()` + `queue`.
 
 ### 7. Results capture at the bell
 
-`Results` snapshots at `onDecided`, not `onEnd`: the state is final at the decision, and the body
-restore at end can no longer race it. The "declare this module first" rule disappears.
+`Results` snapshots at `onDecided`, not `onEnd` (at `onEnd` only for a game that ends without
+deciding): the state is final at the decision, and the body restore at end can no longer race it.
+The "declare this module first" rule disappears.
 
 ### 8. Rule keys: the gamerules that are not mechanics
 
@@ -156,11 +164,14 @@ with a default on the type, seeded per scope by a ruleset, resolved seat -> team
   constant.
 - **Enumerable per mode, derived.** `GameType.supportedRules()` = the type's own defaults plus the
   union of its modules' declarations (factories build a module to ask; constructors do no work,
-  `install` does). That is the whole "what can I change in bridge" list: id, doc, default, codec -
+  `install` does). `Choice` declares its variants up front (`Choice.of(pick, variants...)`, `byLook`
+  is its one caller) so a per-look pick still enumerates. No static registry anywhere: the list is
+  derived from the type, which is exactly what kept `Rulesets` out of the old boot sweep. That is the whole "what can I change in bridge" list: id, doc, default, codec -
   nothing hand-maintained, nothing to drift, the same promise the mechanics KNOBS tables keep.
 - **Addressable from data.** `Ruleset.rule("bridge:arrow-ticks", "60")` next to `.rule(KEY, 60)`:
-  the id resolves through the mode's supported rules, the value parses through the key's codec (the
-  scalar codecs; a list-valued key stays code-only, like a generic knob). `check` reports an unknown
+  the id resolves through the mode's supported rules, the value parses through the key's Minestom
+  codec over `Transcoder.JSON` (a bare word reads as a JSON string; a list-valued key stays
+  code-only, like a generic knob). `check` reports an unknown
   id, an unparsable value, or a key no installed module reads ("bridge has no rule cages:seconds
   without Cages") - the availability rule, enforced where a typo is cheapest.
 - **Structural rules read at install, live rules at use.** `cages:enabled=false` makes `Cages` a
@@ -243,7 +254,9 @@ teams). Every `"fighting".equals(...)`.
    `StateKey` codecs. Each with a `ModulesTest` case (the harness already launches games on a flat
    arena).
 2. Tennacle: `Mode`/`Matches`/`Presentation`; sumo first (smallest), then boxing, then bridge with
-   the Respawns adoption. Delete as each mode moves. The captured behaviours (beat titles, verdicts,
+   `TestWiring`, `BridgeRoundTest` and `DuelCommandTest` rewritten against `Matches` and `Phases`
+   as each mode moves (they read `Duels.PHASE` and `onLaunch` today), and bridge takes the Respawns
+   adoption. Delete as each mode moves. The captured behaviours (beat titles, verdicts,
    goal fireworks, cage counts) stay bit-for-bit: the looks do not change, only who calls them.
    Every gameplay constant becomes a declared rule key on the way (`Ruleset.rule(id, value)` gets
    its `check` against the mode's supported rules at the same time).
