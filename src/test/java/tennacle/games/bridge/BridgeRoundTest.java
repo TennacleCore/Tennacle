@@ -42,20 +42,20 @@ class BridgeRoundTest extends HeadlessServerTest {
         tennacle.games.TestWiring.ensure(instance);
     }
 
-    /** Deck along x, red west / blue east, goals at the far ends - every expected marker aboard. */
+    /** Deck along x, 1 west / 2 east, goals at the far ends - every expected marker aboard. */
     private static Arena fixture() {
         Session s = Session.create("bridge-fixture", new ShardManager(), p -> {});
         try {
             for (int x = -8; x <= 8; x++) s.instance().setBlock(x, 64, 0, Block.WHITE_TERRACOTTA);
             s.addMarker(new RegionMarker("center", "", "", new BlockVec(0, 64, 0), new BlockVec(0, 64, 0)));
-            s.addMarker(new RegionMarker("section", "red", "", new BlockVec(-8, 64, 0), new BlockVec(-1, 64, 0)));
-            s.addMarker(new RegionMarker("section", "blue", "", new BlockVec(1, 64, 0), new BlockVec(8, 64, 0)));
-            s.addMarker(new PosMarker("bridge:cage", "red", "", new Pos(-4.5, 65, 0.5, -90, 0)));
-            s.addMarker(new PosMarker("bridge:cage", "blue", "", new Pos(5.5, 65, 0.5, 90, 0)));
-            s.addMarker(new PosMarker("bridge:respawn", "red", "", new Pos(-4.5, 65, 0.5, -90, 0)));
-            s.addMarker(new PosMarker("bridge:respawn", "blue", "", new Pos(5.5, 65, 0.5, 90, 0)));
-            s.addMarker(new RegionMarker("bridge:goal", "red", "", new BlockVec(-8, 64, -1), new BlockVec(-7, 66, 1)));
-            s.addMarker(new RegionMarker("bridge:goal", "blue", "", new BlockVec(7, 64, -1), new BlockVec(8, 66, 1)));
+            s.addMarker(new RegionMarker("section", "1", "", new BlockVec(-8, 64, 0), new BlockVec(-1, 64, 0)));
+            s.addMarker(new RegionMarker("section", "2", "", new BlockVec(1, 64, 0), new BlockVec(8, 64, 0)));
+            s.addMarker(new PosMarker("bridge:cage", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
+            s.addMarker(new PosMarker("bridge:cage", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
+            s.addMarker(new PosMarker("bridge:respawn", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
+            s.addMarker(new PosMarker("bridge:respawn", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
+            s.addMarker(new RegionMarker("bridge:goal", "1", "", new BlockVec(-8, 64, -1), new BlockVec(-7, 66, 1)));
+            s.addMarker(new RegionMarker("bridge:goal", "2", "", new BlockVec(7, 64, -1), new BlockVec(8, 66, 1)));
             s.addMarker(new RegionMarker("bridge:build", "", "", new BlockVec(-8, 65, -2), new BlockVec(8, 65, 2)));
             s.addMarker(new LimitMarker("bridge:height", "pinned", "", null, 72.0, null));
             s.addMarker(new LimitMarker("bridge:void", "", "", null, 54.0, null));
@@ -116,7 +116,7 @@ class BridgeRoundTest extends HeadlessServerTest {
                     () -> handicap.without(io.github.term4.grotto.state.Scope.team(redTeam))
                             .apply(io.github.term4.polyp.MechanicsProfile.builder(), null));
             var typo = tennacle.games.Ruleset.named("typo")
-                    .path(io.github.term4.grotto.state.Scope.team("green"), "projectiles/minecraft:arrow/stuckInBody", true);
+                    .path(io.github.term4.grotto.state.Scope.team("3"), "projectiles/minecraft:arrow/stuckInBody", true);
             org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
                     () -> typo.apply(io.github.term4.polyp.MechanicsProfile.builder(), null, game),
                     "a team the roster lacks fails the fold, it does not apply to nobody");
@@ -130,9 +130,9 @@ class BridgeRoundTest extends HeadlessServerTest {
             tickUntil(game, "GO", () -> Match.live(game));
             assertTrue(Phases.enteredAt(game, Match.LIVE) >= 0, "the clock anchored at the first beat");
 
-            Player scorer = "blue".equals(Bridge.teamOf(game, blue.player)) ? blue.player : red.player;
+            Player scorer = "2".equals(Bridge.teamOf(game, blue.player)) ? blue.player : red.player;
             // the scorer steps into the OTHER team's goal
-            Pos goal = "blue".equals(Bridge.teamOf(game, scorer)) ? new Pos(-7.5, 65, 0.5) : new Pos(7.5, 65, 0.5);
+            Pos goal = "2".equals(Bridge.teamOf(game, scorer)) ? new Pos(-7.5, 65, 0.5) : new Pos(7.5, 65, 0.5);
             EventDispatcher.call(new PlayerMoveEvent(scorer, goal, true));
             String team = Bridge.teamOf(game, scorer);
             tickUntil(game, "goal counted", () -> game.state().get(Scope.team(team), Bridge.GOALS) == 1);

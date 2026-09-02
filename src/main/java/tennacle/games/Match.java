@@ -61,6 +61,12 @@ public final class Match {
         return game.roster().team(teamOf(game, player)).color();
     }
 
+    /** The player's team as its color's name ("RED"), or {@code ""} when they hold no seat. */
+    public static @NotNull String teamName(@NotNull Game game, @NotNull Player player) {
+        String team = teamOf(game, player);
+        return team.isEmpty() ? "" : Palette.of(game, team).name();
+    }
+
     /** Bumps a per-seat counter for {@code player}; a seatless player (spectator) counts nothing. */
     public static void addSeat(@NotNull Game game, @NotNull Player player, @NotNull StateKey<Integer> key) {
         Slot seat = game.roster().slotOf(player);

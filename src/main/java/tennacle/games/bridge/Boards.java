@@ -18,7 +18,6 @@ import net.minestom.server.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /** Bridge's board rows per network; the chrome comes from {@link Frames}. */
 final class Boards {
@@ -87,7 +86,7 @@ final class Boards {
     private static Component circles(Game game, Team team, boolean boldLabel) {
         int goals = game.state().get(Scope.team(team.id()), Bridge.GOALS);
         int target = Math.max(goals, game.rules().resolve(Scope.GAME, Score.TARGET));
-        String tag = "[" + team.id().substring(0, 1).toUpperCase(Locale.ROOT) + "] ";
+        String tag = "[" + tennacle.games.Palette.of(game, team.id()).letter() + "] ";
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);
         return Component.empty().append(label)

@@ -1,70 +1,108 @@
 package tennacle.games;
 
+import io.github.term4.barnacle.Arena;
+import io.github.term4.barnacle.marker.MarkerKey;
+import io.github.term4.bloom.Teams;
+import io.github.term4.grotto.Game;
+import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.util.RGBLike;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
 /**
- * The one place a team's LOOK lives: the chat color, the leather dye, and the DYE color of any block it places.
- * A side names a dye ({@code "lime"} for a green team, say - decoupled from the team's own name), and its block in
- * any {@link Family} resolves from that: {@code Palette.of("green").block(Family.WOOL)} is lime wool, {@code .glass()}
- * lime stained glass, and so on for concrete, panes, carpet. A game names its sides on the markers, so swapping a
- * map from red/blue to purple/orange is one edit; an unlisted name falls back to white.
+ * A team's look: {@code display} on the chat wire, {@code armor} for leather, the block it places ({@code family}
+ * in {@code hue}) and its {@code section}'s hue. A team is an ordinal ("1", "2", ...) with a default look per
+ * ordinal; the arena's {@link Teams team marker} overrides any field of it.
  */
-public final class Palette {
+public record Palette(@NotNull TextColor display, @NotNull RGBLike armor, @NotNull String family,
+                      @NotNull String hue, @NotNull String section) {
 
-    /** A colored block family - {@code minecraft:<dye>_<suffix>}. Modern-only families resolve to null on older data. */
-    public enum Family {
-        WOOL("wool"), TERRACOTTA("terracotta"), CARPET("carpet"),
-        GLASS("stained_glass"), PANE("stained_glass_pane"),
-        CONCRETE("concrete"), CONCRETE_POWDER("concrete_powder");
+    public static final Palette NEUTRAL = new Palette(NamedTextColor.WHITE, NamedTextColor.WHITE, "terracotta", "white", "white");
 
-        private final String suffix;
-        Family(String suffix) { this.suffix = suffix; }
+    private static final List<Palette> DEFAULTS = List.of(
+            dyed(NamedTextColor.RED, NamedTextColor.RED, "red"),
+            dyed(NamedTextColor.BLUE, NamedTextColor.BLUE, "blue"),
+            dyed(NamedTextColor.GREEN, NamedTextColor.GREEN, "lime"),
+            dyed(NamedTextColor.YELLOW, NamedTextColor.YELLOW, "yellow"),
+            dyed(NamedTextColor.AQUA, NamedTextColor.AQUA, "cyan"),
+            dyed(NamedTextColor.LIGHT_PURPLE, NamedTextColor.LIGHT_PURPLE, "pink"),
+            dyed(NamedTextColor.DARK_PURPLE, TextColor.color(0x8B2FBE), "purple"),
+            dyed(NamedTextColor.GOLD, TextColor.color(0xE0791E), "orange"));
+
+    private static Palette dyed(TextColor display, RGBLike armor, String hue) {
+        return new Palette(display, armor, "terracotta", hue, hue);
     }
 
-    /** A side: {@code color} on the 1.8 chat wire (named), {@code dye} RGB for leather, {@code hue} the dye a block takes. */
-    public record Side(@NotNull TextColor color, @NotNull RGBLike dye, @NotNull String hue) {
-        /** The side's block in {@code family} (lime wool, purple glass, ...); white when the material does not exist. */
-        public @NotNull Material block(@NotNull Family family) {
-            Material material = Material.fromKey("minecraft:" + hue + "_" + family.suffix);
-            return material != null ? material : Material.WHITE_TERRACOTTA;
+    /** The ordinal's default; a non-ordinal or unlisted id is {@link #NEUTRAL}. */
+    public static @NotNull Palette defaults(@NotNull String team) {
+        int n = ordinal(team);
+        return n >= 1 && n <= DEFAULTS.size() ? DEFAULTS.get(n - 1) : NEUTRAL;
+    }
+
+    /** The ordinal's default with the arena's team marker laid over it. */
+    public static @NotNull Palette of(@NotNull Arena arena, @NotNull String team) {
+        Palette p = defaults(team);
+        Teams.Spec spec = Teams.of(arena, team);
+        if (spec.display() != null) p = new Palette(Teams.color(spec.display()), p.armor, p.family, p.hue, p.section);
+        if (spec.armor() != null) p = new Palette(p.display, Teams.color(spec.armor()), p.family, p.hue, p.section);
+        if (spec.blocks() != null) {
+            String[] blocks = Teams.blocks(spec.blocks());
+            p = new Palette(p.display, p.armor, blocks[0], blocks[1], p.section);
         }
-
-        public @NotNull Material terracotta() { return block(Family.TERRACOTTA); }
-        public @NotNull Material wool() { return block(Family.WOOL); }
+        if (spec.section() != null) p = new Palette(p.display, p.armor, p.family, p.hue, spec.section());
+        return p;
     }
 
-    private static final Side DEFAULT = new Side(NamedTextColor.WHITE, NamedTextColor.WHITE, "white");
-
-    private static final Map<String, Side> SIDES = Map.ofEntries(
-            Map.entry("red", new Side(NamedTextColor.RED, NamedTextColor.RED, "red")),
-            Map.entry("blue", new Side(NamedTextColor.BLUE, NamedTextColor.BLUE, "blue")),
-            Map.entry("green", new Side(NamedTextColor.GREEN, NamedTextColor.GREEN, "lime")),
-            Map.entry("yellow", new Side(NamedTextColor.YELLOW, NamedTextColor.YELLOW, "yellow")),
-            Map.entry("aqua", new Side(NamedTextColor.AQUA, NamedTextColor.AQUA, "cyan")),
-            Map.entry("pink", new Side(NamedTextColor.LIGHT_PURPLE, NamedTextColor.LIGHT_PURPLE, "pink")),
-            Map.entry("purple", new Side(NamedTextColor.DARK_PURPLE, TextColor.color(0x8B2FBE), "purple")),
-            Map.entry("orange", new Side(NamedTextColor.GOLD, TextColor.color(0xE0791E), "orange")));
-
-    private Palette() {}
-
-    public static @NotNull Side of(@NotNull String side) {
-        return SIDES.getOrDefault(side, DEFAULT);
+    public static @NotNull Palette of(@NotNull Game game, @NotNull String team) {
+        return of(game.arena(), team);
     }
 
-    /** Whether {@code side} is a known named side (an arena's marker group can name any of these). */
-    public static boolean has(@NotNull String side) {
-        return SIDES.containsKey(side);
+    /** The arena's teams - the groups of its {@code seats} markers in ordinal order - each in its palette. */
+    public static @NotNull List<Team> teams(@NotNull Arena arena, @NotNull MarkerKey<?> seats) {
+        List<String> ids = new ArrayList<>(arena.groups(seats));
+        ids.sort(Comparator.comparingInt(Palette::ordinal).thenComparing(Comparator.naturalOrder()));
+        List<Team> teams = new ArrayList<>();
+        for (String id : ids) {
+            if (id.isEmpty()) continue;
+            Palette p = of(arena, id);
+            teams.add(new Team(id, p.display, p.armor));
+        }
+        return teams;
     }
 
-    /** The two-sided default in order - what a 1v1 or a bridge duel declares unless a map says otherwise. */
-    public static @NotNull List<String> versus() {
-        return List.of("red", "blue");
+    /** The block this team places. */
+    public @NotNull Material blocks() {
+        Material material = Material.fromKey("minecraft:" + hue + "_" + family);
+        return material != null ? material : Material.WHITE_TERRACOTTA;
+    }
+
+    /** The display color's name ("RED", "LIGHT PURPLE") - the networks print a team as its color's name. */
+    public @NotNull String name() {
+        return NamedTextColor.nearestTo(display).toString().toUpperCase(Locale.ROOT).replace('_', ' ');
+    }
+
+    public @NotNull String letter() {
+        return name().substring(0, 1);
+    }
+
+    /** The dye a cage's authored RED_* blocks take ("LIME"). */
+    public @NotNull String dye() {
+        return hue.toUpperCase(Locale.ROOT);
+    }
+
+    // a non-ordinal id sorts after every ordinal
+    private static int ordinal(String team) {
+        try {
+            return Integer.parseInt(team);
+        } catch (NumberFormatException e) {
+            return Integer.MAX_VALUE;
+        }
     }
 }

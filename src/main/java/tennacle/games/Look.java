@@ -90,7 +90,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             new Count(Look::scrimsNumber, null, (g, p) -> null),
             SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
             // captured: [RED] Dogln: message - the team tag in the team color, the rest white
-            (g, speaker, message) -> Component.text("[" + Match.teamOf(g, speaker).toUpperCase(Locale.ROOT) + "] ", Match.teamColor(g, speaker))
+            (g, speaker, message) -> Component.text("[" + Match.teamName(g, speaker) + "] ", Match.teamColor(g, speaker))
                     .append(Component.text(speaker.getUsername() + ": ", NamedTextColor.GRAY))
                     .append(Component.text(message, NamedTextColor.WHITE)),
             // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
@@ -262,7 +262,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                         t.color(), TextDecoration.BOLD));
             }
             viewer.showTitle(Title.title(
-                    Component.text(team.id().toUpperCase(Locale.ROOT) + " WINS!", team.color(), TextDecoration.BOLD),
+                    Component.text(Palette.of(game, team.id()).name() + " WINS!", team.color(), TextDecoration.BOLD),
                     score, times));
             return;
         }

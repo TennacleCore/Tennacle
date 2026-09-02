@@ -24,10 +24,10 @@ class RulesetTest extends HeadlessServerTest {
     void keepAndWithoutDropScopedEntriesSoTheRestFoldsWithoutAGame() {
         Ruleset scoped = Ruleset.named("scoped")
                 .path("hunger/enabled", false)
-                .path(Scope.team("red"), "hunger/enabled", true);
+                .path(Scope.team("1"), "hunger/enabled", true);
         assertThrows(IllegalStateException.class, () -> scoped.apply(MechanicsProfile.builder(), base()));
         assertDoesNotThrow(() -> scoped.keep(s -> s instanceof Scope.Game).apply(MechanicsProfile.builder(), base()));
-        assertDoesNotThrow(() -> scoped.without(Scope.team("red")).apply(MechanicsProfile.builder(), base()));
+        assertDoesNotThrow(() -> scoped.without(Scope.team("1")).apply(MechanicsProfile.builder(), base()));
     }
 
     @Test

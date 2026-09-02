@@ -106,8 +106,8 @@ public final class Bridge {
             .item("sword", 0, SWORD)
             .item("bow", 1, BOW)
             .item("pickaxe", 2, PICKAXE)
-            .item("blocks", 3, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
-            .item("blocks2", 4, (g, seat) -> ItemStack.of(blocks(seat.team()), 64))
+            .item("blocks", 3, (g, seat) -> ItemStack.of(tennacle.games.Palette.of(g, seat.team()).blocks(), 64))
+            .item("blocks2", 4, (g, seat) -> ItemStack.of(tennacle.games.Palette.of(g, seat.team()).blocks(), 64))
             .item("gapple", 5, ItemStack.of(Material.GOLDEN_APPLE, 8))
             .item("arrow", 9, ItemStack.of(Material.ARROW))
             .display("blocks", ItemStack.of(Material.WHITE_TERRACOTTA, 64))
@@ -151,9 +151,7 @@ public final class Bridge {
         MapPool arena = MapPool.of("bridge");
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
-                .teams(tennacle.games.Palette.versus().stream()
-                        .map(s -> new io.github.term4.grotto.roster.Team(s, tennacle.games.Palette.of(s).color(), tennacle.games.Palette.of(s).dye()))
-                        .toList())
+                .teams(a -> tennacle.games.Palette.teams(a, CAGE))
                 .expect(CAGE, 2)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)
@@ -228,9 +226,5 @@ public final class Bridge {
 
     static String teamOf(Game game, Player player) {
         return Match.teamOf(game, player);
-    }
-
-    private static Material blocks(String team) {
-        return tennacle.games.Palette.of(team).terracotta();
     }
 }
