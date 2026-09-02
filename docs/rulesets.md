@@ -70,8 +70,8 @@ not a documentation page - and it never drifts from the code because it IS the c
 **Tier 2 - rule settings: StateKeys, declared by the feature that consumes them.** `cages:seconds` is
 declared by the Cages module - NOT `bridge:*`; bridge is merely one installer, and any caged mode gets
 the setting by installing Cages. `score:target` is declared by the scoring seam, so bridge (first to 5),
-sumo (bo3), and pearl fight all expose it. `games:friendly-fire` / `games:bow-boost` belong to the
-team-combat rules module. A mode supports a rule setting iff the declaring module is installed -
+sumo (bo3), and pearl fight all expose it. `friendly-fire` is the `FriendlyFire` module's; a bow boost is
+the mechanics path `projectiles/minecraft:arrow/selfHit`. A mode supports a rule setting iff the declaring module is installed -
 availability is derived from `GameType.modules(...)`, no hand-maintained list, nothing to drift.
 
 ## Ruleset

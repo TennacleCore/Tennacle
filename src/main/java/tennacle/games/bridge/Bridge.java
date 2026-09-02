@@ -19,17 +19,21 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.modules.Freeze;
+import io.github.term4.grotto.modules.FriendlyFire;
+import io.github.term4.grotto.modules.Goals;
 import io.github.term4.grotto.modules.KillCredit;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.modules.LastStanding;
 import io.github.term4.grotto.modules.Limits;
 import io.github.term4.grotto.modules.Phases;
 import io.github.term4.grotto.modules.Respawns;
+import io.github.term4.grotto.modules.Restock;
 import io.github.term4.grotto.modules.Score;
 import io.github.term4.grotto.modules.TimeLimit;
 import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.vault.VaultKey;
+import io.github.term4.polyp.mechanics.projectile.types.Arrow;
 import io.github.term4.polyp.MechanicsProfile;
 import io.github.term4.polyp.config.FieldFns;
 import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
@@ -84,10 +88,6 @@ public final class Bridge {
     public static final StateKey<Integer> KILLS = StateKey.of("bridge:kills", Codec.INT, 0, true);
     /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
     public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
-    /** Your own arrow boosts you (KB + its damage); off = self hits are inert. */
-    public static final StateKey<Boolean> BOW_BOOST = StateKey.of("bridge:bow-boost", Codec.BOOLEAN, true);
-    /** Teammates can hurt each other; off = team hits are inert (matters from 2v2v2v2 up). */
-    public static final StateKey<Boolean> FRIENDLY_FIRE = StateKey.of("bridge:friendly-fire", Codec.BOOLEAN, false);
 
     // explicit per-team blocks - the team NAME never dictates the material
     private static final Map<String, Material> BLOCKS = Map.of(
@@ -172,12 +172,16 @@ public final class Bridge {
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(GOALS)),
                         () -> Respawns.manual().anchor(RESPAWN),
                         KillCredit::new,
+                        FriendlyFire::new,
+                        () -> Goals.of(GOAL).counter(GOALS).during(Match.LIVE),
                         () -> Limits.of().below(VOID, (p, plane) -> {
                             Game game = Game.of(p);
                             Rules rules = game != null ? game.module(Rules.class) : null;
                             if (rules != null) rules.fell(p);
                         }),
-                        () -> Kits.of(KIT), Rules::new, Presentation::new,
+                        () -> Kits.of(KIT),
+                        () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
+                        Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
                         () -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
                 .build();

@@ -156,21 +156,23 @@ with a default on the type, seeded per scope by a ruleset, resolved seat -> team
 
 - **Declared by the consumer.** A module lists the keys it reads (`Countdown` its beats, grace and interval,
   the deciders their shared linger):
-  `default Set<StateKey<?>> rules()` on `GameModule`. `Score` declares `grotto:score:target`,
-  `Respawns` its two windows, `KillCredit` its credit ticks, `TimeLimit` its limit, `Kits`
-  `grotto:reset-on-round`, `Cages` `cages:seconds` and `cages:enabled`, bridge `Rules`
-  `bridge:arrow-ticks`, `bridge:bow-boost`, `bridge:friendly-fire`. A generic seam declares a
+  `default Set<StateKey<?>> rules()` on `GameModule`. `Score` declares `score:target`,
+  `Respawns` `respawn:delay` and `respawn:protect`, `KillCredit` `kill:credit`, `TimeLimit` `time:limit`,
+  `Kits` `round:reset`, `Goals` `goal:cooldown`, `Restock` `restock:<item>`, `FriendlyFire` `friendly-fire`,
+  `Freeze` `freeze:immune`, `Cages` `cages:seconds` and `cages:enabled`. Ids read `owner:setting`, units live
+  in the doc, and engine rules carry no prefix - only a mode's own keys do. A generic seam declares a
   generic key so every mode that installs it exposes the same setting; a mode-specific behaviour
   declares a mode-specific key. Whether players reset between rounds is not a bridge question, so
-  the key is `Kits`'s and the goal is only what makes bridge ask it. No constant that a platform or a player could want to vary stays a
-  constant.
+  the key is `Kits`'s and the goal is only what makes bridge ask it. A bow boost is not a rule at all:
+  it is the mechanics path `projectiles/minecraft:arrow/selfHit`. No constant that a platform or a player
+  could want to vary stays a constant.
 - **Enumerable per mode, derived.** `GameType.supportedRules()` = the type's own defaults plus the
   union of its modules' declarations (factories build a module to ask; constructors do no work,
   `install` does). `Choice` declares its variants up front (`Choice.of(pick, variants...)`, `byLook`
   is its one caller) so a per-look pick still enumerates. No static registry anywhere: the list is
   derived from the type, which is exactly what kept `Rulesets` out of the old boot sweep. That is the whole "what can I change in bridge" list: id, doc, default, codec -
   nothing hand-maintained, nothing to drift, the same promise the mechanics KNOBS tables keep.
-- **Addressable from data.** `Ruleset.rule("bridge:arrow-ticks", "60")` next to `.rule(KEY, 60)`:
+- **Addressable from data.** `Ruleset.rule("restock:arrow", "60")` next to `.rule(KEY, 60)`:
   the id resolves through the mode's supported rules, the value parses through the key's Minestom
   codec over `Transcoder.JSON` (a bare word reads as a JSON string; a list-valued key stays
   code-only, like a generic knob). `check` reports an unknown
@@ -178,8 +180,9 @@ with a default on the type, seeded per scope by a ruleset, resolved seat -> team
   without Cages") - the availability rule, enforced where a typo is cheapest.
 - **Structural rules read at install, live rules at use.** `cages:enabled=false` makes `Cages` a
   plain opener with no re-cage between goals and lets `Respawns` respawn normally;
-  `grotto:reset-on-round` is read at each goal. Both work because the launch configure folds and seeds BEFORE modules
-  install, which the fold already guarantees.
+  `round:reset` is read at each goal. Both work because the launch configure folds and seeds BEFORE modules
+  install, which the fold already guarantees. Everything else resolves at use, or watches its key
+  (`time:limit` moves the deadline, `countdown:from` counts whatever it reads when the grace ends).
 - **Per scope, as today.** `.rule(Scope.team("red"), Score.TARGET, 3)` is a handicap; a rule read
   for a player resolves through their seat and team first.
 

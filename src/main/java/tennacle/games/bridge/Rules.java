@@ -9,75 +9,55 @@ import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.modules.Goals;
 import io.github.term4.grotto.modules.KillCredit;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.modules.Respawns;
+import io.github.term4.grotto.modules.Restock;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
-import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
-import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
-import io.github.term4.polyp.mechanics.projectile.types.Arrow;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
-import net.minestom.server.event.player.PlayerMoveEvent;
-import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
- * Goals, the build band, the quiver, and the hit gates bridge adds (bow boost, friendly fire). Deaths and falls
- * go to {@code Respawns}, credit to {@code KillCredit}, the void line to {@code Limits}, the outcome to
- * {@code Score} and {@code TimeLimit}. Shoves never hurt behind protection.
+ * The build band, protection, kills and falls, and the goal ceremony. Goals themselves are {@code Goals},
+ * teammates {@code FriendlyFire}, the quiver {@code Restock}, a self shot {@code projectiles/minecraft:arrow/selfHit};
+ * deaths and falls go to {@code Respawns}, credit to {@code KillCredit}, the void line to {@code Limits}, the
+ * outcome to {@code Score} and {@code TimeLimit}. Shoves never hurt behind protection.
  */
 public final class Rules implements GameModule {
 
-    /** Shot-to-return time for the one quiver arrow; 3.5s is the termbridge/hypixel return. */
-    public static final StateKey<Long> ARROW_TICKS = StateKey.of("bridge:arrow-ticks", Codec.LONG, 70L);
-    /** Ticks after a goal before another can count. */
-    public static final StateKey<Long> GOAL_COOLDOWN = StateKey.of("bridge:goal-cooldown", Codec.LONG, 40L);
-
     static final String REFIT_ALARM = "bridge:refit";
-    private static final String QUIVER_ALARM = "bridge:quiver";
     private static final Sound ARROW_BACK =
             Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1f);
 
-    private long goalCooldownUntil;
-    private final Map<Player, Long> arrowDue = new HashMap<>();
     private final LongSet placed = new LongOpenHashSet();
     private String look;
-    private long arrowTicks;
     private int minBuildY;
     private int maxBuildY;
-    private List<RegionMarker> goals;
     private Respawns respawns;
     private KillCredit credit;
     private Kits kits;
-
-    @Override
-    public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(ARROW_TICKS, GOAL_COOLDOWN, Bridge.BOW_BOOST, Bridge.FRIENDLY_FIRE);
-    }
+    private Restock restock;
 
     @Override
     public void install(@NotNull Game game) {
@@ -85,9 +65,13 @@ public final class Rules implements GameModule {
         respawns = game.module(Respawns.class);
         credit = game.module(KillCredit.class);
         kits = game.module(Kits.class);
-        if (respawns == null || credit == null || kits == null) {
-            throw new IllegalStateException("bridge Rules needs Respawns, KillCredit and Kits installed before it");
+        restock = game.module(Restock.class);
+        Goals goals = game.module(Goals.class);
+        if (respawns == null || credit == null || kits == null || restock == null || goals == null) {
+            throw new IllegalStateException("bridge Rules needs Respawns, KillCredit, Kits, Restock and Goals installed before it");
         }
+        goals.onGoal((scorer, seat, n) -> score(game, scorer, seat, n));
+        restock.onRestock((owner, item) -> owner.playSound(ARROW_BACK));
         RegionMarker build = game.arena().markers(Bridge.BUILD).getFirst();
         int floor = Integer.MAX_VALUE;
         for (var key : List.of(Bridge.SECTION, Bridge.CENTER)) {
@@ -99,11 +83,7 @@ public final class Rules implements GameModule {
         }
         minBuildY = floor; // never beneath the bridge's underside
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
-        goals = game.arena().markers(Bridge.GOAL); // fixed for the map: never re-queried per move packet
         look = tennacle.games.Matches.lookNameOf(game); // stamped before modules install, never changes
-        arrowTicks = game.rules().resolve(Scope.GAME, ARROW_TICKS);
-        boolean bowBoost = game.rules().resolve(Scope.GAME, Bridge.BOW_BOOST);
-        boolean friendlyFire = game.rules().resolve(Scope.GAME, Bridge.FRIENDLY_FIRE);
         respawns.onRespawn((player, seat) -> refit(game, player));
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
@@ -111,19 +91,9 @@ public final class Rules implements GameModule {
             if (seat == null) return;
             // arrows resolve source to the shooter (snapshot contract), so this credits bow kills too
             Player source = e.source() instanceof Player p ? p : null;
-            if (source == victim) { // a bow boost: never a "hit" - no credit, no protection forfeit
-                if (!bowBoost || !Match.live(game)) e.amount(0);
-                return;
-            }
-            if (source != null) {
-                Slot from = game.roster().slotOf(source);
-                if (!friendlyFire && from != null && from.team().equals(seat.team())) {
-                    e.amount(0); // gamerule: teammates never hurt each other
-                    return;
-                }
-                respawns.unprotect(source); // swinging forfeits your own protection
-            }
-            if (respawns.isProtected(victim) || !Match.live(game)) e.amount(0);
+            if (source == victim) return; // a bow boost: never a "hit" - no credit, no protection forfeit
+            if (source != null) respawns.unprotect(source); // swinging forfeits your own protection
+            if (respawns.isProtected(victim) || game.decided() != null) e.amount(0);
         });
         game.on(FatalDamageEvent.class, FatalDamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
@@ -134,18 +104,7 @@ public final class Rules implements GameModule {
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
             Player source = e.source() instanceof Player p ? p : null;
-            if (source == victim) {
-                if (!bowBoost) e.setCancelled(true); // boosting off = self arrows push nothing
-                return; // protection never blocks your own boost
-            }
-            if (source != null && !friendlyFire) {
-                Slot a = game.roster().slotOf(source);
-                Slot b = game.roster().slotOf(victim);
-                if (a != null && b != null && a.team().equals(b.team())) {
-                    e.setCancelled(true);
-                    return;
-                }
-            }
+            if (source == victim) return; // protection never blocks your own boost
             if (respawns.isProtected(victim)) e.setCancelled(true);
         });
         game.on(PlayerBlockPlaceEvent.class, e -> {
@@ -172,18 +131,6 @@ public final class Rules implements GameModule {
             }
             respawns.unprotect(player);
         });
-        game.on(PlayerMoveEvent.class, e -> {
-            Player player = e.getPlayer();
-            Slot seat = game.roster().slotOf(player);
-            if (seat == null || !Match.live(game) || st.tick() < goalCooldownUntil) return;
-            Pos to = e.getNewPosition();
-            for (RegionMarker goal : goals) {
-                if (goal.group().equals(seat.team()) || !goal.contains(to)) continue;
-                goalCooldownUntil = st.tick() + game.rules().resolve(Scope.GAME, GOAL_COOLDOWN);
-                score(game, player, seat);
-                return;
-            }
-        });
         game.on(net.minestom.server.event.item.ItemDropEvent.class, e -> {
             if (game.roster().slotOf(e.getPlayer()) == null) return;
             e.setCancelled(true);
@@ -204,12 +151,6 @@ public final class Rules implements GameModule {
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
-        game.on(ProjectileLaunchEvent.class, e -> e.snapshot().shooter(), e -> {
-            if (!(e.snapshot().type() instanceof Arrow) || !(e.snapshot().shooter() instanceof Player shooter)) return;
-            if (game.roster().slotOf(shooter) == null) return;
-            startQuiver(game, shooter);
-        });
-        st.alarms().register(QUIVER_ALARM, (tick, payload) -> quiverTick(game));
         st.alarms().register(REFIT_ALARM, (tick, payload) -> game.forEachMember(member -> {
             if (game.roster().slotOf(member) != null) {
                 game.body().fresh(member);
@@ -226,61 +167,9 @@ public final class Rules implements GameModule {
         respawns.queue(player);
     }
 
-    // one arrow in the quiver: shooting starts the return, the XP bar drains it down
-    private void startQuiver(Game game, Player shooter) {
-        boolean idle = arrowDue.isEmpty();
-        arrowDue.put(shooter, game.state().tick() + arrowTicks);
-        shooter.setLevel(4);
-        shooter.setExp(1f);
-        if (idle) game.state().alarms().arm(QUIVER_ALARM, game.state().tick() + 1);
-    }
-
-    private void quiverTick(Game game) {
-        long now = game.state().tick();
-        var pending = arrowDue.entrySet().iterator();
-        while (pending.hasNext()) {
-            var entry = pending.next();
-            Player owner = entry.getKey();
-            if (Game.of(owner) != game) { // left mid-flight
-                pending.remove();
-                continue;
-            }
-            long left = entry.getValue() - now;
-            if (left <= 0) {
-                giveArrow(owner);
-                owner.playSound(ARROW_BACK);
-                owner.setExp(0f);
-                owner.setLevel(0);
-                pending.remove();
-                continue;
-            }
-            owner.setExp(left / (float) arrowTicks);
-            owner.setLevel((int) Math.ceil(left / 20.0));
-        }
-        if (!arrowDue.isEmpty()) game.state().alarms().arm(QUIVER_ALARM, now + 1);
-    }
-
-    // regen stacks onto an existing arrow first; a fresh one lands where the player's layout puts it
-    private static void giveArrow(Player owner) {
-        var inv = owner.getInventory();
-        for (int slot = 0; slot < 36; slot++) {
-            ItemStack in = inv.getItemStack(slot);
-            if (in.material() == Material.ARROW) {
-                inv.setItemStack(slot, in.withAmount(in.amount() + 1));
-                return;
-            }
-        }
-        Map<String, Integer> layout = tennacle.games.KitLayouts.of(owner, "bridge");
-        int fallback = Bridge.KIT.defaultSlots().getOrDefault("arrow", 9);
-        inv.setItemStack(layout != null ? layout.getOrDefault("arrow", fallback) : fallback,
-                ItemStack.of(Material.ARROW));
-    }
-
     /** The kit back on a fresh body, the quiver reset - after a respawn and after a goal. */
     private void refit(Game game, Player player) {
-        arrowDue.remove(player);
-        player.setExp(0f);
-        player.setLevel(0);
+        restock.reset(player);
         player.getInventory().clear();
         kits.apply(player);
     }
@@ -344,10 +233,9 @@ public final class Rules implements GameModule {
         Match.each(game, p -> p.sendMessage(line));
     }
 
-    private void score(Game game, Player scorer, Slot seat) {
+    // Goals wrote the counter (Score decides at the target); this is the ceremony
+    private void score(Game game, Player scorer, Slot seat, int goals) {
         GameState st = game.state();
-        int goals = st.get(Scope.team(seat.team()), Bridge.GOALS) + 1;
-        st.set(Scope.team(seat.team()), Bridge.GOALS, goals); // Score decides at the target
         var color = game.roster().team(seat.team()).color();
         Component banner = switch (look) {
             case "minemen" -> null; // captured: minemen announces goals on the board and title only

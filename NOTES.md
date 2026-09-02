@@ -22,7 +22,7 @@
 - Combat: melee + arrows hurt (fatal = respawn behind 2s protection, never the death screen), hunger and
   natural regen off, gapple = full heal + absorption-if-absent (consumable config, no vanilla double-apply),
   arrows despawn on landing, no item tossing, clay drops on allowed breaks only.
-- Gamerules so far: `bridge:bow-boost` (default on), `bridge:friendly-fire` (default off).
+- Gamerules: `/rules` lists them per game (`friendly-fire`, `goal:cooldown`, `restock:arrow`, `freeze:immune`, ...); a bow boost is the path `projectiles/minecraft:arrow/selfHit`.
 - Codes: HMAC ids, board code letter-first Crockford (scrims dim = dark gray).
 
 ## Rulesets (modular mechanics + rules)

@@ -67,7 +67,7 @@ class StepThreeTest extends HeadlessServerTest {
 
             // a live modifier: a rule by id and a mechanics path, checked, then folded over the running game
             Matches.modify(game, Ruleset.named("live")
-                    .rule("grotto:time-limit", "1200")
+                    .rule("time:limit", "1200")
                     .path("projectiles/minecraft:arrow/critDamage", true));
             assertEquals(1200L, game.rules().resolve(Scope.GAME, TimeLimit.LIMIT));
             var arrow = Mechanics.polyp.profiles().resolve(a.player, MechanicsKeys.PROJECTILES).typeConfig(Arrow.KEY);
