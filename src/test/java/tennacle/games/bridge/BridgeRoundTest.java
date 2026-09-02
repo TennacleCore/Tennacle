@@ -84,8 +84,8 @@ class BridgeRoundTest extends HeadlessServerTest {
             var arrow = Mechanics.polyp.profiles().resolve(red.player,
                     io.github.term4.polyp.MechanicsKeys.PROJECTILES).typeConfig(
                     io.github.term4.polyp.mechanics.projectile.types.Arrow.KEY);
-            assertNull(arrow.critDamage, "bridge no longer overrides the crit roll");
-            assertNull(arrow.critParticles, "bridge no longer overrides the crit trail");
+            assertEquals(Boolean.FALSE, arrow.critDamage.constantOrNull(), "scrims: the crit roll is dropped");
+            assertNull(arrow.critParticles, "the crit trail follows the actual crit, never overridden");
 
             // a TEAM-scoped entry lands in the SAME world profile (stuckInBody proves it - the base sets it false)
             String redTeam = Bridge.teamOf(game, red.player);

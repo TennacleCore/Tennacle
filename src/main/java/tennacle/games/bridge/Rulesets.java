@@ -24,12 +24,15 @@ final class Rulesets {
             // the golden apple keeps its item, eat time and gate - only what it dishes out is swapped
             .path("consumables/minecraft:golden_apple/behavior", "heal-apple");
 
-    // an arrow is critical iff it was drawn full - no ruleset touches the crit meta or the roll, so the flag it
-    // carries and the bonus it deals always match (a partial draw is neither)
+    // the crit META is never touched - a full-draw arrow shows the flag, a partial does not (its actual crit state).
+    // hypixel and scrims drop the crit ROLL (critDamage false): the trail shows, the bonus does not; minemen rolls it.
     static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
     private static final Map<String, Ruleset> RULESETS = Map.of(
-            "hypixel", Ruleset.named("hypixel").over(BASE),
+            "hypixel", Ruleset.named("hypixel")
+                    .path("projectiles/minecraft:arrow/critDamage", false)
+                    .over(BASE),
             "scrims", Ruleset.named("scrims")
+                    .path("projectiles/minecraft:arrow/critDamage", false)
                     .rule(Cages.SECONDS, 5) // captured: five on scrims, three elsewhere
                     .over(BASE),
             "minemen", VANILLA_RULES.over(BASE));
