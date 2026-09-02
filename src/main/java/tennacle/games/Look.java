@@ -138,7 +138,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         viewer.sendMessage(theme.prose("Sudden death! ").append(theme.value("Next goal wins")).append(theme.prose(".")));
     }
 
-    // captured bow-duel callouts to the shooter, each network's own colours. `impact` is the signed health change:
+    // captured bow-duel callouts to the shooter, each network's own colors. `impact` is the signed health change:
     // negative for damage (shown -N in red), positive for a heal (+N in green). scrims/hypixel show only the health.
     // scrims: light-blue name, yellow "has", light-green health, a red heart
     private static Component scrimsHit(Player target, float health, float impact) {

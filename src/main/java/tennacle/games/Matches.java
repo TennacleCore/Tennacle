@@ -188,6 +188,14 @@ public final class Matches {
      */
     public static @NotNull Game start(@NotNull Mode mode, @NotNull Platform platform,
                                       @NotNull List<? extends Collection<Player>> sides) {
+        for (Collection<Player> side : sides) { // before the launch, so a refusal orphans nothing
+            for (Player player : side) {
+                Game now = Game.of(player);
+                if (now != null && now.status() == Game.Status.OPEN) {
+                    throw new IllegalStateException(player.getUsername() + " is in a game");
+                }
+            }
+        }
         Game game = launch(mode, platform, mode.arena().get());
         List<Team> teams = game.roster().teams();
         if (sides.size() > teams.size()) {
@@ -196,6 +204,7 @@ public final class Matches {
         }
         for (int i = 0; i < sides.size(); i++) {
             for (Player player : sides.get(i)) {
+                Queues.dequeue(player); // a seat here ends every wait, whichever door they came through
                 Spectators.exit(player); // a watcher who queued: their body and HUD come back before the seat
                 if (!game.join(player, teams.get(i).id())) {
                     game.end(Outcome.aborted());

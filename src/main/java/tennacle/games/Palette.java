@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The one place a team's LOOK lives: the chat colour, the leather dye, and the DYE colour of any block it places.
+ * The one place a team's LOOK lives: the chat color, the leather dye, and the DYE color of any block it places.
  * A side names a dye ({@code "lime"} for a green team, say - decoupled from the team's own name), and its block in
  * any {@link Family} resolves from that: {@code Palette.of("green").block(Family.WOOL)} is lime wool, {@code .glass()}
  * lime stained glass, and so on for concrete, panes, carpet. A game names its sides on the markers, so swapping a

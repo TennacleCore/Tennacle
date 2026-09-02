@@ -59,6 +59,18 @@ public final class Queues {
     }
 
     /** {@code true} when {@code player} was waiting. */
+    /** Drops {@code player} from every wait: an entry they lead, and any party's they follow. A seat anywhere
+     *  (a queue match, an accepted duel, a rejoin) calls this, so nobody can be paired twice. */
+    public static void dequeue(@NotNull Player player) {
+        synchronized (waiting) {
+            waiting.remove(player.getUuid());
+            waiting.values().removeIf(e -> {
+                Player leader = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(e.leader());
+                return leader == null || Parties.of(leader).contains(player);
+            });
+        }
+    }
+
     public static boolean leave(@NotNull Player player) {
         Entry gone;
         synchronized (waiting) {
@@ -129,6 +141,12 @@ public final class Queues {
         if (them == null) { // left between the two commands
             enqueue(me, modeName, platformName);
             return;
+        }
+        for (Player p : Parties.of(them)) {
+            if (Game.of(p) != null) { // their entry went stale: seated since they queued (only I was re-checked)
+                enqueue(me, modeName, platformName);
+                return;
+            }
         }
         start(mode, platform, Parties.of(them), side);
     }
