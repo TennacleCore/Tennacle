@@ -113,24 +113,35 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                     p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
                             .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit);
 
-    // captured bow-duel callouts to the shooter: the victim's post-hit health (an overkill shows 0)
-    private static Component scrimsHit(Player target, float health) {
-        return Component.text(target.getUsername() + " has ", NamedTextColor.GRAY)
-                .append(Component.text(hp(health) + "❤", NamedTextColor.RED));
+    // captured bow-duel callouts to the shooter, each network's own colours; an overkill shows 0
+    // scrims: light-blue name, yellow "has", light-green health, a red heart
+    private static Component scrimsHit(Player target, float health, float delta) {
+        return Component.text(target.getUsername(), NamedTextColor.AQUA)
+                .append(Component.text(" has ", NamedTextColor.YELLOW))
+                .append(Component.text(hp(health), NamedTextColor.GREEN))
+                .append(Component.text("❤", NamedTextColor.RED));
     }
 
-    private static Component hypixelHit(Player target, float health) {
-        return Component.text(target.getUsername() + " is on ", NamedTextColor.GRAY)
-                .append(Component.text(hp(health) + " HP!", NamedTextColor.RED));
+    // hypixel: light-blue name, grey "is on", red value, grey "HP!"
+    private static Component hypixelHit(Player target, float health, float delta) {
+        return Component.text(target.getUsername(), NamedTextColor.AQUA)
+                .append(Component.text(" is on ", NamedTextColor.GRAY))
+                .append(Component.text(hp(health), NamedTextColor.RED))
+                .append(Component.text(" HP!", NamedTextColor.GRAY));
     }
 
-    private static Component minemenHit(Player target, float health) {
-        return Msg.MINEMEN.value(target.getUsername()).append(Msg.MINEMEN.prose(" is on "))
-                .append(Component.text(hp(health) + "❤", NamedTextColor.RED));
+    // minemen: yellow name, grey arrow, light-purple health+heart, then the drop in red inside grey parens
+    private static Component minemenHit(Player target, float health, float delta) {
+        return Component.text(target.getUsername(), NamedTextColor.YELLOW)
+                .append(Component.text(" → ", NamedTextColor.GRAY))
+                .append(Component.text(hp(health) + "❤", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text(" (", NamedTextColor.GRAY))
+                .append(Component.text(String.format(Locale.ROOT, "%.1f", delta), NamedTextColor.RED)) // signed: a heal reads negative
+                .append(Component.text(")", NamedTextColor.GRAY));
     }
 
-    private static String hp(float health) {
-        return String.format(Locale.ROOT, "%.1f", Math.max(0f, health));
+    private static String hp(float value) {
+        return String.format(Locale.ROOT, "%.1f", Math.max(0f, value));
     }
 
     // captured minemen: pink @ around a bold white title; a pink-label footer row and the address

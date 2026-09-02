@@ -36,6 +36,7 @@ import io.github.term4.grotto.modules.TimeLimit;
 import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.vault.VaultKey;
+import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
 import io.github.term4.polyp.mechanics.projectile.types.Arrow;
 import io.github.term4.polyp.MechanicsProfile;
 import io.github.term4.polyp.config.FieldFns;
@@ -181,7 +182,7 @@ public final class Bridge {
                         }),
                         Nametags::of,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
-                        () -> HitReport.of().line(g -> Matches.lookOf(g).hit()),
+                        () -> HitReport.of().types(ProjectileDamage.KEY).line(g -> Matches.lookOf(g).hit()), // arrows are thrown-typed
                         () -> Kits.of(KIT),
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
                         Rules::new, Presentation::new,
