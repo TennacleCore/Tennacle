@@ -12,6 +12,7 @@ import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
 import io.github.term4.polyp.platform.compatibility.Compat18;
 import io.github.term4.polyp.platform.compatibility.CompatConfig;
 import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.polyp.world.MechanicsWorld;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.MinecraftServer;
@@ -72,6 +73,14 @@ public final class DevCommands {
 
     public static void register(Polyp polyp) {
         var commands = MinecraftServer.getCommandManager();
+
+        // what the tab is ACTUALLY being sent for this viewer - the tab differs per client generation
+        Command tabdump = new Command("tabdump");
+        tabdump.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player viewer)) return;
+            for (String line : ShardTabList.describe(viewer)) viewer.sendMessage(Msg.v(line));
+        });
+        commands.register(tabdump);
 
         Command gm = new Command("gm");
         Argument<GameMode> mode = ArgumentType.Enum("mode", GameMode.class);
