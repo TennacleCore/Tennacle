@@ -1,7 +1,10 @@
 # Game lifecycle: the layer between Grotto's Game and a mode
 
-Status: PROPOSAL. Nothing here is built. Companion to `rulesets.md` (what a match plays) - this is
-what a match IS from request to lobby.
+Status: AGREED, nothing built yet. Companion to `rulesets.md` (what a match plays) - this is what a
+match IS from request to lobby. Three nouns, kept apart on purpose: a MODE is the game (bridge), a
+RULESET is its gamerules (crit bows off, five-second cages), a LOOK is only how it speaks (boards,
+chat, titles, cues). A PLATFORM bundles one ruleset with one look under the name a player says
+(`hypixel`), and nothing but the command needs the bundle.
 
 ## Where the seams are today
 
@@ -45,6 +48,10 @@ GameType.builder("bridge")
 - `end`: modules' `onEnd`, then restore for every exit before the app's exit policy. The exit policy
   keeps only what is the app's: instance, spawn, lobby boards.
 - `Respawns` calls `game.body().fresh(player)` on every respawn, so a re-kit is just `Kits.apply`.
+- Effects are kit-borne, never body policy: players read a Speed II as part of the boxing kit, so the
+  kit says so (`Kit.effect(SPEED, 1)`), `Kits` applies effects with the items, `fresh` clears them
+  first, and the kit editor shows them. Body policy is health, food, gamemode and the inventory
+  stash only.
 
 `Duels.stashKit/restoreKit/resetVitals` and the per-kind resets go.
 
@@ -132,33 +139,40 @@ restore at end can no longer race it. The "declare this module first" rule disap
 
 ## Tennacle adoption
 
-### Mode, Look, Matches, Duels
+### Mode, Ruleset, Look, Platform, Matches, Duels
 
 ```java
 public record Mode(String name, GameType type, Supplier<Arena> arena,
-                   Function<String, Ruleset> rules,      // look -> the folded ruleset (bridge/Rulesets.forLook)
-                   String defaultLook, List<Component> intro) {}
+                   Map<String, Ruleset> rulesets,        // named, each already over the mode's base
+                   List<Component> intro, boolean ghostLoser) {}
+public record Platform(String name, String ruleset, String look) {}   // what a player says: hypixel
 
-Matches.start(Mode mode, @Nullable String look, List<Player> seating)
+Matches.start(Mode mode, Ruleset rules, Look look, List<Player> seating)
 ```
 
-`Matches.start` = the one launch: configure stamps the look, folds `mode.rules(look)` into the world
+`Matches.start` = the one launch: configure stamps the look name, folds `rules` into the world
 profile and seeds it, then seats every player (the Body policy does the rest). `Duels` keeps the
-`/duel` request/accept flow and calls it with two players; a party or a queue calls it with more.
-The three `onLaunch` lambdas go.
+`/duel <player> <mode> [platform]` flow, resolves the platform to its ruleset and look, and calls it
+with two players; a party or a queue calls it with more; a settings GUI later picks the two halves
+separately. The three `onLaunch` lambdas go.
 
-`Look` stays the presentation preset (theme, count voice, death line, verdict, sounds, `ghostLoser`,
-intro) plus the per-look module picks (`Choice.of(byLook)` for Boards and Ends). One
-`Presentation` module per game subscribes to `LastStanding.onOut` (death line, status-3 pose, ghost
-after 20 ticks) and `onDecided` (verdict titles, win/lose cues). `Duels.settle` splits along that
-line: deciding is Grotto's, saying it is the look's.
+Rulesets carry every gamerule a platform differs on: the arrow crit knobs (`bridge/Rulesets`), and
+now the cage count too - `.rule(Cages.SECONDS, 5)` in scrims, the key declared by `Cages` as the
+original design said, no longer a look switch inside the module.
+
+`Look` is presentation only: theme, count voice, death line, verdict, sounds, the intro block, and
+the per-look module picks (`Choice.of(byLook)` for Boards and Ends). It reads game state (a team
+score key, the phase) and never sets a rule. One `Presentation` module per game subscribes to
+`LastStanding.onOut` (death line, status-3 pose, ghost after 20 ticks when the mode ghosts losers)
+and `onDecided` (verdict titles, win/lose cues). `Duels.settle` splits along that line: deciding is
+Grotto's, saying it is the look's.
 
 ### What each mode keeps
 
 - sumo `Rules`: damage to zero, swings and landed counters, `standing.out(player, ring-out by
   credit)` on leaving the ring (via `Regions`), nothing else.
-- boxing `Rules`: hit counters and combos; Speed II on join belongs to a `Kits`-style effect grant
-  or the Body policy (`.effect(...)`), not a rule.
+- boxing `Rules`: hit counters and combos; Speed II is on the kit (`KIT.effect(SPEED, 1)`), so it
+  arrives with the gloves and leaves with them.
 - bridge `Rules`: build/break gates, quiver, goal scoring increments, bow boost and friendly-fire
   gates. Deaths, falls, credit, protection and re-kit move to `Respawns` + `KillCredit` + `Limits`.
 
@@ -168,7 +182,7 @@ Type compositions become declarative:
 GameType.builder("bridge")
         .body(Body.fresh().gamemode(SURVIVAL))
         .modules(() -> Phases.of(OPENING, LIVE, OVER),
-                 Cages::new,                                   // the opener
+                 Cages::new,                                   // the opener; its seconds are a seeded rule
                  () -> LastStanding.decides().requireAllSeatedAt(LIVE),
                  () -> Score.teams(GOALS).target(TARGET),
                  () -> TimeLimit.of(LIMIT_TICKS).from(LIVE).onExpire(highestTeamScoreWins(GOALS)),
@@ -198,12 +212,12 @@ teams). Every `"fighting".equals(...)`.
    player-config push already follows profile changes), and a `Scope.layer` rung for rules if a mode
    ever needs per-dimension rules (mechanics already vary per layer through world profiles).
 
-## Decisions to take before step 1
+## Decisions taken
 
-1. Phase names: `opening/live/over` (proposed) or keep `countdown/fighting/done`.
-2. Reclaim expiry in a 1v1 decides the game for the remaining team (proposed) rather than waiting
-   for the last player to leave.
-3. Results freeze at the decision, not at teardown (proposed).
-4. `Countdown` and `Freeze` live in Grotto with the look supplying the voice (proposed).
-5. Boxing's Speed II: a Body policy effect or a kit grant (proposed: Body policy, it is a body
-   condition of the mode, not an item).
+1. Phase names are `opening / live / over`.
+2. Reclaim expiry in a 1v1 decides the game for the remaining team.
+3. Results freeze at the decision, not at teardown.
+4. `Countdown` and `Freeze` live in Grotto; the look supplies only the voice.
+5. Potion effects are kit-borne (`Kit.effect`), never body policy.
+6. A look never carries a gamerule; the platform's rules are a named ruleset, the cage seconds
+   included. `Platform` is the only place a ruleset and a look are paired.

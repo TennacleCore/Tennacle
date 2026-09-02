@@ -37,7 +37,8 @@ never at a match. Path values are constants or registered FieldFns (`only(...)`,
 ## Lifecycle (proposal)
 See `docs/lifecycle.md`: Body policy on the type, Phases with entry ticks, LastStanding / Score /
 TimeLimit deciders, Countdown + Freeze with a look voice, Respawns + KillCredit + Limits adoption,
-Results at the bell; Tennacle keeps Mode / Look / Matches / Presentation. Nothing built yet.
+Results at the bell; Tennacle keeps Mode / Ruleset / Look / Platform / Matches / Presentation. A look is
+presentation only (a platform pairs a ruleset with a look); effects ride the kit. Agreed, nothing built yet.
 
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
