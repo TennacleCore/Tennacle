@@ -81,6 +81,13 @@ public final class DevCommands {
             for (String line : ShardTabList.describe(viewer)) viewer.sendMessage(Msg.v(line));
         });
         commands.register(tabdump);
+        // the SEQUENCE of tab packets that reached this client - what a snapshot cannot show
+        Command tablog = new Command("tablog");
+        tablog.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player viewer)) return;
+            for (String line : ShardTabList.history(viewer)) viewer.sendMessage(Msg.v(line));
+        });
+        commands.register(tablog);
 
         Command gm = new Command("gm");
         Argument<GameMode> mode = ArgumentType.Enum("mode", GameMode.class);
