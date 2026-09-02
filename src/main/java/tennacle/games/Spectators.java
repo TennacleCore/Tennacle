@@ -2,6 +2,7 @@ package tennacle.games;
 
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.grotto.Game;
+import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorHud;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
@@ -44,6 +45,7 @@ public final class Spectators {
         worn.putIfAbsent(viewer.getUuid(), new Worn(viewer.getGameMode(), viewer.isAllowFlying(), viewer.isFlying()));
         viewer.setGameMode(GameMode.ADVENTURE);
         SpectatorHud.hide(viewer);
+        SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true); // landed inside a player: no push, either way
         viewer.setAllowFlying(true);
         viewer.setFlying(true);
         game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags greys the tab name
@@ -56,6 +58,7 @@ public final class Spectators {
         if (watched == null && was == null) return false;
         if (watched != null) watched.unspectate(viewer);
         SpectatorHud.show(viewer);
+        SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, false);
         if (was != null) {
             viewer.setGameMode(was.gamemode());
             viewer.setAllowFlying(was.allowFlying());
