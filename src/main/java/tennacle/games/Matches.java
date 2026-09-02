@@ -196,6 +196,7 @@ public final class Matches {
         }
         for (int i = 0; i < sides.size(); i++) {
             for (Player player : sides.get(i)) {
+                Spectators.exit(player); // a watcher who queued: their body and HUD come back before the seat
                 if (!game.join(player, teams.get(i).id())) {
                     game.end(Outcome.aborted());
                     throw new IllegalStateException(mode.name() + " has no seat left on " + teams.get(i).id()
