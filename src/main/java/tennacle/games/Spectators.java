@@ -6,6 +6,7 @@ import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.UUID;
@@ -27,14 +28,14 @@ public final class Spectators {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> worn.remove(e.getPlayer().getUuid()));
     }
 
-    /** Puts {@code viewer} on {@code game}'s main world at {@code target}'s position, wearing the viewer's body. */
-    public static void enter(@NotNull Game game, @NotNull Player viewer, @NotNull Player target) {
+    /** Puts {@code viewer} on {@code game}'s main world wearing the viewer's body: at {@code target}'s position, or the map's landing. */
+    public static void enter(@NotNull Game game, @NotNull Player viewer, @Nullable Player target) {
         worn.putIfAbsent(viewer.getUuid(), new Worn(viewer.getGameMode(), viewer.isAllowFlying(), viewer.isFlying(), viewer.isInvisible()));
         viewer.setGameMode(GameMode.ADVENTURE);
         viewer.setInvisible(true);
         viewer.setAllowFlying(true);
         viewer.setFlying(true);
-        game.spectate(viewer, target.getPosition());
+        game.spectate(viewer, target != null ? target.getPosition() : null);
     }
 
     /** Drops the view and gives the body back; {@code false} = was not spectating. */

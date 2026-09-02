@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import java.util.List;
 import tennacle.Msg;
 import tennacle.games.Matches;
 import tennacle.games.Spectators;
@@ -18,7 +19,22 @@ public final class SpectateCommands {
     public static void register() {
         Command spectate = new Command("spectate", "spec");
         var name = ArgumentType.Word("player");
-        spectate.setDefaultExecutor((sender, ctx) -> Msg.tag(sender, "spectate", "usage: ", Msg.run("/spectate <player>")));
+        spectate.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player me)) return;
+            if (Game.of(me) != null) {
+                Msg.err(me, "spectate", "you're in a game - ", Msg.run("/l"), " first");
+                return;
+            }
+            List<Game> open = Matches.grotto().games().stream().filter(g -> g.status() == Game.Status.OPEN).toList();
+            if (open.size() != 1) {
+                Msg.tag(me, "spectate", "usage: ", Msg.run("/spectate <player>"),
+                        open.isEmpty() ? " - no game is running" : " - " + open.size() + " games are running");
+                return;
+            }
+            Spectators.exit(me);
+            Spectators.enter(open.getFirst(), me, null);
+            Msg.tag(me, "spectate", "watching the " + open.getFirst().type().id() + " - ", Msg.run("/l"), " to leave");
+        });
         spectate.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
             if (Game.of(me) != null) {

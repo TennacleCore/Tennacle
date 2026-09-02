@@ -93,7 +93,7 @@ public final class Rules implements GameModule {
             Player source = e.source() instanceof Player p ? p : null;
             if (source == victim) return; // a bow boost: never a "hit" - no credit, no protection forfeit
             if (source != null) respawns.unprotect(source); // swinging forfeits your own protection
-            if (respawns.isProtected(victim) || game.decided() != null) e.amount(0);
+            if (respawns.isProtected(victim) || game.decided() != null) e.cancel(); // no flash, no sound, no i-frame
         });
         game.on(FatalDamageEvent.class, FatalDamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
