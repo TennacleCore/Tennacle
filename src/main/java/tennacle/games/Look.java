@@ -8,6 +8,7 @@ import io.github.term4.canvas.theme.HypixelIntro;
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.canvas.theme.Theme;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.HitReport;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
@@ -33,7 +34,8 @@ import java.util.function.IntFunction;
  * reads game state (the phase, a score) and never sets a rule - the platform's gamerules are its ruleset.
  */
 public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verdict verdict, @NotNull Count count,
-                   @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth) {
+                   @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth,
+                   @NotNull HitReport.Line hit) {
 
     /** A member's chat line in this look. */
     @FunctionalInterface
@@ -75,7 +77,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                     (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
             SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
             (g, speaker, message) -> Chat.plain(speaker, message),
-            new Tab(p -> minemenHeader(), p -> minemenFooter()), false);
+            new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit);
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
@@ -88,7 +90,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
             new Tab(p -> Component.text("TENNACLE", NamedTextColor.AQUA, TextDecoration.BOLD)
                             .append(Component.text("\nPlaying on " + ADDRESS + "\n", NamedTextColor.YELLOW)),
-                    p -> Component.text("\n" + STORE, NamedTextColor.AQUA)), true);
+                    p -> Component.text("\n" + STORE, NamedTextColor.AQUA)), true, Look::scrimsHit);
 
     /** Captured hypixel: scoring modes end on TEAM WINS! + the score; plain duels on VICTORY!/DEFEAT!. */
     public static final Look HYPIXEL = new Look(Msg.HYPIXEL, Look::hypixelDeath, Look::hypixelVerdict,
@@ -109,7 +111,27 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             new Tab(p -> Component.text("You are playing on ", NamedTextColor.GREEN)
                             .append(Component.text(ADDRESS.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD)),
                     p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
-                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true);
+                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit);
+
+    // captured bow-duel callouts to the shooter: the victim's post-hit health (an overkill shows 0)
+    private static Component scrimsHit(Player target, float health) {
+        return Component.text(target.getUsername() + " has ", NamedTextColor.GRAY)
+                .append(Component.text(hp(health) + "❤", NamedTextColor.RED));
+    }
+
+    private static Component hypixelHit(Player target, float health) {
+        return Component.text(target.getUsername() + " is on ", NamedTextColor.GRAY)
+                .append(Component.text(hp(health) + " HP!", NamedTextColor.RED));
+    }
+
+    private static Component minemenHit(Player target, float health) {
+        return Msg.MINEMEN.value(target.getUsername()).append(Msg.MINEMEN.prose(" is on "))
+                .append(Component.text(hp(health) + "❤", NamedTextColor.RED));
+    }
+
+    private static String hp(float health) {
+        return String.format(Locale.ROOT, "%.1f", Math.max(0f, health));
+    }
 
     // captured minemen: pink @ around a bold white title; a pink-label footer row and the address
     static Component minemenHeader() {
