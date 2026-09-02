@@ -54,8 +54,6 @@ public final class Rules implements GameModule {
 
     /** Shot-to-return time for the one quiver arrow; 3.5s is the termbridge/hypixel return. */
     public static final StateKey<Long> ARROW_TICKS = StateKey.of("bridge:arrow-ticks", Codec.LONG, 70L);
-    /** Everyone re-kits (fresh body, quiver reset) after a goal. */
-    public static final StateKey<Boolean> REFIT_ON_GOAL = StateKey.of("bridge:refit-on-goal", Codec.BOOLEAN, true);
     /** Ticks after a goal before another can count. */
     public static final StateKey<Long> GOAL_COOLDOWN = StateKey.of("bridge:goal-cooldown", Codec.LONG, 40L);
 
@@ -78,7 +76,7 @@ public final class Rules implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(ARROW_TICKS, REFIT_ON_GOAL, GOAL_COOLDOWN, Bridge.BOW_BOOST, Bridge.FRIENDLY_FIRE);
+        return Set.of(ARROW_TICKS, GOAL_COOLDOWN, Bridge.BOW_BOOST, Bridge.FRIENDLY_FIRE);
     }
 
     @Override
@@ -359,7 +357,7 @@ public final class Rules implements GameModule {
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title
         if (!game.rules().resolve(Scope.GAME, Cages.ENABLED)) { // no breaks between goals: play on
-            if (game.rules().resolve(Scope.GAME, REFIT_ON_GOAL)) st.alarms().arm(REFIT_ALARM, st.tick() + 1);
+            if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) st.alarms().arm(REFIT_ALARM, st.tick() + 1);
             return;
         }
         // the held title + firework beats take over from the re-cage count one tick later (captured)

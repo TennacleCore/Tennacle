@@ -19,6 +19,8 @@ import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -29,6 +31,8 @@ import java.util.UUID;
 public final class Presentation implements GameModule {
 
     private static final String GHOST_ALARM = "match:ghost";
+
+    private final Set<UUID> fallen = new HashSet<>();
 
     @Override
     public void install(@NotNull Game game) {
@@ -47,8 +51,13 @@ public final class Presentation implements GameModule {
         if (name == null) return;
         Component line = look.death().render(game, seat, name, cause.by(), cause.verb());
         Match.each(game, p -> p.sendMessage(line));
+        if (player != null) fall(game, player);
+    }
+
+    /** The loser goes down: the death pose, then the ghosting. Once per player - a decision follows an elimination. */
+    private void fall(Game game, Player player) {
         Mode mode = Matches.modeOf(game);
-        if (player == null || (mode != null && !mode.ghostLoser())) return;
+        if ((mode != null && !mode.ghostLoser()) || !fallen.add(player.getUuid())) return;
         // everyone watching (spectators included) sees a vanilla death: pose now, and the ghosting's destroy
         // packet lands at +20 ticks - right when a real corpse would poof. The loser gets no status 3, only the flight.
         for (Player watcher : game.shard().watchers()) {
@@ -81,8 +90,13 @@ public final class Presentation implements GameModule {
             return;
         }
         Player winner = game.firstMember(m -> outcome.winner().equals(Match.teamOf(game, m)));
-        if (winner == null) return;
-        Match.each(game, p -> look.verdict().show(game, p, outcome.winner().equals(Match.teamOf(game, p)), winner));
+        if (winner != null) {
+            Match.each(game, p -> look.verdict().show(game, p, outcome.winner().equals(Match.teamOf(game, p)), winner));
+        }
+        // a score or time ending eliminates nobody, so the losing side falls here instead of at LastStanding
+        for (Player p : game.members()) {
+            if (game.roster().slotOf(p) != null && !outcome.winner().equals(Match.teamOf(game, p))) fall(game, p);
+        }
     }
 
     /** The look's count as the opener's {@link Countdown.Voice}. */

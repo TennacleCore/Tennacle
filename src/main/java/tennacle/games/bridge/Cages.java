@@ -14,6 +14,7 @@ import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.Countdown;
+import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.modules.Phases;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.GameState;
@@ -163,7 +164,7 @@ public final class Cages implements GameModule {
         phases.enter(Match.OPENING);
         caged = true;
         stamp(game);
-        if (game.rules().resolve(Scope.GAME, Rules.REFIT_ON_GOAL)) {
+        if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) {
             game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
         }
         game.state().alarms().arm(COUNT_ALARM, game.state().tick() + 1,
