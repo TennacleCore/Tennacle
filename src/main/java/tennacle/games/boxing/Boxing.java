@@ -18,6 +18,7 @@ import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.modules.Countdown;
 import io.github.term4.grotto.modules.Freeze;
 import io.github.term4.grotto.modules.HealthDisplay;
+import io.github.term4.grotto.modules.Nametags;
 import io.github.term4.grotto.modules.Kits;
 import io.github.term4.grotto.modules.LastStanding;
 import io.github.term4.grotto.modules.Phases;
@@ -68,7 +69,8 @@ public final class Boxing {
     /** No hunger drain and only swings hurt: what boxing IS, as paths over whatever preset the server runs. */
     static final Ruleset RULES = Ruleset.named("boxing")
             .path("hunger/exhaustionScale", 0)
-            .path("damage/enabledTypes", "only(minecraft:player_attack)");
+            .path("damage/enabledTypes", "only(minecraft:player_attack)")
+            .path("visuals/legacyArrowVisibility/enabled", false);
 
     // career truth, in the vault
     public static final VaultKey<Integer> CAREER_HITS = VaultKey.of("boxing:career-hits", Codec.INT, 0);
@@ -103,6 +105,7 @@ public final class Boxing {
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.seats(HITS).target(Score.TARGET),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
+                        Nametags::of,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),

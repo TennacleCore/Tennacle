@@ -3,9 +3,6 @@ package tennacle.games;
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.grotto.Game;
 import io.github.term4.polyp.platform.compatibility.SpectatorHud;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
@@ -26,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class Spectators {
 
-    private record Worn(GameMode gamemode, boolean allowFlying, boolean flying, @Nullable Component displayName) {}
+    private record Worn(GameMode gamemode, boolean allowFlying, boolean flying) {}
 
     private static final Map<UUID, Worn> worn = new ConcurrentHashMap<>();
 
@@ -44,14 +41,12 @@ public final class Spectators {
 
     /** Puts {@code viewer} on {@code game}'s main world wearing the viewer's body: at {@code target}'s position, or the map's landing. */
     public static void enter(@NotNull Game game, @NotNull Player viewer, @Nullable Player target) {
-        worn.putIfAbsent(viewer.getUuid(), new Worn(viewer.getGameMode(), viewer.isAllowFlying(), viewer.isFlying(), viewer.getDisplayName()));
+        worn.putIfAbsent(viewer.getUuid(), new Worn(viewer.getGameMode(), viewer.isAllowFlying(), viewer.isFlying()));
         viewer.setGameMode(GameMode.ADVENTURE);
         SpectatorHud.hide(viewer);
         viewer.setAllowFlying(true);
         viewer.setFlying(true);
-        viewer.setDisplayName(Component.text(viewer.getUsername(), NamedTextColor.GRAY).decorate(TextDecoration.ITALIC));
-        game.spectate(viewer, target != null ? target.getPosition() : null);
-        ShardTabList.resync(viewer);
+        game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags greys the tab name
     }
 
     /** Drops the view and gives the body back; {@code false} = was not spectating. */
@@ -65,9 +60,7 @@ public final class Spectators {
             viewer.setGameMode(was.gamemode());
             viewer.setAllowFlying(was.allowFlying());
             viewer.setFlying(was.flying() && was.allowFlying());
-            viewer.setDisplayName(was.displayName());
         }
-        ShardTabList.resync(viewer);
         return true;
     }
 }

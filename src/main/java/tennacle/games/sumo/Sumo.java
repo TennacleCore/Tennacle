@@ -15,6 +15,7 @@ import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.modules.Countdown;
 import io.github.term4.grotto.modules.Freeze;
 import io.github.term4.grotto.modules.HealthDisplay;
+import io.github.term4.grotto.modules.Nametags;
 import io.github.term4.grotto.modules.KillCredit;
 import io.github.term4.grotto.modules.LastStanding;
 import io.github.term4.grotto.modules.Phases;
@@ -43,7 +44,8 @@ public final class Sumo {
     public static final StateKey<Integer> LANDED = StateKey.of("sumo:landed", Codec.INT, 0, true);
 
     /** Only swings hurt - a selection over the damage catalog, as a path. */
-    static final Ruleset RULES = Ruleset.named("sumo").path("damage/enabledTypes", "only(minecraft:player_attack)");
+    static final Ruleset RULES = Ruleset.named("sumo").path("damage/enabledTypes", "only(minecraft:player_attack)")
+            .path("visuals/legacyArrowVisibility/enabled", false); // the game teams keep teammates' arrows visible
 
     private Sumo() {}
 
@@ -62,6 +64,7 @@ public final class Sumo {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.draw()),
+                        Nametags::of,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),

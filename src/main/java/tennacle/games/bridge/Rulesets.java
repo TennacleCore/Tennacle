@@ -22,7 +22,8 @@ final class Rulesets {
             // only swings and arrows hurt: a selection over the damage catalog, not a switch per type
             .path("damage/enabledTypes", "only(minecraft:player_attack, minecraft:thrown)")
             // the golden apple keeps its item, eat time and gate - only what it dishes out is swapped
-            .path("consumables/minecraft:golden_apple/behavior", "heal-apple");
+            .path("consumables/minecraft:golden_apple/behavior", "heal-apple")
+            .path("visuals/legacyArrowVisibility/enabled", false); // the game teams keep teammates' arrows visible
 
     // measured 2026-08-31: hypixel and scrims drop the bow crit roll (scrims keeps the trail); minemen is vanilla
     static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
