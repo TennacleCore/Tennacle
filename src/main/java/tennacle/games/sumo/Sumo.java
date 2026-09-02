@@ -63,7 +63,7 @@ public final class Sumo {
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
-                        () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.draw()),
+                        () -> TimeLimit.of().from(Match.OPENING).onExpire(TimeLimit.draw()),
                         Nametags::of,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,

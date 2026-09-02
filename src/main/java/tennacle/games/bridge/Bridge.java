@@ -171,7 +171,7 @@ public final class Bridge {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.teams(GOALS).target(Score.TARGET),
-                        () -> TimeLimit.of().from(Match.LIVE).onExpire(TimeLimit.highestTeamScoreWins(GOALS))
+                        () -> TimeLimit.of().from(Match.OPENING).onExpire(TimeLimit.highestTeamScoreWins(GOALS))
                                 .tiebreaker(Rules::tiebreaker),
                         () -> Respawns.manual().anchor(RESPAWN),
                         KillCredit::new,
