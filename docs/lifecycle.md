@@ -137,6 +137,42 @@ becomes `manual()` + `queue`.
 `Results` snapshots at `onDecided`, not `onEnd`: the state is final at the decision, and the body
 restore at end can no longer race it. The "declare this module first" rule disappears.
 
+### 8. Rule keys: the gamerules that are not mechanics
+
+Arrow cooldown, points to win, cage seconds, spawn protection, whether cages happen at all, whether
+players re-kit between goals: none of these is a polyp knob, and today half of them are constants
+(`ARROW_TICKS = 70`, `CREDIT_TICKS = 100`, cages always, refit always) and the other half are
+`StateKey`s a Java constant alone can name. The mechanism is already there - a rule is a `StateKey`
+with a default on the type, seeded per scope by a ruleset, resolved seat -> team -> game by
+`Rules.resolve` - so the work is the shape around it, not a new tier:
+
+- **Declared by the consumer.** A module lists the keys it reads:
+  `default Set<StateKey<?>> rules()` on `GameModule`. `Score` declares `grotto:score:target`,
+  `Respawns` its two windows, `KillCredit` its credit ticks, `TimeLimit` its limit, `Cages`
+  `cages:seconds` and `cages:enabled`, bridge `Rules` `bridge:arrow-ticks` and
+  `bridge:refit-on-goal`, `bridge:bow-boost`, `bridge:friendly-fire`. A generic seam declares a
+  generic key so every mode that installs it exposes the same setting; a mode-specific behaviour
+  declares a mode-specific key. No constant that a platform or a player could want to vary stays a
+  constant.
+- **Enumerable per mode, derived.** `GameType.supportedRules()` = the type's own defaults plus the
+  union of its modules' declarations (factories build a module to ask; constructors do no work,
+  `install` does). That is the whole "what can I change in bridge" list: id, doc, default, codec -
+  nothing hand-maintained, nothing to drift, the same promise the mechanics KNOBS tables keep.
+- **Addressable from data.** `Ruleset.rule("bridge:arrow-ticks", "60")` next to `.rule(KEY, 60)`:
+  the id resolves through the mode's supported rules, the value parses through the key's codec (the
+  scalar codecs; a list-valued key stays code-only, like a generic knob). `check` reports an unknown
+  id, an unparsable value, or a key no installed module reads ("bridge has no rule cages:seconds
+  without Cages") - the availability rule, enforced where a typo is cheapest.
+- **Structural rules read at install, live rules at use.** `cages:enabled=false` makes `Cages` a
+  plain opener with no re-cage between goals and lets `Respawns` respawn normally; `bridge:refit-on-goal`
+  is read at each goal. Both work because the launch configure folds and seeds BEFORE modules
+  install, which the fold already guarantees.
+- **Per scope, as today.** `.rule(Scope.team("red"), Score.TARGET, 3)` is a handicap; a rule read
+  for a player resolves through their seat and team first.
+
+`GameType.rules()` stays the defaults; `Ruleset` stays the two halves (mechanics paths, rule keys);
+a saved custom ruleset or a settings GUI writes both as data and never needs a Java constant.
+
 ## Tennacle adoption
 
 ### Mode, Ruleset, Look, Platform, Matches, Duels
@@ -203,10 +239,14 @@ teams). Every `"fighting".equals(...)`.
 
 1. Grotto: Body policy on the type + Game hooks; `Phases.enteredAt`; `LastStanding`; `Score`;
    `TimeLimit`; `Countdown`/`Freeze`/`Voice`; `KillCredit`; `Limits`; `Respawns.anchor`; Results at
-   decided. Each with a `ModulesTest` case (the harness already launches games on a flat arena).
+   decided; `GameModule.rules()` + `GameType.supportedRules()` + string parsing on the scalar
+   `StateKey` codecs. Each with a `ModulesTest` case (the harness already launches games on a flat
+   arena).
 2. Tennacle: `Mode`/`Matches`/`Presentation`; sumo first (smallest), then boxing, then bridge with
    the Respawns adoption. Delete as each mode moves. The captured behaviours (beat titles, verdicts,
    goal fireworks, cage counts) stay bit-for-bit: the looks do not change, only who calls them.
+   Every gameplay constant becomes a declared rule key on the way (`Ruleset.rule(id, value)` gets
+   its `check` against the mode's supported rules at the same time).
 3. Later, on the same shapes: parties (N seats through `Matches.start`), a queue, `/spectate`
    (`game.spectate` exists), runtime modifiers (a ruleset re-fold onto the live world profile - the
    player-config push already follows profile changes), and a `Scope.layer` rung for rules if a mode
@@ -221,3 +261,5 @@ teams). Every `"fighting".equals(...)`.
 5. Potion effects are kit-borne (`Kit.effect`), never body policy.
 6. A look never carries a gamerule; the platform's rules are a named ruleset, the cage seconds
    included. `Platform` is the only place a ruleset and a look are paired.
+7. Gamerules that are not mechanics are rule keys declared by the module that reads them, enumerable
+   per mode, addressable from data by id; no gameplay constant stays a constant.

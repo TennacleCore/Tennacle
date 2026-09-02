@@ -5,7 +5,9 @@ over all 23 profile members (typed families, flat configs, scalars, fx by named 
 that are constants or registered `FieldFns` (`only(...)`, `flat(3.5)`, `heal-apple`). Tennacle has
 `Ruleset` (scoped paths + scoped rules, the fold, `with`/`without`/`keep`/`over`, install-time `check`),
 and bridge's three looks are rulesets over one base. The tier-2 rule keys are still the mode's own
-(`bridge:target`, `bridge:limit-ticks`); the module-declared shape below is the intent, not the code.
+(`bridge:target`, `bridge:limit-ticks`); the module-declared shape below is the intent, not the code -
+`lifecycle.md` section 8 is the agreed design for it (declared by the consumer, enumerable per mode,
+addressable by id).
 
 ## The problem
 
