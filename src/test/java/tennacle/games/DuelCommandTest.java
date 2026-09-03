@@ -119,6 +119,46 @@ class DuelCommandTest extends HeadlessServerTest {
     }
 
     @Test
+    void deathCuesReachTheKillerAndTheDead() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "CueA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "CueB");
+        Game game = null;
+        try {
+            Mode sumo = Matches.mode("sumo");
+            assertNotNull(sumo);
+            game = Matches.start(sumo, Matches.platformFor(sumo, null),
+                    java.util.List.of(java.util.List.of(a.player), java.util.List.of(b.player)));
+            long deadline = System.currentTimeMillis() + 4000;
+            while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            assertNotNull(Game.of(b.player));
+            var kill = net.kyori.adventure.sound.Sound.sound(net.minestom.server.sound.SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP,
+                    net.kyori.adventure.sound.Sound.Source.MASTER, 1f, 2f);
+            var died = net.kyori.adventure.sound.Sound.sound(net.minestom.server.sound.SoundEvent.ENTITY_PLAYER_DEATH,
+                    net.kyori.adventure.sound.Sound.Source.MASTER, 1f, 1f);
+            var cues = io.github.term4.canvas.theme.SoundSet.of()
+                    .cue(io.github.term4.canvas.theme.SoundSet.KILL, kill)
+                    .cue(io.github.term4.canvas.theme.SoundSet.DIED, died)
+                    .cue(io.github.term4.canvas.theme.SoundSet.ENEMY_DOWN, kill);
+            a.sent.clear();
+            b.sent.clear();
+            Deaths.cue(game, b.player, a.player, cues);
+            var heardByKiller = a.sent(net.minestom.server.network.packet.server.play.SoundEffectPacket.class);
+            var heardByDead = b.sent(net.minestom.server.network.packet.server.play.SoundEffectPacket.class);
+            assertEquals(1, heardByKiller.size(), "the killer hears the kill cue, not the enemy-down one as well");
+            assertEquals(net.minestom.server.sound.SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP.key(), heardByKiller.getFirst().soundEvent().key());
+            assertEquals(1, heardByDead.size());
+            assertEquals(net.minestom.server.sound.SoundEvent.ENTITY_PLAYER_DEATH.key(), heardByDead.getFirst().soundEvent().key());
+        } finally {
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
     void aCageSecondsChangeMidCountMovesTheOpen() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "CageA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "CageB");

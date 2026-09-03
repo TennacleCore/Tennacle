@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import tennacle.games.Deaths;
 import java.util.Set;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
@@ -226,6 +227,7 @@ public final class Rules implements GameModule {
     private void killed(Game game, Player victim, @Nullable Player by) {
         credit.forget(victim);
         respawns.queue(victim);
+        Deaths.cue(game, victim, by);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
             if ("minemen".equals(look)) by.sendMessage(Banners.kill(game, victim));
@@ -278,6 +280,7 @@ public final class Rules implements GameModule {
     private void announceFall(Game game, Player fallen) {
         if (!Match.live(game)) return;
         Player by = credit.creditFor(fallen);
+        Deaths.cue(game, fallen, by);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
             if ("minemen".equals(look)) by.sendMessage(Banners.kill(game, fallen));

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The whole round on a synthetic map: grace, cage count, GO, a goal + re-cage, a void death + respawn. */
@@ -150,9 +151,15 @@ class BridgeRoundTest extends HeadlessServerTest {
             tickUntil(game, "protection lapses", () -> game.state().tick() >= shieldOver);
             // a lethal hit cancels its FatalDamageEvent and respawns - never the death screen
             int kills = game.state().get(Scope.slot(game.roster().slotOf(scorer).index()), Bridge.KILLS);
+            FakePlayer killer = scorer == red.player ? red : blue;
+            killer.sent.clear();
             Mechanics.polyp.services().damage().apply(DamageSnapshot.of(faller, MeleeDamage.INSTANCE)
                     .withSource(scorer).withAmount(100f));
             assertTrue(!faller.isDead(), "a kill never reaches the death screen");
+            // the respawn teleports the victim inside the fatal dispatch; the hurt sound still reaches the killer
+            assertTrue(killer.sent(net.minestom.server.network.packet.server.play.SoundEffectPacket.class).stream()
+                            .anyMatch(s -> s.soundEvent().key().value().contains("player.hurt")),
+                    "the killer hears the killing hit");
             assertEquals(faller.getAttributeValue(Attribute.MAX_HEALTH), faller.getHealth(), "respawned refit");
             assertEquals(kills + 1, game.state().get(Scope.slot(game.roster().slotOf(scorer).index()), Bridge.KILLS),
                     "the killer is credited");

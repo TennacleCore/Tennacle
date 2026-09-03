@@ -52,7 +52,10 @@ public final class Presentation implements GameModule {
         if (name == null) return;
         Component line = look.death().render(game, seat, name, cause.by(), cause.verb());
         Match.each(game, p -> p.sendMessage(line));
-        if (player != null) fall(game, player);
+        if (player != null) {
+            Deaths.cue(game, player, cause.by());
+            fall(game, player);
+        }
     }
 
     /** The loser goes down: the death pose, then the ghosting. Once per player - a decision follows an elimination. */
