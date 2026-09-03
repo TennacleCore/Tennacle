@@ -29,6 +29,63 @@ class DuelCommandTest extends HeadlessServerTest {
     }
 
     @Test
+    void aViewerHoldsTheEntryWhenTheSpawnArrives() throws InterruptedException {
+        FakePlayer first = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "SeeFirst");
+        FakePlayer late = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "SeeLate");
+        Game game = null;
+        try {
+            Mode sumo = Matches.mode("sumo");
+            assertNotNull(sumo);
+            game = Matches.start(sumo, Matches.platformFor(sumo, null), java.util.List.of(java.util.List.of(first.player)));
+            long deadline = System.currentTimeMillis() + 4000;
+            while (Game.of(first.player) == null && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            assertNotNull(Game.of(first.player), "the first player is bound: the cold, staggered shape of a first duel");
+            first.sent.clear();
+            assertTrue(game.join(late.player), "the second seat");
+            deadline = System.currentTimeMillis() + 4000;
+            while (Game.of(late.player) == null && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            assertNotNull(Game.of(late.player));
+            for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick(); // the bind's resync
+            // what the client does with the sequence: a spawn is rendered only under an entry it holds
+            boolean held = false, rendered = false, unlisted = false;
+            int spawnAt = -1;
+            java.util.List<net.minestom.server.network.packet.server.SendablePacket> packets = java.util.List.copyOf(first.sent);
+            for (int i = 0; i < packets.size(); i++) {
+                var packet = packets.get(i);
+                if (packet instanceof net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket info
+                        && info.actions().contains(net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket.Action.ADD_PLAYER)
+                        && info.entries().stream().anyMatch(e -> e.uuid().equals(late.player.getUuid()))) held = true;
+                if (packet instanceof net.minestom.server.network.packet.server.play.PlayerInfoRemovePacket remove
+                        && remove.uuids().contains(late.player.getUuid())) {
+                    held = false;
+                    unlisted = true;
+                }
+                if (packet instanceof net.minestom.server.network.packet.server.play.SpawnEntityPacket spawn
+                        && spawn.entityId() == late.player.getEntityId()) {
+                    spawnAt = i;
+                    rendered = held;
+                }
+            }
+            assertTrue(spawnAt >= 0, "the newcomer was spawned to the player already there");
+            assertTrue(rendered, "the viewer held the newcomer's entry when the spawn arrived (at " + spawnAt
+                    + ") - a client drops a spawn it has no entry for, and the bind's entry a tick later cannot revive it");
+            // the first duel's shape: one player binds while the other is still in flight. Unlisting the arrival
+            // there drops the spawn its default viewable rule sends on landing, and the bind's entry never revives it
+            assertFalse(unlisted, "a member never unlists a seated arrival during its transfer");
+        } finally {
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
+            first.player.remove();
+            late.player.remove();
+        }
+    }
+
+    @Test
     void bothPlayersLeavingEndsTheGame() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GoneA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "GoneB");

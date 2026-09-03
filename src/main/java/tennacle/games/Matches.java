@@ -165,10 +165,11 @@ public final class Matches {
         Ruleset rules = mode.ruleset(platform.ruleset());
         Ruleset live = modifiers.get(game.id());
         if (live != null) rules = live.over(rules);
+        rules.seed(game); // first: the preset the profile starts from is itself a rule - read after seeding, or a
+                          // change to it lands one fold late (the value you set applies on the NEXT change)
         MechanicsProfile.Builder profile = Presets.builderFor(game, mode); // mechanics:preset, else the mode's
         rules.apply(profile, Mechanics.polyp.profiles().global(), game);
         Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
-        rules.seed(game);
     }
 
     /**
@@ -219,6 +220,8 @@ public final class Matches {
         }
         for (int i = 0; i < sides.size(); i++) {
             for (Player player : sides.get(i)) {
+                Game held = grotto.reclaimable(player);
+                if (held != null) held.forfeitHeld(player); // a seat held elsewhere: this seat is the answer, not two games
                 Queues.dequeue(player); // a seat here ends every wait, whichever door they came through
                 Spectators.exit(player); // a watcher who queued: their body and HUD come back before the seat
                 if (!game.join(player, teams.get(i).id())) {

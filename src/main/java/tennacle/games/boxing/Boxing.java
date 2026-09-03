@@ -1,6 +1,5 @@
 package tennacle.games.boxing;
 
-import io.github.term4.grotto.roster.Roster;
 import io.github.term4.bloom.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
@@ -105,7 +104,6 @@ public final class Boxing {
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(Score.TARGET, 10)
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
-                .rule(Roster.RECLAIM_TICKS, 30L * 20) // a dropped player's seat holds this long for /rejoin
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
