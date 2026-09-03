@@ -1,5 +1,8 @@
 package tennacle.commands;
 
+import io.github.term4.grotto.modules.Spectating;
+import tennacle.games.Spectators;
+import io.github.term4.grotto.Game;
 import tennacle.Msg;
 import tennacle.dev.DemoLights;
 
@@ -410,6 +413,14 @@ public final class ShardCommands {
             if (n.equals("off")) { ShardView.set(p, null); Msg.shard(p, "view reset"); return; }
             Shard g = shards.byName(n);
             if (g == null) { p.sendMessage("[shard] no shard named '" + n + "'"); return; }
+            Game game = Game.of(g);
+            if (game != null) { // a game's shard: the app's spectator entry, the same as /spectate
+                if (!Spectating.allowed(game)) { Msg.err(p, "shard", "that game doesn't allow spectators"); return; }
+                Spectators.exit(p);
+                Spectators.enter(game, p, null);
+                Msg.shard(p, "spectating ", Msg.v(n), "'s game - ", Msg.run("/l"), " to leave");
+                return;
+            }
             spectate(p, g, ShardView.of(g), () ->
                     Msg.shard(p, "spectating ", Msg.v(n), " - watching, not playing (", Msg.run("/shard spectate off"), ")"));
         }, spectate, name);

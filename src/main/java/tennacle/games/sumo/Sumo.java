@@ -1,5 +1,6 @@
 package tennacle.games.sumo;
 
+import io.github.term4.grotto.roster.Roster;
 import io.github.term4.bloom.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
@@ -64,6 +65,7 @@ public final class Sumo {
                 .expect(Markers.BOUNDS, 1)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(TimeLimit.LIMIT, 2L * 60 * 20) // captured: hypixel sumo counts down from 2:00
+                .rule(Roster.RECLAIM_TICKS, 30L * 20) // a dropped player's seat holds this long for /rejoin
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),

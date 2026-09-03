@@ -82,7 +82,6 @@ public final class Cages implements GameModule {
 
     private final Map<Point, Block> replaced = new HashMap<>();
     private String look;
-    private boolean enabled;
     private Phases phases;
     private Component held;
     private boolean introShown;
@@ -97,7 +96,6 @@ public final class Cages implements GameModule {
     public void install(@NotNull Game game) {
         GameState st = game.state();
         look = Matches.lookNameOf(game); // stamped before modules install, never changes
-        enabled = game.rules().resolve(Scope.GAME, ENABLED);
         phases = game.module(Phases.class);
         if (phases == null) throw new IllegalStateException("Cages needs Phases installed before it");
         st.alarms().register(COUNT_ALARM, (tick, payload) -> beat(game, payload.getInt("n")));
@@ -268,7 +266,7 @@ public final class Cages implements GameModule {
 
     // all writes ride the game's shard - the arena container is shared by concurrent games
     private void stamp(Game game) {
-        if (!enabled) return;
+        if (!game.rules().resolve(Scope.GAME, ENABLED)) return; // read here, so /rules reaches the next recage
         Map<String, CageDef> defs = cages();
         if (defs.isEmpty()) return;
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {

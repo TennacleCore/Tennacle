@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import io.github.term4.grotto.roster.Roster;
 import java.util.ArrayList;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.canvas.theme.Livery;
@@ -180,6 +181,7 @@ public final class Bridge {
                 .rule(TimeLimit.TIEBREAKER, false) // ranked turns this on: a drawn clock plays on
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing or a block touch forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
+                .rule(Roster.RECLAIM_TICKS, 30L * 20) // a dropped player's seat holds this long for /rejoin
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         Cages::new, // the opener, and the re-cage after a goal
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),

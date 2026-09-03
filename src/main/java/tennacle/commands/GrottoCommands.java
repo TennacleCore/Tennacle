@@ -1,5 +1,7 @@
 package tennacle.commands;
 
+import io.github.term4.grotto.modules.Spectating;
+import tennacle.games.Spectators;
 import tennacle.GameIds;
 import tennacle.Msg;
 import tennacle.games.Matches;
@@ -81,7 +83,7 @@ public final class GrottoCommands {
             for (Grotto.InstanceView row : Matches.grotto().instances()) {
                 for (Game game : row.games()) {
                     if (game.spectators().contains(p)) {
-                        game.unspectate(p);
+                        Spectators.exit(p); // the app's exit: body and HUD back, then the game's unspectate
                         Msg.tag(p, "grotto", "no longer watching");
                         return;
                     }
@@ -104,7 +106,12 @@ public final class GrottoCommands {
             Msg.err(p, "grotto", Msg.v(subject.getUsername()), " isn't in a game");
             return;
         }
-        game.spectate(p);
+        if (!Spectating.allowed(game)) {
+            Msg.err(p, "grotto", "that game doesn't allow spectators");
+            return;
+        }
+        Spectators.exit(p); // a view elsewhere ends first
+        Spectators.enter(game, p, null); // the same entry as /spectate: body swapped, HUD, tab
         Msg.tag(p, "grotto", "watching ", Msg.v(subject.getUsername()), "'s " + game.type().id()
                 + " (", Msg.run("/grotto spectate off"), ")");
     }

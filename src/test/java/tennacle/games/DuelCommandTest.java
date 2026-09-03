@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -24,6 +25,36 @@ class DuelCommandTest extends HeadlessServerTest {
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
+    }
+
+    @Test
+    void aQueuedPlayerSeatedByADuelLeavesTheQueue() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DuelQueueA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "DuelQueueB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "DuelQueueC");
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "queue sumo");
+            assertTrue(Queues.waiting(a.player), "queued");
+            MinecraftServer.getCommandManager().execute(b.player, "duel DuelQueueA sumo");
+            MinecraftServer.getCommandManager().execute(a.player, "duel DuelQueueB");
+            long deadline = System.currentTimeMillis() + 4000;
+            while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            assertNotNull(Game.of(a.player), "the duel seated the queued player");
+            assertFalse(Queues.waiting(a.player), "and the seat took them out of the queue");
+            MinecraftServer.getCommandManager().execute(c.player, "queue sumo");
+            assertTrue(Queues.waiting(c.player), "a later queuer waits instead of pairing with a seated player");
+            assertNull(Game.of(c.player));
+        } finally {
+            Game game = Game.of(a.player) != null ? Game.of(a.player) : Game.of(b.player);
+            if (game != null) game.end(Outcome.draw());
+            MinecraftServer.getCommandManager().execute(c.player, "queue leave");
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+        }
     }
 
     @Test
