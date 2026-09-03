@@ -262,7 +262,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                         t.color(), TextDecoration.BOLD));
             }
             viewer.showTitle(Title.title(
-                    Component.text(Palette.of(game, team.id()).name() + " WINS!", team.color(), TextDecoration.BOLD),
+                    Component.text(Palette.name(team) + " WINS!", team.color(), TextDecoration.BOLD),
                     score, times));
             return;
         }

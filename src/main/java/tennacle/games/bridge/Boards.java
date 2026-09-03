@@ -86,7 +86,7 @@ final class Boards {
     private static Component circles(Game game, Team team, boolean boldLabel) {
         int goals = game.state().get(Scope.team(team.id()), Bridge.GOALS);
         int target = Math.max(goals, game.rules().resolve(Scope.GAME, Score.TARGET));
-        String tag = "[" + tennacle.games.Palette.of(game, team.id()).letter() + "] ";
+        String tag = "[" + tennacle.games.Palette.letter(team) + "] ";
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);
         return Component.empty().append(label)

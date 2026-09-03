@@ -102,12 +102,14 @@ public final class Bridge {
     private static final ItemStack PICKAXE = ItemStack.of(Material.DIAMOND_PICKAXE)
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2)))
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+    /** The role the kit's blocks take their hue from. */
+    static final String BLOCKS = "blocks";
     static final Kit KIT = Kit.of("bridge")
             .item("sword", 0, SWORD)
             .item("bow", 1, BOW)
             .item("pickaxe", 2, PICKAXE)
-            .item("blocks", 3, (g, seat) -> ItemStack.of(tennacle.games.Palette.of(g, seat.team()).blocks(), 64))
-            .item("blocks2", 4, (g, seat) -> ItemStack.of(tennacle.games.Palette.of(g, seat.team()).blocks(), 64))
+            .item("blocks", 3, (g, seat) -> ItemStack.of(g.roster().team(seat.team()).livery().tint(BLOCKS).block("terracotta"), 64))
+            .item("blocks2", 4, (g, seat) -> ItemStack.of(g.roster().team(seat.team()).livery().tint(BLOCKS).block("terracotta"), 64))
             .item("gapple", 5, ItemStack.of(Material.GOLDEN_APPLE, 8))
             .item("arrow", 9, ItemStack.of(Material.ARROW))
             .display("blocks", ItemStack.of(Material.WHITE_TERRACOTTA, 64))
