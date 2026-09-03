@@ -4,6 +4,7 @@ import io.github.term4.barnacle.Arena;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.bloom.Teams;
 import io.github.term4.canvas.theme.Livery;
+import io.github.term4.canvas.theme.Role;
 import io.github.term4.grotto.roster.Team;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,15 +22,22 @@ public final class Palette {
 
     private Palette() {}
 
-    /** Checked against every declared role: a value a reader cannot parse fails the launch here, not a kit mid-match. */
-    public static @NotNull Livery livery(@NotNull Arena arena, @NotNull String team, @NotNull Livery game) {
-        Livery livery = new Livery(Teams.of(arena, team).values()).over(game).over(Livery.ordinal(team));
+    /** Checked against every declared role, and every role the game reads must resolve whole: a value a reader
+     *  cannot parse, or a block stack with no family anywhere, fails the launch here - not a kit mid-match. */
+    public static @NotNull Livery livery(@NotNull Arena arena, @NotNull String team, @NotNull Teams.Defaults game) {
+        Livery livery = new Livery(Teams.of(arena, team).values()).over(game.livery()).over(Livery.ordinal(team));
         livery.check();
+        for (Role<?> role : game.roles()) {
+            if (!livery.whole(role)) {
+                throw new IllegalArgumentException("team " + team + ": " + role.name() + " resolves to nothing whole - "
+                        + game.tag() + "'s look must say " + role.name() + "=<family> (or a parent role)");
+            }
+        }
         return livery;
     }
 
     /** The arena's teams - the groups of its {@code seats} markers in ordinal order - each in its livery. */
-    public static @NotNull List<Team> teams(@NotNull Arena arena, @NotNull MarkerKey<?> seats, @NotNull Livery game) {
+    public static @NotNull List<Team> teams(@NotNull Arena arena, @NotNull MarkerKey<?> seats, @NotNull Teams.Defaults game) {
         List<String> ids = new ArrayList<>(arena.groups(seats));
         ids.sort(Comparator.comparingInt(Palette::ordinal).thenComparing(Comparator.naturalOrder()));
         List<Team> teams = new ArrayList<>();

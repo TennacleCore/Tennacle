@@ -1,5 +1,6 @@
 package tennacle.games.sumo;
 
+import io.github.term4.bloom.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.games.Duels;
@@ -50,11 +51,15 @@ public final class Sumo {
 
     private Sumo() {}
 
+    private static final Teams.Defaults DEFAULTS = new Teams.Defaults("sumo",
+            io.github.term4.canvas.theme.Livery.EMPTY, java.util.List.of(io.github.term4.grotto.roster.Team.DISPLAY));
+
     public static void install() {
+        Teams.register(DEFAULTS);
         HotArena arena = HotArena.of("sumo");
         GameType type = GameType.builder("sumo")
                 .slots(SlotLayout.groups(Markers.SPAWN, 1))
-                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, io.github.term4.canvas.theme.Livery.EMPTY))
+                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))

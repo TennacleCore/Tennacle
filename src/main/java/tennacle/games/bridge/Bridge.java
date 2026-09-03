@@ -108,7 +108,7 @@ public final class Bridge {
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
     /** Bridge's look under an arena's own: blocks are terracotta in the team's tint. */
     static final Livery LOOK = new Livery(Map.of("blocks", "terracotta"));
-    static final Kit KIT = Kit.of("bridge")
+    static final Kit KIT = Kit.of("bridge").look(LOOK)
             .item("sword", 0, SWORD)
             .item("bow", 1, BOW)
             .item("pickaxe", 2, PICKAXE)
@@ -120,6 +120,15 @@ public final class Bridge {
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
             .dyedArmor(EquipmentSlot.BOOTS, Material.LEATHER_BOOTS);
+    /** What bridge reads per team and what it says by default - the editor's and the launch check's view of it. */
+    static final Teams.Defaults DEFAULTS = new Teams.Defaults("bridge", LOOK, roles());
+
+    private static List<Role<?>> roles() {
+        List<Role<?>> roles = new ArrayList<>(KIT.roles());
+        roles.add(Cages.CAGE_TINT);
+        roles.add(io.github.term4.grotto.roster.Team.DISPLAY);
+        return roles;
+    }
 
     /**
      * The hypixel heal apple: full health, and Absorption I for a minute only if the eater has none. Code,
@@ -153,13 +162,10 @@ public final class Bridge {
                     "full health, plus Absorption I for a minute when the eater has none", args -> HEAL_APPLE);
         }
         MapPool arena = MapPool.of("bridge");
-        List<Role<?>> roles = new ArrayList<>(KIT.roles());
-        roles.add(Cages.CAGE_TINT);
-        roles.add(io.github.term4.grotto.roster.Team.DISPLAY);
-        Teams.register(new Teams.Defaults("bridge", LOOK, roles)); // the editor shows an arena's effective look
+        Teams.register(DEFAULTS); // the editor shows an arena's effective look
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
-                .teams(a -> tennacle.games.Palette.teams(a, CAGE, LOOK))
+                .teams(a -> tennacle.games.Palette.teams(a, CAGE, DEFAULTS))
                 .expect(CAGE, 2)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)

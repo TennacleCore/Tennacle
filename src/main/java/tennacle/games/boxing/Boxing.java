@@ -1,5 +1,6 @@
 package tennacle.games.boxing;
 
+import io.github.term4.bloom.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
@@ -90,11 +91,15 @@ public final class Boxing {
 
     private Boxing() {}
 
+    private static final Teams.Defaults DEFAULTS = new Teams.Defaults("boxing",
+            io.github.term4.canvas.theme.Livery.EMPTY, java.util.List.of(io.github.term4.grotto.roster.Team.DISPLAY));
+
     public static void install() {
+        Teams.register(DEFAULTS);
         HotArena arena = HotArena.of("boxing");
         GameType type = GameType.builder("boxing")
                 .slots(SlotLayout.groups(Markers.SPAWN, 1))
-                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, io.github.term4.canvas.theme.Livery.EMPTY))
+                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(Score.TARGET, 10)
