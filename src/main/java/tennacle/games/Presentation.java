@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import net.kyori.adventure.text.format.NamedTextColor;
+import io.github.term4.grotto.modules.Respawns;
 import tennacle.Msg;
 
 import io.github.term4.canvas.tab.TabList;
@@ -32,6 +34,9 @@ import java.util.UUID;
 public final class Presentation implements GameModule {
 
     private static final String GHOST_ALARM = "match:ghost";
+    private static final String DEAD_ALARM = "match:dead-count";
+    // the per-network death screen is UNCAPTURED: one plain screen for every look until the captures land
+    private static final Component DIED = Component.text("You died!", NamedTextColor.RED);
 
     private final Set<UUID> fallen = new HashSet<>();
 
@@ -44,6 +49,26 @@ public final class Presentation implements GameModule {
         });
         LastStanding standing = game.module(LastStanding.class);
         if (standing != null) standing.onOut((g, seat, player, cause) -> out(g, seat, player, cause));
+        Respawns respawns = game.module(Respawns.class);
+        if (respawns != null) {
+            game.state().alarms().register(DEAD_ALARM, (tick, payload) -> {
+                Player p = game.playerNamed(payload.getString("name"));
+                if (p != null && respawns.isDead(p)) deadScreen(game, respawns, p);
+            });
+            respawns.onDead((p, seat) -> deadScreen(game, respawns, p));
+        }
+    }
+
+    // "You died!" and the seconds left, refreshed every second until the respawn lands
+    private void deadScreen(Game game, Respawns respawns, Player p) {
+        long left = respawns.remaining(p);
+        int seconds = (int) Math.ceil(left / 20.0);
+        p.showTitle(Title.title(DIED, Component.text("Respawning in " + seconds + "...", NamedTextColor.YELLOW),
+                Match.times(game, 0, 25, 5)));
+        if (left > 0) {
+            game.state().alarms().arm(DEAD_ALARM, game.state().tick() + Math.min(20, left),
+                    CompoundBinaryTag.builder().putString("name", p.getUsername()).build());
+        }
     }
 
     private void out(Game game, Slot seat, @Nullable Player player, LastStanding.Cause cause) {

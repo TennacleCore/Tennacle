@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import io.github.term4.grotto.modules.Respawns;
 import tennacle.Mechanics;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The whole round on a synthetic map: grace, cage count, GO, a goal + re-cage, a void death + respawn. */
@@ -164,6 +166,41 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertEquals(kills + 1, game.state().get(Scope.slot(game.roster().slotOf(scorer).index()), Bridge.KILLS),
                     "the killer is credited");
 
+            game.decide(Outcome.draw(), 1);
+        } finally {
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    @Test
+    void aDeadPlayerWaitsGhostedWithTheDeathScreenThenRespawns() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DeadRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "DeadBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            game.state().set(Scope.GAME, Respawns.RESPAWN_TICKS, 40L);
+            tickUntil(game, "GO", () -> Match.live(game));
+            Respawns respawns = game.module(Respawns.class);
+            red.sent.clear();
+            EventDispatcher.call(new PlayerMoveEvent(red.player, new Pos(-4.5, 50, 0.5), true));
+            tickUntil(game, "the wait starts", () -> respawns.isDead(red.player));
+            assertTrue(game.isGhost(red.player), "the dead hover unbound at the respawn anchor");
+            assertTrue(red.player.isFlying());
+            assertEquals(-4.5, red.player.getPosition().x(), 1e-6);
+            assertTrue(red.sent(net.minestom.server.network.packet.server.play.SetTitleTextPacket.class).stream()
+                    .anyMatch(t -> net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                            .serialize(t.title()).contains("You died")), "the death screen");
+            tickUntil(game, "the respawn lands", () -> !respawns.isDead(red.player));
+            assertFalse(game.isGhost(red.player));
+            assertSame(game, Game.of(red.player), "rebound as a member");
+            assertFalse(red.player.isFlying());
             game.decide(Outcome.draw(), 1);
         } finally {
             red.player.remove();
