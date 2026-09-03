@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import tennacle.games.sumo.Sumo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,6 +26,66 @@ class DuelCommandTest extends HeadlessServerTest {
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
+    }
+
+    @Test
+    void bothPlayersLeavingEndsTheGame() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GoneA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "GoneB");
+        Game game = null;
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "duel GoneB sumo");
+            MinecraftServer.getCommandManager().execute(b.player, "duel GoneA");
+            long deadline = System.currentTimeMillis() + 4000;
+            while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            game = Game.of(a.player);
+            assertNotNull(game, "the duel launched");
+            MinecraftServer.getCommandManager().execute(a.player, "spawn"); // /l
+            MinecraftServer.getCommandManager().execute(b.player, "spawn");
+            for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertNull(Game.of(a.player), "both left");
+            assertNull(Game.of(b.player));
+            assertEquals(0, game.members().size(), "nobody is in it");
+            for (int i = 0; i < 800; i++) MinecraftServer.getSchedulerManager().processTick(); // the holds, then the linger
+            assertNotEquals(Game.Status.OPEN, game.status(), "an emptied game ends instead of running forever");
+        } finally {
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void bothPlayersLeavingEndsABridgeGame() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BGoneA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "BGoneB");
+        Game game = null;
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "duel BGoneB bridge");
+            MinecraftServer.getCommandManager().execute(b.player, "duel BGoneA");
+            long deadline = System.currentTimeMillis() + 4000;
+            while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            game = Game.of(a.player);
+            assertNotNull(game, "the duel launched");
+            MinecraftServer.getCommandManager().execute(a.player, "spawn"); // /l
+            MinecraftServer.getCommandManager().execute(b.player, "spawn");
+            for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertNull(Game.of(a.player), "both left");
+            assertNull(Game.of(b.player));
+            assertEquals(0, game.members().size(), "nobody is in it");
+            for (int i = 0; i < 800; i++) MinecraftServer.getSchedulerManager().processTick(); // the holds, then the linger
+            assertNotEquals(Game.Status.OPEN, game.status(), "an emptied game ends instead of running forever");
+        } finally {
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
+            a.player.remove();
+            b.player.remove();
+        }
     }
 
     @Test

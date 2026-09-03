@@ -179,8 +179,22 @@ public final class Matches {
         if (game.status() != Game.Status.OPEN) throw new IllegalStateException("the game is over");
         ruleset.check(Mechanics.polyp.profiles().global(), game.type());
         modifiers.keySet().removeIf(id -> grotto.games().stream().noneMatch(g -> g.id().equals(id) && g.status() == Game.Status.OPEN));
+        Ruleset previous = modifiers.get(game.id());
         modifiers.merge(game.id(), ruleset, (older, newer) -> newer.over(older));
-        fold(game);
+        try {
+            fold(game);
+        } catch (RuntimeException e) {
+            // the fold rejects what check cannot see (a preset name, a path the live profile refuses). Without
+            // this the bad entry stays in the modifier and every LATER change re-folds it and fails too
+            if (previous != null) modifiers.put(game.id(), previous);
+            else modifiers.remove(game.id());
+            try {
+                fold(game);
+            } catch (RuntimeException restore) {
+                System.err.println("[rules] rollback re-fold failed for " + game.id() + ": " + restore);
+            }
+            throw e;
+        }
     }
 
     /**

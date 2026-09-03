@@ -46,8 +46,11 @@ public final class LobbyCommands {
     private static Runnable gameDeparture(Player p) {
         Game seated = Game.of(p);
         if (seated == null) {
-            for (Game game : Matches.grotto().games()) { // ghosts are unbound - the tag can't route them
-                if (game.isGhost(p)) {
+            // a ghost is unbound, and so is a player whose join bind never landed: the tag can't route either,
+            // but the roster still holds their seat - without this they cannot leave the game at all
+            for (Game game : Matches.grotto().games()) {
+                if (game.status() != Game.Status.OPEN) continue;
+                if (game.isGhost(p) || game.roster().slotOf(p) != null) {
                     seated = game;
                     break;
                 }

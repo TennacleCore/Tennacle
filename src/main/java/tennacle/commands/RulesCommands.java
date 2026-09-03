@@ -12,6 +12,8 @@ import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,7 +50,9 @@ public final class RulesCommands {
                 return;
             }
             String id = ctx.get(key);
-            String raw = String.join(" ", ctx.get(value));
+            List<String> words = new ArrayList<>(List.of(ctx.get(value)));
+            if (!words.isEmpty() && words.getFirst().equals("=")) words.removeFirst(); // the listing prints "id = value"
+            String raw = String.join(" ", words);
             Ruleset live = id.contains("/") ? Ruleset.named("live").path(id, raw) : Ruleset.named("live").rule(id, raw);
             try {
                 Matches.modify(game, live);
