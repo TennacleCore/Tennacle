@@ -54,7 +54,7 @@ public final class Sumo {
         HotArena arena = HotArena.of("sumo");
         GameType type = GameType.builder("sumo")
                 .slots(SlotLayout.groups(Markers.SPAWN, 1))
-                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN))
+                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, io.github.term4.canvas.theme.Livery.EMPTY))
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))

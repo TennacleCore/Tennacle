@@ -1,5 +1,9 @@
 package tennacle.games.bridge;
 
+import java.util.ArrayList;
+import io.github.term4.canvas.theme.Role;
+import io.github.term4.canvas.theme.Livery;
+import io.github.term4.bloom.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
@@ -102,12 +106,14 @@ public final class Bridge {
     private static final ItemStack PICKAXE = ItemStack.of(Material.DIAMOND_PICKAXE)
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2)))
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+    /** Bridge's look under an arena's own: blocks are terracotta in the team's tint. */
+    static final Livery LOOK = new Livery(Map.of("blocks", "terracotta"));
     static final Kit KIT = Kit.of("bridge")
             .item("sword", 0, SWORD)
             .item("bow", 1, BOW)
             .item("pickaxe", 2, PICKAXE)
-            .blocks("blocks.1", 3, "terracotta", 64)
-            .blocks("blocks.2", 4, "terracotta", 64)
+            .blocks("blocks.1", 3, 64)
+            .blocks("blocks.2", 4, 64)
             .item("gapple", 5, ItemStack.of(Material.GOLDEN_APPLE, 8))
             .item("arrow", 9, ItemStack.of(Material.ARROW))
             .layouts((g, p) -> KitLayouts.of(p, "bridge"))
@@ -147,9 +153,13 @@ public final class Bridge {
                     "full health, plus Absorption I for a minute when the eater has none", args -> HEAL_APPLE);
         }
         MapPool arena = MapPool.of("bridge");
+        List<Role<?>> roles = new ArrayList<>(KIT.roles());
+        roles.add(Cages.CAGE_TINT);
+        roles.add(io.github.term4.grotto.roster.Team.DISPLAY);
+        Teams.register(new Teams.Defaults("bridge", LOOK, roles)); // the editor shows an arena's effective look
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
-                .teams(a -> tennacle.games.Palette.teams(a, CAGE))
+                .teams(a -> tennacle.games.Palette.teams(a, CAGE, LOOK))
                 .expect(CAGE, 2)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)

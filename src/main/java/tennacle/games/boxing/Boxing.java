@@ -94,7 +94,7 @@ public final class Boxing {
         HotArena arena = HotArena.of("boxing");
         GameType type = GameType.builder("boxing")
                 .slots(SlotLayout.groups(Markers.SPAWN, 1))
-                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN))
+                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, io.github.term4.canvas.theme.Livery.EMPTY))
                 .expect(Markers.SPAWN, 2)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(Score.TARGET, 10)

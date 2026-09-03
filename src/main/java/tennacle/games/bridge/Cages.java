@@ -65,7 +65,7 @@ public final class Cages implements GameModule {
     private static final MarkerKey<PosMarker> CAGE_SPOT = MarkerKey.pos("cage");
     private static final MarkerKey<RegionMarker> CAGE_BOX = MarkerKey.region("cage");
     /** The tint a cage's authored RED_* blocks take their hue from. */
-    private static final Role<Tint> CAGE_TINT = Role.tint("cage");
+    static final Role<Tint> CAGE_TINT = Role.tint("cage");
     // captured hypixel: note.hat vol 1 each beat, note.harp at GO; scrims/minemen cues UNCAPTURED - pling
     private static final Sound HAT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 1f, 1f);
     private static final Sound HARP = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HARP, Sound.Source.MASTER, 1f, 1f);
