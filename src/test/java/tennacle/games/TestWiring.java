@@ -24,6 +24,7 @@ public final class TestWiring {
         Parties.install();
         Queues.install();
         tennacle.commands.SpectateCommands.register();
+        tennacle.commands.DevCommands.register(io.github.term4.polyp.Polyp.getInstance()); // /gm from a spectator switches bodies
         Spectators.install();
         tennacle.Rooms.install();
         tennacle.commands.RulesCommands.register();

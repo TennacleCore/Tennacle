@@ -56,7 +56,14 @@ class TabTeamsTest extends HeadlessServerTest {
             assertTrue(a.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction create
                     && create.settings().collisionRule() == TeamsPacket.CollisionRule.NEVER), "the game's team carries the member's no-push");
             game.end(Outcome.draw());
-            for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
+            deadline = System.currentTimeMillis() + 4000;
+            while (Game.of(a.player) != null && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            // the return re-applies the lobby profile, which owns NO_PUSH (off here): a fresh reason proves the
+            // suspension lifted with the game - a still-suspended member would stay off the team
+            SharedTeam.set(a.player, SharedTeam.Reason.NO_PUSH, true);
             assertTrue(lib.getMembers().contains("TeamTabAlpha"), "back on the lib team after the game");
         } finally {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());

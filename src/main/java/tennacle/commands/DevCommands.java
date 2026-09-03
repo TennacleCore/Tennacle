@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import tennacle.games.Spectators;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.dev.LagSimulator;
@@ -18,6 +19,7 @@ import net.kyori.adventure.key.Key;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.Argument;
+import net.minestom.server.command.builder.arguments.ArgumentEnum;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.GameMode;
@@ -46,6 +48,12 @@ import org.jetbrains.annotations.NotNull;
 public final class DevCommands {
 
     private DevCommands() {}
+
+    private static void gamemode(Player p, GameMode mode) {
+        if (Spectators.gamemode(p, mode)) return; // a spectator's bodies, or a refusal
+        p.setGameMode(mode);
+        Msg.tag(p, "gm", "gamemode: ", Msg.v(mode.name().toLowerCase()));
+    }
 
     private static final Tag<String> NS_MODE = Tag.String("test:ns-mode");
     private static final Tag<Integer> NS_BLIND_TICKS = Tag.Integer("test:ns-blind-ticks");
@@ -90,21 +98,21 @@ public final class DevCommands {
         commands.register(tablog);
 
         Command gm = new Command("gm");
-        Argument<GameMode> mode = ArgumentType.Enum("mode", GameMode.class);
+        Argument<GameMode> mode = ArgumentType.Enum("mode", GameMode.class).setFormat(ArgumentEnum.Format.LOWER_CASED);
         gm.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) p.setGameMode(ctx.get(mode));
+            if (sender instanceof Player p) gamemode(p, ctx.get(mode));
         }, mode);
         commands.register(gm);
 
         Command gmc = new Command("gmc");
         gmc.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) { p.setGameMode(GameMode.CREATIVE); Msg.tag(p, "gm", "gamemode: ", Msg.v("creative")); }
+            if (sender instanceof Player p) gamemode(p, GameMode.CREATIVE);
         });
         commands.register(gmc);
 
         Command gms = new Command("gms");
         gms.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) { p.setGameMode(GameMode.SURVIVAL); Msg.tag(p, "gm", "gamemode: ", Msg.v("survival")); }
+            if (sender instanceof Player p) gamemode(p, GameMode.SURVIVAL);
         });
         commands.register(gms);
 

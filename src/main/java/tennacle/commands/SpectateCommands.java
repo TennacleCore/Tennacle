@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import io.github.term4.grotto.modules.Spectating;
 import java.util.List;
 import tennacle.Msg;
@@ -12,7 +13,10 @@ import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 
-/** {@code /spectate <player>}: a view of their game without a seat; {@code /l} steps back out. */
+/**
+ * {@code /spectate <player>}: a view of their game without a seat; {@code /l} steps back out.
+ * {@code /spectate mode true|ghost}: the client's spectator mode, or the ghost body.
+ */
 public final class SpectateCommands {
 
     private SpectateCommands() {}
@@ -20,6 +24,13 @@ public final class SpectateCommands {
     public static void register() {
         Command spectate = new Command("spectate", "spec");
         var name = ArgumentType.Word("player");
+        var body = ArgumentType.Word("body").from("true", "ghost");
+        spectate.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player me)) return;
+            if (!Spectators.mode(me, "true".equals(ctx.get(body)) ? SpectatorMode.Mode.TRUE : SpectatorMode.Mode.GHOST)) {
+                Msg.err(me, "spectate", "you're not spectating");
+            }
+        }, ArgumentType.Literal("mode"), body);
         spectate.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
             if (Game.of(me) != null) {
@@ -44,6 +55,10 @@ public final class SpectateCommands {
                 return;
             }
             Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(ctx.get(name));
+            if (target == null && ctx.get(name).equals("mode")) {
+                Msg.tag(me, "spectate", "usage: ", Msg.run("/spectate mode true"), " or ", Msg.run("/spectate mode ghost"));
+                return;
+            }
             if (target == null) {
                 Msg.err(me, "spectate", "no player named ", Msg.v(ctx.get(name)));
                 return;
