@@ -1,5 +1,7 @@
 package tennacle.games.bridge;
 
+import io.github.term4.canvas.theme.Tint;
+import io.github.term4.canvas.theme.Role;
 import tennacle.games.HotArena;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -62,8 +64,8 @@ public final class Cages implements GameModule {
     private static final HotArena CAGES = HotArena.of("cages");
     private static final MarkerKey<PosMarker> CAGE_SPOT = MarkerKey.pos("cage");
     private static final MarkerKey<RegionMarker> CAGE_BOX = MarkerKey.region("cage");
-    /** The role a cage's authored RED_* blocks take their hue from. */
-    private static final String CAGE_TINT = "cage";
+    /** The tint a cage's authored RED_* blocks take their hue from. */
+    private static final Role<Tint> CAGE_TINT = Role.tint("cage");
     // captured hypixel: note.hat vol 1 each beat, note.harp at GO; scrims/minemen cues UNCAPTURED - pling
     private static final Sound HAT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 1f, 1f);
     private static final Sound HARP = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HARP, Sound.Source.MASTER, 1f, 1f);
@@ -275,7 +277,7 @@ public final class Cages implements GameModule {
             var at = spawn.pos();
             // the map marker already faces the center - rotate the authored front onto it
             int turns = cage.front().quarterTurnsTo(Facing.fromYaw(at.yaw()));
-            String dye = game.roster().team(spawn.group()).livery().tint(CAGE_TINT).hue().name();
+            String dye = game.roster().team(spawn.group()).livery().get(CAGE_TINT).hue().name();
             int minCx = Integer.MAX_VALUE, maxCx = Integer.MIN_VALUE, minCz = Integer.MAX_VALUE, maxCz = Integer.MIN_VALUE;
             for (Cell cell : cage.cells()) {
                 BlockVec turned = Facing.rotate(cell.offset(), turns);

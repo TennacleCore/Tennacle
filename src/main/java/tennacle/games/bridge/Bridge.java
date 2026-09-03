@@ -102,18 +102,14 @@ public final class Bridge {
     private static final ItemStack PICKAXE = ItemStack.of(Material.DIAMOND_PICKAXE)
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2)))
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-    /** The role the kit's blocks take their hue from. */
-    static final String BLOCKS = "blocks";
     static final Kit KIT = Kit.of("bridge")
             .item("sword", 0, SWORD)
             .item("bow", 1, BOW)
             .item("pickaxe", 2, PICKAXE)
-            .item("blocks", 3, (g, seat) -> ItemStack.of(g.roster().team(seat.team()).livery().tint(BLOCKS).block("terracotta"), 64))
-            .item("blocks2", 4, (g, seat) -> ItemStack.of(g.roster().team(seat.team()).livery().tint(BLOCKS).block("terracotta"), 64))
+            .blocks("blocks.1", 3, "terracotta", 64)
+            .blocks("blocks.2", 4, "terracotta", 64)
             .item("gapple", 5, ItemStack.of(Material.GOLDEN_APPLE, 8))
             .item("arrow", 9, ItemStack.of(Material.ARROW))
-            .display("blocks", ItemStack.of(Material.WHITE_TERRACOTTA, 64))
-            .display("blocks2", ItemStack.of(Material.WHITE_TERRACOTTA, 64))
             .layouts((g, p) -> KitLayouts.of(p, "bridge"))
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
             .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
