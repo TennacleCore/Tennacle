@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import io.github.term4.polyp.world.Wardrobe;
 import tennacle.Mechanics;
 
 import io.github.term4.archipelago.shard.ShardManager;
@@ -63,8 +64,12 @@ public final class Matches {
         grotto = Grotto.install(shards); // shared manager: /shard tree shows the game trees
         lobbyRoute = player -> {
             Spectators.exit(player); // a game's end routes its spectators here; restore the body and the HUD
-            if (player.getInstance() == lobby) player.teleport(lobbySpawn); // Minestom rejects a same-instance setInstance
-            else player.setInstance(lobby, lobbySpawn); // the body is the type's; the route is ours
+            if (player.getInstance() == lobby) { // Minestom rejects a same-instance setInstance: no spawn event either
+                player.teleport(lobbySpawn);
+                Wardrobe.arrive(player, lobby);
+            } else {
+                player.setInstance(lobby, lobbySpawn); // the lobby dresses the arrival
+            }
             TabList.refresh(player); // the chrome is the lobby's again
         };
         grotto.exit(lobbyRoute);

@@ -1,5 +1,6 @@
 package tennacle.lobby;
 
+import io.github.term4.polyp.world.Wardrobe;
 import tennacle.Mechanics;
 import tennacle.Msg;
 
@@ -98,18 +99,15 @@ public final class Playground {
             e.setSpawningInstance(world);
             e.getPlayer().setRespawnPoint(new Pos(0.5, 42, 0.5));
             logProtocol(e.getPlayer());
-            giveKit(e.getPlayer());
         });
-        // armor on FIRST SPAWN, not config: a player becomes a viewer of its own inventory in UNSAFE_init (after
-        // config), and Minestom pushes an item's attribute modifiers (ARMOR...) only for the inventory's viewers
+        // the lobby dresses every arrival - a login, a game's exit, a rejoin - at spawn, never in config: a player
+        // becomes a viewer of its own inventory only after config, and Minestom pushes an item's attribute
+        // modifiers (ARMOR...) only for the inventory's viewers
+        Wardrobe.install();
+        Wardrobe.outfit(world, Playground::outfit);
         events.addListener(PlayerSpawnEvent.class, e -> {
             if (!e.isFirstSpawn()) return;
             Player p = e.getPlayer();
-            p.setGameMode(GameMode.SURVIVAL);
-            p.setHelmet(ItemStack.of(Material.DIAMOND_HELMET));
-            p.setChestplate(ItemStack.of(Material.DIAMOND_CHESTPLATE));
-            p.setLeggings(ItemStack.of(Material.DIAMOND_LEGGINGS));
-            p.setBoots(ItemStack.of(Material.DIAMOND_BOOTS));
             // deferred: at spawn the Via handshake may not have revealed the protocol yet, and the welcome
             // format (gradient vs flat) depends on it
             Msg.onceProtocolKnown(p, 60, () -> Msg.usage(p,
@@ -122,6 +120,17 @@ public final class Playground {
                     {"/lag /compat /shorts /enchant /effect /sword /explode", "dev tools"},
             }));
         });
+    }
+
+    /** Survival, diamond armor, the full combat inventory. */
+    static void outfit(Player p) {
+        p.setGameMode(GameMode.SURVIVAL);
+        p.getInventory().clear();
+        p.setHelmet(ItemStack.of(Material.DIAMOND_HELMET));
+        p.setChestplate(ItemStack.of(Material.DIAMOND_CHESTPLATE));
+        p.setLeggings(ItemStack.of(Material.DIAMOND_LEGGINGS));
+        p.setBoots(ItemStack.of(Material.DIAMOND_BOOTS));
+        giveKit(p);
     }
 
     private static void giveKit(Player player) {
