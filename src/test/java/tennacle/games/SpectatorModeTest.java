@@ -121,6 +121,59 @@ class SpectatorModeTest extends HeadlessServerTest {
         }
     }
 
+    /** Vanilla's law over the game's sight rules: a true spectator is unseen by ghosts, a head to true spectators, gone while riding. */
+    @Test
+    void aTrueSpectatorIsSeenBySpectatorEyesAloneAndByNoneWhileRiding() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "LawA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "LawB");
+        FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "LawWatchW");
+        FakePlayer x = FakePlayer.connect(instance, new Pos(6.5, 65, 6.5), "LawWatchX");
+        Game game = null;
+        try {
+            Polyp.getInstance().clientInfo().setProtocol(w.player, 47);
+            Polyp.getInstance().clientInfo().setProtocol(x.player, 47);
+            Mode sumo = Matches.mode("sumo");
+            assertNotNull(sumo);
+            game = Matches.start(sumo, Matches.platformFor(sumo, null), List.of(List.of(a.player), List.of(b.player)));
+            long deadline = System.currentTimeMillis() + 4000;
+            while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            Spectators.enter(game, w.player, a.player);
+            Spectators.enter(game, x.player, a.player);
+            deadline = System.currentTimeMillis() + 4000;
+            while ((!x.player.isViewer(w.player) || !w.player.isViewer(x.player)) && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            assertTrue(x.player.isViewer(w.player) && w.player.isViewer(x.player), "two ghosts see each other");
+
+            assertTrue(Spectators.mode(x.player, SpectatorMode.Mode.TRUE));
+            assertFalse(x.player.isViewer(w.player), "a ghost's eyes are not spectator eyes: the true spectator vanishes to them");
+            assertTrue(w.player.isViewer(x.player), "the true spectator still sees the ghost");
+            assertFalse(x.player.isViewer(a.player), "and a member never sees a spectator");
+
+            assertTrue(Spectators.mode(w.player, SpectatorMode.Mode.TRUE));
+            assertTrue(x.player.isViewer(w.player), "spectator eyes see the spectator's body - the translucent head");
+            assertTrue(SpectatorMode.camera(x.player, a.player));
+            assertFalse(x.player.isViewer(w.player), "none while the camera rides");
+            SpectatorMode.cameraHome(x.player);
+            assertTrue(x.player.isViewer(w.player), "back when it comes home");
+
+            assertTrue(Spectators.mode(x.player, SpectatorMode.Mode.GHOST));
+            assertTrue(x.player.isViewer(w.player), "a ghost again: the game's own rule lists them to spectators");
+        } finally {
+            Spectators.exit(w.player);
+            Spectators.exit(x.player);
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
+            a.player.remove();
+            b.player.remove();
+            w.player.remove();
+            x.player.remove();
+        }
+    }
+
     @Test
     void aSevenClientStaysAGhost() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "SevenA");
