@@ -191,9 +191,9 @@ class BridgeRoundTest extends HeadlessServerTest {
             red.sent.clear();
             EventDispatcher.call(new PlayerMoveEvent(red.player, new Pos(-4.5, 50, 0.5), true));
             tickUntil(game, "the wait starts", () -> respawns.isDead(red.player));
-            assertTrue(game.isGhost(red.player), "the dead hover unbound at the respawn anchor");
+            assertTrue(game.isGhost(red.player), "the dead hover unbound at the game's dead landing");
             assertTrue(red.player.isFlying());
-            assertEquals(-4.5, red.player.getPosition().x(), 1e-6);
+            assertEquals(game.deadLanding(game.roster().slotOf(red.player)).x(), red.player.getPosition().x(), 1e-6);
             assertTrue(red.sent(net.minestom.server.network.packet.server.play.SetTitleTextPacket.class).stream()
                     .anyMatch(t -> net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
                             .serialize(t.title()).contains("You died")), "the death screen");

@@ -1,5 +1,6 @@
 package tennacle.games.boxing;
 
+import io.github.term4.grotto.modules.Sight;
 import io.github.term4.bloom.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
@@ -112,7 +113,7 @@ public final class Boxing {
                         () -> Score.seats(HITS).target(Score.TARGET),
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
                         Nametags::of,
-                        Spectating::new, Presets::new,
+                        Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),

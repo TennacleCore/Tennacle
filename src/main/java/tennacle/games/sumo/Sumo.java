@@ -1,5 +1,6 @@
 package tennacle.games.sumo;
 
+import io.github.term4.grotto.modules.Sight;
 import io.github.term4.bloom.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
@@ -71,7 +72,7 @@ public final class Sumo {
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.draw()),
                         Nametags::of,
-                        Spectating::new, Presets::new,
+                        Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims))

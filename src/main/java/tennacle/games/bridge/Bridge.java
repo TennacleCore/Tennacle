@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import io.github.term4.grotto.modules.Sight;
 import io.github.term4.grotto.modules.Countdown;
 import java.util.ArrayList;
 import io.github.term4.canvas.theme.Role;
@@ -199,7 +200,7 @@ public final class Bridge {
                             if (rules != null) rules.fell(p);
                         }),
                         Nametags::of,
-                        Spectating::new, Presets::new,
+                        Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> HitReport.of().types(ProjectileDamage.KEY).line(g -> Matches.lookOf(g).hit()), // arrows are thrown-typed
                         () -> Kits.of(KIT),
