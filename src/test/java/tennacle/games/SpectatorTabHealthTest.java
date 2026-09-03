@@ -76,19 +76,26 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
             }
             for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
             assertTrue(ShardView.of(w.player).seesEntity(x.player), "co-spectators see each other's bodies");
+            // the client drops a spawn it holds no tab entry for: the co-spectator's entry must land first
+            int entryAt = -1, spawnAt = -1;
+            var packets = java.util.List.copyOf(w.sent);
+            for (int i = 0; i < packets.size(); i++) {
+                var packet = packets.get(i);
+                if (entryAt < 0 && packet instanceof PlayerInfoUpdatePacket info
+                        && info.actions().contains(PlayerInfoUpdatePacket.Action.ADD_PLAYER)
+                        && info.entries().stream().anyMatch(e -> e.uuid().equals(x.player.getUuid()))) entryAt = i;
+                if (spawnAt < 0 && packet instanceof net.minestom.server.network.packet.server.play.SpawnEntityPacket spawn
+                        && spawn.entityId() == x.player.getEntityId()) spawnAt = i;
+            }
+            assertTrue(spawnAt >= 0, "the second spectator spawned to the first");
+            assertTrue(entryAt >= 0 && entryAt < spawnAt, "listed before spawned (entry at " + entryAt + ", spawn at " + spawnAt + ")");
             var wSees = w.sent(PlayerInfoUpdatePacket.class).stream()
                     .filter(p -> p.actions().contains(PlayerInfoUpdatePacket.Action.ADD_PLAYER))
                     .flatMap(p -> p.entries().stream()).filter(e -> e.uuid().equals(x.player.getUuid())).toList();
-            assertFalse(wSees.isEmpty(), "the first spectator listed the second");
-            assertTrue(wSees.stream().noneMatch(e -> e.gameMode() == GameMode.SPECTATOR),
-                    "never flagged spectator to a viewer who may see the body - the client would draw none");
-            assertTrue(w.sent(UpdateScorePacket.class).stream().anyMatch(u -> objective.equals(u.objectiveName())
-                            && u.entityName().equals("TabHpWatchX") && u.score() == 0), "the co-spectator's row reads 0");
-            var aSees = a.sent(PlayerInfoUpdatePacket.class).stream()
-                    .filter(p -> p.actions().contains(PlayerInfoUpdatePacket.Action.ADD_PLAYER))
-                    .flatMap(p -> p.entries().stream()).filter(e -> e.uuid().equals(x.player.getUuid())).toList();
-            assertTrue(!aSees.isEmpty() && aSees.getLast().gameMode() == GameMode.SPECTATOR,
-                    "a member still gets the spectator flagged: sunk, greyed, unscored, and no body to draw anyway");
+            assertTrue(wSees.getLast().gameMode() == GameMode.SPECTATOR,
+                    "flagged spectator to a co-spectator too: drawn as a head, sunk, greyed, and its score skipped");
+            assertTrue(w.sent(UpdateScorePacket.class).stream().noneMatch(u -> objective.equals(u.objectiveName())
+                            && u.entityName().equals("TabHpWatchX")), "no score is sent for a flagged row");
         } finally {
             Spectators.exit(w.player);
             Spectators.exit(x.player);
