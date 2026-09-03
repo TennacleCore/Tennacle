@@ -191,12 +191,11 @@ public final class Rules implements GameModule {
         respawns.queue(player);
     }
 
-    /** The tiebreaker: the next goal decides (the target drops to one over the tied score), the look calls it,
-     *  and {@code time:tiebreaker-reset} says how the players go back - not at all, to their spawns, or to cages. */
+    /** The tiebreaker: the next goal settles it ({@link Score#NEXT_WINS}) and the drawn score stands, so the
+     *  board keeps its meter; the look calls it, and {@code time:tiebreaker-reset} says how the players go back -
+     *  not at all, to their spawns, or to cages. */
     static void tiebreaker(@NotNull Game game) {
-        int max = 0;
-        for (Team team : game.roster().teams()) max = Math.max(max, game.state().get(Scope.team(team.id()), Bridge.GOALS));
-        game.state().set(Scope.GAME, Score.TARGET, max + 1);
+        game.state().set(Scope.GAME, Score.NEXT_WINS, true);
         game.forEachAudience(viewer -> Matches.lookOf(game).tiebreak().show(game, viewer));
         switch (game.rules().resolve(Scope.GAME, TimeLimit.TIEBREAKER_RESET)) {
             case TimeLimit.RESET_CAGES -> game.state().alarms().arm(Cages.RECAGE_ALARM, game.state().tick() + 1,

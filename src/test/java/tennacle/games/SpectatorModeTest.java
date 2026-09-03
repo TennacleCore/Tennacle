@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import net.minestom.server.network.packet.server.play.TeamsPacket;
 import net.minestom.server.network.packet.client.play.ClientInputPacket;
 import net.minestom.server.network.packet.client.play.ClientSpectatorActionPacket;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -65,6 +66,16 @@ class SpectatorModeTest extends HeadlessServerTest {
             assertTrue(SpectatorHud.hidden(w.player));
             assertEquals(TextDecoration.State.FALSE, w.player.getDisplayName().decoration(TextDecoration.ITALIC),
                     "grey and upright in tab, the scrims row");
+            // no nameplate over a spectator, and a 1.8 client hangs the below-name health off that same gate
+            String specTeam = w.sent(TeamsPacket.class).stream()
+                    .filter(t -> t.action() instanceof TeamsPacket.CreateTeamAction create
+                            && create.settings().nameTagVisibility() == TeamsPacket.NameTagVisibility.NEVER)
+                    .map(TeamsPacket::teamName).findFirst().orElse(null);
+            assertNotNull(specTeam, "the spectators' team hides nameplates");
+            assertTrue(w.sent(TeamsPacket.class).stream().anyMatch(t -> t.teamName().equals(specTeam)
+                            && t.action() instanceof TeamsPacket.AddEntitiesToTeamAction add
+                            && add.entities().contains("ModeWatch")),
+                    "and the spectator is on it: no name over their head, and no health under it");
 
             MinecraftServer.getCommandManager().execute(w.player, "gmc");
             assertEquals(GameMode.ADVENTURE, w.player.getGameMode(), "creative is refused while spectating");
