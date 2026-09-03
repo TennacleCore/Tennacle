@@ -1,5 +1,8 @@
 package tennacle.games;
 
+import net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket;
+import net.minestom.server.entity.GameMode;
+import io.github.term4.archipelago.shard.ShardView;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,6 +33,7 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "TabHpA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "TabHpB");
         FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "TabHpWatch");
+        FakePlayer x = FakePlayer.connect(instance, new Pos(6.5, 65, 6.5), "TabHpWatchX");
         Game game = null;
         try {
             Mode sumo = Matches.mode("sumo");
@@ -60,12 +65,38 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
             assertTrue(w.sent(UpdateScorePacket.class).stream().noneMatch(u -> objective.equals(u.objectiveName())
                             && u.entityName().equals("TabHpWatch") && u.score() != 0),
                     "and never their real health");
+
+            // a second spectator: the first must see them - their entry NOT flagged spectator, their row 0
+            w.sent.clear();
+            Spectators.enter(game, x.player, a.player);
+            deadline = System.currentTimeMillis() + 4000;
+            while (Matches.grotto().spectating(x.player) != game && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertTrue(ShardView.of(w.player).seesEntity(x.player), "co-spectators see each other's bodies");
+            var wSees = w.sent(PlayerInfoUpdatePacket.class).stream()
+                    .filter(p -> p.actions().contains(PlayerInfoUpdatePacket.Action.ADD_PLAYER))
+                    .flatMap(p -> p.entries().stream()).filter(e -> e.uuid().equals(x.player.getUuid())).toList();
+            assertFalse(wSees.isEmpty(), "the first spectator listed the second");
+            assertTrue(wSees.stream().noneMatch(e -> e.gameMode() == GameMode.SPECTATOR),
+                    "never flagged spectator to a viewer who may see the body - the client would draw none");
+            assertTrue(w.sent(UpdateScorePacket.class).stream().anyMatch(u -> objective.equals(u.objectiveName())
+                            && u.entityName().equals("TabHpWatchX") && u.score() == 0), "the co-spectator's row reads 0");
+            var aSees = a.sent(PlayerInfoUpdatePacket.class).stream()
+                    .filter(p -> p.actions().contains(PlayerInfoUpdatePacket.Action.ADD_PLAYER))
+                    .flatMap(p -> p.entries().stream()).filter(e -> e.uuid().equals(x.player.getUuid())).toList();
+            assertTrue(!aSees.isEmpty() && aSees.getLast().gameMode() == GameMode.SPECTATOR,
+                    "a member still gets the spectator flagged: sunk, greyed, unscored, and no body to draw anyway");
         } finally {
             Spectators.exit(w.player);
+            Spectators.exit(x.player);
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
             a.player.remove();
             b.player.remove();
             w.player.remove();
+            x.player.remove();
         }
     }
 }
