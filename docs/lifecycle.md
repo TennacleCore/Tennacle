@@ -159,7 +159,7 @@ with a default on the type, seeded per scope by a ruleset, resolved seat -> team
   `default Set<StateKey<?>> rules()` on `GameModule`. `Score` declares `score:target`,
   `Respawns` `respawn:delay` and `respawn:protect`, `KillCredit` `kill:credit`, `TimeLimit` `time:limit`,
   `Kits` `round:reset`, `Goals` `goal:cooldown`, `Restock` `restock:<item>`, `FriendlyFire` `friendly-fire`,
-  `Freeze` `freeze:immune`, `Cages` `cages:seconds` and `cages:enabled`. Ids read `owner:setting`, units live
+  `Freeze` `freeze:damage`, `Cages` `cages:seconds` and `cages:enabled`. Ids read `owner:setting`, units live
   in the doc, and engine rules carry no prefix - only a mode's own keys do. A generic seam declares a
   generic key so every mode that installs it exposes the same setting; a mode-specific behaviour
   declares a mode-specific key. Whether players reset between rounds is not a bridge question, so

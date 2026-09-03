@@ -86,6 +86,9 @@ public final class Cages implements GameModule {
     private Component held;
     private boolean introShown;
     private boolean caged;
+    private int countFrom;      // the length the running count was armed with
+    private int remaining = -1; // the beat last shown; -1 = no count running
+    private long nextBeat = -1;
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
@@ -107,8 +110,27 @@ public final class Cages implements GameModule {
         });
         st.alarms().register(RECAGE_ALARM, (tick, payload) -> recage(game, payload));
         st.alarms().arm(STAMP_ALARM, st.tick() + 2);
-        st.alarms().arm(COUNT_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Countdown.GRACE),
-                CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
+        armCount(game, st.tick() + game.rules().resolve(Scope.GAME, Countdown.GRACE));
+        game.rules().watch(SECONDS, (scope, value) -> recount(game));
+    }
+
+    private void armCount(Game game, long at) {
+        countFrom = seconds(game);
+        remaining = countFrom + 1; // nothing shown yet
+        nextBeat = at;
+        game.state().alarms().arm(COUNT_ALARM, at, CompoundBinaryTag.builder().putInt("n", countFrom).build());
+    }
+
+    // mid-count: the beats already shown stay shown, the rest re-count from the new length at the same cadence
+    private void recount(Game game) {
+        if (remaining < 0 || nextBeat < 0 || !Match.opening(game)) return;
+        int shown = countFrom - remaining + 1;
+        int next = Math.max(0, seconds(game) - shown);
+        countFrom = seconds(game);
+        remaining = next + 1;
+        game.state().alarms().cancel(COUNT_ALARM);
+        game.state().alarms().arm(COUNT_ALARM, Math.max(game.state().tick() + 1, nextBeat),
+                CompoundBinaryTag.builder().putInt("n", next).build());
     }
 
     private static int seconds(Game game) {
@@ -118,6 +140,8 @@ public final class Cages implements GameModule {
     private void beat(Game game, int n) {
         GameState st = game.state();
         if (!Match.opening(game)) return;
+        remaining = n;
+        nextBeat = -1;
         boolean hypixel = "hypixel".equals(look);
         if (!caged) {
             caged = true;
@@ -142,10 +166,11 @@ public final class Cages implements GameModule {
                 p.playSound(hypixel ? HAT : TICK);
             });
             if (held != null) Matches.cue(game, SoundSet.SCORED); // captured: the goal firework rides every beat
-            st.alarms().arm(COUNT_ALARM, st.tick() + game.rules().resolve(Scope.GAME, Countdown.INTERVAL),
-                    CompoundBinaryTag.builder().putInt("n", n - 1).build());
+            nextBeat = st.tick() + game.rules().resolve(Scope.GAME, Countdown.INTERVAL);
+            st.alarms().arm(COUNT_ALARM, nextBeat, CompoundBinaryTag.builder().putInt("n", n - 1).build());
             return;
         }
+        remaining = -1;
         open(game);
         held = null;
         phases.advance(); // LIVE; a seat nobody filled aborts the game right here
@@ -167,8 +192,7 @@ public final class Cages implements GameModule {
         if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) {
             game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
         }
-        game.state().alarms().arm(COUNT_ALARM, game.state().tick() + 1,
-                CompoundBinaryTag.builder().putInt("n", seconds(game)).build());
+        armCount(game, game.state().tick() + 1);
     }
 
     /** The authored cages by variant; re-extracted when /arena save swaps the arena. */

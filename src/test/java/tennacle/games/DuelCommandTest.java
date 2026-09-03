@@ -1,5 +1,8 @@
 package tennacle.games;
 
+import io.github.term4.grotto.state.Scope;
+import io.github.term4.grotto.modules.Countdown;
+import tennacle.games.bridge.Cages;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -108,6 +111,37 @@ class DuelCommandTest extends HeadlessServerTest {
             assertEquals(0, game.members().size(), "nobody is in it");
             for (int i = 0; i < 800; i++) MinecraftServer.getSchedulerManager().processTick(); // the holds, then the linger
             assertNotEquals(Game.Status.OPEN, game.status(), "an emptied game ends instead of running forever");
+        } finally {
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void aCageSecondsChangeMidCountMovesTheOpen() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "CageA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "CageB");
+        Game game = null;
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "duel CageB bridge");
+            MinecraftServer.getCommandManager().execute(b.player, "duel CageA");
+            long deadline = System.currentTimeMillis() + 4000;
+            while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            game = Game.of(a.player);
+            assertNotNull(game, "the duel launched");
+            assertTrue(Match.opening(game));
+            game.state().set(Scope.GAME, Cages.SECONDS, 30);
+            long grace = game.rules().resolve(Scope.GAME, Countdown.GRACE);
+            long interval = game.rules().resolve(Scope.GAME, Countdown.INTERVAL);
+            for (int i = 0; i < grace + 2 * interval + 5; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertTrue(Match.opening(game), "a thirty-second count is still going");
+            game.state().set(Scope.GAME, Cages.SECONDS, 3); // under what is already shown: the next beat opens
+            for (int i = 0; i < 2 * interval + 5; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertFalse(Match.opening(game), "the shortened count opened the match");
         } finally {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
             a.player.remove();

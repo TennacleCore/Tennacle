@@ -304,8 +304,8 @@ public final class Rules implements GameModule {
         // the held title + firework beats take over from the re-cage count one tick later (captured)
         Title scored = Title.title(Banners.scoredTitle(game, scorer, color), Component.empty(),
                 Match.times(game, 0, 40, 0));
+        Match.each(game, p -> p.showTitle(scored));
         game.forEachMember(member -> {
-            member.showTitle(scored);
             Slot memberSeat = game.roster().slotOf(member);
             if (memberSeat != null) member.teleport(spawnOf(game, memberSeat));
         });

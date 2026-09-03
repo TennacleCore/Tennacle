@@ -64,7 +64,8 @@ public final class Sumo {
                 .expect(Markers.BOUNDS, 1)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(TimeLimit.LIMIT, 2L * 60 * 20) // captured: hypixel sumo counts down from 2:00
-                .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
+                .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims), // first: the snapshot precedes cleanup
+                        () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
@@ -73,8 +74,7 @@ public final class Sumo {
                         Spectating::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,
-                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
-                        () -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims))
+                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims))
                 .build();
         RULES.check(Mechanics.polyp.profiles().global(), type);
         // hypixel mechanics + compat are what sumo IS; the ruleset folds over that base

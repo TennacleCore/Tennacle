@@ -43,7 +43,6 @@ final class Ends {
                         th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))));
     }
 
-    // first in the module list: snapshots must capture Speed II before Rules.onEnd strips it
     static Results results() {
         return Matches.results().item((g, p) -> {
             int hits = Boxing.seatStat(g, p, Boxing.HITS);
