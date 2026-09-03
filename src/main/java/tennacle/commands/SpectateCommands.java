@@ -49,6 +49,7 @@ public final class SpectateCommands {
                 return;
             }
             Game game = Game.of(target);
+            if (game == null) game = Matches.grotto().spectating(target); // watching someone: their game is the game
             if (game == null) {
                 for (Game candidate : Matches.grotto().games()) { // a ghost is unbound - the tag can't route them
                     if (candidate.isGhost(target)) {

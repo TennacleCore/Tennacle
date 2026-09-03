@@ -16,7 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** A spectator gets the tab health column: every player's row, and their own row carrying their own health. */
+/** A spectator gets the tab health column: every player's row, and their own row reading 0. */
 class SpectatorTabHealthTest extends HeadlessServerTest {
 
     @BeforeAll
@@ -25,7 +25,7 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
     }
 
     @Test
-    void aSpectatorSeesThePlayersHealthAndTheirOwnOnTheirRow() throws InterruptedException {
+    void aSpectatorSeesThePlayersHealthAndAZeroOnTheirOwnRow() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "TabHpA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "TabHpB");
         FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "TabHpWatch");
@@ -54,10 +54,12 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
                     "the spectator got the tab health objective");
             assertTrue(w.sent(UpdateScorePacket.class).stream().anyMatch(u -> objective.equals(u.objectiveName()) && u.entityName().equals("TabHpA")),
                     "a player's health lines up on their row");
-            int mine = (int) Math.ceil(w.player.getHealth());
             assertTrue(w.sent(UpdateScorePacket.class).stream().anyMatch(u -> objective.equals(u.objectiveName())
-                            && u.entityName().equals("TabHpWatch") && u.score() == mine),
-                    "the spectator's own row carries their real health, never a stray 0");
+                            && u.entityName().equals("TabHpWatch") && u.score() == 0),
+                    "the spectator's own row reads 0: their health is nobody's business here");
+            assertTrue(w.sent(UpdateScorePacket.class).stream().noneMatch(u -> objective.equals(u.objectiveName())
+                            && u.entityName().equals("TabHpWatch") && u.score() != 0),
+                    "and never their real health");
         } finally {
             Spectators.exit(w.player);
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());

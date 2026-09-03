@@ -19,6 +19,7 @@ import tennacle.games.sumo.Sumo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -115,6 +116,37 @@ class DuelCommandTest extends HeadlessServerTest {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
             a.player.remove();
             b.player.remove();
+        }
+    }
+
+    @Test
+    void spectatingASpectatorJoinsTheirGame() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "SpecTgtA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "SpecTgtB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "SpecWatchC");
+        FakePlayer d = FakePlayer.connect(instance, new Pos(6.5, 65, 6.5), "SpecWatchD");
+        Game game = null;
+        try {
+            Mode sumo = Matches.mode("sumo");
+            assertNotNull(sumo);
+            game = Matches.start(sumo, Matches.platformFor(sumo, null), java.util.List.of(java.util.List.of(a.player), java.util.List.of(b.player)));
+            long deadline = System.currentTimeMillis() + 4000;
+            while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(10);
+            }
+            MinecraftServer.getCommandManager().execute(c.player, "spectate SpecTgtA");
+            assertSame(game, Matches.grotto().spectating(c.player), "C watches A's game");
+            MinecraftServer.getCommandManager().execute(d.player, "spectate SpecWatchC");
+            assertSame(game, Matches.grotto().spectating(d.player), "D, asking for a spectator, lands in that spectator's game");
+        } finally {
+            Spectators.exit(c.player);
+            Spectators.exit(d.player);
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+            d.player.remove();
         }
     }
 
