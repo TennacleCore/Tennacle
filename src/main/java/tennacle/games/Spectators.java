@@ -9,7 +9,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.entity.EntityAttackEvent;
-import net.minestom.server.event.player.PlayerInputEvent;
+import net.minestom.server.event.player.PlayerSpectateEntityEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tennacle.Msg;
@@ -26,14 +26,11 @@ public final class Spectators {
     private Spectators() {}
 
     public static void install() {
+        // a spectator's click is the 26.x spectate-entity packet, never an attack: ViaBackwards rewrites a legacy
+        // spectator's attack into it too (EntityPacketRewriter26_1, by the game mode it tracks)
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpectateEntityEvent.class, e -> ride(e.getPlayer(), e.getTarget()));
         MinecraftServer.getGlobalEventHandler().addListener(EntityAttackEvent.class, e -> {
-            if (!(e.getEntity() instanceof Player viewer) || SpectatorMode.mode(viewer) != SpectatorMode.Mode.TRUE) return;
-            Game watched = Matches.grotto().spectating(viewer);
-            if (watched == null || !(e.getTarget() instanceof Player target)) return;
-            if (Game.of(target) == watched || watched.isGhost(target)) SpectatorMode.camera(viewer, target);
-        });
-        MinecraftServer.getGlobalEventHandler().addListener(PlayerInputEvent.class, e -> {
-            if (e.hasPressedShiftKey()) SpectatorMode.cameraHome(e.getPlayer());
+            if (e.getEntity() instanceof Player viewer) ride(viewer, e.getTarget());
         });
         // a spectator lists only in the game they watch (to its members and its other spectators), grayed
         ShardTabList.rule((viewer, subject) -> {
@@ -42,6 +39,13 @@ public final class Spectators {
             if (Game.of(viewer) == watched) return Spectating.listed(watched); // spectate:listed - the members' view
             return Matches.grotto().spectating(viewer) == watched;
         });
+    }
+
+    // a true spectator rides the camera of a player in the game they watch; anyone else is not a target
+    private static void ride(Player viewer, net.minestom.server.entity.Entity clicked) {
+        if (SpectatorMode.mode(viewer) != SpectatorMode.Mode.TRUE || !(clicked instanceof Player target)) return;
+        Game watched = Matches.grotto().spectating(viewer);
+        if (watched != null && (Game.of(target) == watched || watched.isGhost(target))) SpectatorMode.camera(viewer, target);
     }
 
     /** Puts {@code viewer} on {@code game}'s main world as a ghost: at {@code target}'s position, or the map's landing. */

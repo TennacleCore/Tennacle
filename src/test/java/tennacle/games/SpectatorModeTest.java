@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import net.minestom.server.network.packet.client.play.ClientInputPacket;
+import net.minestom.server.network.packet.client.play.ClientSpectatorActionPacket;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
@@ -73,13 +75,27 @@ class SpectatorModeTest extends HeadlessServerTest {
             assertEquals(GameMode.SPECTATOR, w.player.getGameMode());
             assertFalse(SpectatorHud.hidden(w.player));
 
-            // the camera: an attack-click on a member rides them; an outsider is not a target
+            // the camera: the click arrives as the spectate-entity packet (a 1.8 spectator's attack is rewritten
+            // into it by ViaBackwards); a member rides, an outsider is not a target
+            var connection = w.player.getPlayerConnection();
             w.sent.clear();
-            MinecraftServer.getGlobalEventHandler().call(new EntityAttackEvent(w.player, x.player));
+            MinecraftServer.getPacketListenerManager().processClientPacket(new ClientSpectatorActionPacket(x.player.getEntityId()), connection);
             assertNull(SpectatorMode.camera(w.player), "only the watched game's players are cameras");
+            MinecraftServer.getPacketListenerManager().processClientPacket(new ClientSpectatorActionPacket(a.player.getEntityId()), connection);
+            assertSame(a.player, SpectatorMode.camera(w.player), "the packet rode the member");
+            assertEquals(a.player.getEntityId(), w.sent(CameraPacket.class).getLast().cameraId());
+
+            // sneaking, as the input packet carries it, brings the camera home on the tick
+            w.sent.clear();
+            MinecraftServer.getPacketListenerManager().processClientPacket(new ClientInputPacket(false, false, false, false, false, true, false), connection);
+            MinecraftServer.getSchedulerManager().processTick();
+            assertNull(SpectatorMode.camera(w.player), "sneak dismounts");
+            assertEquals(w.player.getEntityId(), w.sent(CameraPacket.class).getLast().cameraId());
+            MinecraftServer.getPacketListenerManager().processClientPacket(new ClientInputPacket(false, false, false, false, false, false, false), connection);
+
+            // a click that still arrives as an attack rides too
             MinecraftServer.getGlobalEventHandler().call(new EntityAttackEvent(w.player, a.player));
             assertSame(a.player, SpectatorMode.camera(w.player));
-            assertEquals(a.player.getEntityId(), w.sent(CameraPacket.class).getLast().cameraId());
 
             MinecraftServer.getCommandManager().execute(w.player, "spec mode ghost");
             assertEquals(SpectatorMode.Mode.GHOST, SpectatorMode.mode(w.player));
