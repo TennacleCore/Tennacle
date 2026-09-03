@@ -111,7 +111,7 @@ public final class Boxing {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.seats(HITS).target(Score.TARGET),
-                        () -> TimeLimit.of().from(Match.OPENING).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
+                        () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
                         Nametags::of,
                         Spectating::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),

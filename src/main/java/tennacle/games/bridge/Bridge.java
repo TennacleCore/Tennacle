@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import io.github.term4.grotto.modules.Countdown;
 import io.github.term4.grotto.roster.Roster;
 import java.util.ArrayList;
 import io.github.term4.canvas.theme.Role;
@@ -187,7 +188,7 @@ public final class Bridge {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.teams(GOALS).target(Score.TARGET),
-                        () -> TimeLimit.of().from(Match.OPENING).onExpire(TimeLimit.highestTeamScoreWins(GOALS))
+                        () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.highestTeamScoreWins(GOALS))
                                 .tiebreaker(Rules::tiebreaker),
                         () -> Respawns.manual().anchor(RESPAWN),
                         KillCredit::new,
