@@ -74,7 +74,7 @@ class StepThreeTest extends HeadlessServerTest {
             assertEquals(Boolean.TRUE, arrow.critDamage.constantOrNull(), "the world profile re-folded");
             Game running = game;
             IllegalStateException bad = assertThrows(IllegalStateException.class,
-                    () -> Matches.modify(running, Ruleset.named("typo").rule("cages:seconds", "5")));
+                    () -> Matches.modify(running, Ruleset.named("typo").rule("cage:seconds", "5")));
             assertTrue(bad.getMessage().contains("not a rule of sumo"), bad.getMessage());
             assertEquals(1200L, game.rules().resolve(Scope.GAME, TimeLimit.LIMIT), "a refused entry changed nothing");
         } finally {

@@ -54,9 +54,9 @@ import java.util.Set;
 public final class Cages implements GameModule {
 
     /** Seconds on the cage count; captured: 3 on hypixel, 5 on scrims. */
-    public static final StateKey<Integer> SECONDS = StateKey.of("cages:seconds", Codec.INT, 3);
+    public static final StateKey<Integer> SECONDS = StateKey.of("cage:seconds", Codec.INT, 3);
     /** Off: no cage blocks and no re-cage after a goal - the count still opens the match, goals play on. */
-    public static final StateKey<Boolean> ENABLED = StateKey.of("cages:enabled", Codec.BOOLEAN, true);
+    public static final StateKey<Boolean> ENABLED = StateKey.of("cage:enabled", Codec.BOOLEAN, true);
 
     /** Held at the seat: {@link #HOLD_PINNED}, {@link #HOLD_BOUNDED} or {@link #HOLD_NONE}. */
     public static final StateKey<String> HOLD = StateKey.of("cage:hold", Codec.STRING, "bounded");

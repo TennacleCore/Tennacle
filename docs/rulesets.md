@@ -67,7 +67,7 @@ dynamic values are an addition, not a redesign.
 The whole tree is enumerable from the generated tables, so "what mechanics can I change" is a browse,
 not a documentation page - and it never drifts from the code because it IS the code.
 
-**Tier 2 - rule settings: StateKeys, declared by the feature that consumes them.** `cages:seconds` is
+**Tier 2 - rule settings: StateKeys, declared by the feature that consumes them.** `cage:seconds` is
 declared by the Cages module - NOT `bridge:*`; bridge is merely one installer, and any caged mode gets
 the setting by installing Cages. `score:target` is declared by the scoring seam, so bridge (first to 5),
 sumo (bo3), and pearl fight all expose it. `friendly-fire` is the `FriendlyFire` module's; a bow boost is
