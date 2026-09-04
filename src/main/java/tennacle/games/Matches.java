@@ -1,7 +1,7 @@
 package tennacle.games;
 
 import tennacle.storage.MatchLog;
-import io.github.term4.polyp.world.Wardrobe;
+import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.Mechanics;
 
 import io.github.term4.archipelago.shard.ShardManager;
@@ -11,9 +11,9 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Grotto;
 import io.github.term4.grotto.Outcome;
-import io.github.term4.grotto.modules.Choice;
-import io.github.term4.grotto.modules.Results;
-import io.github.term4.grotto.modules.Summary;
+import io.github.term4.grotto.modules.flow.Choice;
+import io.github.term4.grotto.modules.outcome.Results;
+import io.github.term4.grotto.modules.view.Summary;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;

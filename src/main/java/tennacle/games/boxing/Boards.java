@@ -4,9 +4,9 @@ import tennacle.Msg;
 import tennacle.games.Match;
 import tennacle.looks.Frames;
 
-import io.github.term4.grotto.modules.Score;
-import io.github.term4.grotto.modules.Scoreboard;
-import io.github.term4.grotto.modules.TimeLimit;
+import io.github.term4.grotto.modules.outcome.Score;
+import io.github.term4.grotto.modules.view.Scoreboard;
+import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

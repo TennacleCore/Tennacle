@@ -3,7 +3,7 @@ package tennacle.games.bridge;
 import tennacle.Msg;
 import tennacle.games.Matches;
 
-import io.github.term4.canvas.theme.ChatWidth;
+import io.github.term4.canvas.chat.ChatWidth;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.GameState;

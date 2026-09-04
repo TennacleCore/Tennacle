@@ -4,11 +4,11 @@ import java.util.function.Function;
 import io.github.term4.canvas.chat.Chat;
 import tennacle.Msg;
 
-import io.github.term4.canvas.theme.HypixelIntro;
+import io.github.term4.canvas.presets.HypixelIntro;
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.canvas.theme.Theme;
 import io.github.term4.grotto.Game;
-import io.github.term4.grotto.modules.HitReport;
+import io.github.term4.grotto.modules.combat.HitReport;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;

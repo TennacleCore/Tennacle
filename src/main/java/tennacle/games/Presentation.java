@@ -1,7 +1,7 @@
 package tennacle.games;
 
 import net.kyori.adventure.text.format.NamedTextColor;
-import io.github.term4.grotto.modules.Respawns;
+import io.github.term4.grotto.modules.combat.Respawns;
 import tennacle.Msg;
 
 import io.github.term4.canvas.tab.TabList;
@@ -9,9 +9,9 @@ import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Outcome;
-import io.github.term4.grotto.modules.Countdown;
-import io.github.term4.grotto.modules.LastStanding;
-import io.github.term4.grotto.modules.TimeLimit;
+import io.github.term4.grotto.modules.flow.Countdown;
+import io.github.term4.grotto.modules.outcome.LastStanding;
+import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.roster.Slot;
 import net.kyori.adventure.nbt.CompoundBinaryTag;

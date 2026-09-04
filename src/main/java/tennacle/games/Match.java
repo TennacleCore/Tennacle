@@ -2,7 +2,7 @@ package tennacle.games;
 
 import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
-import io.github.term4.grotto.modules.Phases;
+import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;

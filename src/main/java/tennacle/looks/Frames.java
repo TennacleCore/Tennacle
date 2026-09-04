@@ -3,9 +3,9 @@ package tennacle.looks;
 import tennacle.Msg;
 import tennacle.games.Match;
 
-import io.github.term4.canvas.theme.Shine;
+import io.github.term4.canvas.board.Shine;
 import io.github.term4.grotto.Game;
-import io.github.term4.grotto.modules.Scoreboard;
+import io.github.term4.grotto.modules.view.Scoreboard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;

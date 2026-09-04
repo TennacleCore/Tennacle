@@ -8,7 +8,7 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
-import io.github.term4.grotto.modules.Score;
+import io.github.term4.grotto.modules.outcome.Score;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import net.minestom.server.MinecraftServer;

@@ -1,6 +1,6 @@
 package tennacle.lobby;
 
-import io.github.term4.polyp.world.Wardrobe;
+import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.Mechanics;
 import tennacle.Msg;
 

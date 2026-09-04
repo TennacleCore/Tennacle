@@ -1,7 +1,7 @@
 package tennacle.games;
 
 import io.github.term4.grotto.state.Scope;
-import io.github.term4.grotto.modules.Countdown;
+import io.github.term4.grotto.modules.flow.Countdown;
 import tennacle.games.bridge.Cages;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import io.github.term4.archipelago.shard.ShardManager;

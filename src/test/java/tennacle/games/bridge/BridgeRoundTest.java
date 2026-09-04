@@ -1,6 +1,6 @@
 package tennacle.games.bridge;
 
-import io.github.term4.grotto.modules.Respawns;
+import io.github.term4.grotto.modules.combat.Respawns;
 import tennacle.Mechanics;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -16,7 +16,7 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.bloom.Session;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
-import io.github.term4.grotto.modules.Phases;
+import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;

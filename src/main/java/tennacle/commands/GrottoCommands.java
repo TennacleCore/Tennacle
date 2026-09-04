@@ -1,6 +1,6 @@
 package tennacle.commands;
 
-import io.github.term4.grotto.modules.Spectating;
+import io.github.term4.grotto.modules.view.Spectating;
 import tennacle.games.Spectators;
 import tennacle.GameIds;
 import tennacle.Msg;

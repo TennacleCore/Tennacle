@@ -1,7 +1,7 @@
 package tennacle.commands;
 
 import tennacle.storage.SafeName;
-import io.github.term4.grotto.modules.Spectating;
+import io.github.term4.grotto.modules.view.Spectating;
 import tennacle.games.Spectators;
 import io.github.term4.grotto.Game;
 import tennacle.Msg;
@@ -19,7 +19,7 @@ import io.github.term4.archipelago.storage.UserData;
 import io.github.term4.archipelago.storage.polar.PolarShardCodec;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.polyp.world.MechanicsWorld;
-import io.github.term4.archipelago.world.WorldCommands;
+import io.github.term4.archipelago.shard.WorldCommands;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.minestom.server.MinecraftServer;

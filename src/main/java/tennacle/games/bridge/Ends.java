@@ -4,10 +4,10 @@ package tennacle.games.bridge;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 
-import io.github.term4.canvas.theme.HypixelCard;
-import io.github.term4.grotto.modules.Results;
-import io.github.term4.grotto.modules.Score;
-import io.github.term4.grotto.modules.Summary;
+import io.github.term4.canvas.presets.HypixelCard;
+import io.github.term4.grotto.modules.outcome.Results;
+import io.github.term4.grotto.modules.outcome.Score;
+import io.github.term4.grotto.modules.view.Summary;
 import io.github.term4.grotto.state.Scope;
 
 /** Bridge's end screens, one per network. */

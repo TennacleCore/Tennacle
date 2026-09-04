@@ -6,7 +6,7 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
-import io.github.term4.grotto.modules.TimeLimit;
+import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.mechanics.projectile.types.Arrow;

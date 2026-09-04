@@ -1,7 +1,7 @@
 package tennacle.commands;
 
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
-import io.github.term4.grotto.modules.Spectating;
+import io.github.term4.grotto.modules.view.Spectating;
 import java.util.List;
 import tennacle.Msg;
 import tennacle.games.Matches;

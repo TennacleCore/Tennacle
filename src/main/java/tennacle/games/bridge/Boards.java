@@ -4,9 +4,9 @@ import tennacle.Msg;
 import tennacle.looks.Frames;
 
 import io.github.term4.grotto.Game;
-import io.github.term4.grotto.modules.Score;
-import io.github.term4.grotto.modules.Scoreboard;
-import io.github.term4.grotto.modules.TimeLimit;
+import io.github.term4.grotto.modules.outcome.Score;
+import io.github.term4.grotto.modules.view.Scoreboard;
+import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;

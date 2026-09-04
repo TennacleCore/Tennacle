@@ -26,9 +26,9 @@ public final class Msg {
             .build();
 
     // network profiles ship with canvas; these are the app's shorthand
-    public static final Theme SCRIMS = io.github.term4.canvas.theme.Themes.SCRIMS;
-    public static final Theme MINEMEN = io.github.term4.canvas.theme.Themes.MINEMEN;
-    public static final Theme HYPIXEL = io.github.term4.canvas.theme.Themes.HYPIXEL;
+    public static final Theme SCRIMS = io.github.term4.canvas.presets.Themes.SCRIMS;
+    public static final Theme MINEMEN = io.github.term4.canvas.presets.Themes.MINEMEN;
+    public static final Theme HYPIXEL = io.github.term4.canvas.presets.Themes.HYPIXEL;
 
     private Msg() {}
 

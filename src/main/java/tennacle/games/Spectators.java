@@ -2,7 +2,7 @@ package tennacle.games;
 
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.grotto.Game;
-import io.github.term4.grotto.modules.Spectating;
+import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import net.minestom.server.MinecraftServer;
