@@ -185,7 +185,7 @@ public final class Bridge {
                 .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         Cages::new, // the opener, and the re-cage after a goal
-                        () -> Freeze.during(Match.OPENING).after(Match.OVER),
+                        () -> Freeze.during(Match.OPENING).after(Match.OVER).hold(Cages::hold),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.teams(GOALS).target(Score.TARGET),
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.highestTeamScoreWins(GOALS))

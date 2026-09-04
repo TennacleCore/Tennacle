@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import net.minestom.server.coordinate.Pos;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.canvas.theme.Role;
 import tennacle.games.HotArena;
@@ -57,6 +58,25 @@ public final class Cages implements GameModule {
     /** Off: no cage blocks and no re-cage after a goal - the count still opens the match, goals play on. */
     public static final StateKey<Boolean> ENABLED = StateKey.of("cages:enabled", Codec.BOOLEAN, true);
 
+    /** Held at the seat: {@link #HOLD_PINNED}, {@link #HOLD_BOUNDED} or {@link #HOLD_NONE}. */
+    public static final StateKey<String> HOLD = StateKey.of("cage:hold", Codec.STRING, "bounded");
+    /** Nobody moves. */
+    public static final String HOLD_PINNED = "pinned";
+    /** Free inside {@link #BOUNDS}, nothing past it - the walls a cage draws are a look, this is the boundary. */
+    public static final String HOLD_BOUNDED = "bounded";
+    /** No hold at all. */
+    public static final String HOLD_NONE = "none";
+    /**
+     * Blocks from the seat a bounded player may reach: the box is that far on x and z, and from that far below
+     * the seat to one block further above it, so a jump lands inside. Every cage gets the same box, whatever it
+     * looks like, so an unlocked cage is never room to move.
+     */
+    public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 1);
+    /** The only cages a game allows; empty = all of them. */
+    public static final StateKey<List<String>> WHITELIST = StateKey.of("cage:whitelist", Codec.STRING.list(), List.of());
+    /** Cages a game refuses, whitelisted or not. */
+    public static final StateKey<List<String>> BLACKLIST = StateKey.of("cage:blacklist", Codec.STRING.list(), List.of());
+
     static final String RECAGE_ALARM = "bridge:recage";
     private static final String COUNT_ALARM = "bridge:cage-count";
     private static final String STAMP_ALARM = "bridge:cage-stamp";
@@ -92,7 +112,39 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, ENABLED, Countdown.GRACE, Countdown.INTERVAL);
+        return Set.of(SECONDS, ENABLED, HOLD, BOUNDS, WHITELIST, BLACKLIST, Countdown.GRACE, Countdown.INTERVAL);
+    }
+
+    /** The hold {@code Freeze} asks: pinned to the seat, free inside the boundary, or nothing. */
+    static Pos hold(Game game, Pos anchor, Pos to) {
+        String mode = game.rules().resolve(Scope.GAME, HOLD);
+        if (HOLD_NONE.equals(mode)) return to;
+        if (HOLD_PINNED.equals(mode)) return anchor;
+        int b = Math.max(0, game.rules().resolve(Scope.GAME, BOUNDS));
+        double x = clamp(to.x(), anchor.x() - b, anchor.x() + b);
+        double y = clamp(to.y(), anchor.y() - b, anchor.y() + b + 1); // the extra block is jump room
+        double z = clamp(to.z(), anchor.z() - b, anchor.z() + b);
+        // every move inside the box comes through here: hand back the move itself rather than a copy
+        return x == to.x() && y == to.y() && z == to.z() ? to : new Pos(x, y, z);
+    }
+
+    private static double clamp(double value, double min, double max) {
+        return Math.min(max, Math.max(min, value));
+    }
+
+    /** The pick a game will honor: theirs when it is allowed here, else the first cage that is. */
+    static String allowed(Game game, String pick) {
+        List<String> white = game.rules().resolve(Scope.GAME, WHITELIST);
+        List<String> black = game.rules().resolve(Scope.GAME, BLACKLIST);
+        if (permits(white, black, pick)) return pick;
+        if (permits(white, black, "")) return ""; // the default cage, when the rules leave it standing
+        return variants().stream().filter(v -> permits(white, black, v)).sorted().findFirst().orElse("");
+    }
+
+    private static boolean permits(List<String> white, List<String> black, String variant) {
+        String name = variant.isEmpty() ? "default" : variant;
+        if (black.contains(name) || black.contains(variant)) return false;
+        return white.isEmpty() || white.contains(name) || white.contains(variant);
     }
 
     @Override
@@ -271,8 +323,7 @@ public final class Cages implements GameModule {
             Slot seat = game.roster().slotOf(member);
             return seat != null && seat.team().equals(team);
         });
-        if (seated != null) return choiceOf(seated);
-        return "";
+        return allowed(game, seated != null ? choiceOf(seated) : "");
     }
 
     static String choiceOf(Player player) {
