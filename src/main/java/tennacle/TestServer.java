@@ -217,6 +217,7 @@ public final class TestServer {
 
         Health.install();
         warmArenas();
+        Bloom.onSave(saved -> warmArenas()); // the edit replaced an arena: build the new world before a launch does
         shutdownSteps(vault);
         server.start(bind, port);
         LOGGER.info("listening on {}:{} (dev commands {})", bind, port, devCommands ? "on" : "off");
@@ -239,8 +240,9 @@ public final class TestServer {
     }
 
     /**
-     * Reads every mode's map once, off the tick thread. A cold map is otherwise read, parsed and built inside the
-     * command that asks for it, and commands run on the tick loop.
+     * Reads, parses and BUILDS every mode's map off the tick thread, at boot and after a save. A cold map is
+     * otherwise done inside the command that asks for it, and commands run on the tick loop. {@code instantiate}
+     * caches per arena under its own lock, so a launch racing this waits rather than building a second world.
      */
     private static void warmArenas() {
         Thread.ofVirtual().name("tennacle-arena-warm").start(() -> {
@@ -248,7 +250,7 @@ public final class TestServer {
                 var mode = Matches.mode(name);
                 if (mode == null) continue;
                 try {
-                    mode.arena().get();
+                    mode.arena().get().instantiate();
                 } catch (RuntimeException e) {
                     LOGGER.warn("no map ready for {} yet: {}", name, e.getMessage());
                 }
