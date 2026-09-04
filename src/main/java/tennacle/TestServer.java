@@ -11,12 +11,10 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.ServerFlag;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
-import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.timer.TaskSchedule;
 import org.slf4j.Logger;
@@ -68,7 +66,6 @@ public final class TestServer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestServer.class);
     private static final int EDITOR_IDLE_MINUTES = 10;
-    private static final int UNLOAD_MARGIN = 2; // chunks kept beyond the view distance
     private static long editorEmptySince;
 
     // an abandoned editor closes on its own, but the unsaved work survives as an .autosave sidecar
@@ -120,6 +117,13 @@ public final class TestServer {
         }
     }
 
+    /*
+     * No chunk reaper here on purpose. Every world this server owns is bounded and rebuilt from its own bytes -
+     * a built lobby, an arena's preloaded extent, an editor session - so nothing grows without bound, and
+     * Instance.unloadChunk REMOVES the chunk's entities, which is a heavier act than reclaiming memory. A world
+     * that generates or persists (an anvil-backed, procedurally grown one) needs a policy that saves on unload;
+     * that policy belongs with that world, not here.
+     */
     private static void boot() throws Exception {
         // the platform flags, before init
         System.setProperty("minestom.new-socket-write-lock", "true");
@@ -202,8 +206,6 @@ public final class TestServer {
         });
         MinecraftServer.getSchedulerManager().buildTask(TestServer::editorWatchdog)
                 .repeat(TaskSchedule.seconds(30)).schedule();
-        MinecraftServer.getSchedulerManager().buildTask(() -> unloadIdleChunks(world))
-                .repeat(TaskSchedule.minutes(2)).schedule();
 
         // each library reads a viewer's protocol itself and decides what an unknown one means: modern by
         // default, since guessing legacy sends a modern client 1.8 wire tricks it draws literally
@@ -273,49 +275,6 @@ public final class TestServer {
             if (!done.await(seconds, TimeUnit.SECONDS)) LOGGER.warn("shutdown step did not finish on the tick thread");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
-     * Nothing unloaded chunks: the lobby grew for the life of the process as players roamed, and a cached arena
-     * instance kept every chunk a flying spectator generated past the map. Only worlds whose content can be
-     * rebuilt are reaped, and only outside their built area - an editor session (unsaved edits) is never touched,
-     * and neither is any instance this does not recognise.
-     */
-    private static void unloadIdleChunks(InstanceContainer lobby) {
-        int r = Playground.BUILT_CHUNK_RADIUS;
-        reap(lobby, -r, -r, r, r);
-        for (String name : Matches.modes()) {
-            var mode = Matches.mode(name);
-            if (mode == null) continue;
-            try {
-                var arena = mode.arena().get();
-                if (arena.instantiated() instanceof InstanceContainer built) {
-                    var bounds = arena.bounds(); // the map reloads from its own bytes, but not for free: keep it
-                    reap(built, bounds.minChunkX(), bounds.minChunkZ(), bounds.maxChunkX(), bounds.maxChunkZ());
-                }
-            } catch (RuntimeException e) { // no map authored for that mode yet
-            }
-        }
-    }
-
-    /** Drops chunks outside the kept box that no player is near: the built world stays, a flier's trail does not. */
-    static void reap(InstanceContainer world, int minX, int minZ, int maxX, int maxZ) {
-        int near = ServerFlag.CHUNK_VIEW_DISTANCE + UNLOAD_MARGIN;
-        List<Chunk> watching = List.copyOf(world.getPlayers()).stream()
-                .map(Player::getChunk).filter(java.util.Objects::nonNull).toList();
-        for (Chunk chunk : List.copyOf(world.getChunks())) {
-            int cx = chunk.getChunkX();
-            int cz = chunk.getChunkZ();
-            if (cx >= minX && cx <= maxX && cz >= minZ && cz <= maxZ) continue;
-            boolean watched = false;
-            for (Chunk seen : watching) {
-                if (Math.abs(seen.getChunkX() - cx) <= near && Math.abs(seen.getChunkZ() - cz) <= near) {
-                    watched = true;
-                    break;
-                }
-            }
-            if (!watched) world.unloadChunk(cx, cz);
         }
     }
 
