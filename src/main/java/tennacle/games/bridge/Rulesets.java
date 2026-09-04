@@ -28,7 +28,7 @@ final class Rulesets {
     // the crit META is never touched - a full-draw arrow shows the flag, a partial does not (its actual crit state).
     // hypixel and scrims drop the crit ROLL (critDamage false): the trail shows, the bonus does not; minemen rolls it.
     static final Ruleset VANILLA_RULES = Ruleset.named("minemen")
-            .rule(Freeze.SHOOT, false)             // captured: a bow drawn in the cage fires nothing
+            .rule(Freeze.SHOOT, false)             // captured: nothing is thrown or fired from the cage
             .rule(Cages.ENABLED, false)            // captured: no cage at all
             .rule(Cages.SEAT, Cages.SEAT_RESPAWN)  // held where they respawn instead
             .rule(Bodies.ARROWS, false);           // captured: a reset pulls the stuck arrows out
