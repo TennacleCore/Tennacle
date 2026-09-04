@@ -28,6 +28,7 @@ import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -123,7 +124,7 @@ public final class Rules implements GameModule {
             if (!(e.target() instanceof Player victim)) return;
             if (game.roster().slotOf(victim) == null) return;
             e.cancel(); // a kill respawns behind protection - never the death screen
-            killed(game, victim, e.source() instanceof Player by && by != victim ? by : null);
+            killed(game, victim, e.source() instanceof Player by && by != victim ? by : null, shotRange(e));
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
@@ -228,7 +229,16 @@ public final class Rules implements GameModule {
         return y;
     }
 
-    private void killed(Game game, Player victim, @Nullable Player by) {
+    /** Horizontal blocks between where a projectile was loosed and where it struck; {@code -1} if it was not one. */
+    private static double shotRange(FatalDamageEvent e) {
+        if (!(e.detail() instanceof ProjectileEntity projectile)) return -1;
+        Pos from = projectile.getSpawnPosition();
+        Point hit = e.finalSnap().point();
+        if (from == null || hit == null) return -1;
+        return Math.hypot(hit.x() - from.x(), hit.z() - from.z());
+    }
+
+    private void killed(Game game, Player victim, @Nullable Player by, double range) {
         credit.forget(victim);
         respawns.queue(victim);
         Deaths.cue(game, victim, by);
@@ -236,7 +246,7 @@ public final class Rules implements GameModule {
             Match.addSeat(game, by, Bridge.KILLS);
             if ("minemen".equals(look)) by.sendMessage(Banners.kill(game, victim));
         }
-        Component line = Banners.killedLine(game, victim, by);
+        Component line = Banners.killedLine(game, victim, by, range);
         Match.each(game, p -> p.sendMessage(line));
     }
 

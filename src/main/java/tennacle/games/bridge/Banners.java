@@ -1,6 +1,7 @@
 package tennacle.games.bridge;
 
 import tennacle.Msg;
+import tennacle.games.Look;
 import tennacle.games.Matches;
 
 import io.github.term4.canvas.chat.ChatWidth;
@@ -116,12 +117,18 @@ final class Banners {
     }
 
     // captured scrims: "Dogln was killed by Opikss." gray prose, names team-colored; minemen mirrors its voice
-    static Component killedLine(Game game, Player victim, @Nullable Player by) {
+    static Component killedLine(Game game, Player victim, @Nullable Player by, double range) {
         var roster = game.roster();
         Component name = Component.text(victim.getUsername() + " ", roster.team(Bridge.teamOf(game, victim)).color());
         boolean minemen = "minemen".equals(Matches.lookNameOf(game));
         NamedTextColor prose = minemen ? NamedTextColor.YELLOW : NamedTextColor.GRAY;
         if (by == null) return name.append(Component.text(minemen ? "died!" : "died.", prose));
+        // captured minemen: a shot names the range it was taken from; everything else is the plain line
+        if (minemen && range >= 0) {
+            return name.append(Component.text("was shot by ", prose))
+                    .append(Component.text(by.getUsername(), roster.team(Bridge.teamOf(game, by)).color()))
+                    .append(Component.text(" from " + Look.num((float) range) + " blocks!", prose));
+        }
         return name.append(Component.text("was killed by ", prose))
                 .append(Component.text(by.getUsername(), roster.team(Bridge.teamOf(game, by)).color()))
                 .append(Component.text(minemen ? "!" : ".", prose));

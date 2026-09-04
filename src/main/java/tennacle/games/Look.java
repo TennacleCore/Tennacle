@@ -156,22 +156,27 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .append(Component.text(" HP!", NamedTextColor.GRAY));
     }
 
-    // minemen: yellow name, bold grey arrow, light-purple health+heart, then the signed change in parens
+    // minemen: yellow name, bold grey arrow, light-purple hearts, then the signed change in parens
     // (damage -N red, heal +N green) - e.g. Dogln ➡ 7❤ (-3❤)
     private static Component minemenHit(Player target, float health, float impact) {
         boolean heal = impact > 0;
-        Component change = Component.text((heal ? "+" : "-") + num(Math.abs(impact)) + "❤",
+        Component change = Component.text((heal ? "+" : "-") + hearts(Math.abs(impact)) + "❤",
                 heal ? NamedTextColor.GREEN : NamedTextColor.RED);
         return Component.text(target.getUsername(), NamedTextColor.YELLOW)
                 .append(Component.text(" ➡ ", NamedTextColor.GRAY, TextDecoration.BOLD))
-                .append(Component.text(num(Math.max(0f, health)) + "❤", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text(hearts(Math.max(0f, health)) + "❤", NamedTextColor.LIGHT_PURPLE))
                 .append(Component.text(" (", NamedTextColor.GRAY))
                 .append(change)
                 .append(Component.text(")", NamedTextColor.GRAY));
     }
 
-    // health to one decimal, but a whole value drops the ".0" (20, not 20.0; 15.4 stays)
-    private static String num(float value) {
+    // captured minemen: health in HEARTS, and only ever a whole one or a half - a whole hp either way
+    private static String hearts(float health) {
+        return num(Math.round(health) / 2f);
+    }
+
+    /** One decimal, but a whole value drops the {@code .0} - 20, not 20.0; 15.4 stays. */
+    public static String num(float value) {
         String s = String.format(Locale.ROOT, "%.1f", value);
         return s.endsWith(".0") ? s.substring(0, s.length() - 2) : s;
     }
