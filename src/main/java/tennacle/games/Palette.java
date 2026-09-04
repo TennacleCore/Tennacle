@@ -25,7 +25,8 @@ public final class Palette {
     /** Checked against every declared role, and every role the game reads must resolve whole: a value a reader
      *  cannot parse, or a block stack with no family anywhere, fails the launch here - not a kit mid-match. */
     public static @NotNull Livery livery(@NotNull Arena arena, @NotNull String team, @NotNull Teams.Defaults game) {
-        Livery livery = new Livery(Teams.of(arena, team).values()).over(game.livery()).over(Livery.ordinal(team));
+        Livery livery = Livery.overrides().over(new Livery(Teams.of(arena, team).values()))
+                .over(game.livery()).over(Livery.ordinal(team));
         livery.check();
         for (Role<?> role : game.roles()) {
             if (!livery.whole(role)) {

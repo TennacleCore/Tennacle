@@ -15,6 +15,7 @@ import tennacle.games.Mode;
 import tennacle.games.TestWiring;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +29,34 @@ class KitPaletteTest extends HeadlessServerTest {
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
+    }
+
+    @Test
+    void aNetworkLookReplacesTheBlockItselfAndTheLayoutHoldsStill() {
+        Map<String, String> before = Livery.overrides().values();
+        Livery.overrides(Map.of("blocks", "slime_block"));
+        Game game = null;
+        FakePlayer one = null;
+        try {
+            Mode bridge = Matches.mode("bridge");
+            game = Matches.launch(bridge, Matches.platformFor(bridge, null), SectionsTest.fixture());
+            one = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "SlimeOne");
+            one.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            assertTrue(game.join(one.player));
+            Game running = game;
+            FakePlayer seated = one;
+            await("seated", () -> Game.of(seated.player) == running);
+
+            assertEquals(Material.SLIME_BLOCK, one.player.getInventory().getItemStack(3).material(),
+                    "the network's word beats the family the mode names");
+            assertEquals(Material.SLIME_BLOCK, one.player.getInventory().getItemStack(4).material());
+            assertEquals(Material.IRON_SWORD, one.player.getInventory().getItemStack(0).material(),
+                    "every other named item keeps its slot: a layout is positions, never materials");
+        } finally {
+            if (game != null) game.end(Outcome.aborted());
+            if (one != null) one.player.remove();
+            Livery.overrides(before);
+        }
     }
 
     @Test

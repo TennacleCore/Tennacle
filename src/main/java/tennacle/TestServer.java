@@ -1,5 +1,7 @@
 package tennacle;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Arrays;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.canvas.theme.Livery;
@@ -116,6 +118,21 @@ public final class TestServer {
         LOGGER.info("palette: {}", configured);
     }
 
+    /** {@code tennacle.look=blocks=slime_block,cage=glass} - roles the network sets over every map's own.
+     *  Where {@code tennacle.palette} changes the hue, this changes the block. */
+    private static void look() {
+        String configured = Config.value("tennacle.look");
+        if (configured == null) return;
+        Map<String, String> roles = new LinkedHashMap<>();
+        for (String pair : configured.split(",")) {
+            int eq = pair.indexOf('=');
+            if (eq <= 0) throw new IllegalStateException("tennacle.look takes <role>=<value>, got '" + pair.trim() + "'");
+            roles.put(pair.substring(0, eq).trim(), pair.substring(eq + 1).trim());
+        }
+        Livery.overrides(roles);
+        LOGGER.info("look: {}", configured);
+    }
+
     public static Path arenaDir() {
         return Config.path("tennacle.arena-dir", "arenas");
     }
@@ -177,6 +194,7 @@ public final class TestServer {
             LOGGER.info("dev commands off (tennacle.dev-commands)");
         }
         palette(); // a seasonal look is one config line: every map's arms, kits, cages and names follow
+        look();
         Matches.install(world, new Pos(0.5, 42, 0.5), shards);
 
         // the libraries store nothing: account data is the app's, and this is where it lands
