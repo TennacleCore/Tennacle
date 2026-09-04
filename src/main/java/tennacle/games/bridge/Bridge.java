@@ -12,6 +12,7 @@ import tennacle.Msg;
 import tennacle.games.Duels;
 import tennacle.games.KitLayouts;
 import tennacle.games.MapPool;
+import tennacle.games.Sections;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -186,6 +187,7 @@ public final class Bridge {
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
                 .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
+                        Sections::new, // the arms follow the palette, per match
                         Cages::new, // the opener, and the re-cage after a goal
                         () -> Freeze.during(Match.OPENING).after(Match.OVER).hold(Cages::hold),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),

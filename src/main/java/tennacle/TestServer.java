@@ -1,5 +1,8 @@
 package tennacle;
 
+import java.util.Arrays;
+import io.github.term4.canvas.theme.Tint;
+import io.github.term4.canvas.theme.Livery;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.archipelago.shard.ShardManager;
@@ -102,6 +105,17 @@ public final class TestServer {
         }
     }
 
+    /** {@code tennacle.palette=dark_purple,gold,...} - the tint a team with nothing authored falls back to,
+     *  in ordinal order. Unset: red, blue, green, yellow, aqua, light purple, dark purple, gold. */
+    private static void palette() {
+        String configured = Config.value("tennacle.palette");
+        if (configured == null) return;
+        List<Tint> tints = Arrays.stream(configured.split(",")).map(String::trim).filter(t -> !t.isEmpty())
+                .map(Tint::parse).toList();
+        Livery.ordinals(tints);
+        LOGGER.info("palette: {}", configured);
+    }
+
     public static Path arenaDir() {
         return Config.path("tennacle.arena-dir", "arenas");
     }
@@ -162,6 +176,7 @@ public final class TestServer {
         } else {
             LOGGER.info("dev commands off (tennacle.dev-commands)");
         }
+        palette(); // a seasonal look is one config line: every map's arms, kits, cages and names follow
         Matches.install(world, new Pos(0.5, 42, 0.5), shards);
 
         // the libraries store nothing: account data is the app's, and this is where it lands

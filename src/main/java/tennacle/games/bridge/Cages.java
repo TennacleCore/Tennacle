@@ -7,6 +7,7 @@ import net.minestom.server.coordinate.Pos;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.canvas.theme.Role;
 import tennacle.games.HotArena;
+import tennacle.games.Chunks;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 
@@ -97,7 +98,7 @@ public final class Cages implements GameModule {
     private static final Sound TICK = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 1f);
     private static final Sound GO = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
 
-    private record Cell(BlockVec offset, Block block, @Nullable String recolor) {}
+    private record Cell(BlockVec offset, Block block, boolean accented) {}
     private record CageDef(Facing front, List<Cell> cells, Map<String, Role.Fill> fills) {}
 
     private static Arena cageSource;
@@ -285,7 +286,7 @@ public final class Cages implements GameModule {
             BlockVec anchor = new BlockVec(spot.pos().blockX(), spot.pos().blockY(), spot.pos().blockZ());
             List<Cell> cells = new ArrayList<>();
             for (RegionMarker.Cuboid part : box.boxes()) {
-                preload(source, part.min().blockX() >> 4, part.max().blockX() >> 4, part.min().blockZ() >> 4, part.max().blockZ() >> 4);
+                Chunks.load(source, part.min().blockX() >> 4, part.max().blockX() >> 4, part.min().blockZ() >> 4, part.max().blockZ() >> 4);
                 for (int x = part.min().blockX(); x <= part.max().blockX(); x++) {
                     for (int z = part.min().blockZ(); z <= part.max().blockZ(); z++) {
                         for (int y = part.min().blockY(); y <= part.max().blockY(); y++) {
@@ -293,7 +294,7 @@ public final class Cages implements GameModule {
                             if (block.isAir()) continue;
                             cells.add(new Cell(
                                     new BlockVec(x - anchor.blockX(), y - anchor.blockY(), z - anchor.blockZ()),
-                                    block, recolor(block, new BlockVec(x, y, z), accents)));
+                                    block, accented(block, new BlockVec(x, y, z), accents)));
                         }
                     }
                 }
@@ -322,32 +323,16 @@ public final class Cages implements GameModule {
         return Map.copyOf(fills);
     }
 
-    // authored RED_* inside a matching accent region recolors per team; the returned tail rides the Cell
-    private static @Nullable String recolor(Block block, BlockVec at, List<RegionMarker> accents) {
+    // authored RED_* inside a matching accent region follows the team
+    private static boolean accented(Block block, BlockVec at, List<RegionMarker> accents) {
         String name = block.key().value().toUpperCase(Locale.ROOT);
-        if (!name.startsWith("RED_")) return null;
+        if (!name.startsWith("RED_")) return false;
         for (RegionMarker accent : accents) {
             if (!accent.contains(at)) continue;
             String family = accent.key().equals("accent") ? "" : accent.key().substring("accent.".length());
-            if (familyMatches(name, family)) return name.substring("RED_".length());
+            if (familyMatches(name, family)) return true;
         }
-        return null;
-    }
-
-    /**
-     * An accented cell under the team's cage value. A tint keeps the cell's own material and swaps the hue
-     * (red_wool -> blue_wool), so the look's family is never read here - it is there to make the role resolve
-     * whole. A block replaces the cell outright, which is how one side gets redstone ore and another lapis;
-     * {@code accent.<family>} is what keeps that off the cells it should not touch.
-     */
-    private static Block recolored(Role.Fill fill, String tail, Block authored) {
-        if (fill.block() != null) {
-            Block named = Block.fromKey(fill.block().key());
-            return named != null ? named : authored;
-        }
-        Tint tint = fill.tint() != null ? fill.tint() : Tint.NONE;
-        Block dyed = Block.fromKey("minecraft:" + (tint.hue().name() + "_" + tail).toLowerCase(Locale.ROOT));
-        return dyed != null ? dyed : authored;
+        return false;
     }
 
     // an accent's suffix narrows what it takes: a dyed family, or one block by name (accent.red_wool)
@@ -412,13 +397,16 @@ public final class Cages implements GameModule {
                 minCx = Math.min(minCx, cx); maxCx = Math.max(maxCx, cx);
                 minCz = Math.min(minCz, cz); maxCz = Math.max(maxCz, cz);
             }
-            if (minCx <= maxCx) preload(game.instance(), minCx, maxCx, minCz, maxCz);
+            if (minCx <= maxCx) Chunks.load(game.instance(), minCx, maxCx, minCz, maxCz);
             for (Cell cell : cage.cells()) {
                 BlockVec turned = Facing.rotate(cell.offset(), turns);
                 BlockVec pos = new BlockVec(at.blockX() + turned.blockX(), at.blockY() + turned.blockY(),
                         at.blockZ() + turned.blockZ());
                 Block block = cell.block();
-                if (cell.recolor() != null) block = recolored(fill, cell.recolor(), block);
+                if (cell.accented()) {
+                    Block themed = fill.over(block);
+                    if (themed != null) block = themed;
+                }
                 replaced.putIfAbsent(pos, game.shard().getBlock(pos.blockX(), pos.blockY(), pos.blockZ()));
                 game.shard().setBlock(pos, Facing.rotate(block, turns));
             }
@@ -430,14 +418,4 @@ public final class Cages implements GameModule {
         replaced.clear();
     }
 
-    /** Every chunk in the range loaded with ONE wait - a re-cage after a goal must not stall the tick per cell. */
-    private static void preload(net.minestom.server.instance.Instance instance, int minCx, int maxCx, int minCz, int maxCz) {
-        List<java.util.concurrent.CompletableFuture<?>> loads = new ArrayList<>();
-        for (int cx = minCx; cx <= maxCx; cx++) {
-            for (int cz = minCz; cz <= maxCz; cz++) {
-                if (!instance.isChunkLoaded(cx, cz)) loads.add(instance.loadChunk(cx, cz));
-            }
-        }
-        if (!loads.isEmpty()) java.util.concurrent.CompletableFuture.allOf(loads.toArray(java.util.concurrent.CompletableFuture[]::new)).join();
-    }
 }
