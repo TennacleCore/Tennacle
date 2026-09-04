@@ -50,12 +50,12 @@ class CageHoldTest extends HeadlessServerTest {
 
             Pos far = SEAT.add(9, 0, 9);
             Pos held = Cages.hold(game, SEAT, far);
-            assertEquals(SEAT.x() + 1, held.x(), "clamped to the boundary, not dragged home");
-            assertEquals(SEAT.z() + 1, held.z());
+            assertEquals(SEAT.x() + 3, held.x(), "clamped to the boundary, not dragged home");
+            assertEquals(SEAT.z() + 3, held.z());
 
-            assertEquals(SEAT.y() + 2, Cages.hold(game, SEAT, SEAT.add(0, 40, 0)).y(),
+            assertEquals(SEAT.y() + 4, Cages.hold(game, SEAT, SEAT.add(0, 40, 0)).y(),
                     "and bounded upward too - a ceiling of blocks is no ceiling to a flier");
-            assertEquals(SEAT.y() - 1, Cages.hold(game, SEAT, SEAT.sub(0, 40, 0)).y());
+            assertEquals(SEAT.y() - 3, Cages.hold(game, SEAT, SEAT.sub(0, 40, 0)).y());
 
             game.state().set(Scope.GAME, Cages.BOUNDS, 4);
             assertEquals(SEAT.x() + 4, Cages.hold(game, SEAT, far).x(), "the box is a rule, live");

@@ -75,7 +75,7 @@ public final class Cages implements GameModule {
      * the seat to one block further above it, so a jump lands inside. Every cage gets the same box, whatever it
      * looks like, so an unlocked cage is never room to move.
      */
-    public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 1);
+    public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 3);
     /** The only cages a game allows; empty = all of them. */
     public static final StateKey<List<String>> WHITELIST = StateKey.of("cage:whitelist", Codec.STRING.list(), List.of());
     /** Cages a game refuses, whitelisted or not. */
