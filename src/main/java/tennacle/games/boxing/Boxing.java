@@ -1,7 +1,7 @@
 package tennacle.games.boxing;
 
 import io.github.term4.grotto.modules.view.Sight;
-import io.github.term4.bloom.Teams;
+import io.github.term4.bloom.edit.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;

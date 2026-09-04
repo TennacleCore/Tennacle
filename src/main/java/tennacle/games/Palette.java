@@ -2,7 +2,7 @@ package tennacle.games;
 
 import io.github.term4.barnacle.Arena;
 import io.github.term4.barnacle.marker.MarkerKey;
-import io.github.term4.bloom.Teams;
+import io.github.term4.bloom.edit.Teams;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.grotto.roster.Team;
