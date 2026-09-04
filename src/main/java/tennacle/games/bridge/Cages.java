@@ -59,8 +59,10 @@ public final class Cages implements GameModule {
 
     /** Seconds on the cage count; captured: 3 on hypixel, 5 on scrims. */
     public static final StateKey<Integer> SECONDS = StateKey.of("cage:seconds", Codec.INT, 3);
-    /** Off: no cage blocks and no re-cage after a goal - the count still opens the match, goals play on. */
+    /** Off: no cage blocks. The break after a goal is {@link #REOPEN}'s - a cage is a look, not the break itself. */
     public static final StateKey<Boolean> ENABLED = StateKey.of("cage:enabled", Codec.BOOLEAN, true);
+    /** Whether a goal reopens the count; off, the goal plays straight on with nobody re-seated. */
+    public static final StateKey<Boolean> REOPEN = StateKey.of("cage:reopen", Codec.BOOLEAN, true);
 
     /** Held at the seat: {@link #HOLD_PINNED}, {@link #HOLD_BOUNDED} or {@link #HOLD_NONE}. */
     public static final StateKey<String> HOLD = StateKey.of("cage:hold", Codec.STRING, "bounded");
@@ -136,7 +138,8 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, ENABLED, HOLD, BOUNDS, SEAT, WHITELIST, BLACKLIST, Countdown.GRACE, Countdown.INTERVAL);
+        return Set.of(SECONDS, ENABLED, REOPEN, HOLD, BOUNDS, SEAT, WHITELIST, BLACKLIST,
+                Countdown.GRACE, Countdown.INTERVAL);
     }
 
     /** Where a seat opens, per {@link #SEAT}: its own marker, or the team's respawn spot. */

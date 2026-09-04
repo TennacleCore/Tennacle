@@ -299,7 +299,7 @@ public final class Rules implements GameModule {
         };
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title
-        if (!game.rules().resolve(Scope.GAME, Cages.ENABLED)) { // no breaks between goals: play on
+        if (!game.rules().resolve(Scope.GAME, Cages.REOPEN)) { // no break between goals: play on
             if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) st.alarms().arm(REFIT_ALARM, st.tick() + 1);
             return;
         }
