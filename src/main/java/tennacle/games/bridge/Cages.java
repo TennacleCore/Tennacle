@@ -21,7 +21,6 @@ import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.flow.Countdown;
-import io.github.term4.grotto.modules.gear.Kits;
 import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.GameState;
@@ -65,13 +64,16 @@ public final class Cages implements GameModule {
     public static final StateKey<Boolean> REOPEN = StateKey.of("cage:reopen", Codec.BOOLEAN, true);
 
     /**
-     * Blocks from the seat a held player may reach, on x and z, and that far below it. Every cage gets the same
-     * box, whatever it looks like, so an unlocked cage is never room to move. {@code 0} holds them on the spot
-     * and still lets them jump; below zero the server holds nobody and the cage's own walls do it.
+     * Blocks from the seat a held player may reach on x and z. Every cage gets the same box, whatever it looks
+     * like, so an unlocked cage is never room to move. {@code 0} holds them on the spot; below zero the server
+     * holds nobody at all and the cage's own walls do it.
      */
     public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 3);
-    /** Headroom over the box: a vanilla jump peaks near 1.25, and clamping under its apex rubber-bands every jump. */
-    private static final double JUMP_ROOM = 1.5;
+    /**
+     * Blocks above and below the seat a held player may reach. Anything under a jump's apex (~1.25) clamps the
+     * jump itself, so {@code 0} is the only true pin - nailed to the spot, feet included.
+     */
+    public static final StateKey<Integer> HEIGHT = StateKey.of("cage:height", Codec.INT, 3);
     /**
      * Where a side is held for the opening: {@link #SEAT_CAGE} or {@link #SEAT_RESPAWN}. The stamp, the hold and
      * the teleport after a goal all read it, so the cage is never somewhere the players are not.
@@ -132,7 +134,7 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, ENABLED, REOPEN, BOUNDS, SEAT, WHITELIST, BLACKLIST,
+        return Set.of(SECONDS, ENABLED, REOPEN, BOUNDS, HEIGHT, SEAT, WHITELIST, BLACKLIST,
                 Countdown.GRACE, Countdown.INTERVAL);
     }
 
@@ -151,8 +153,9 @@ public final class Cages implements GameModule {
     static Pos hold(Game game, Pos anchor, Pos to) {
         int b = game.rules().resolve(Scope.GAME, BOUNDS);
         if (b < 0) return to;
+        int h = Math.max(0, game.rules().resolve(Scope.GAME, HEIGHT));
         double x = clamp(to.x(), anchor.x() - b, anchor.x() + b);
-        double y = clamp(to.y(), anchor.y() - b, anchor.y() + b + JUMP_ROOM);
+        double y = clamp(to.y(), anchor.y() - h, anchor.y() + h);
         double z = clamp(to.z(), anchor.z() - b, anchor.z() + b);
         // every move inside the box comes through here: hand back the move itself rather than a copy
         return x == to.x() && y == to.y() && z == to.z() ? to : new Pos(x, y, z);
@@ -271,9 +274,7 @@ public final class Cages implements GameModule {
         phases.enter(Match.OPENING);
         caged = true;
         stamp(game);
-        if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) {
-            game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
-        }
+        game.state().alarms().arm(Rules.REFIT_ALARM, game.state().tick() + 1);
         armCount(game, game.state().tick() + 1);
     }
 

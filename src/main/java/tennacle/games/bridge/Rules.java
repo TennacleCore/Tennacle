@@ -12,6 +12,7 @@ import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
+import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.outcome.Goals;
@@ -176,12 +177,15 @@ public final class Rules implements GameModule {
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
-        st.alarms().register(REFIT_ALARM, (tick, payload) -> game.forEachMember(member -> {
-            if (game.roster().slotOf(member) != null) {
-                game.body().fresh(member);
-                refit(game, member);
-            }
-        }));
+        st.alarms().register(REFIT_ALARM, (tick, payload) -> {
+            boolean body = game.rules().resolve(Scope.GAME, Bodies.RESET);
+            boolean kit = game.rules().resolve(Scope.GAME, Kits.RESET);
+            game.forEachMember(member -> {
+                if (game.roster().slotOf(member) == null) return;
+                if (body) game.body().fresh(member);
+                if (kit) refit(game, member);
+            });
+        });
     }
 
     /** A member dropped under the void plane ({@code Limits}): credit the shove, respawn behind protection. */
@@ -301,7 +305,7 @@ public final class Rules implements GameModule {
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title
         if (!game.rules().resolve(Scope.GAME, Cages.REOPEN)) { // no break between goals: play on
-            if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) st.alarms().arm(REFIT_ALARM, st.tick() + 1);
+            st.alarms().arm(REFIT_ALARM, st.tick() + 1); // the alarm reads both halves; neither is this call's business
             return;
         }
         // the held title + firework beats take over from the re-cage count one tick later (captured)
