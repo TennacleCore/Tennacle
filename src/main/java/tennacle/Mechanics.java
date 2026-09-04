@@ -18,6 +18,8 @@ import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
 import io.github.term4.polyp.platform.fixes.Fixes18;
+import io.github.term4.polyp.platform.fixes.FixToggleConfig;
+import io.github.term4.polyp.platform.fixes.FixesConfig;
 import io.github.term4.polyp.platform.fixes.FixesSystem;
 import io.github.term4.polyp.presets.Preset;
 import io.github.term4.polyp.entity.PrimedTnt;
@@ -56,7 +58,10 @@ public final class Mechanics {
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
                 .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder()
                         .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
-                .set(MechanicsKeys.FIXES, Fixes18.config())
+                // inventorySync is EXPERIMENTAL in the lib and is being bisected against a 1.8 pick-block fault
+                .set(MechanicsKeys.FIXES, FixesConfig.builder(Fixes18.config())
+                        .inventorySync(FixToggleConfig.of(Config.flag("tennacle.inventory-sync", false)))
+                        .build())
                 .build());
         AttackSystem.install(polyp);
         DamageSystem.install(polyp);
