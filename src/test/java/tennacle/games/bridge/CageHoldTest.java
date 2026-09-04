@@ -72,7 +72,7 @@ class CageHoldTest extends HeadlessServerTest {
             assertEquals(SEAT.x() + 3, held.x(), "clamped to the boundary, not dragged home");
             assertEquals(SEAT.z() + 3, held.z());
 
-            assertEquals(SEAT.y() + 4, Cages.hold(game, SEAT, SEAT.add(0, 40, 0)).y(),
+            assertEquals(SEAT.y() + 4.5, Cages.hold(game, SEAT, SEAT.add(0, 40, 0)).y(),
                     "and bounded upward too - a ceiling of blocks is no ceiling to a flier");
             assertEquals(SEAT.y() - 3, Cages.hold(game, SEAT, SEAT.sub(0, 40, 0)).y());
 
@@ -80,8 +80,9 @@ class CageHoldTest extends HeadlessServerTest {
             assertEquals(SEAT.x() + 4, Cages.hold(game, SEAT, far).x(), "the box is a rule, live");
 
             game.state().set(Scope.GAME, Cages.BOUNDS, 0);
-            assertEquals(SEAT, Cages.hold(game, SEAT, far), "a box of nothing is a pin");
-            assertEquals(SEAT.y(), Cages.hold(game, SEAT, SEAT.add(0, 1, 0)).y(), "no jump room out of a pin");
+            assertEquals(SEAT.x(), Cages.hold(game, SEAT, far).x(), "a box of nothing holds them on the spot");
+            Pos apex = SEAT.add(0, 1.25, 0);
+            assertSame(apex, Cages.hold(game, SEAT, apex), "a jump still clears, even on the spot");
 
             game.state().set(Scope.GAME, Cages.BOUNDS, -1);
             assertSame(far, Cages.hold(game, SEAT, far), "below zero the walls hold them, not the server");

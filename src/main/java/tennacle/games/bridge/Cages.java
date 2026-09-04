@@ -65,12 +65,13 @@ public final class Cages implements GameModule {
     public static final StateKey<Boolean> REOPEN = StateKey.of("cage:reopen", Codec.BOOLEAN, true);
 
     /**
-     * Blocks from the seat a held player may reach: the box is that far on x and z, and from that far below the
-     * seat to one block further above it, so a jump lands inside. Every cage gets the same box, whatever it looks
-     * like, so an unlocked cage is never room to move. {@code 0} pins them where they stand; below zero the server
-     * holds nobody and the cage's own walls do it.
+     * Blocks from the seat a held player may reach, on x and z, and that far below it. Every cage gets the same
+     * box, whatever it looks like, so an unlocked cage is never room to move. {@code 0} holds them on the spot
+     * and still lets them jump; below zero the server holds nobody and the cage's own walls do it.
      */
     public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 3);
+    /** Headroom over the box: a vanilla jump peaks near 1.25, and clamping under its apex rubber-bands every jump. */
+    private static final double JUMP_ROOM = 1.5;
     /**
      * Where a side is held for the opening: {@link #SEAT_CAGE} or {@link #SEAT_RESPAWN}. The stamp, the hold and
      * the teleport after a goal all read it, so the cage is never somewhere the players are not.
@@ -151,7 +152,7 @@ public final class Cages implements GameModule {
         int b = game.rules().resolve(Scope.GAME, BOUNDS);
         if (b < 0) return to;
         double x = clamp(to.x(), anchor.x() - b, anchor.x() + b);
-        double y = clamp(to.y(), anchor.y() - b, anchor.y() + b + (b > 0 ? 1 : 0)); // jump room, but a pin is a pin
+        double y = clamp(to.y(), anchor.y() - b, anchor.y() + b + JUMP_ROOM);
         double z = clamp(to.z(), anchor.z() - b, anchor.z() + b);
         // every move inside the box comes through here: hand back the move itself rather than a copy
         return x == to.x() && y == to.y() && z == to.z() ? to : new Pos(x, y, z);
