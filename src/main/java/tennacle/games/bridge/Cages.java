@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import java.util.concurrent.ThreadLocalRandom;
 import net.minestom.server.coordinate.Pos;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.canvas.theme.Role;
@@ -319,19 +320,18 @@ public final class Cages implements GameModule {
 
     /** The seated player's pick for that team's spot ("" until their vault answer lands). */
     /**
-     * The cage that stands at {@code spot}: its occupant's pick. A seat has its own marker, so a side's players
-     * each get their own cage - the blocks are real and the picks differ in play (an open top shoots out, a
-     * headhitter boosts), which is the point in casual. Several seats on ONE marker can only take one cage, and
-     * the first of them holds it.
+     * A side's one cage: a random member's pick, re-drawn every time it is stamped. One cage holds the whole
+     * team, so teammates who picked differently cannot each have theirs - the draw is how they settle it, and
+     * it weights by how many of them wanted it (termbridge's rule).
      */
-    private static String choiceFor(Game game, PosMarker spot) {
-        for (Slot seat : game.roster().slots()) {
-            if (seat.spawn() == null || !seat.spawn().samePoint(spot.pos())) continue;
-            String owner = game.roster().ownerOf(seat);
-            Player seated = owner != null ? game.memberNamed(owner) : null;
-            if (seated != null) return allowed(game, choiceOf(seated));
-        }
-        return allowed(game, "");
+    private static String choiceFor(Game game, String team) {
+        List<String> picks = new ArrayList<>();
+        game.forEachMember(member -> {
+            Slot seat = game.roster().slotOf(member);
+            if (seat != null && seat.team().equals(team)) picks.add(choiceOf(member));
+        });
+        if (picks.isEmpty()) return allowed(game, "");
+        return allowed(game, picks.get(ThreadLocalRandom.current().nextInt(picks.size())));
     }
 
     static String choiceOf(Player player) {
@@ -353,7 +353,7 @@ public final class Cages implements GameModule {
         Map<String, CageDef> defs = cages();
         if (defs.isEmpty()) return;
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {
-            CageDef cage = defs.getOrDefault(choiceFor(game, spawn), defs.get(""));
+            CageDef cage = defs.getOrDefault(choiceFor(game, spawn.group()), defs.get(""));
             if (cage == null) cage = defs.values().iterator().next();
             var at = spawn.pos();
             // the map marker already faces the center - rotate the authored front onto it
