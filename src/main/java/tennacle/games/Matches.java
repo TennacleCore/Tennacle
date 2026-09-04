@@ -21,6 +21,7 @@ import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.MechanicsProfile;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.InstanceContainer;
 import org.jetbrains.annotations.NotNull;
@@ -66,9 +67,10 @@ public final class Matches {
         lobbyRoute = player -> {
             Spectators.exit(player); // a game's end routes its spectators here; restore the body and the HUD
             if (player.getInstance() == lobby) { // Minestom rejects a same-instance setInstance: no spawn event either
-                player.teleport(lobbySpawn);
+                player.teleport(lobbySpawn, Vec.ZERO);
                 Wardrobe.arrive(player, lobby);
             } else {
+                player.setVelocity(Vec.ZERO); // setInstance would carry the fall they left with
                 player.setInstance(lobby, lobbySpawn); // the lobby dresses the arrival
             }
             TabList.refresh(player); // the chrome is the lobby's again

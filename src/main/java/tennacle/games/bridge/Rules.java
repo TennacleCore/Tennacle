@@ -36,6 +36,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
@@ -175,14 +176,12 @@ public final class Rules implements GameModule {
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
-        st.alarms().register(REFIT_ALARM, (tick, payload) -> {
-            boolean kitOnly = payload.getBoolean("kitOnly"); // no break to cover it: a refresh here stops a fall
-            game.forEachMember(member -> {
-                if (game.roster().slotOf(member) == null) return;
-                if (!kitOnly) game.body().fresh(member);
+        st.alarms().register(REFIT_ALARM, (tick, payload) -> game.forEachMember(member -> {
+            if (game.roster().slotOf(member) != null) {
+                game.body().fresh(member);
                 refit(game, member);
-            });
-        });
+            }
+        }));
     }
 
     /** A member dropped under the void plane ({@code Limits}): credit the shove, respawn behind protection. */
@@ -205,7 +204,7 @@ public final class Rules implements GameModule {
             case TimeLimit.RESET_SPAWN -> {
                 game.forEachMember(member -> {
                     Slot seat = game.roster().slotOf(member);
-                    if (seat != null) member.teleport(spawnOf(game, seat));
+                    if (seat != null) member.teleport(spawnOf(game, seat), Vec.ZERO);
                 });
                 game.state().alarms().arm(REFIT_ALARM, game.state().tick() + 1);
             }
@@ -302,10 +301,7 @@ public final class Rules implements GameModule {
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title
         if (!game.rules().resolve(Scope.GAME, Cages.REOPEN)) { // no break between goals: play on
-            if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) {
-                st.alarms().arm(REFIT_ALARM, st.tick() + 1,
-                        CompoundBinaryTag.builder().putBoolean("kitOnly", true).build());
-            }
+            if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) st.alarms().arm(REFIT_ALARM, st.tick() + 1);
             return;
         }
         // the held title + firework beats take over from the re-cage count one tick later (captured)
@@ -314,7 +310,7 @@ public final class Rules implements GameModule {
         Match.each(game, p -> p.showTitle(scored));
         game.forEachMember(member -> {
             Slot memberSeat = game.roster().slotOf(member);
-            if (memberSeat != null) member.teleport(spawnOf(game, memberSeat));
+            if (memberSeat != null) member.teleport(spawnOf(game, memberSeat), Vec.ZERO);
         });
         st.alarms().arm(Cages.RECAGE_ALARM, st.tick() + 1, CompoundBinaryTag.builder()
                 .putString("scorer", scorer.getUsername()).putString("team", seat.team()).build());
