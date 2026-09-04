@@ -276,21 +276,46 @@ public final class TestServer {
         }
     }
 
-    // nothing unloaded the lobby: chunks accumulated for the life of the process as players roamed it
-    private static void unloadIdleChunks(InstanceContainer world) {
-        int keep = ServerFlag.CHUNK_VIEW_DISTANCE + UNLOAD_MARGIN;
+    /**
+     * Nothing unloaded chunks: the lobby grew for the life of the process as players roamed, and a cached arena
+     * instance kept every chunk a flying spectator generated past the map. Only worlds whose content can be
+     * rebuilt are reaped, and only outside their built area - an editor session (unsaved edits) is never touched,
+     * and neither is any instance this does not recognise.
+     */
+    private static void unloadIdleChunks(InstanceContainer lobby) {
+        int r = Playground.BUILT_CHUNK_RADIUS;
+        reap(lobby, -r, -r, r, r);
+        for (String name : Matches.modes()) {
+            var mode = Matches.mode(name);
+            if (mode == null) continue;
+            try {
+                var arena = mode.arena().get();
+                if (arena.instantiated() instanceof InstanceContainer built) {
+                    var bounds = arena.bounds(); // the map reloads from its own bytes, but not for free: keep it
+                    reap(built, bounds.minChunkX(), bounds.minChunkZ(), bounds.maxChunkX(), bounds.maxChunkZ());
+                }
+            } catch (RuntimeException e) { // no map authored for that mode yet
+            }
+        }
+    }
+
+    /** Drops chunks outside the kept box that no player is near: the built world stays, a flier's trail does not. */
+    static void reap(InstanceContainer world, int minX, int minZ, int maxX, int maxZ) {
+        int near = ServerFlag.CHUNK_VIEW_DISTANCE + UNLOAD_MARGIN;
         List<Chunk> watching = List.copyOf(world.getPlayers()).stream()
                 .map(Player::getChunk).filter(java.util.Objects::nonNull).toList();
         for (Chunk chunk : List.copyOf(world.getChunks())) {
+            int cx = chunk.getChunkX();
+            int cz = chunk.getChunkZ();
+            if (cx >= minX && cx <= maxX && cz >= minZ && cz <= maxZ) continue;
             boolean watched = false;
             for (Chunk seen : watching) {
-                if (Math.abs(seen.getChunkX() - chunk.getChunkX()) <= keep
-                        && Math.abs(seen.getChunkZ() - chunk.getChunkZ()) <= keep) {
+                if (Math.abs(seen.getChunkX() - cx) <= near && Math.abs(seen.getChunkZ() - cz) <= near) {
                     watched = true;
                     break;
                 }
             }
-            if (!watched) world.unloadChunk(chunk.getChunkX(), chunk.getChunkZ());
+            if (!watched) world.unloadChunk(cx, cz);
         }
     }
 

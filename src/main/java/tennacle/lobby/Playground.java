@@ -31,6 +31,12 @@ import net.minestom.server.timer.TaskSchedule;
  */
 public final class Playground {
 
+    /**
+     * Chunks around spawn holding hand-placed blocks. The generator fills obsidian and knows nothing about the
+     * pads and lanes below, so unloading these would quietly rebuild the lobby without them.
+     */
+    public static final int BUILT_CHUNK_RADIUS = 4;
+
     private Playground() {}
 
     public static InstanceContainer createWorld() {
