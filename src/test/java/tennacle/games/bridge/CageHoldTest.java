@@ -42,7 +42,7 @@ class CageHoldTest extends HeadlessServerTest {
     }
 
     @Test
-    void seatOpensAtTheRespawnSpotWhenTheRuleSaysSo() {
+    void seatFollowsTheRule() {
         Game game = bridge();
         try {
             Slot seat = game.roster().slot(0);
