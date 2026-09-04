@@ -60,7 +60,7 @@ public final class Mechanics {
                         .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
                 // inventorySync is EXPERIMENTAL in the lib and is being bisected against a 1.8 pick-block fault
                 .set(MechanicsKeys.FIXES, FixesConfig.builder(Fixes18.config())
-                        .inventorySync(FixToggleConfig.of(Config.flag("tennacle.inventory-sync", false)))
+                        .inventorySync(FixToggleConfig.of(Config.flag("tennacle.inventory-sync", true)))
                         .build())
                 .build());
         AttackSystem.install(polyp);
