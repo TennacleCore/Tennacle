@@ -16,6 +16,7 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.bloom.Session;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
@@ -32,6 +33,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -55,8 +58,9 @@ class BridgeRoundTest extends HeadlessServerTest {
             s.addMarker(new RegionMarker("section", "2", "", new BlockVec(1, 64, 0), new BlockVec(8, 64, 0)));
             s.addMarker(new PosMarker("bridge:cage", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
             s.addMarker(new PosMarker("bridge:cage", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
-            s.addMarker(new PosMarker("bridge:respawn", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
-            s.addMarker(new PosMarker("bridge:respawn", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
+            // off the seats on purpose: nothing distinguishes the two markers if they share a position
+            s.addMarker(new PosMarker("bridge:respawn", "1", "", new Pos(-6.5, 65, 0.5, -90, 0)));
+            s.addMarker(new PosMarker("bridge:respawn", "2", "", new Pos(7.5, 65, 0.5, 90, 0)));
             s.addMarker(new RegionMarker("bridge:goal", "1", "", new BlockVec(-8, 64, -1), new BlockVec(-7, 66, 1)));
             s.addMarker(new RegionMarker("bridge:goal", "2", "", new BlockVec(7, 64, -1), new BlockVec(8, 66, 1)));
             s.addMarker(new RegionMarker("bridge:build", "", "", new BlockVec(-8, 65, -2), new BlockVec(8, 65, 2)));
@@ -152,7 +156,7 @@ class BridgeRoundTest extends HeadlessServerTest {
             game.state().set(Scope.GAME, Cages.ENABLED, true);
 
             Player faller = scorer == red.player ? blue.player : red.player;
-            double home = faller.getPosition().x();
+            double home = game.arena().marker(Bridge.RESPAWN, Bridge.teamOf(game, faller)).pos().x();
             EventDispatcher.call(new PlayerMoveEvent(faller, new Pos(0.5, 50, 0.5), true));
             tickUntil(game, "void respawn", () -> Math.abs(faller.getPosition().x() - home) < 0.01
                     && faller.getPosition().y() > 60);
@@ -179,6 +183,26 @@ class BridgeRoundTest extends HeadlessServerTest {
         } finally {
             red.player.remove();
             blue.player.remove();
+        }
+    }
+
+    @Test
+    void minemenOpensAtTheRespawnSpot() {
+        Mode bridge = Matches.mode("bridge");
+        assertNotNull(bridge);
+        Game game = Matches.launch(bridge, Matches.platformFor(bridge, "minemen"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "MinemenRed");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            Slot seat = game.roster().slotOf(red.player);
+            assertNotNull(seat);
+            Pos respawn = game.arena().marker(Bridge.RESPAWN, seat.team()).pos();
+            assertNotEquals(respawn.x(), seat.spawn().x(), "the fixture keeps the two markers apart");
+            assertEquals(respawn.x(), red.player.getPosition().x(), 1e-9, "seated where minemen opens");
+        } finally {
+            game.end(Outcome.aborted());
+            red.player.remove();
         }
     }
 

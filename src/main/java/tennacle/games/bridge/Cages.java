@@ -4,6 +4,7 @@ import io.github.term4.bloom.Bloom;
 import io.github.term4.barnacle.marker.DataMarker;
 import java.util.concurrent.ThreadLocalRandom;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.canvas.theme.Role;
 import tennacle.games.HotArena;
@@ -136,6 +137,13 @@ public final class Cages implements GameModule {
     public @NotNull Set<StateKey<?>> rules() {
         return Set.of(SECONDS, ENABLED, REOPEN, BOUNDS, HEIGHT, SEAT, WHITELIST, BLACKLIST,
                 Countdown.GRACE, Countdown.INTERVAL);
+    }
+
+    /** The roster lands them on the seat marker; the rule decides whether that is where they open. */
+    @Override
+    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
+        Pos at = seat(game, slot);
+        if (at != null && !at.samePoint(player.getPosition())) player.teleport(at, Vec.ZERO);
     }
 
     /** Where a seat opens, per {@link #SEAT}: its own marker, or the team's respawn spot. */
