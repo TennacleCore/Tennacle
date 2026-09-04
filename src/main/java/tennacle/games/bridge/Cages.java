@@ -48,8 +48,8 @@ import java.util.Set;
  * The bridge opener, and the re-cage after a goal. Cages are authored as real blocks in the {@code cages}
  * arena - per variant (marker group): a {@code cage} region over the volume and a {@code cage} pos standing
  * where the player stands, facing the FRONT. {@code accent}/{@code accent.<family>} regions mark cells whose
- * authored RED blocks recolor to the seat's team. Players pick a variant ({@code /cage}, vault-backed); each
- * spot stamps its seat's pick rotated so the front faces the map center. The count is the captured per-network
+ * authored RED blocks follow the team's {@code cage} value. Players pick a variant ({@code /cage}, vault-backed);
+ * a side's one cage is drawn from its members' picks, rotated so the front faces the map center. The count is the captured per-network
  * voice; GO advances the {@link Phases}, the freeze is the {@code Freeze} module's.
  */
 public final class Cages implements GameModule {
@@ -85,8 +85,8 @@ public final class Cages implements GameModule {
     private static final HotArena CAGES = HotArena.of("cages");
     private static final MarkerKey<PosMarker> CAGE_SPOT = MarkerKey.pos("cage");
     private static final MarkerKey<RegionMarker> CAGE_BOX = MarkerKey.region("cage");
-    /** The tint a cage's authored RED_* blocks take their hue from. */
-    static final Role<Tint> CAGE_TINT = Role.tint("cage");
+    /** What a cage's accented RED_* blocks become: a tint keeps their material, a block replaces them. */
+    static final Role<Role.Fill> CAGE_FILL = Role.block("cage");
     // captured hypixel: note.hat vol 1 each beat, note.harp at GO; scrims/minemen cues UNCAPTURED - pling
     private static final Sound HAT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 1f, 1f);
     private static final Sound HARP = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HARP, Sound.Source.MASTER, 1f, 1f);
@@ -306,6 +306,22 @@ public final class Cages implements GameModule {
         return null;
     }
 
+    /**
+     * An accented cell under the team's cage value. A tint keeps the cell's own material and swaps the hue
+     * (red_wool -> blue_wool), so the look's family is never read here - it is there to make the role resolve
+     * whole. A block replaces the cell outright, which is how one side gets redstone ore and another lapis;
+     * {@code accent.<family>} is what keeps that off the cells it should not touch.
+     */
+    private static Block recolored(Role.Fill fill, String tail, Block authored) {
+        if (fill.block() != null) {
+            Block named = Block.fromKey(fill.block().key());
+            return named != null ? named : authored;
+        }
+        Tint tint = fill.tint() != null ? fill.tint() : Tint.NONE;
+        Block dyed = Block.fromKey("minecraft:" + (tint.hue().name() + "_" + tail).toLowerCase(Locale.ROOT));
+        return dyed != null ? dyed : authored;
+    }
+
     private static boolean familyMatches(String name, String family) {
         return switch (family) {
             case "" -> true;
@@ -318,7 +334,6 @@ public final class Cages implements GameModule {
         };
     }
 
-    /** The seated player's pick for that team's spot ("" until their vault answer lands). */
     /**
      * A side's one cage: a random member's pick, re-drawn every time it is stamped. One cage holds the whole
      * team, so teammates who picked differently cannot each have theirs - the draw is how they settle it, and
@@ -358,7 +373,7 @@ public final class Cages implements GameModule {
             var at = spawn.pos();
             // the map marker already faces the center - rotate the authored front onto it
             int turns = cage.front().quarterTurnsTo(Facing.fromYaw(at.yaw()));
-            String dye = game.roster().team(spawn.group()).livery().get(CAGE_TINT).hue().name();
+            Role.Fill fill = game.roster().team(spawn.group()).livery().get(CAGE_FILL);
             int minCx = Integer.MAX_VALUE, maxCx = Integer.MIN_VALUE, minCz = Integer.MAX_VALUE, maxCz = Integer.MIN_VALUE;
             for (Cell cell : cage.cells()) {
                 BlockVec turned = Facing.rotate(cell.offset(), turns);
@@ -372,10 +387,7 @@ public final class Cages implements GameModule {
                 BlockVec pos = new BlockVec(at.blockX() + turned.blockX(), at.blockY() + turned.blockY(),
                         at.blockZ() + turned.blockZ());
                 Block block = cell.block();
-                if (cell.recolor() != null) {
-                    Block dyed = Block.fromKey("minecraft:" + (dye + "_" + cell.recolor()).toLowerCase(Locale.ROOT));
-                    if (dyed != null) block = dyed;
-                }
+                if (cell.recolor() != null) block = recolored(fill, cell.recolor(), block);
                 replaced.putIfAbsent(pos, game.shard().getBlock(pos.blockX(), pos.blockY(), pos.blockZ()));
                 game.shard().setBlock(pos, Facing.rotate(block, turns));
             }

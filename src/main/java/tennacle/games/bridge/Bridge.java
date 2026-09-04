@@ -108,8 +108,9 @@ public final class Bridge {
     private static final ItemStack PICKAXE = ItemStack.of(Material.DIAMOND_PICKAXE)
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2)))
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-    /** Bridge's look under an arena's own: blocks are terracotta in the team's tint. */
-    static final Livery LOOK = new Livery(Map.of("blocks", "terracotta"));
+    /** Bridge's look under an arena's own: blocks are terracotta in the team's tint, cages wool. The cage's
+     *  family is only what makes the role resolve whole - an accented cell keeps its own material. */
+    static final Livery LOOK = new Livery(Map.of("blocks", "terracotta", "cage", "wool"));
     static final Kit KIT = Kit.of("bridge").look(LOOK)
             .item("sword", 0, SWORD)
             .item("bow", 1, BOW)
@@ -127,7 +128,7 @@ public final class Bridge {
 
     private static List<Role<?>> roles() {
         List<Role<?>> roles = new ArrayList<>(KIT.roles());
-        roles.add(Cages.CAGE_TINT);
+        roles.add(Cages.CAGE_FILL);
         roles.add(io.github.term4.grotto.roster.Team.DISPLAY);
         return roles;
     }
