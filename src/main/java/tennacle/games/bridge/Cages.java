@@ -322,6 +322,7 @@ public final class Cages implements GameModule {
         return dyed != null ? dyed : authored;
     }
 
+    // an accent's suffix narrows what it takes: a dyed family, or one block by name (accent.red_wool)
     private static boolean familyMatches(String name, String family) {
         return switch (family) {
             case "" -> true;
@@ -330,7 +331,7 @@ public final class Cages implements GameModule {
             case "terracotta" -> name.endsWith("TERRACOTTA");
             case "concrete" -> name.contains("CONCRETE");
             case "carpet" -> name.endsWith("_CARPET");
-            default -> false;
+            default -> name.equals(family.toUpperCase(Locale.ROOT));
         };
     }
 
