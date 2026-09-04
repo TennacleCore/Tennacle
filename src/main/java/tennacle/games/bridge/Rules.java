@@ -175,12 +175,14 @@ public final class Rules implements GameModule {
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
-        st.alarms().register(REFIT_ALARM, (tick, payload) -> game.forEachMember(member -> {
-            if (game.roster().slotOf(member) != null) {
-                game.body().fresh(member);
+        st.alarms().register(REFIT_ALARM, (tick, payload) -> {
+            boolean kitOnly = payload.getBoolean("kitOnly"); // no break to cover it: a refresh here stops a fall
+            game.forEachMember(member -> {
+                if (game.roster().slotOf(member) == null) return;
+                if (!kitOnly) game.body().fresh(member);
                 refit(game, member);
-            }
-        }));
+            });
+        });
     }
 
     /** A member dropped under the void plane ({@code Limits}): credit the shove, respawn behind protection. */
@@ -300,7 +302,10 @@ public final class Rules implements GameModule {
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title
         if (!game.rules().resolve(Scope.GAME, Cages.REOPEN)) { // no break between goals: play on
-            if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) st.alarms().arm(REFIT_ALARM, st.tick() + 1);
+            if (game.rules().resolve(Scope.GAME, Kits.RESET_ON_ROUND)) {
+                st.alarms().arm(REFIT_ALARM, st.tick() + 1,
+                        CompoundBinaryTag.builder().putBoolean("kitOnly", true).build());
+            }
             return;
         }
         // the held title + firework beats take over from the re-cage count one tick later (captured)
