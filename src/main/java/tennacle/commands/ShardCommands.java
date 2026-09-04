@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import tennacle.storage.SafeName;
 import io.github.term4.grotto.modules.Spectating;
 import tennacle.games.Spectators;
 import io.github.term4.grotto.Game;
@@ -49,6 +50,14 @@ public final class ShardCommands {
     public static final DataKey<BinaryTag> SAVED_ENTITIES = new DataKey<>("demo:entities", Codec.NBT);
 
     private ShardCommands() {}
+
+    // a command word becomes a path here: ArgumentType.Word rejects only spaces, so "../x" escapes the directory
+    private static @org.jetbrains.annotations.Nullable Path named(net.minestom.server.command.CommandSender to,
+                                                                  Path dir, String name, String suffix) {
+        Path file = SafeName.resolve(dir, name, suffix);
+        if (file == null) Msg.err(to, "shard", "bad name ", Msg.v(name), " - " + SafeName.rule());
+        return file;
+    }
 
     public static void register(ShardManager shards, InstanceContainer world) {
         Command shard = new Command("shard");
@@ -162,7 +171,8 @@ public final class ShardCommands {
             offClock(() -> {
                 try {
                     Files.createDirectories(saveDir);
-                    Path file = saveDir.resolve(ctx.get(name) + ".shard");
+                    Path file = named(sender, saveDir, ctx.get(name), ".shard");
+                    if (file == null) return;
                     ShardFile.save(g, file, entities ? w -> w.put(SAVED_ENTITIES, EntityDescriptors.write(g)) : null);
                     Msg.shard(sender, "saved ", Msg.v(ctx.get(name)), " -> " + file + " (", Msg.v(Files.size(file)),
                             " bytes, diff ", Msg.v(g.overlaySize()), entities ? ")" : ", blocks only)");
@@ -182,8 +192,9 @@ public final class ShardCommands {
             offClock(() -> {
                 try {
                     Files.createDirectories(saveDir);
-                    Path file = saveDir.resolve(ctx.get(name) + ".shard");
-                    Files.write(file, ShardFile.saveTree(g, shards::nameOf,
+                    Path file = named(sender, saveDir, ctx.get(name), ".shard");
+                    if (file == null) return;
+                    tennacle.storage.Atomic.write(file, ShardFile.saveTree(g, shards::nameOf,
                             (s, w) -> w.put(SAVED_ENTITIES, EntityDescriptors.write(s))));
                     Msg.shard(sender, "saved the tree of ", Msg.v(ctx.get(name)), " -> " + file + " (",
                             Msg.v(Files.size(file)), " bytes)");
@@ -195,7 +206,8 @@ public final class ShardCommands {
 
         var loadtree = ArgumentType.Literal("loadtree");
         shard.addSyntax((sender, ctx) -> {
-            Path file = saveDir.resolve(ctx.get(name) + ".shard");
+            Path file = named(sender, saveDir, ctx.get(name), ".shard");
+            if (file == null) return;
             if (!Files.exists(file)) { Msg.err(sender, "shard", "no save named ", Msg.v(ctx.get(name))); return; }
             String prefix = ctx.get(forkName);
             offClock(() -> {
@@ -223,7 +235,8 @@ public final class ShardCommands {
 
         var load = ArgumentType.Literal("load");
         shard.addSyntax((sender, ctx) -> {
-            Path file = saveDir.resolve(ctx.get(name) + ".shard");
+            Path file = named(sender, saveDir, ctx.get(name), ".shard");
+            if (file == null) return;
             if (!Files.exists(file)) { Msg.err(sender, "shard", "no save named ", Msg.v(ctx.get(name))); return; }
             String n = ctx.get(forkName);
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
@@ -245,8 +258,9 @@ public final class ShardCommands {
         var export = ArgumentType.Literal("export");
         shard.addSyntax((sender, ctx) -> {
             try {
-                Path in = saveDir.resolve(ctx.get(name) + ".shard");
-                Path out = saveDir.resolve(ctx.get(name) + ".polar");
+                Path in = named(sender, saveDir, ctx.get(name), ".shard");
+                Path out = named(sender, saveDir, ctx.get(name), ".polar");
+                if (in == null || out == null) return;
                 byte[] source = Files.readAllBytes(in);
                 Files.write(out, PolarShardCodec.fromShardFile(source));
                 Msg.shard(sender, Msg.v(in.getFileName()), " -> ", Msg.v(out.getFileName()), " (", Msg.v(Files.size(out)),
@@ -259,8 +273,9 @@ public final class ShardCommands {
         var doImport = ArgumentType.Literal("import");
         shard.addSyntax((sender, ctx) -> {
             try {
-                Path in = saveDir.resolve(ctx.get(name) + ".polar");
-                Path out = saveDir.resolve(ctx.get(name) + ".shard");
+                Path in = named(sender, saveDir, ctx.get(name), ".polar");
+                Path out = named(sender, saveDir, ctx.get(name), ".shard");
+                if (in == null || out == null) return;
                 byte[] source = Files.readAllBytes(in);
                 Files.write(out, PolarShardCodec.toShardFile(source));
                 Msg.shard(sender, Msg.v(in.getFileName()), " -> ", Msg.v(out.getFileName()), " (", Msg.v(Files.size(out)),

@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import io.github.term4.barnacle.Arena;
 import io.github.term4.bloom.Bloom;
 import net.minestom.server.MinecraftServer;
@@ -21,6 +23,8 @@ import java.util.function.Supplier;
  */
 public final class MapPool implements Supplier<Arena> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MapPool.class);
+
     private final String tag;
     private final Map<Path, Arena> maps = new ConcurrentHashMap<>();
     private volatile boolean scanned;
@@ -34,7 +38,7 @@ public final class MapPool implements Supplier<Arena> {
         Bloom.onSave(saved -> {
             // starter saves land in templates/ and never join a rotation
             Path parent = saved.getParent();
-            if (parent != null && parent.getFileName().toString().equals("arenas")) pool.refresh(saved);
+            if (parent != null && parent.equals(tennacle.TestServer.arenaDir())) pool.refresh(saved);
         });
         return pool;
     }
@@ -53,11 +57,13 @@ public final class MapPool implements Supplier<Arena> {
 
     private synchronized void scan() {
         if (scanned) return;
-        try (var files = Files.list(Path.of("arenas"))) {
+        Path dir = tennacle.TestServer.arenaDir();
+        try (var files = Files.list(dir)) {
             files.filter(f -> f.getFileName().toString().endsWith(".bncl")).forEach(this::refresh);
-        } catch (IOException ignored) { // no arenas dir yet - the pool just stays empty
+            scanned = true; // a failed scan stays unscanned: a wrong working directory must not be permanent
+        } catch (IOException e) {
+            LOGGER.warn("could not read {} for the '{}' pool - retrying on the next launch", dir.toAbsolutePath(), tag);
         }
-        scanned = true;
     }
 
     private void refresh(Path file) {
@@ -65,7 +71,7 @@ public final class MapPool implements Supplier<Arena> {
         try {
             arena = Arena.read(file);
         } catch (IOException | RuntimeException e) {
-            System.err.println("[maps:" + tag + "] unreadable " + file + ": " + e);
+            LOGGER.warn("unreadable map {} for the '{}' pool", file, tag, e);
             return;
         }
         HotArena.drain(arena.meta().tags().contains(tag) ? maps.put(file, arena) : maps.remove(file));

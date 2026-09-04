@@ -33,7 +33,7 @@ public final class SpectateCommands {
         }, ArgumentType.Literal("mode"), body);
         spectate.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
-            if (Game.of(me) != null) {
+            if (Matches.grotto().engaged(me)) {
                 Msg.err(me, "spectate", "you're in a game - ", Msg.run("/l"), " first");
                 return;
             }
@@ -50,7 +50,7 @@ public final class SpectateCommands {
         });
         spectate.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
-            if (Game.of(me) != null) {
+            if (Matches.grotto().engaged(me)) {
                 Msg.err(me, "spectate", "you're in a game - ", Msg.run("/l"), " first");
                 return;
             }

@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import tennacle.storage.MatchLog;
 import io.github.term4.polyp.world.Wardrobe;
 import tennacle.Mechanics;
 
@@ -73,6 +74,7 @@ public final class Matches {
             TabList.refresh(player); // the chrome is the lobby's again
         };
         grotto.exit(lobbyRoute);
+        grotto.onGameEnd((game, outcome) -> modifiers.remove(game.id())); // an override dies with its game
     }
 
     public static @NotNull Grotto grotto() {
@@ -184,7 +186,6 @@ public final class Matches {
     public static void modify(@NotNull Game game, @NotNull Ruleset ruleset) {
         if (game.status() != Game.Status.OPEN) throw new IllegalStateException("the game is over");
         ruleset.check(Mechanics.polyp.profiles().global(), game.type());
-        modifiers.keySet().removeIf(id -> grotto.games().stream().noneMatch(g -> g.id().equals(id) && g.status() == Game.Status.OPEN));
         Ruleset previous = modifiers.get(game.id());
         modifiers.merge(game.id(), ruleset, (older, newer) -> newer.over(older));
         try {
@@ -211,10 +212,9 @@ public final class Matches {
                                       @NotNull List<? extends Collection<Player>> sides) {
         for (Collection<Player> side : sides) { // before the launch, so a refusal orphans nothing
             for (Player player : side) {
-                Game now = Game.of(player);
-                if (now != null && now.status() == Game.Status.OPEN) {
-                    throw new IllegalStateException(player.getUsername() + " is in a game");
-                }
+                // engaged, not seated: the shard tag lands at the end of the transfer, and a player mid-flight
+                // into another game would otherwise be seated twice
+                if (grotto.engaged(player)) throw new IllegalStateException(player.getUsername() + " is in a game");
             }
         }
         Game game = launch(mode, platform, mode.arena().get());
@@ -223,19 +223,27 @@ public final class Matches {
             game.end(Outcome.aborted());
             throw new IllegalStateException(mode.name() + " seats " + teams.size() + " sides, not " + sides.size());
         }
-        for (int i = 0; i < sides.size(); i++) {
-            for (Player player : sides.get(i)) {
-                Game held = grotto.reclaimable(player);
-                if (held != null) held.forfeitHeld(player); // a seat held elsewhere: this seat is the answer, not two games
-                Queues.dequeue(player); // a seat here ends every wait, whichever door they came through
-                Spectators.exit(player); // a watcher who queued: their body and HUD come back before the seat
-                if (!game.join(player, teams.get(i).id())) {
-                    game.end(Outcome.aborted());
-                    throw new IllegalStateException(mode.name() + " has no seat left on " + teams.get(i).id()
-                            + " for " + player.getUsername());
+        try {
+            for (int i = 0; i < sides.size(); i++) {
+                for (Player player : sides.get(i)) {
+                    Game held = grotto.reclaimable(player);
+                    if (held != null) held.forfeitHeld(player); // a seat held elsewhere: this seat is the answer, not two games
+                    Queues.dequeue(player); // a seat here ends every wait, whichever door they came through
+                    Spectators.exit(player); // a watcher who queued: their body and HUD come back before the seat
+                    KitLayouts.cancel(player); // an open kit edit would write its stash over the match inventory
+                    if (!game.join(player, teams.get(i).id())) {
+                        throw new IllegalStateException(mode.name() + " has no seat left on " + teams.get(i).id()
+                                + " for " + player.getUsername());
+                    }
                 }
             }
+        } catch (RuntimeException e) {
+            // anything thrown here (a hook, a listener, a transfer) leaves a registered game nobody sits in:
+            // the abandonment watchdog only reaps games that seated someone
+            game.end(Outcome.aborted());
+            throw e;
         }
+        MatchLog.started(game, mode.name(), platform.name(), sides);
         return game;
     }
 

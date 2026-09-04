@@ -37,7 +37,7 @@ public final class ReplayBridge {
         installed = true;
 
         // the twin wire is generation-split (legacy viewers also get per-tick anchors and pins)
-        Replay.legacyViewers(p -> Polyp.getInstance().clientInfo().isLegacy(p));
+        Replay.viewerProtocol(p -> Polyp.getInstance().clientInfo().getProtocol(p));
 
         // launches recorded at end of THIS tick (the stamp exists, nothing can hit before its first move tick) -
         // a per-tick sampler alone misses projectiles that hit and remove themselves within one tick. The ASYNC

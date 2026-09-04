@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import org.jetbrains.annotations.NotNull;
 import tennacle.Msg;
 import tennacle.PlayerPrefs;
 
@@ -75,6 +76,16 @@ public final class KitLayouts {
             open(p, ctx.get(kitArg));
         }, kitArg);
         MinecraftServer.getCommandManager().register(cmd);
+    }
+
+    /** Drops an open edit and hands the body back, saving nothing - a seat is not the place to be editing. */
+    public static void cancel(@NotNull Player player) {
+        Edit edit = EDITING.remove(player.getUuid());
+        if (edit == null) return;
+        var inv = player.getInventory();
+        for (int i = 0; i < edit.stash().length; i++) inv.setItemStack(i, edit.stash()[i]);
+        inv.update();
+        Msg.err(player, "kit", "the edit closed unsaved - you joined a game");
     }
 
     private static void open(Player p, String kitId) {

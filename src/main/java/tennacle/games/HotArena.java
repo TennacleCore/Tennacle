@@ -1,5 +1,8 @@
 package tennacle.games;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import net.minestom.server.timer.TaskSchedule;
 import io.github.term4.barnacle.Arena;
 import io.github.term4.bloom.Bloom;
 import net.minestom.server.MinecraftServer;
@@ -16,6 +19,8 @@ import java.util.function.Supplier;
  * are authored ON); launching before the map exists is the error.
  */
 public final class HotArena implements Supplier<Arena> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HotArena.class);
 
     private final String name;
     private volatile Arena arena;
@@ -36,7 +41,7 @@ public final class HotArena implements Supplier<Arena> {
     public Arena get() {
         Arena loaded = arena;
         if (loaded != null) return loaded;
-        Path file = Path.of("arenas", name + ".bncl");
+        Path file = tennacle.TestServer.arenaDir().resolve(name + ".bncl");
         try {
             arena = loaded = Arena.read(Files.readAllBytes(file));
         } catch (IOException | RuntimeException e) {
@@ -50,21 +55,29 @@ public final class HotArena implements Supplier<Arena> {
         try {
             arena = Arena.read(Files.readAllBytes(file));
         } catch (IOException | RuntimeException e) {
-            System.err.println("[" + name + "] reload failed, keeping the old arena: " + e);
+            LOGGER.error("arena {} reload failed, keeping the old one", name, e);
             return;
         }
-        System.out.println("[" + name + "] arena reloaded - the next game uses your edit");
+        LOGGER.info("arena {} reloaded - the next game uses your edit", name);
         drain(old); // first save may beat the first launch
     }
+
+    private static final long DRAIN_CHECK_SECONDS = 30;
+    private static final long DRAIN_DEADLINE_MINUTES = 60;
 
     /** Unregisters a replaced arena's instance once no game or player still stands in it. */
     static void drain(@org.jetbrains.annotations.Nullable Arena old) {
         var stale = old == null ? null : old.instantiated();
         if (stale == null) return;
-        MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+        long giveUpAt = System.currentTimeMillis() + DRAIN_DEADLINE_MINUTES * 60_000L;
+        // a save during a live match used to leak the instance for good: one check, then never again
+        MinecraftServer.getSchedulerManager().submitTask(() -> {
             boolean inUse = !stale.getPlayers().isEmpty()
                     || Matches.grotto().games().stream().anyMatch(g -> g.instance() == stale);
+            if (inUse && System.currentTimeMillis() < giveUpAt) return TaskSchedule.seconds(DRAIN_CHECK_SECONDS);
             if (!inUse) MinecraftServer.getInstanceManager().unregisterInstance(stale);
+            else LOGGER.warn("a replaced arena was still in use after {}m - leaving it registered", DRAIN_DEADLINE_MINUTES);
+            return TaskSchedule.stop();
         });
     }
 }

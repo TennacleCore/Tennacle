@@ -84,13 +84,13 @@ public final class Duels {
             return;
         }
         for (Player member : Parties.of(me)) {
-            if (Game.of(member) != null) {
+            if (Matches.grotto().engaged(member)) {
                 Msg.err(me, "duel", member == me ? "you're already in a duel" : member.getUsername() + " is already in a duel");
                 return;
             }
         }
         for (Player member : Parties.of(target)) {
-            if (Game.of(member) != null) {
+            if (Matches.grotto().engaged(member)) {
                 Msg.err(me, "duel", Msg.v(member.getUsername()), " is already in a duel");
                 return;
             }

@@ -103,7 +103,7 @@ public final class Queues {
         }
         List<Player> side = Parties.of(me);
         for (Player member : side) {
-            if (Game.of(member) != null) {
+            if (Matches.grotto().engaged(member)) {
                 Msg.err(me, "queue", Msg.v(member.getUsername()), " is in a game");
                 return;
             }
@@ -142,13 +142,20 @@ public final class Queues {
             enqueue(me, modeName, platformName);
             return;
         }
-        for (Player p : Parties.of(them)) {
-            if (Game.of(p) != null) { // their entry went stale: seated since they queued (only I was re-checked)
+        List<Player> theirs = Parties.of(them);
+        for (Player p : theirs) {
+            if (Matches.grotto().engaged(p)) { // their entry went stale: seated since they queued (only I was re-checked)
                 enqueue(me, modeName, platformName);
                 return;
             }
         }
-        start(mode, platform, Parties.of(them), side);
+        // their party may have shrunk since they queued - the party listener runs first and only their own
+        // entry is dropped, so the bucket still claims the old size
+        if (theirs.size() != match.size()) {
+            enqueue(me, modeName, platformName);
+            return;
+        }
+        start(mode, platform, theirs, side);
     }
 
     private static void start(Mode mode, Platform platform, List<Player> a, List<Player> b) {

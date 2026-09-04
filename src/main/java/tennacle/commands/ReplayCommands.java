@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import tennacle.storage.SafeName;
 import tennacle.Msg;
 
 import io.github.term4.archipelago.Storage;
@@ -34,6 +35,14 @@ public final class ReplayCommands {
     private static volatile Playback playback;
 
     private ReplayCommands() {}
+
+    // a command word becomes a path here: ArgumentType.Word rejects only spaces, so "../x" escapes the directory
+    private static @org.jetbrains.annotations.Nullable Path named(net.minestom.server.command.CommandSender to,
+                                                                  Path dir, String name, String suffix) {
+        Path file = SafeName.resolve(dir, name, suffix);
+        if (file == null) Msg.err(to, "replay", "bad name ", Msg.v(name), " - " + SafeName.rule());
+        return file;
+    }
 
     public static void register(ShardManager shards, InstanceContainer world) {
         Path replayDir = Storage.dir("replay-dir", "replays");
@@ -98,9 +107,11 @@ public final class ReplayCommands {
             Recording rec = recording;
             recording = null;
             byte[] file = rec.stop();
+            Path target = named(sender, replayDir, ctx.get(replayName), ".shard");
+            if (target == null) return;
             try {
                 Files.createDirectories(replayDir);
-                Files.write(replayDir.resolve(ctx.get(replayName) + ".shard"), file);
+                tennacle.storage.Atomic.write(target, file);
             } catch (IOException e) {
                 Msg.err(sender, "replay", "write failed: " + e.getMessage());
                 return;
@@ -112,8 +123,10 @@ public final class ReplayCommands {
         CommandExecutor doPlay = (sender, ctx) -> {
             if (playback != null) { Msg.err(sender, "replay", "one playback at a time (tick ", Msg.v(playback.tick()), ")"); return; }
             byte[] file;
+            Path source = named(sender, replayDir, ctx.get(replayName), ".shard");
+            if (source == null) return;
             try {
-                file = Files.readAllBytes(replayDir.resolve(ctx.get(replayName) + ".shard"));
+                file = Files.readAllBytes(source);
             } catch (IOException e) {
                 Msg.err(sender, "replay", "no replay named ", Msg.v(ctx.get(replayName)));
                 return;

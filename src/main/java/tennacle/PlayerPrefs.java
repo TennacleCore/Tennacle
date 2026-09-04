@@ -1,6 +1,12 @@
 package tennacle;
 
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import net.kyori.adventure.text.Component;
 import tennacle.games.Matches;
 
 import io.github.term4.grotto.vault.VaultKey;
@@ -22,6 +28,10 @@ import java.util.function.Function;
  * The one login-prefetch pipeline for per-player vault data: a consumer registers its key once, the value
  * is fetched at configuration and cached until disconnect, and every later read is synchronous - a game
  * start never races an async lookup. Swapping the storage backend later touches the vault, not consumers.
+ *
+ * <p>The configuration event WAITS for the fetch (it runs on the login thread, not the tick loop), because a
+ * miss is indistinguishable from an empty account downstream: a kit editor that reads null writes back a map
+ * holding only the kit it just edited. A player whose data cannot be read is refused, not defaulted.
  */
 public final class PlayerPrefs {
 
@@ -48,6 +58,9 @@ public final class PlayerPrefs {
         }
     }
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlayerPrefs.class);
+    private static final long LOAD_TIMEOUT_SECONDS = 10;
+
     private static final List<Entry<?, ?>> entries = new CopyOnWriteArrayList<>();
     private static volatile boolean installed;
 
@@ -71,15 +84,24 @@ public final class PlayerPrefs {
         var node = MinecraftServer.getGlobalEventHandler();
         node.addListener(AsyncPlayerConfigurationEvent.class, e -> {
             UUID player = e.getPlayer().getUuid();
-            for (Entry<?, ?> entry : entries) fetch(entry, player);
+            List<CompletableFuture<?>> loading = new ArrayList<>();
+            for (Entry<?, ?> entry : entries) loading.add(fetch(entry, player));
+            try {
+                CompletableFuture.allOf(loading.toArray(CompletableFuture[]::new))
+                        .get(LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (Exception failed) {
+                LOGGER.error("player data did not load for {}", e.getPlayer().getUsername(), failed);
+                for (Entry<?, ?> entry : entries) entry.cache.remove(player);
+                e.getPlayer().kick(Component.text("Could not load your data - try again in a moment"));
+            }
         });
         node.addListener(PlayerDisconnectEvent.class, e -> {
             for (Entry<?, ?> entry : entries) entry.cache.remove(e.getPlayer().getUuid());
         });
     }
 
-    private static <S, T> void fetch(Entry<S, T> entry, UUID player) {
-        Matches.grotto().vault().get(player, entry.key)
+    private static <S, T> CompletableFuture<?> fetch(Entry<S, T> entry, UUID player) {
+        return Matches.grotto().vault().get(player, entry.key)
                 .thenAccept(stored -> entry.cache.put(player, entry.decode.apply(stored)));
     }
 }

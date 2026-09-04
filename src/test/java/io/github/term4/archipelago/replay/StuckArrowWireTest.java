@@ -50,7 +50,7 @@ class StuckArrowWireTest extends HeadlessServerTest {
         ShardBridge.install();
         ReplayBridge.install();
         // wire tests emulate specific generations: viewer names carry the split
-        Replay.legacyViewers(p -> p.getUsername().contains("Legacy"));
+        Replay.viewerProtocol(p -> p.getUsername().contains("Legacy") ? 47 : net.minestom.server.MinecraftServer.PROTOCOL_VERSION);
         projectiles = new ProjectileSystem(polyp, Vanilla18.projectiles());
         EntityDescriptors.describeEntity(e -> {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);

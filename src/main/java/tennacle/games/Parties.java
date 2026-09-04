@@ -115,6 +115,12 @@ public final class Parties {
             Msg.err(player, "party", "the leader left");
             return;
         }
+        Party theirs = byMember.get(leader.getUuid());
+        if (theirs != null && !theirs.leader.equals(leader.getUuid())) {
+            // they joined someone else's party between the invite and the accept
+            Msg.err(player, "party", Msg.v(leader.getUsername()), " no longer leads a party");
+            return;
+        }
         leave(player, false);
         Party party = byMember.computeIfAbsent(leader.getUuid(), Party::new);
         party.members.add(player.getUuid());

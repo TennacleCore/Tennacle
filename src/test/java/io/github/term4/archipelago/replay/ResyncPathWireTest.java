@@ -49,7 +49,7 @@ class ResyncPathWireTest extends HeadlessServerTest {
         ShardBridge.install();
         ReplayBridge.install();
         // wire tests emulate specific generations: viewer names carry the split
-        Replay.legacyViewers(p -> p.getUsername().contains("Legacy"));
+        Replay.viewerProtocol(p -> p.getUsername().contains("Legacy") ? 47 : net.minestom.server.MinecraftServer.PROTOCOL_VERSION);
         explosions = new ExplosionSystem(polyp, Explosion.config());
         projectiles = new ProjectileSystem(polyp, io.github.term4.polyp.presets.hypixel.Projectiles.config());
         EntityDescriptors.describeEntity(e -> {

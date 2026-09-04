@@ -46,7 +46,7 @@ class TntBounceReplayTest extends HeadlessServerTest {
         ShardBridge.install();
         ReplayBridge.install();
         // wire tests emulate specific generations: viewer names carry the split
-        Replay.legacyViewers(p -> p.getUsername().contains("Legacy"));
+        Replay.viewerProtocol(p -> p.getUsername().contains("Legacy") ? 47 : net.minestom.server.MinecraftServer.PROTOCOL_VERSION);
         explosions = new ExplosionSystem(polyp, Explosion.config());
         EntityDescriptors.describeEntity(e -> {
             var stamp = e.getTag(MechanicsWorld.ENTITY_SAVE);
