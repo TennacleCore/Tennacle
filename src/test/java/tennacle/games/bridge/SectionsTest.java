@@ -37,7 +37,7 @@ class SectionsTest extends HeadlessServerTest {
     }
 
     /** A deck along x, 1 west and 2 east, with one stone cell that belongs to no dyed family. */
-    private static Arena fixture() {
+    static Arena fixture() {
         Session s = Session.create("sections-fixture", new ShardManager(), p -> {});
         try {
             for (int x = -8; x <= 8; x++) s.instance().setBlock(x, 64, 0, Block.WHITE_TERRACOTTA);
