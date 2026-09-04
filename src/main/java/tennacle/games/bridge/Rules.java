@@ -316,7 +316,8 @@ public final class Rules implements GameModule {
     }
 
     private static Pos spawnOf(Game game, Slot seat) {
-        return seat.spawn() != null ? seat.spawn() : game.arena().meta().spawn();
+        Pos at = Cages.seat(game, seat);
+        return at != null ? at : game.arena().meta().spawn();
     }
 
     // vanilla's BlockPos.asLong packing: one primitive per placed block, no key object per place or break

@@ -3,6 +3,8 @@ package tennacle.games.bridge;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.barnacle.marker.PosMarker;
+import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -37,6 +39,23 @@ class CageHoldTest extends HeadlessServerTest {
         Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), bridge.arena().get());
         for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
         return game;
+    }
+
+    @Test
+    void seatOpensAtTheRespawnSpotWhenTheRuleSaysSo() {
+        Game game = bridge();
+        try {
+            Slot seat = game.roster().slot(0);
+            assertNotNull(seat);
+            assertEquals(seat.spawn(), Cages.seat(game, seat), "the cage marker by default");
+
+            PosMarker respawn = game.arena().marker(Bridge.RESPAWN, seat.team());
+            assertNotNull(respawn, "the map declares one per team");
+            game.state().set(Scope.GAME, Cages.SEAT, Cages.SEAT_RESPAWN);
+            assertEquals(respawn.pos(), Cages.seat(game, seat), "held where the team respawns instead");
+        } finally {
+            game.end(Outcome.aborted());
+        }
     }
 
     @Test

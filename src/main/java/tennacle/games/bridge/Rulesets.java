@@ -1,5 +1,7 @@
 package tennacle.games.bridge;
 
+import io.github.term4.grotto.Bodies;
+import io.github.term4.grotto.modules.combat.Freeze;
 import tennacle.games.Ruleset;
 
 import java.util.Map;
@@ -12,10 +14,9 @@ final class Rulesets {
 
     private Rulesets() {}
 
-    /** What bridge IS on every server: arrows vanish and never stick, no hunger or natural regen, no tossing. */
+    /** What bridge IS on every server: arrows vanish off blocks, no hunger or natural regen, no tossing. */
     static final Ruleset BASE = Ruleset.named("bridge")
             .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
-            .path("projectiles/minecraft:arrow/stuckInBody", false)   // no cosmetic body arrows
             .path("hunger/enabled", false)
             .path("hunger/naturalRegen", false)                       // healing is the apple only
             .path("vri/itemDrop", false)                              // hypixel parity: mined clay still drops
@@ -26,13 +27,18 @@ final class Rulesets {
 
     // the crit META is never touched - a full-draw arrow shows the flag, a partial does not (its actual crit state).
     // hypixel and scrims drop the crit ROLL (critDamage false): the trail shows, the bonus does not; minemen rolls it.
-    static final Ruleset VANILLA_RULES = Ruleset.named("minemen");
+    static final Ruleset VANILLA_RULES = Ruleset.named("minemen")
+            .rule(Freeze.SHOOT, false)             // captured: a bow drawn in the cage fires nothing
+            .rule(Cages.ENABLED, false)            // captured: no cage at all
+            .rule(Cages.SEAT, Cages.SEAT_RESPAWN)  // held where they respawn instead
+            .rule(Bodies.ARROWS, false);           // captured: a reset pulls the stuck arrows out
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel")
                     .path("projectiles/minecraft:arrow/critDamage", false)
                     .over(BASE),
             "scrims", Ruleset.named("scrims")
                     .path("projectiles/minecraft:arrow/critDamage", false)
+                    .path("projectiles/minecraft:arrow/stuckInBody", false) // captured: no body arrows on scrims
                     .rule(Cages.SECONDS, 5) // captured: five on scrims, three elsewhere
                     .over(BASE),
             "minemen", VANILLA_RULES.over(BASE));

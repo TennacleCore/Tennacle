@@ -76,6 +76,16 @@ public final class Cages implements GameModule {
      * looks like, so an unlocked cage is never room to move.
      */
     public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 3);
+    /**
+     * Where a side is held for the opening: {@link #SEAT_CAGE} or {@link #SEAT_RESPAWN}. The stamp, the hold and
+     * the teleport after a goal all read it, so the cage is never somewhere the players are not.
+     */
+    public static final StateKey<String> SEAT = StateKey.of("cage:seat", Codec.STRING, "cage");
+    /** The team's {@code bridge:cage} marker - the seat the roster hands out. */
+    public static final String SEAT_CAGE = "cage";
+    /** The team's {@code bridge:respawn} marker, for a mode that opens where it respawns. */
+    public static final String SEAT_RESPAWN = "respawn";
+
     /** The only cages a game allows; empty = all of them. */
     public static final StateKey<List<String>> WHITELIST = StateKey.of("cage:whitelist", Codec.STRING.list(), List.of());
     /** Cages a game refuses, whitelisted or not. */
@@ -126,7 +136,18 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, ENABLED, HOLD, BOUNDS, WHITELIST, BLACKLIST, Countdown.GRACE, Countdown.INTERVAL);
+        return Set.of(SECONDS, ENABLED, HOLD, BOUNDS, SEAT, WHITELIST, BLACKLIST, Countdown.GRACE, Countdown.INTERVAL);
+    }
+
+    /** Where a seat opens, per {@link #SEAT}: its own marker, or the team's respawn spot. */
+    static @Nullable Pos seat(Game game, Slot seat) {
+        return seatOf(game, seat.team(), seat.spawn());
+    }
+
+    private static @Nullable Pos seatOf(Game game, String team, @Nullable Pos own) {
+        if (!SEAT_RESPAWN.equals(game.rules().resolve(Scope.GAME, SEAT))) return own;
+        PosMarker respawn = game.arena().marker(Bridge.RESPAWN, team);
+        return respawn != null ? respawn.pos() : own;
     }
 
     /** The hold {@code Freeze} asks: pinned to the seat, free inside the boundary, or nothing. */
@@ -384,7 +405,8 @@ public final class Cages implements GameModule {
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {
             CageDef cage = defs.getOrDefault(choiceFor(game, spawn.group()), defs.get(""));
             if (cage == null) cage = defs.values().iterator().next();
-            var at = spawn.pos();
+            var at = seatOf(game, spawn.group(), spawn.pos());
+            if (at == null) continue;
             // the map marker already faces the center - rotate the authored front onto it
             int turns = cage.front().quarterTurnsTo(Facing.fromYaw(at.yaw()));
             Role.Fill own = cage.fills().get(spawn.group());
