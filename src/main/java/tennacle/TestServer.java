@@ -228,6 +228,7 @@ public final class TestServer {
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(arenaDir(), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
         Bloom.registerDefaultCommands();
+        tennacle.games.SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
         Sessions.register(p -> { // /l leaves the editor OPEN - the idle watchdog below owns closing
             var editing = Bloom.session();
             if (editing == null || p.getInstance() != editing.instance()) return null;
