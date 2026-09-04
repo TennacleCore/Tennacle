@@ -318,12 +318,20 @@ public final class Cages implements GameModule {
     }
 
     /** The seated player's pick for that team's spot ("" until their vault answer lands). */
-    private static String choiceFor(Game game, String team) {
-        Player seated = game.firstMember(member -> {
-            Slot seat = game.roster().slotOf(member);
-            return seat != null && seat.team().equals(team);
-        });
-        return allowed(game, seated != null ? choiceOf(seated) : "");
+    /**
+     * The cage that stands at {@code spot}: its occupant's pick. A seat has its own marker, so a side's players
+     * each get their own cage - the blocks are real and the picks differ in play (an open top shoots out, a
+     * headhitter boosts), which is the point in casual. Several seats on ONE marker can only take one cage, and
+     * the first of them holds it.
+     */
+    private static String choiceFor(Game game, PosMarker spot) {
+        for (Slot seat : game.roster().slots()) {
+            if (seat.spawn() == null || !seat.spawn().samePoint(spot.pos())) continue;
+            String owner = game.roster().ownerOf(seat);
+            Player seated = owner != null ? game.memberNamed(owner) : null;
+            if (seated != null) return allowed(game, choiceOf(seated));
+        }
+        return allowed(game, "");
     }
 
     static String choiceOf(Player player) {
@@ -345,7 +353,7 @@ public final class Cages implements GameModule {
         Map<String, CageDef> defs = cages();
         if (defs.isEmpty()) return;
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {
-            CageDef cage = defs.getOrDefault(choiceFor(game, spawn.group()), defs.get(""));
+            CageDef cage = defs.getOrDefault(choiceFor(game, spawn), defs.get(""));
             if (cage == null) cage = defs.values().iterator().next();
             var at = spawn.pos();
             // the map marker already faces the center - rotate the authored front onto it
