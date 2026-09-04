@@ -6,3 +6,5 @@ shard-saves/
 replays/
 archipelago-crashes/
 logs/
+data/
+tennacle.properties

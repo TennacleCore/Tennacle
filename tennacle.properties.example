@@ -1,0 +1,30 @@
+# Copy to tennacle.properties (or set any of these as -D system properties or TENNACLE_* environment
+# variables, which win over the file). Every value here is the default.
+
+# where the socket listens. A non-loopback bind REQUIRES a forwarding secret below: without one, any direct
+# connection can hand over whatever account name it likes
+tennacle.bind = 127.0.0.1
+tennacle.port = 25566
+
+# proxy forwarding. Velocity modern forwarding is the production answer; bungeeguard tokens are comma separated
+# tennacle.velocity-secret = <the proxy's forwarding secret>
+# tennacle.bungeeguard-tokens = <token>,<token>
+
+# generated into <data-dir>/game-secret on first boot when unset; rotating it stops old screenshots deriving ids
+# tennacle.game-secret = <32+ random characters>
+
+tennacle.data-dir = data
+tennacle.arena-dir = arenas
+
+# /gm, /lag, /shard stall and friends. On by default only on a loopback bind
+# tennacle.dev-commands = false
+
+# chat-narrates every Animatium feature send to the player it is sent to
+# tennacle.animatium-debug = false
+
+# an HTTP endpoint answering /health with tick rate, players and games; 0 = off
+# tennacle.health-port = 8080
+# tennacle.health-bind = 127.0.0.1
+
+tennacle.chunk-view-distance = 8
+tennacle.entity-view-distance = 5

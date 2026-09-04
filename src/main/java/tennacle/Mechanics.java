@@ -54,7 +54,8 @@ public final class Mechanics {
         polyp.init();
         polyp.profiles().setGlobal(PRESET.profile().toBuilder()
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
-                .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder().animatiumDebug(true).build())
+                .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder()
+                        .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
                 .set(MechanicsKeys.FIXES, Fixes18.config())
                 .build());
         AttackSystem.install(polyp);

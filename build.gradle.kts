@@ -18,6 +18,7 @@ dependencies {
     val junitVersion = "6.1.3"
 
     implementation("net.minestom:minestom:$minestomVersion")
+    compileOnly("org.slf4j:slf4j-api:2.0.18") // minestom's runtime carries the binding
     implementation("io.github.term4:polyp:0.3.1")
     implementation("io.github.term4:archipelago:0.2.0")
     implementation("io.github.term4:polyp-world:0.3.1") // the seam archipelago compiles against; the app provides it
