@@ -64,18 +64,11 @@ public final class Cages implements GameModule {
     /** Whether a goal reopens the count; off, the goal plays straight on with nobody re-seated. */
     public static final StateKey<Boolean> REOPEN = StateKey.of("cage:reopen", Codec.BOOLEAN, true);
 
-    /** Held at the seat: {@link #HOLD_PINNED}, {@link #HOLD_BOUNDED} or {@link #HOLD_NONE}. */
-    public static final StateKey<String> HOLD = StateKey.of("cage:hold", Codec.STRING, "bounded");
-    /** Nobody moves. */
-    public static final String HOLD_PINNED = "pinned";
-    /** Free inside {@link #BOUNDS}, nothing past it - the walls a cage draws are a look, this is the boundary. */
-    public static final String HOLD_BOUNDED = "bounded";
-    /** No hold at all. */
-    public static final String HOLD_NONE = "none";
     /**
-     * Blocks from the seat a bounded player may reach: the box is that far on x and z, and from that far below
-     * the seat to one block further above it, so a jump lands inside. Every cage gets the same box, whatever it
-     * looks like, so an unlocked cage is never room to move.
+     * Blocks from the seat a held player may reach: the box is that far on x and z, and from that far below the
+     * seat to one block further above it, so a jump lands inside. Every cage gets the same box, whatever it looks
+     * like, so an unlocked cage is never room to move. {@code 0} pins them where they stand; below zero the server
+     * holds nobody and the cage's own walls do it.
      */
     public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 3);
     /**
@@ -138,7 +131,7 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, ENABLED, REOPEN, HOLD, BOUNDS, SEAT, WHITELIST, BLACKLIST,
+        return Set.of(SECONDS, ENABLED, REOPEN, BOUNDS, SEAT, WHITELIST, BLACKLIST,
                 Countdown.GRACE, Countdown.INTERVAL);
     }
 
@@ -153,14 +146,12 @@ public final class Cages implements GameModule {
         return respawn != null ? respawn.pos() : own;
     }
 
-    /** The hold {@code Freeze} asks: pinned to the seat, free inside the boundary, or nothing. */
+    /** The hold {@code Freeze} asks: inside the box, or anywhere when the box is off. */
     static Pos hold(Game game, Pos anchor, Pos to) {
-        String mode = game.rules().resolve(Scope.GAME, HOLD);
-        if (HOLD_NONE.equals(mode)) return to;
-        if (HOLD_PINNED.equals(mode)) return anchor;
-        int b = Math.max(0, game.rules().resolve(Scope.GAME, BOUNDS));
+        int b = game.rules().resolve(Scope.GAME, BOUNDS);
+        if (b < 0) return to;
         double x = clamp(to.x(), anchor.x() - b, anchor.x() + b);
-        double y = clamp(to.y(), anchor.y() - b, anchor.y() + b + 1); // the extra block is jump room
+        double y = clamp(to.y(), anchor.y() - b, anchor.y() + b + (b > 0 ? 1 : 0)); // jump room, but a pin is a pin
         double z = clamp(to.z(), anchor.z() - b, anchor.z() + b);
         // every move inside the box comes through here: hand back the move itself rather than a copy
         return x == to.x() && y == to.y() && z == to.z() ? to : new Pos(x, y, z);

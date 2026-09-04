@@ -62,7 +62,7 @@ class CageHoldTest extends HeadlessServerTest {
     void boundedHoldsInsideTheBoxWhateverTheCageLooksLike() {
         Game game = bridge();
         try {
-            assertEquals(Cages.HOLD_BOUNDED, game.rules().resolve(Scope.GAME, Cages.HOLD), "bounded by default");
+            assertEquals(3, game.rules().resolve(Scope.GAME, Cages.BOUNDS), "a three-block box by default");
 
             Pos inside = SEAT.add(0.4, 0, -0.4);
             assertSame(inside, Cages.hold(game, SEAT, inside), "a move that stays inside is left alone");
@@ -79,11 +79,12 @@ class CageHoldTest extends HeadlessServerTest {
             game.state().set(Scope.GAME, Cages.BOUNDS, 4);
             assertEquals(SEAT.x() + 4, Cages.hold(game, SEAT, far).x(), "the box is a rule, live");
 
-            game.state().set(Scope.GAME, Cages.HOLD, Cages.HOLD_PINNED);
-            assertSame(SEAT, Cages.hold(game, SEAT, far), "pinned is the old behavior, still reachable");
+            game.state().set(Scope.GAME, Cages.BOUNDS, 0);
+            assertEquals(SEAT, Cages.hold(game, SEAT, far), "a box of nothing is a pin");
+            assertEquals(SEAT.y(), Cages.hold(game, SEAT, SEAT.add(0, 1, 0)).y(), "no jump room out of a pin");
 
-            game.state().set(Scope.GAME, Cages.HOLD, Cages.HOLD_NONE);
-            assertSame(far, Cages.hold(game, SEAT, far), "and none lets everything through");
+            game.state().set(Scope.GAME, Cages.BOUNDS, -1);
+            assertSame(far, Cages.hold(game, SEAT, far), "below zero the walls hold them, not the server");
         } finally {
             game.end(Outcome.aborted());
         }

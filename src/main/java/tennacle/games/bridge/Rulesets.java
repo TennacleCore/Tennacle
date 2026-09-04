@@ -31,7 +31,7 @@ final class Rulesets {
             .rule(Freeze.SHOOT, false)             // captured: nothing is thrown or fired from the cage
             .rule(Cages.ENABLED, false)            // captured: no cage at all
             .rule(Cages.SEAT, Cages.SEAT_RESPAWN)  // held where they respawn instead
-            .rule(Cages.HOLD, Cages.HOLD_PINNED)   // captured: pinned there, no room to move at all
+            .rule(Cages.BOUNDS, 0)                 // captured: pinned there, no room to move at all
             .rule(Bodies.ARROWS, false);           // captured: a reset pulls the stuck arrows out
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel")
