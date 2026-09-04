@@ -1,5 +1,7 @@
 package tennacle.games.bridge;
 
+import io.github.term4.bloom.Bloom;
+import io.github.term4.barnacle.marker.DataMarker;
 import java.util.concurrent.ThreadLocalRandom;
 import net.minestom.server.coordinate.Pos;
 import io.github.term4.canvas.theme.Tint;
@@ -85,6 +87,8 @@ public final class Cages implements GameModule {
     private static final HotArena CAGES = HotArena.of("cages");
     private static final MarkerKey<PosMarker> CAGE_SPOT = MarkerKey.pos("cage");
     private static final MarkerKey<RegionMarker> CAGE_BOX = MarkerKey.region("cage");
+    /** The blocks a VARIANT carries per team: {@code /marker data cage.fill tall 1=redstone_ore 2=lapis_ore}. */
+    private static final MarkerKey<DataMarker> CAGE_FILL_SET = MarkerKey.data("cage.fill");
     /** What a cage's accented RED_* blocks become: a tint keeps their material, a block replaces them. */
     static final Role<Role.Fill> CAGE_FILL = Role.block("cage");
     // captured hypixel: note.hat vol 1 each beat, note.harp at GO; scrims/minemen cues UNCAPTURED - pling
@@ -94,7 +98,7 @@ public final class Cages implements GameModule {
     private static final Sound GO = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
 
     private record Cell(BlockVec offset, Block block, @Nullable String recolor) {}
-    private record CageDef(Facing front, List<Cell> cells) {}
+    private record CageDef(Facing front, List<Cell> cells, Map<String, Role.Fill> fills) {}
 
     private static Arena cageSource;
     private static Map<String, CageDef> cageDefs = Map.of();
@@ -110,6 +114,14 @@ public final class Cages implements GameModule {
     private int countFrom;      // the length the running count was armed with
     private int remaining = -1; // the beat last shown; -1 = no count running
     private long nextBeat = -1;
+
+    /** So a bad fill is refused where it is authored rather than at the next stamp. */
+    static void editable() {
+        Bloom.payload(CAGE_FILL_SET.id(), (team, value) -> {
+            if (!team.matches("[0-9]+")) throw new IllegalArgumentException("a cage fill is per team ordinal: 1=<value>");
+            Role.Fill.parse(value);
+        });
+    }
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
@@ -286,12 +298,28 @@ public final class Cages implements GameModule {
                     }
                 }
             }
-            defs.put(spot.group(), new CageDef(Facing.fromYaw(spot.pos().yaw()), List.copyOf(cells)));
+            defs.put(spot.group(), new CageDef(Facing.fromYaw(spot.pos().yaw()), List.copyOf(cells),
+                    fills(arena.marker(CAGE_FILL_SET, spot.group()))));
         }
         arena.unload();
         if (defs.isEmpty()) System.err.println("[cages] the cages arena has no cage region+pos pair");
         cageDefs = Map.copyOf(defs);
         return cageDefs;
+    }
+
+    // authored with the cage, so an ore cage stays ore whatever hue a map hands that team
+    static Map<String, Role.Fill> fills(@Nullable DataMarker marker) {
+        CompoundBinaryTag payload = marker == null ? null : marker.payload();
+        if (payload == null) return Map.of();
+        Map<String, Role.Fill> fills = new HashMap<>();
+        for (String team : payload.keySet()) {
+            try {
+                fills.put(team, Role.Fill.parse(payload.getString(team)));
+            } catch (IllegalArgumentException bad) {
+                System.err.println("[cages] " + marker.group() + " fill " + team + ": " + bad.getMessage());
+            }
+        }
+        return Map.copyOf(fills);
     }
 
     // authored RED_* inside a matching accent region recolors per team; the returned tail rides the Cell
@@ -374,7 +402,9 @@ public final class Cages implements GameModule {
             var at = spawn.pos();
             // the map marker already faces the center - rotate the authored front onto it
             int turns = cage.front().quarterTurnsTo(Facing.fromYaw(at.yaw()));
+            Role.Fill own = cage.fills().get(spawn.group());
             Role.Fill fill = game.roster().team(spawn.group()).livery().get(CAGE_FILL);
+            if (own != null) fill = Role.Fill.merge(own, fill); // the cage's own set wins over the map's team look
             int minCx = Integer.MAX_VALUE, maxCx = Integer.MIN_VALUE, minCz = Integer.MAX_VALUE, maxCz = Integer.MIN_VALUE;
             for (Cell cell : cage.cells()) {
                 BlockVec turned = Facing.rotate(cell.offset(), turns);

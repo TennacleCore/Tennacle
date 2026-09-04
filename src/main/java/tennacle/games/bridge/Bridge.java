@@ -166,6 +166,7 @@ public final class Bridge {
         }
         MapPool arena = MapPool.of("bridge");
         Teams.register(DEFAULTS); // the editor shows an arena's effective look
+        Cages.editable();
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, 1))
                 .teams(a -> tennacle.games.Palette.teams(a, CAGE, DEFAULTS))
