@@ -32,6 +32,7 @@ import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.modules.view.HealthDisplay;
 import io.github.term4.grotto.modules.combat.HitReport;
 import io.github.term4.grotto.modules.view.Nametags;
+import io.github.term4.grotto.modules.space.Daylight;
 import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.grotto.modules.combat.FriendlyFire;
 import io.github.term4.grotto.modules.outcome.Goals;
@@ -210,6 +211,7 @@ public final class Bridge {
                         }),
                         Nametags::of,
                         Spectating::new, Sight::new, Presets::new,
+                        Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> HitReport.of().types(ProjectileDamage.KEY).line(g -> Matches.lookOf(g).hit()), // arrows are thrown-typed
                         () -> Kits.of(KIT),
@@ -251,7 +253,7 @@ public final class Bridge {
         // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
         Flags.register(Flag.onOff("cages", Cages.BLOCKS));
         Flags.register(Flag.rule("goals", Score.TARGET, Integer::parseInt, List.of()));
-        Flags.offer(bridge, "look", "platform", "map", "time", "preset", "cages", "goals");
+        Flags.offer(bridge, "look", "platform", "map", "time", "preset", "daylight", "cages", "goals");
     }
 
     static String teamOf(Game game, Player player) {

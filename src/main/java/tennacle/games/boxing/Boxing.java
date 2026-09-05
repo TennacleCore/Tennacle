@@ -25,6 +25,7 @@ import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.modules.view.HealthDisplay;
 import io.github.term4.grotto.modules.view.Nametags;
+import io.github.term4.grotto.modules.space.Daylight;
 import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.grotto.modules.gear.Kits;
 import io.github.term4.grotto.modules.outcome.LastStanding;
@@ -125,6 +126,7 @@ public final class Boxing {
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
                         () -> Nametags.of().relative(),
                         Spectating::new, Sight::new, Presets::new,
+                        Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
@@ -140,7 +142,7 @@ public final class Boxing {
                 true, null);
         Duels.mode(boxing);
         Flags.register(Flag.rule("hits", Score.TARGET, Integer::parseInt, List.of()));
-        Flags.offer(boxing, "look", "platform", "map", "time", "preset", "hits");
+        Flags.offer(boxing, "look", "platform", "map", "time", "preset", "daylight", "hits");
         registerStats();
     }
 

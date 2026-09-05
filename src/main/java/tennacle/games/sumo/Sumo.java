@@ -21,6 +21,7 @@ import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.modules.view.HealthDisplay;
 import io.github.term4.grotto.modules.view.Nametags;
+import io.github.term4.grotto.modules.space.Daylight;
 import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.grotto.modules.combat.KillCredit;
 import io.github.term4.grotto.modules.outcome.LastStanding;
@@ -85,6 +86,7 @@ public final class Sumo {
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.draw()),
                         () -> Nametags.of().relative(),
                         Spectating::new, Sight::new, Presets::new,
+                        Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Limits.of().below(Markers.VOID, (p, plane) -> {
                             Game game = Game.of(p);
@@ -100,6 +102,6 @@ public final class Sumo {
                 List.of(Component.text("Eliminate your opponents!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
                 true, null);
         Duels.mode(sumo);
-        Flags.offer(sumo, "look", "platform", "map", "time", "preset");
+        Flags.offer(sumo, "look", "platform", "map", "time", "preset", "daylight");
     }
 }
