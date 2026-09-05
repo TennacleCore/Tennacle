@@ -64,6 +64,11 @@ public final class Msg {
         return THEME.run(command);
     }
 
+    /** {@code text} that runs {@code command} on click - a listing that walks itself. */
+    public static Component link(Object text, String command, Object hover) {
+        return THEME.link(text, command, hover);
+    }
+
     public static void usage(CommandSender to, String title, String[][] rows) {
         THEME.usage(to, title, rows);
     }

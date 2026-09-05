@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Matches;
 import tennacle.games.Ruleset;
@@ -56,7 +57,7 @@ public final class RulesCommands {
             }
             String word = ctx.get(key);
             if (word.equals("paths")) {
-                Msg.tag(p, "rules", "path roots: ", Msg.v(String.join(", ", new java.util.TreeSet<>(PathEdits.members()))));
+                paths(p, game, "");
                 return;
             }
             Scope scope = scopeOf(game, word);
@@ -75,6 +76,10 @@ public final class RulesCommands {
             }
             List<String> words = new ArrayList<>(List.of(ctx.get(value)));
             String id = ctx.get(key);
+            if (id.equals("paths")) {
+                paths(p, game, String.join("/", words).replace('.', '/'));
+                return;
+            }
             Scope scope = Scope.GAME;
             if (id.startsWith("@")) { // the whole game unless a side or a seat leads
                 scope = scopeOf(game, id);
@@ -113,6 +118,32 @@ public final class RulesCommands {
         }
         Msg.tag(p, "rules", "mechanics paths take a value too - ", Msg.run("/rules paths"));
         Msg.tag(p, "rules", "one side or seat only: ", Msg.run("/rules @<team|player> <id|path> <value>"));
+    }
+
+    /** One level of the mechanics tree: what is addressable under {@code path}, and what it holds right now. */
+    private static void paths(Player p, Game game, String path) {
+        List<PathEdits.Step> steps;
+        try {
+            steps = PathEdits.browse(path, k -> Mechanics.polyp.profiles().resolveWorld(game.shard(), k));
+        } catch (RuntimeException e) {
+            Msg.err(p, "rules", e.getMessage());
+            return;
+        }
+        Msg.tag(p, "rules", (path.isEmpty() ? "mechanics" : path) + ": " + steps.size() + " step(s)");
+        List<String> unset = new ArrayList<>();
+        for (PathEdits.Step step : steps) {
+            String under = path.isEmpty() ? step.name() : path + "/" + step.name();
+            if (step.more() || step.type() == null) {
+                Msg.tag(p, "rules", "  ", Msg.link(step.name(), "/rules paths " + under, "browse " + under),
+                        step.type() == null ? "" : "  " + step.type());
+            } else if (step.value() != null) {
+                Msg.tag(p, "rules", "  " + step.name() + " = ", Msg.v(step.value()), "  " + step.type());
+            } else {
+                unset.add(step.name()); // a line each would bury the ones this profile actually sets
+            }
+        }
+        if (!unset.isEmpty()) Msg.tag(p, "rules", "  inherited: ", Msg.v(String.join(", ", unset)));
+        if (!path.isEmpty()) Msg.tag(p, "rules", "one knob: ", Msg.run("/rules paths " + path + "/<knob>"));
     }
 
     /** {@code @1} a side, {@code @Term4} that member's seat; anything else is nobody. */
