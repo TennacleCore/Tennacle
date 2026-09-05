@@ -148,12 +148,13 @@ public final class Duels {
             return;
         }
         requests.put(me.getUuid(), new Request(target.getUuid(), mode.name(), options, System.currentTimeMillis()));
+        // scrims' lines on the house palette: the sentence in the accent, the name in prose, the map or pool a value
         String what = title(mode) + " duel request";
-        Msg.tag(me, "duel", "Sent a " + what + " to ", Msg.v(target.getUsername()), on(options));
-        flagsLine(me, mode, options);
-        Msg.tag(target, "duel", what + " from ", Msg.v(me.getUsername()), on(options));
+        me.sendMessage(Msg.THEME.accent("Sent a " + what + " to ").append(Msg.THEME.prose(target.getUsername())).append(on(mode, options)));
+        flagsLine(me, options);
+        target.sendMessage(Msg.THEME.accent(what + " from ").append(Msg.THEME.prose(me.getUsername())).append(on(mode, options)));
         target.sendMessage(acceptLine(me));
-        flagsLine(target, mode, options);
+        flagsLine(target, options);
     }
 
     private static @Nullable Player online(Player me, String name) {
@@ -196,31 +197,32 @@ public final class Duels {
         return Character.toUpperCase(mode.name().charAt(0)) + mode.name().substring(1);
     }
 
-    private static Component on(Options options) {
-        return options.map() == null ? Component.empty() : Msg.THEME.prose(" on ").append(Msg.v(options.map()));
+    // the map when one was named, else the pool it will come from
+    private static Component on(Mode mode, Options options) {
+        return Msg.THEME.accent(" on ").append(Msg.v(options.map() != null ? options.map() : mode.arena().label()));
     }
 
-    // scrims' [Accept]: a green click that runs the accept, the hover naming what it runs
+    // scrims' [Accept]: a bold green click that runs the accept, the hover naming what it runs
     private static Component acceptLine(Player requester) {
         String command = "/duel accept " + requester.getUsername();
-        return Msg.THEME.good("[Accept]")
+        return Msg.THEME.good("[Accept]").decorate(TextDecoration.BOLD)
                 .clickEvent(ClickEvent.runCommand(command))
                 .hoverEvent(HoverEvent.showText(Msg.THEME.prose("Click to accept!").append(Component.newline())
                         .append(Msg.THEME.dim("Runs ")).append(Msg.THEME.accent(command)).append(Msg.THEME.dim(" on click."))));
     }
 
-    // "Duel Flags: -preset=minemen" with scrims' info glyph, each flag explained on the hover
-    private static void flagsLine(Player to, Mode mode, Options options) {
+    // "Duel Flags: -preset=minemen" with scrims' info glyph; the hover says what each flag is, one line each
+    private static void flagsLine(Player to, Options options) {
         List<String> flags = options.flags();
         if (flags.isEmpty()) return;
-        Component hover = Component.text("ⓘ ", NamedTextColor.BLUE, TextDecoration.BOLD);
-        for (String word : flags) {
+        Component hover = Component.empty(); // siblings of the bold glyph, not its children: the text stays plain
+        for (int i = 0; i < flags.size(); i++) {
+            String word = flags.get(i);
             int eq = word.indexOf('=');
             Flag flag = Flags.get(word.substring(1, eq > 0 ? eq : word.length()));
-            hover = hover.append(Msg.v(word)).append(Msg.THEME.prose(": " + (flag != null ? flag.description() : "")))
-                    .append(Component.newline());
+            if (i > 0) hover = hover.append(Component.newline());
+            hover = hover.append(Msg.v(word)).append(Msg.THEME.prose(": " + (flag != null ? flag.description() : "")));
         }
-        hover = hover.append(Msg.THEME.dim("Use /flags " + mode.name() + " to see all that are available"));
         to.sendMessage(Msg.THEME.prose("Duel Flags: ").append(Msg.v(String.join(" ", flags)))
                 .append(Component.text(" ⓘ", NamedTextColor.BLUE, TextDecoration.BOLD).hoverEvent(HoverEvent.showText(hover))));
     }

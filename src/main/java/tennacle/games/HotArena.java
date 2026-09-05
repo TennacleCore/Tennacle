@@ -62,6 +62,11 @@ public final class HotArena implements Maps {
         return Set.of(name);
     }
 
+    @Override
+    public @NotNull String label() {
+        return name; // one map: the pick is never in doubt
+    }
+
     private void reload(Path file) {
         Arena old = arena;
         try {

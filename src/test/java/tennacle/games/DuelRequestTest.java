@@ -56,13 +56,13 @@ class DuelRequestTest extends HeadlessServerTest {
             a.sent.clear();
             b.sent.clear();
             MinecraftServer.getCommandManager().execute(a.player, "duel ReqB bridge -preset=minemen");
-            assertTrue(plain(a).stream().anyMatch(l -> l.contains("Sent a Bridge duel request to ReqB")), "the sender's line: " + plain(a));
-            assertTrue(plain(b).stream().anyMatch(l -> l.contains("Bridge duel request from ReqA")), "the target's line: " + plain(b));
+            assertTrue(plain(a).stream().anyMatch(l -> l.contains("Sent a Bridge duel request to ReqB on Random")), "the sender's line names the pool: " + plain(a));
+            assertTrue(plain(b).stream().anyMatch(l -> l.contains("Bridge duel request from ReqA on Random")), "the target's line too: " + plain(b));
             assertTrue(json(b).stream().anyMatch(l -> l.contains("[Accept]") && l.contains("/duel accept ReqA")),
                     "an [Accept] that runs the accept: " + json(b));
             for (FakePlayer p : List.of(a, b)) {
                 assertTrue(plain(p).stream().anyMatch(l -> l.contains("Duel Flags: -preset=minemen")), "the flag line: " + plain(p));
-                assertTrue(json(p).stream().anyMatch(l -> l.contains("copied version")), "explained on the hover");
+                assertTrue(json(p).stream().anyMatch(l -> l.contains("rules and look")), "explained on the hover");
             }
             MinecraftServer.getCommandManager().execute(b.player, "duel accept ReqA");
             game = await(a);
