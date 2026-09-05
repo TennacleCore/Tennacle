@@ -1,6 +1,7 @@
 package tennacle.commands;
 
 import io.github.term4.grotto.modules.view.Spectating;
+import io.github.term4.polyp.platform.player.PlayerNames;
 import tennacle.games.Spectators;
 import tennacle.GameIds;
 import tennacle.Msg;
@@ -35,6 +36,7 @@ public final class GrottoCommands {
         grotto.setDefaultExecutor((sender, ctx) -> list(sender, shards));
         grotto.addSyntax((sender, ctx) -> list(sender, shards), ArgumentType.Literal("list"));
         var target = ArgumentType.Word("player");
+        target.setSuggestionCallback(PlayerNames.suggest());
         grotto.addSyntax((sender, ctx) -> spectate(sender, ctx.get(target)), ArgumentType.Literal("spectate"), target);
         var code = ArgumentType.Word("code");
         var date = ArgumentType.Word("date");

@@ -11,7 +11,9 @@ import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.bloom.Bloom;
 import io.github.term4.canvas.Canvas;
+import io.github.term4.canvas.chat.Chat;
 import io.github.term4.canvas.tab.TabList;
+import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import net.minestom.server.Auth;
@@ -249,6 +251,9 @@ public final class TestServer {
         Bloom.viewerProtocol(p -> Mechanics.polyp.clientInfo().getProtocol(p));
         ShardTabList.viewerProtocol(p -> Mechanics.polyp.clientInfo().getProtocol(p));
         Canvas.viewerProtocol(p -> Mechanics.polyp.clientInfo().getProtocol(p));
+        // a name completes where the viewer's tab lists it - the same scope on a 1.8 client as a modern one
+        PlayerNames.visible(ShardTabList::listed);
+        Chat.completesPlayers(PlayerNames.suggest());
         Canvas.protocolWhenUnknown(47); // chrome is drawn once, early: an unknown viewer gets the flat 1.8 look
         Canvas.theme(Msg.THEME);
         Canvas.profile("minemen", Msg.MINEMEN);

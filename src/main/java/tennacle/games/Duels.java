@@ -3,6 +3,7 @@ package tennacle.games;
 import tennacle.Msg;
 
 import io.github.term4.grotto.Game;
+import io.github.term4.polyp.platform.player.PlayerNames;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
@@ -47,6 +48,7 @@ public final class Duels {
         });
         Command duel = new Command("duel");
         var name = ArgumentType.Word("player");
+        name.setSuggestionCallback(PlayerNames.suggest());
         var mode = ArgumentType.Word("mode");
         var platform = ArgumentType.Word("platform");
         duel.setDefaultExecutor((sender, ctx) ->

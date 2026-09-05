@@ -1,6 +1,7 @@
 package tennacle.games.boxing;
 
 import io.github.term4.grotto.modules.view.Sight;
+import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.bloom.edit.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
@@ -155,6 +156,7 @@ public final class Boxing {
     private static void registerStats() {
         Command stats = new Command("stats");
         var name = ArgumentType.Word("player");
+        name.setSuggestionCallback(PlayerNames.suggest());
         stats.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player p) show(p, p.getUsername(), p.getUuid());
         });

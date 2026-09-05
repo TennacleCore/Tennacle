@@ -1,6 +1,7 @@
 package tennacle.commands;
 
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
+import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.grotto.modules.view.Spectating;
 import java.util.List;
 import tennacle.Msg;
@@ -24,6 +25,7 @@ public final class SpectateCommands {
     public static void register() {
         Command spectate = new Command("spectate", "spec");
         var name = ArgumentType.Word("player");
+        name.setSuggestionCallback(PlayerNames.suggest());
         var body = ArgumentType.Word("body").from("true", "ghost");
         spectate.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;

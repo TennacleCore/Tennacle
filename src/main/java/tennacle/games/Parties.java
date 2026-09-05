@@ -1,6 +1,7 @@
 package tennacle.games;
 
 import tennacle.Msg;
+import io.github.term4.polyp.platform.player.PlayerNames;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
@@ -66,6 +67,7 @@ public final class Parties {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> leave(e.getPlayer(), true));
         Command party = new Command("party");
         var name = ArgumentType.Word("player");
+        name.setSuggestionCallback(PlayerNames.suggest());
         var sub = ArgumentType.Word("sub").from("accept", "leave", "list");
         party.setDefaultExecutor((sender, ctx) ->
                 Msg.tag(sender, "party", "usage: ", Msg.run("/party invite <player> | accept | leave | list")));
