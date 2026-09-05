@@ -246,6 +246,7 @@ public final class Rules implements GameModule {
         credit.forget(victim);
         respawns.queue(victim);
         Deaths.cue(game, victim, by);
+        Match.addSeat(game, victim, Bridge.DEATHS);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
         }
@@ -298,6 +299,7 @@ public final class Rules implements GameModule {
         if (!Match.live(game)) return;
         Player by = credit.creditFor(fallen);
         Deaths.cue(game, fallen, by);
+        Match.addSeat(game, fallen, Bridge.DEATHS);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
         }
@@ -308,6 +310,7 @@ public final class Rules implements GameModule {
     // Goals wrote the counter (Score decides at the target); this is the ceremony
     private void score(Game game, Player scorer, Slot seat, int goals) {
         GameState st = game.state();
+        Match.addSeat(game, scorer, Bridge.SCORED);
         var color = game.roster().team(seat.team()).color();
         Component banner = switch (look) {
             case "minemen" -> null; // captured: minemen announces goals on the board and title only

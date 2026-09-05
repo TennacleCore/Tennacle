@@ -122,7 +122,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             SCRIMS_COUNT, PLINGS, Look::scrimsChat,
             new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline())
                             .append(Msg.THEME.prose("Playing on ")).append(Msg.THEME.value(ADDRESS)),
-                    p -> Component.newline().append(Msg.THEME.accent(STORE))),
+                    p -> seatStats(p).append(Component.newline()).append(Msg.THEME.accent(STORE))),
             true, Look::scrimsHit, Look::tennacleTiebreak);
 
     // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
@@ -140,6 +140,24 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     private static void tennacleTiebreak(Game game, Player viewer) {
         tiebreak(game, viewer, Msg.THEME);
+    }
+
+    // bedwars' tab line for the viewer's own seat - "Kills: 0 Deaths: 0 Goals: 0" - the counters they picked
+    private static Component seatStats(Player viewer) {
+        Game game = Game.of(viewer);
+        if (game == null || game.status() != Game.Status.OPEN) return Component.empty();
+        Mode mode = Matches.modeOf(game);
+        Slot seat = game.roster().slotOf(viewer);
+        if (mode == null || seat == null) return Component.empty();
+        List<Mode.SeatStat> stats = TabStats.chosen(viewer, mode);
+        if (stats.isEmpty()) return Component.empty();
+        Component line = Component.newline();
+        for (int i = 0; i < stats.size(); i++) {
+            Mode.SeatStat stat = stats.get(i);
+            line = line.append(Component.text((i > 0 ? " " : "") + stat.label() + ": ", NamedTextColor.WHITE))
+                    .append(Msg.THEME.value(game.state().get(Scope.slot(seat.index()), stat.key())));
+        }
+        return line;
     }
 
     // captured: [RED] Dogln: message - the team tag in the team color, the rest white

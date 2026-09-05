@@ -57,6 +57,22 @@ public final class Presentation implements GameModule {
             });
             respawns.onDead((p, seat) -> deadScreen(game, respawns, p));
         }
+        Mode mode = Matches.modeOf(game);
+        if (mode != null) { // the tab line reads a seat's own counters: a change re-sends it
+            for (Mode.SeatStat stat : mode.tabStats()) {
+                game.rules().watch(stat.key(), (scope, value) -> game.forEachMember(TabList::refresh));
+            }
+        }
+    }
+
+    @Override
+    public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
+        TabList.refresh(player); // the seat line leaves with the seat
+    }
+
+    @Override
+    public void onEnd(@NotNull Game game, @NotNull Outcome outcome) {
+        game.forEachMember(TabList::refresh);
     }
 
     // "You died!" and the seconds left, refreshed every second until the respawn lands

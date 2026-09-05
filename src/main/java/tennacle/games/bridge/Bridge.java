@@ -102,6 +102,9 @@ public final class Bridge {
 
     public static final StateKey<Integer> GOALS = StateKey.of("ledger.bridge.goals", Codec.INT, 0, true);
     public static final StateKey<Integer> KILLS = StateKey.of("ledger.bridge.kills", Codec.INT, 0, true);
+    public static final StateKey<Integer> DEATHS = StateKey.of("ledger.bridge.deaths", Codec.INT, 0, true);
+    /** A seat's own goals; {@link #GOALS} is the team's. */
+    public static final StateKey<Integer> SCORED = StateKey.of("ledger.bridge.scored", Codec.INT, 0, true);
     /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
     public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
 
@@ -247,7 +250,8 @@ public final class Bridge {
                         Component.empty(),
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 false, // no death animation or spectate: everyone stays where they stand
-                GOALS); // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
+                GOALS, // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
+                List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS), new Mode.SeatStat("Goals", SCORED)));
         Duels.mode(bridge);
         Flags.offer(bridge, "preset");
         // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
