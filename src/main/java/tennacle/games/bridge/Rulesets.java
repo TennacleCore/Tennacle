@@ -21,8 +21,8 @@ final class Rulesets {
     static final Ruleset BASE = Ruleset.named("bridge")
             .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
             .path("projectiles/minecraft:arrow/selfHit", "pass_through") // no bow boost unless a platform asks
-            // the crit trail a 1.8 client needs to SEE an arrow that passed through a teammate; off, those arrows
-            // vanish for it, and on, every deflect looks like a crit
+            // same team + FF off is the client lever that stops a 1.8 client hiding an arrow, so teammates already
+            // have it from the game's own team; this trail is the cue off an ENEMY, at the cost of looking crit
             .path("visuals/legacyArrowVisibility/deflectParticles", true)
             .path("hunger/enabled", false)
             .path("hunger/naturalRegen", false)                       // healing is the apple only
