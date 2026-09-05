@@ -8,3 +8,4 @@ archipelago-crashes/
 logs/
 data/
 tennacle.properties
+arenas/*.bncl.autosave
