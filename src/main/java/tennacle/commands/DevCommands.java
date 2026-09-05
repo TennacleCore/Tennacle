@@ -3,6 +3,7 @@ package tennacle.commands;
 import tennacle.games.Spectators;
 import tennacle.Mechanics;
 import tennacle.Msg;
+import tennacle.dev.Arsenal;
 import tennacle.dev.LagSimulator;
 
 import io.github.term4.polyp.MechanicsKeys;
@@ -264,6 +265,16 @@ public final class DevCommands {
             }
         });
         commands.register(sword);
+
+        // /arsenal: the mechanics test rig's body - what the lobby handed every arrival before it was a lobby
+        Command arsenal = new Command("arsenal");
+        arsenal.setDefaultExecutor((sender, ctx) -> {
+            if (sender instanceof Player p) {
+                Arsenal.give(p);
+                Msg.tag(p, "arsenal", "survival, diamond, one of everything");
+            }
+        });
+        commands.register(arsenal);
 
         // /nbsword: a non-blockable diamond sword (opted out) - should NOT reduce damage while right-click held
         Command nbsword = new Command("nbsword");

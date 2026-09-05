@@ -59,10 +59,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * The full Archipelago + Polyp playground - the reference for using both libraries together.
- * {@code /shard create|join} a game, build/dig, fight with the 1.8 combat kit, {@code /replay} it back;
- * spectate from a second client. Boot only - the pieces live in {@link Mechanics} (systems + bridges),
- * {@link Playground} (world + kit), {@link ShardCommands}, {@link ReplayCommands}, {@link DevCommands}.
+ * The games server: a lobby, three modes (sumo, boxing, bridge) on three networks' rules, duels, queues,
+ * parties, spectating and live rule edits, over Grotto + Polyp + Archipelago. Boot only - the pieces live in
+ * {@link Mechanics} (systems + bridges), {@link Playground} (the lobby world), {@link Matches} and the
+ * {@code games} package, and the command classes. The dev toolset ({@link DevCommands}, the test pads, the
+ * arsenal) exists only where {@code tennacle.dev-commands} says so - on a loopback bind by default.
  *
  * <p>Everything the deployment decides comes through {@link Config}: port, bind, directories, forwarding
  * secret, whether the dev commands exist. The libraries persist nothing - {@link FileVault} is the server's
@@ -177,8 +178,9 @@ public final class TestServer {
         Shutdown.install();
 
         Mechanics.install();
-        InstanceContainer world = Playground.createWorld();
-        Playground.installListeners(world);
+        boolean devCommands = Config.flag("tennacle.dev-commands", loopback);
+        InstanceContainer world = Playground.createWorld(devCommands); // the test pads ride the dev flag
+        Playground.installListeners(world, devCommands);
         // members build into their shard's overlay, never the map (the bridge already decorated the
         // placement listener - order-independent)
         MinecraftServer.getGlobalEventHandler().addChild(Shard.blockRouting());
@@ -187,7 +189,6 @@ public final class TestServer {
         ShardManager shards = new ShardManager();
         ShardCommands.register(shards, world);
         ReplayCommands.register(shards, world);
-        boolean devCommands = Config.flag("tennacle.dev-commands", loopback);
         if (devCommands) {
             DevCommands.register(Mechanics.polyp);
             SimTpsCommands.register(Mechanics.polyp, shards, world);
@@ -223,9 +224,9 @@ public final class TestServer {
         GameIds.install(Matches.grotto(), gameSecret(data));
         GrottoCommands.register(shards); // /grotto: the live map (instances, games, players, shard trees)
         LobbyCommands.register(); // /spawn|/lobby|/l - a seated player departs their game first
-        Sumo.install();   // hypixel-preset ring-out
-        Boxing.install(); // speed 2, first to 100 hits; /stats for career numbers
-        Bridge.install(); // red vs blue, first to five goals
+        Sumo.install();   // ring-out over a void plane; the platform picks the knockback
+        Boxing.install(); // speed 2, first to 10 hits; /stats for career numbers
+        Bridge.install(); // blue vs red, first to five goals
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(arenaDir(), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));

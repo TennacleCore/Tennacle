@@ -4,10 +4,8 @@ import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.Mechanics;
 import tennacle.Msg;
 
-import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.tracking.ClientVersion;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
@@ -18,27 +16,29 @@ import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.LightingChunk;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
-import net.minestom.server.item.Material;
-import net.minestom.server.item.component.PotionContents;
-import net.minestom.server.potion.CustomPotionEffect;
-import net.minestom.server.potion.PotionEffect;
-import net.minestom.server.potion.PotionType;
 import net.minestom.server.timer.TaskSchedule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * The world and the player's kit: flat map with the damage/flow test pads, full combat inventory + armor on
- * join, the preset-driven TNT item.
+ * The lobby world and what an arrival wears there. The mechanics test pads (damage types, water-flow lanes) are
+ * built only where the dev commands exist, and the test rig's kit is {@code /arsenal} - a lobby hands out nothing.
  */
 public final class Playground {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Playground.class);
+
     private Playground() {}
 
-    public static InstanceContainer createWorld() {
+    public static InstanceContainer createWorld(boolean testPads) {
         InstanceContainer world = MinecraftServer.getInstanceManager().createInstanceContainer();
         world.setExplosionSupplier(Mechanics.explosions.supplier()); // route instance.explode(...) through the system
         world.setGenerator(unit -> unit.modifier().fillHeight(0, 40, Block.OBSIDIAN));
         world.setChunkSupplier(LightingChunk::new);
-        buildTestPads(world);
+        if (testPads) buildTestPads(world);
         return world;
     }
 
@@ -93,7 +93,7 @@ public final class Playground {
         inst.setBlock(sx, baseY + 2, sz, marker); // flow points AWAY from this marker
     }
 
-    public static void installListeners(InstanceContainer world) {
+    public static void installListeners(InstanceContainer world, boolean devCommands) {
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
         events.addListener(AsyncPlayerConfigurationEvent.class, e -> {
             e.setSpawningInstance(world);
@@ -110,57 +110,28 @@ public final class Playground {
             Player p = e.getPlayer();
             // deferred: at spawn the Via handshake may not have revealed the protocol yet, and the welcome
             // format (gradient vs flat) depends on it
-            Msg.onceProtocolKnown(p, 60, () -> Msg.usage(p,
-                    "Tennacle - the Archipelago + Polyp playground", new String[][]{
-                    {"/shard", "isolated game worlds over this map"},
-                    {"/replay", "record + replay a game"},
-                    {"/duel <player> [sumo|boxing|bridge]", "1v1s; /stats for boxing careers"},
-                    {"/boom", "shard-scoped explosion at your feet"},
-                    {"/gm <mode>", "gamemode (also /gmc /gms)"},
-                    {"/lag /compat /shorts /enchant /effect /sword /explode", "dev tools"},
-            }));
+            Msg.onceProtocolKnown(p, 60, () -> {
+                List<String[]> rows = new ArrayList<>(List.of(
+                        new String[]{"/duel <player> [sumo|boxing|bridge] [platform]", "a 1v1 on that network's rules"},
+                        new String[]{"/queue <mode>", "the next two sides start"},
+                        new String[]{"/party", "a side that duels and queues together"},
+                        new String[]{"/spectate <player>", "watch their game"},
+                        new String[]{"/rules", "the running game's rules, live"},
+                        new String[]{"/stats", "boxing careers"}));
+                if (devCommands) rows.add(new String[]{"/arsenal /shard /replay /boom /lag", "dev tools"});
+                Msg.usage(p, "Tennacle", rows.toArray(String[][]::new));
+            });
         });
     }
 
-    /** Survival, diamond armor, the full combat inventory. */
+    /** The lobby body: adventure, nothing worn, nothing carried - a game outfits its own. */
     static void outfit(Player p) {
-        p.setGameMode(GameMode.SURVIVAL);
+        p.setGameMode(GameMode.ADVENTURE);
         p.getInventory().clear();
-        p.setHelmet(ItemStack.of(Material.DIAMOND_HELMET));
-        p.setChestplate(ItemStack.of(Material.DIAMOND_CHESTPLATE));
-        p.setLeggings(ItemStack.of(Material.DIAMOND_LEGGINGS));
-        p.setBoots(ItemStack.of(Material.DIAMOND_BOOTS));
-        giveKit(p);
-    }
-
-    private static void giveKit(Player player) {
-        var inv = player.getInventory();
-        inv.addItemStack(ItemStack.of(Material.STONE, 64));
-        inv.addItemStack(ItemStack.of(Material.RED_WOOL, 64));
-        inv.addItemStack(ItemStack.of(Material.LADDER, 64));
-        inv.addItemStack(ItemStack.of(Material.IRON_PICKAXE));
-        inv.addItemStack(ItemStack.of(Material.DIAMOND_SWORD));
-        inv.addItemStack(ItemStack.of(Material.BOW));
-        inv.addItemStack(ItemStack.of(Material.ARROW, 64));
-        inv.addItemStack(ItemStack.of(Material.SNOWBALL, 64));
-        inv.addItemStack(ItemStack.of(Material.EGG, 16));
-        inv.addItemStack(ItemStack.of(Material.ENDER_PEARL, 16));
-        inv.addItemStack(ItemStack.of(Material.FISHING_ROD));
-        inv.addItemStack(ItemStack.of(Material.FIRE_CHARGE, 64)); // right-click to throw a fireball
-        inv.addItemStack(ItemStack.of(Material.TNT, 64)); // place to spawn a primed TNT
-        inv.addItemStack(ItemStack.of(Material.GOLDEN_APPLE, 16));
-        inv.addItemStack(ItemStack.of(Material.ENCHANTED_GOLDEN_APPLE, 16));
-        inv.addItemStack(ItemStack.of(Material.MILK_BUCKET));
-        // a drinkable Speed potion (custom effect, so it works without extending VanillaPotions)
-        inv.addItemStack(ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS,
-                new PotionContents(new CustomPotionEffect(PotionEffect.SPEED, 0, 1200, false, true, true))));
-        // registry-id potions (amount 1: potions are unstackable, an overstacked addItemStack silently no-ops)
-        inv.addItemStack(ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS,
-                new PotionContents(PotionType.HEALING)));
-        inv.addItemStack(ItemStack.of(Material.SPLASH_POTION).with(DataComponents.POTION_CONTENTS,
-                new PotionContents(PotionType.SWIFTNESS)));
-        inv.addItemStack(ItemStack.of(Material.SPLASH_POTION).with(DataComponents.POTION_CONTENTS,
-                new PotionContents(PotionType.HARMING)));
+        p.setHelmet(ItemStack.AIR);
+        p.setChestplate(ItemStack.AIR);
+        p.setLeggings(ItemStack.AIR);
+        p.setBoots(ItemStack.AIR);
     }
 
     // polls until the Via/proxy handshake reveals the protocol (-1 until then), a few tries only
@@ -173,7 +144,7 @@ public final class Playground {
             if (protocol == ClientVersion.UNKNOWN_PROTOCOL) {
                 return (++runs[0] >= 3) ? TaskSchedule.stop() : TaskSchedule.tick(20);
             }
-            System.out.println(player.getUsername() + " protocol " + protocol);
+            LOGGER.info("{} protocol {}", player.getUsername(), protocol);
             return TaskSchedule.stop();
         }, TaskSchedule.tick(20));
     }
