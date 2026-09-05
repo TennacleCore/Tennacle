@@ -38,15 +38,23 @@ final class Boards {
                 .line((g, me) -> teamLine(g, teamAt(g, 1))));
     }
 
-    // the house board: the clock, team-badged goal circles, your kills
+    // the house board: the clock, team-badged goal squares, your kills
     static Scoreboard tennacle() {
         return Frames.tennacle("Bridge", b -> b
                 .line((g, me) -> Frames.tennacleRow("Time ", Frames.timeLeft(g)))
                 .blank()
-                .line((g, me) -> circles(g, teamAt(g, 0), Msg.THEME, false), Bridge.GOALS, Score.TARGET)
-                .line((g, me) -> circles(g, teamAt(g, 1), Msg.THEME, false), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> squares(g, teamAt(g, 0)), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> squares(g, teamAt(g, 1)), Bridge.GOALS, Score.TARGET)
                 .blank()
                 .line((g, me) -> Frames.tennacleRow("Kills ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS));
+    }
+
+    // the team badge, then scrims' squares: scored in the team's color, the rest light gray
+    private static Component squares(Game game, Team team) {
+        int goals = game.state().get(Scope.team(team.id()), Bridge.GOALS);
+        int target = Math.max(goals, game.rules().resolve(Scope.GAME, Score.TARGET));
+        return Component.text("[" + tennacle.games.Palette.letter(team) + "] ", team.color())
+                .append(Msg.THEME.meter(goals, target, team.color()));
     }
 
     // captured: [R]/[B] circle meters, Kills/Goals

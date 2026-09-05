@@ -5,6 +5,8 @@ import tennacle.games.Match;
 import tennacle.games.Matches;
 
 import io.github.term4.canvas.presets.HypixelCard;
+import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.modules.flow.Bundle;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.outcome.Results;
 import io.github.term4.grotto.modules.view.Summary;
@@ -33,9 +35,10 @@ final class Ends {
                 .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())));
     }
 
-    // the one stat, under the house theme
-    static Summary tennacle() {
-        return scrims();
+    // the one stat on the house palette, and a name click opens the frozen record
+    static GameModule tennacle() {
+        Results records = Results.of().quiet(); // first: the snapshot precedes the card, and cleanup
+        return Bundle.of(records, scrims().click((g, name) -> records.viewCommand(name)));
     }
 
 

@@ -5,6 +5,8 @@ import tennacle.games.Match;
 import tennacle.games.Matches;
 
 import io.github.term4.canvas.presets.HypixelCard;
+import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.modules.flow.Bundle;
 import io.github.term4.grotto.modules.outcome.Results;
 import io.github.term4.grotto.modules.outcome.Score;
 import io.github.term4.grotto.modules.view.Summary;
@@ -44,18 +46,10 @@ final class Ends {
                                 .append(th.dim(" (0%)")));
     }
 
-    // the house summary: what the match tracked - goals per side, goals and kills per seat
-    static Summary tennacle() {
-        return Matches.summary()
-                .row("Goals", (g, side, th, color) -> th.meter(
-                        g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS),
-                        g.rules().resolve(Scope.GAME, Score.TARGET), color))
-                .cardSection(
-                        (g, seat, th, side) -> th.prose("Goals: ")
-                                .append(th.meter(g.state().get(Scope.team(seat.team()), Bridge.GOALS),
-                                        g.rules().resolve(Scope.GAME, Score.TARGET), side)),
-                        (g, seat, th, side) -> th.prose("Kills: ")
-                                .append(th.value(g.state().get(Scope.slot(seat.index()), Bridge.KILLS))));
+    // the scrims card on the house palette, and a name click opens the frozen record (minemen's screen)
+    static GameModule tennacle() {
+        Results records = Results.of().quiet(); // first: the snapshot precedes the card, and cleanup
+        return Bundle.of(records, scrims().click((g, name) -> records.viewCommand(name)));
     }
 
     // captured rows: Goals, Damage Dealt, accuracies, gapples, blocks - fillers until their mechanics land

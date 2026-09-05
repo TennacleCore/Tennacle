@@ -46,17 +46,17 @@ final class Banners {
                 .append(Component.newline()).append(theme.rule());
     }
 
-    // the house block: dim rules around "<scorer> (hearts) scored!" and the score, centered
+    // the house block: dark purple rules around "<scorer> (hearts) scored!" and the score, centered
     static Component tennacle(Game game, Player scorer, TextColor color) {
         var theme = Msg.THEME;
-        Component rule = theme.rule(29, theme.dimColor());
+        Component rule = theme.rule(29, NamedTextColor.DARK_PURPLE);
         return Component.empty()
                 .append(rule).append(Component.newline())
                 .append(ChatWidth.center(Component.empty()
                         .append(Component.text(scorer.getUsername() + " ", color))
-                        .append(theme.dim("("))
+                        .append(theme.prose("("))
                         .append(theme.hearts(hearts(scorer)))
-                        .append(theme.dim(") "))
+                        .append(theme.prose(") "))
                         .append(theme.accent("scored!"))))
                 .append(Component.newline())
                 .append(ChatWidth.center(scoreLine(game, false, Bridge.teamOf(game, scorer))))

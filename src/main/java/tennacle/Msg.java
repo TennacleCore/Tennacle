@@ -3,26 +3,26 @@ package tennacle;
 import io.github.term4.canvas.theme.Theme;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 import net.minestom.server.command.CommandSender;
 
 /**
- * The Tennacle look, as a Canvas {@link Theme}: gradient (purple - magenta - cyan) tags and titles,
- * muted prose, cyan values, magenta click-to-suggest commands, red errors. Installed as the server
- * theme at boot; these statics are the app's shorthand over it.
+ * The Tennacle look, as a Canvas {@link Theme}: a light blue to light pink gradient on tags and titles (flat
+ * light purple for a legacy client), light gray prose, light blue values, light purple accents and
+ * click-to-suggest commands, red errors. Installed as the server theme at boot; these statics are the app's
+ * shorthand over it.
  */
 public final class Msg {
 
-    /** The palette (oklch sources in comments). */
+    /** The 1.8 wire's own colors, so both generations read the same; the gradient is the modern extra. */
     public static final Theme THEME = Theme.builder()
-            .brand(NamedTextColor.DARK_PURPLE)          // the flat legacy stand-in for the gradient
-            .gradient(0x9D57DE, 0xF147C6, 0x00C7E5)     // oklch(0.60 0.20 305) - (0.68 0.24 340) - (0.75 0.16 210)
-            .accent(TextColor.color(0xF147C6))          // oklch(0.68 0.24 340)
-            .value(TextColor.color(0x00BEDB))           // oklch(0.72 0.16 210)
-            .good(TextColor.color(0x4AC06C))            // oklch(0.72 0.16 150)
+            .brand(NamedTextColor.LIGHT_PURPLE)
+            .gradient(0x55FFFF, 0xB58CFF, 0xFF55FF)
+            .accent(NamedTextColor.LIGHT_PURPLE)
+            .value(NamedTextColor.AQUA)
+            .good(NamedTextColor.GREEN)
             .error(NamedTextColor.RED)
-            .muted(TextColor.color(0x85868C))           // oklch(0.62 0.01 280)
-            .dim(TextColor.color(0x626369))             // oklch(0.50 0.01 280)
+            .muted(NamedTextColor.GRAY)
+            .dim(NamedTextColor.DARK_GRAY)
             .build();
 
     // network profiles ship with canvas; these are the app's shorthand
