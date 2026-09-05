@@ -161,11 +161,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .append(Msg.THEME.prose("."));
     }
 
-    // the house callout: cyan name, muted prose, the health as the theme's hearts
+    // scrims' callout on the house palette: light blue name, gray "has", green health, a red heart
     private static Component tennacleHit(Player target, float health, float impact) {
         return Msg.THEME.value(target.getUsername())
-                .append(Msg.THEME.prose(" is at "))
-                .append(Msg.THEME.hearts(num(Math.max(0f, health))));
+                .append(Msg.THEME.prose(" has "))
+                .append(Msg.THEME.good(num(Math.max(0f, health))))
+                .append(Component.text("❤", NamedTextColor.RED));
     }
 
     private static void tiebreak(Game game, Player viewer, Theme theme) {
