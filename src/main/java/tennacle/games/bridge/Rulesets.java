@@ -4,6 +4,7 @@ import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import tennacle.games.Match;
+import tennacle.games.Presets;
 import tennacle.games.Ruleset;
 
 import java.util.Map;
@@ -19,6 +20,7 @@ final class Rulesets {
     /** What bridge IS on every server: arrows vanish off blocks, no hunger or natural regen, no tossing. */
     static final Ruleset BASE = Ruleset.named("bridge")
             .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
+            .path("projectiles/minecraft:arrow/selfHit", "pass_through") // no bow boost unless a platform asks
             .path("hunger/enabled", false)
             .path("hunger/naturalRegen", false)                       // healing is the apple only
             .path("vri/itemDrop", false)                              // hypixel parity: mined clay still drops
@@ -30,6 +32,8 @@ final class Rulesets {
     // the crit META is never touched - a full-draw arrow shows the flag, a partial does not (its actual crit state).
     // hypixel and scrims drop the crit ROLL (critDamage false): the trail shows, the bonus does not; minemen rolls it.
     static final Ruleset VANILLA_RULES = Ruleset.named("minemen")
+            .rule(Presets.KEY, "mmc18")
+            .path("projectiles/minecraft:arrow/selfHit", "hit") // captured: bow boosting, minemen alone
             .rule(Freeze.SHOOT, false)             // captured: nothing is thrown or fired from the cage
             .rule(Cages.ENABLED, false)            // captured: no cage at all
             .rule(Cages.SEAT, Cages.SEAT_RESPAWN)  // held where they respawn instead
@@ -38,9 +42,11 @@ final class Rulesets {
             .rule(TimeLimit.FROM, Match.LIVE);     // captured: the clock starts when the cages open, not on the count
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel")
+                    .rule(Presets.KEY, "hypixel")
                     .path("projectiles/minecraft:arrow/critDamage", false)
                     .over(BASE),
             "scrims", Ruleset.named("scrims")
+                    .rule(Presets.KEY, "scrims18")
                     .path("projectiles/minecraft:arrow/critDamage", false)
                     .path("projectiles/minecraft:arrow/stuckInBody", false) // captured: no body arrows on scrims
                     .rule(Cages.SECONDS, 5) // captured: five on scrims, three elsewhere
