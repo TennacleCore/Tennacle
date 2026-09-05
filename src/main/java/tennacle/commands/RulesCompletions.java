@@ -108,13 +108,13 @@ final class RulesCompletions {
         return steps.stream().map(step -> lead + step.name()).toList();
     }
 
-    /** A boolean's two values; anything else is typed by hand. */
+    /** A boolean's two values, an enum knob's constants; anything else is typed by hand. */
     private static List<String> values(Game game, String id) {
         if (id.contains("/")) {
             int cut = id.lastIndexOf('/');
             try {
                 for (PathEdits.Step step : PathEdits.browse(id.substring(0, cut), k -> Mechanics.polyp.profiles().resolveWorld(game.shard(), k))) {
-                    if (step.name().equals(id.substring(cut + 1))) return "boolean".equalsIgnoreCase(step.type()) ? List.of("true", "false") : List.of();
+                    if (step.name().equals(id.substring(cut + 1))) return choices(step.type());
                 }
             } catch (RuntimeException e) {
                 return List.of();
@@ -123,5 +123,13 @@ final class RulesCompletions {
         }
         StateKey<?> rule = game.type().supportedRules().get(id);
         return rule != null && rule.initial() instanceof Boolean ? List.of("true", "false") : List.of();
+    }
+
+    // an enum's type reads "Kind (a|b|c)": the constants, as the editor takes them
+    private static List<String> choices(@Nullable String type) {
+        if (type == null) return List.of();
+        if (type.equalsIgnoreCase("boolean")) return List.of("true", "false");
+        int open = type.indexOf('('), close = type.lastIndexOf(')');
+        return open >= 0 && close > open ? List.of(type.substring(open + 1, close).split("[|]")) : List.of();
     }
 }

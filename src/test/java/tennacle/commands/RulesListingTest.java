@@ -110,6 +110,8 @@ class RulesListingTest extends HeadlessServerTest {
             assertTrue(knobs.contains("attack/fullHitScale"), "one level down, the separator kept: " + knobs);
             assertTrue(complete(a, "/rules paths attack.full").contains("attack.fullHitScale"), "either separator");
             assertTrue(complete(a, "/rules paths attack full").contains("fullHitScale"), "or a space");
+            assertEquals(List.of("true", "false"), complete(a, "/rules projectiles/minecraft:arrow/critDamage "), "a knob's boolean");
+            assertTrue(complete(a, "/rules projectiles/minecraft:arrow/selfHit ").contains("pass_through"), "an enum knob's constants");
         } finally {
             if (game != null) game.end(Outcome.draw());
             a.player.remove();
