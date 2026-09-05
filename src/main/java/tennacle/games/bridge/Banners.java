@@ -134,14 +134,6 @@ final class Banners {
                 .append(Component.text(minemen ? "!" : ".", prose));
     }
 
-    // captured: personal red bold KILL! line
-    static Component kill(Game game, Player fallen) {
-        return Component.text("KILL! ", NamedTextColor.RED, TextDecoration.BOLD)
-                .append(Component.text(fallen.getUsername(),
-                        game.roster().team(Bridge.teamOf(game, fallen)).color())
-                        .decoration(TextDecoration.BOLD, false));
-    }
-
     // captured: "1 - 0", the SCORER's team first - team-colored scores; scrims plain with white
     // hyphens, hypixel bold with gray
     static Component scoreLine(Game game, boolean hypixel, String leadTeam) {

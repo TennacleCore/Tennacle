@@ -2,6 +2,8 @@ package tennacle.games.bridge;
 
 import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.modules.combat.Freeze;
+import io.github.term4.grotto.modules.flow.TimeLimit;
+import tennacle.games.Match;
 import tennacle.games.Ruleset;
 
 import java.util.Map;
@@ -32,7 +34,8 @@ final class Rulesets {
             .rule(Cages.ENABLED, false)            // captured: no cage at all
             .rule(Cages.SEAT, Cages.SEAT_RESPAWN)  // held where they respawn instead
             .rule(Cages.BOUNDS, 0)                 // captured: pinned there, no room to move at all
-            .rule(Bodies.ARROWS, false);           // captured: a reset pulls the stuck arrows out
+            .rule(Bodies.ARROWS, false)            // captured: a reset pulls the stuck arrows out
+            .rule(TimeLimit.FROM, Match.LIVE);     // captured: the clock starts when the cages open, not on the count
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel")
                     .path("projectiles/minecraft:arrow/critDamage", false)

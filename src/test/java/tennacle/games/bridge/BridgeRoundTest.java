@@ -18,10 +18,12 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.modules.flow.Phases;
+import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
 import net.minestom.server.coordinate.BlockVec;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.attribute.Attribute;
@@ -183,6 +185,27 @@ class BridgeRoundTest extends HeadlessServerTest {
         } finally {
             red.player.remove();
             blue.player.remove();
+        }
+    }
+
+    @Test
+    void minemenClockWaitsForGo() {
+        Mode bridge = Matches.mode("bridge");
+        assertNotNull(bridge);
+        Game game = Matches.launch(bridge, Matches.platformFor(bridge, "minemen"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ClockRed");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertTrue(Match.opening(game), "still counting in");
+            assertEquals(-1L, game.state().get(Scope.GAME, TimeLimit.AT), "the clock has not started");
+
+            tickUntil(game, "GO", () -> Match.live(game));
+            assertNotEquals(-1L, game.state().get(Scope.GAME, TimeLimit.AT), "it starts when the cages open");
+        } finally {
+            game.end(Outcome.aborted());
+            red.player.remove();
         }
     }
 

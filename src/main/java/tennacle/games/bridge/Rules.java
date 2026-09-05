@@ -244,7 +244,6 @@ public final class Rules implements GameModule {
         Deaths.cue(game, victim, by);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
-            if ("minemen".equals(look)) by.sendMessage(Banners.kill(game, victim));
         }
         Component line = Banners.killedLine(game, victim, by, range);
         Match.each(game, p -> p.sendMessage(line));
@@ -297,7 +296,6 @@ public final class Rules implements GameModule {
         Deaths.cue(game, fallen, by);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
-            if ("minemen".equals(look)) by.sendMessage(Banners.kill(game, fallen));
         }
         Component line = Banners.fallLine(game, fallen, by);
         Match.each(game, p -> p.sendMessage(line));
