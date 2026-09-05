@@ -240,16 +240,18 @@ public final class Bridge {
         MinecraftServer.getCommandManager().register(cageCmd);
         KitLayouts.editable("bridge", KIT);
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
-        // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
-        Flags.register(Flag.onOff("cages", Cages.BLOCKS));
-        Flags.register(Flag.in(Flag.rule("goals", Score.TARGET, Integer::parseInt, List.of()), "bridge"));
-        Duels.mode(new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(), "scrims",
+        Mode bridge = new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(), "scrims",
                 List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
                         Component.text("Knock off your opponent to gain a clear path.", NamedTextColor.YELLOW),
                         Component.empty(),
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 false, // no death animation or spectate: everyone stays where they stand
-                GOALS)); // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
+                GOALS); // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
+        Duels.mode(bridge);
+        // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
+        Flags.register(Flag.onOff("cages", Cages.BLOCKS));
+        Flags.register(Flag.rule("goals", Score.TARGET, Integer::parseInt, List.of()));
+        Flags.offer(bridge, "look", "platform", "map", "time", "preset", "cages", "goals");
     }
 
     static String teamOf(Game game, Player player) {

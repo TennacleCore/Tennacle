@@ -2,26 +2,27 @@ package tennacle.games;
 
 import io.github.term4.grotto.state.StateKey;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.Function;
 
 /**
  * A word of a request's tail, by name: {@code -time=10}, {@code -cages=off}, {@code -look=scrims}. What it lands
  * as is its own business - one rule, several, a look, a map, or code at launch - so what a player types is the
- * app's vocabulary, and a rule id is one thing a flag may reach for. Modes and modules register theirs through
- * {@link Flags}.
+ * app's vocabulary, and a rule id is one thing a flag may reach for. A flag exists once it is registered with
+ * {@link Flags} and is available in a mode only once that mode {@link Flags#offer offers} it: carrying the rule
+ * a flag sets does not put the flag on the menu.
  */
 public interface Flag {
 
     @NotNull String name();
 
-    /** Whether the mode has what this flag sets; a flag over a rule the mode lacks is not offered there. */
-    default boolean appliesTo(@NotNull Mode mode) {
-        return true;
+    /** The rule this flag sets, when it sets exactly one - what {@link Flags#offer} checks the mode carries. */
+    default @Nullable StateKey<?> requires() {
+        return null;
     }
 
     /** The values worth offering after the equals sign, when the set is small enough to name. */
@@ -32,12 +33,12 @@ public interface Flag {
     /** Lands {@code value} in the options being built; a value it cannot read throws with the reason. */
     void apply(@NotNull Mode mode, @NotNull String value, @NotNull Options.Builder into);
 
-    /** A flag that sets one rule, offered wherever the mode carries the rule. */
+    /** A flag that sets one rule. */
     static <T> @NotNull Flag rule(@NotNull String name, @NotNull StateKey<T> key, @NotNull Function<String, T> parse,
                                   @NotNull Collection<String> values) {
         return new Flag() {
             @Override public @NotNull String name() { return name; }
-            @Override public boolean appliesTo(@NotNull Mode mode) { return mode.type().supportedRules().containsKey(key.id()); }
+            @Override public @NotNull StateKey<?> requires() { return key; }
             @Override public @NotNull Collection<String> values(@NotNull Mode mode) { return values; }
             @Override public void apply(@NotNull Mode mode, @NotNull String value, @NotNull Options.Builder into) {
                 T parsed;
@@ -58,16 +59,5 @@ public interface Flag {
             case "off", "false", "no" -> false;
             default -> throw new IllegalArgumentException("on or off");
         }, List.of("on", "off"));
-    }
-
-    /** {@code flag}, offered only in the modes named - the same rule can mean different things to different games. */
-    static @NotNull Flag in(@NotNull Flag flag, @NotNull String... modes) {
-        Set<String> only = Set.of(modes);
-        return new Flag() {
-            @Override public @NotNull String name() { return flag.name(); }
-            @Override public boolean appliesTo(@NotNull Mode mode) { return only.contains(mode.name()) && flag.appliesTo(mode); }
-            @Override public @NotNull Collection<String> values(@NotNull Mode mode) { return flag.values(mode); }
-            @Override public void apply(@NotNull Mode mode, @NotNull String value, @NotNull Options.Builder into) { flag.apply(mode, value, into); }
-        };
     }
 }

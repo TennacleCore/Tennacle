@@ -76,7 +76,7 @@ public record Options(@Nullable String map, @Nullable String look, @Nullable Str
             if (name.isEmpty()) throw new IllegalArgumentException("a flag needs a name: " + word);
             Flag flag = Flags.get(name);
             if (flag != null) {
-                if (!flag.appliesTo(mode)) {
+                if (!Flags.offers(mode, flag)) {
                     throw new IllegalArgumentException("-" + name + " is not a flag of " + mode.name() + " (" + flagNames(mode) + ")");
                 }
                 flag.apply(mode, value, into);
@@ -113,7 +113,7 @@ public record Options(@Nullable String map, @Nullable String look, @Nullable Str
         Flag flag = Flags.get(name);
         Collection<String> values;
         if (flag != null) {
-            values = flag.appliesTo(mode) ? flag.values(mode) : List.of();
+            values = Flags.offers(mode, flag) ? flag.values(mode) : List.of();
         } else {
             StateKey<?> rule = mode.type().supportedRules().get(name);
             values = rule != null && rule.initial() instanceof Boolean ? List.of("true", "false") : List.of();
