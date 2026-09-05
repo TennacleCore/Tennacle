@@ -73,7 +73,9 @@ public final class Boxing {
     /** No hunger drain and only swings hurt: what boxing IS, as paths over whatever preset the server runs. */
     static final Ruleset RULES = Ruleset.named("boxing")
             .path("hunger/exhaustionScale", 0)
-            .path("damage/enabledTypes", "only(minecraft:player_attack)");
+            .path("damage/enabledTypes", "only(minecraft:player_attack)")
+            // a duel reads health off the other player's body, not a number under their name
+            .rule(HealthDisplay.SURFACES, List.of(HealthDisplay.TAB));
 
     // career truth, in the vault
     public static final VaultKey<Integer> CAREER_HITS = VaultKey.of("boxing:career-hits", Codec.INT, 0);
@@ -112,7 +114,7 @@ public final class Boxing {
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> Score.seats(HITS).target(Score.TARGET),
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.lowestSeatScoreLoses(HITS)),
-                        Nametags::of,
+                        () -> Nametags.of().relative(),
                         Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new,

@@ -48,7 +48,10 @@ public final class Sumo {
     public static final StateKey<Integer> LANDED = StateKey.of("ledger.sumo.landed", Codec.INT, 0, true);
 
     /** Only swings hurt - a selection over the damage catalog, as a path. */
-    static final Ruleset RULES = Ruleset.named("sumo").path("damage/enabledTypes", "only(minecraft:player_attack)");
+    static final Ruleset RULES = Ruleset.named("sumo")
+            .path("damage/enabledTypes", "only(minecraft:player_attack)")
+            // a duel reads health off the other player's body, not a number under their name
+            .rule(HealthDisplay.SURFACES, List.of(HealthDisplay.TAB));
 
     private Sumo() {}
 
@@ -71,7 +74,7 @@ public final class Sumo {
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.draw()),
-                        Nametags::of,
+                        () -> Nametags.of().relative(),
                         Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         KillCredit::new, Rules::new, Presentation::new,

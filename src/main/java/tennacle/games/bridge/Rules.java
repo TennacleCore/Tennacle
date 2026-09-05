@@ -179,12 +179,10 @@ public final class Rules implements GameModule {
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
         st.alarms().register(REFIT_ALARM, (tick, payload) -> {
-            boolean body = Rounds.resets(game, Rounds.BODY);
-            boolean kit = Rounds.resets(game, Rounds.KIT);
             game.forEachMember(member -> {
                 if (game.roster().slotOf(member) == null) return;
-                if (body) game.body().fresh(member);
-                if (kit) refit(game, member);
+                if (Rounds.resets(game, member, Rounds.BODY)) game.body().fresh(member);
+                if (Rounds.resets(game, member, Rounds.KIT)) refit(game, member);
             });
         });
     }

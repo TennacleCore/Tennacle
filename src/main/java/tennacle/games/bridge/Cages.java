@@ -384,10 +384,11 @@ public final class Cages implements GameModule {
 
     // all writes ride the game's shard - the arena container is shared by concurrent games
     private void stamp(Game game) {
-        if (!game.rules().resolve(Scope.GAME, BLOCKS)) return; // read here, so /rules reaches the next recage
         Map<String, CageDef> defs = cages();
         if (defs.isEmpty()) return;
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {
+            // read here, so /rules reaches the next recage; per side, so one team can open in the open
+            if (!game.rules().resolve(Scope.team(spawn.group()), BLOCKS)) continue;
             CageDef cage = defs.getOrDefault(choiceFor(game, spawn.group()), defs.get(""));
             if (cage == null) cage = defs.values().iterator().next();
             var at = seatOf(game, spawn.group(), spawn.pos());
