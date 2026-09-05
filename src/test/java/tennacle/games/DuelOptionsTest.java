@@ -90,7 +90,7 @@ class DuelOptionsTest extends HeadlessServerTest {
     }
 
     @Test
-    void noPresetIsScrimsOnHypixelMechanics() throws InterruptedException {
+    void noPresetIsTheHouse() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(510.5, 65, 510.5), "OptF");
         FakePlayer b = FakePlayer.connect(instance, new Pos(512.5, 65, 512.5), "OptG");
         Game game = null;
@@ -100,7 +100,7 @@ class DuelOptionsTest extends HeadlessServerTest {
             assertEquals(Platform.DEFAULT.name(), game.state().get(Scope.GAME, Matches.PLATFORM));
             assertEquals("hypixel", game.rules().resolve(Scope.GAME, Presets.KEY), "hypixel's mechanics");
             assertEquals(5, game.rules().resolve(Scope.GAME, Countdown.FROM), "on scrims' rules");
-            assertEquals("scrims", Matches.lookNameOf(game), "under the scrims look");
+            assertEquals("tennacle", Matches.lookNameOf(game), "in the house look");
         } finally {
             if (game != null) game.end(Outcome.draw());
             a.player.remove();

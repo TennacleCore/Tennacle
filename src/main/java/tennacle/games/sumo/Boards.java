@@ -38,6 +38,15 @@ final class Boards {
                 .line((g, me) -> Frames.minemenRow("Time Left: ", Frames.timeLeft(g))));
     }
 
+    // the house frame: the clock, then each fighter in their tint
+    static Scoreboard tennacle() {
+        return Frames.tennacle("Sumo", b -> b
+                .line((g, me) -> Frames.tennacleRow("Time ", Frames.timeLeft(g)))
+                .blank()
+                .line((g, me) -> playerLine(g, 0))
+                .line((g, me) -> playerLine(g, 1)));
+    }
+
     // the scrims frame (no sumo capture exists - their board look, sumo content)
     static Scoreboard scrims() {
         return Frames.scrims("Sumo", b -> b

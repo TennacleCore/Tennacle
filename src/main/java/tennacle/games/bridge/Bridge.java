@@ -189,7 +189,7 @@ public final class Bridge {
                 .rule(TimeLimit.TIEBREAKER, false) // ranked turns this on: a drawn clock plays on
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing or a block touch forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
-                .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims), // first: the snapshot precedes cleanup
+                .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims, Ends::tennacle), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         Rounds::new,
                         Sections::new, // the arms follow the palette, per match
@@ -216,7 +216,7 @@ public final class Bridge {
                         () -> Kits.of(KIT),
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
                         Rules::new, Presentation::new,
-                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims))
+                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         Command cageCmd = new Command("cage");
         cageCmd.setDefaultExecutor((sender, ctx) -> {

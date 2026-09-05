@@ -116,7 +116,7 @@ public final class Boxing {
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(Score.TARGET, 100)
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
-                .modules(() -> Matches.byLook(Ends::hypixel, Ends::results, Ends::scrims), // first: the snapshot precedes cleanup
+                .modules(() -> Matches.byLook(Ends::hypixel, Ends::results, Ends::scrims, Ends::tennacle), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
@@ -128,7 +128,7 @@ public final class Boxing {
                         Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new,
-                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims),
+                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle),
                         () -> Stats.of()
                                 .counter(HITS, CAREER_HITS)
                                 .counter(SPRINT_HITS, CAREER_SPRINT)

@@ -52,7 +52,7 @@ public final class Matches {
 
     private static final Map<String, Mode> modes = new LinkedHashMap<>();
     private static final Map<String, Look> looks = new LinkedHashMap<>(Map.of(
-            "minemen", Look.MINEMEN, "scrims", Look.SCRIMS, "hypixel", Look.HYPIXEL));
+            "tennacle", Look.TENNACLE, "minemen", Look.MINEMEN, "scrims", Look.SCRIMS, "hypixel", Look.HYPIXEL));
     private static final Map<String, Platform> platforms = new LinkedHashMap<>(Map.of(
             "minemen", Platform.of("minemen"), "scrims", Platform.of("scrims"), "hypixel", Platform.of("hypixel")));
     // live modifiers by game id - pruned as games end
@@ -119,23 +119,24 @@ public final class Matches {
 
     public static @NotNull Look lookOf(@NotNull Game game) {
         Look look = looks.get(game.state().get(Scope.GAME, LOOK));
-        return look != null ? look : Look.SCRIMS;
+        return look != null ? look : Look.TENNACLE;
     }
 
     /** {@link #lookOf} as its registry name - what a per-look module pick switches on. */
     public static @NotNull String lookNameOf(@NotNull Game game) {
         String name = game.state().get(Scope.GAME, LOOK);
-        return looks.containsKey(name) ? name : "scrims";
+        return looks.containsKey(name) ? name : "tennacle";
     }
 
     /** The per-look module choice - picked at install off the stamped look, every variant declared. */
     public static @NotNull GameModule byLook(@NotNull Supplier<GameModule> hypixel, @NotNull Supplier<GameModule> minemen,
-                                             @NotNull Supplier<GameModule> scrims) {
+                                             @NotNull Supplier<GameModule> scrims, @NotNull Supplier<GameModule> tennacle) {
         return Choice.of(g -> switch (lookNameOf(g)) {
             case "hypixel" -> hypixel;
             case "scrims" -> scrims;
-            default -> minemen;
-        }, hypixel, minemen, scrims);
+            case "minemen" -> minemen;
+            default -> tennacle;
+        }, hypixel, minemen, scrims, tennacle);
     }
 
     /** End screens carrying the game's look - what every mode's {@code Ends} starts from. */

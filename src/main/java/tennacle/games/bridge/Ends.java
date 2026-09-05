@@ -44,6 +44,20 @@ final class Ends {
                                 .append(th.dim(" (0%)")));
     }
 
+    // the house summary: what the match tracked - goals per side, goals and kills per seat
+    static Summary tennacle() {
+        return Matches.summary()
+                .row("Goals", (g, side, th, color) -> th.meter(
+                        g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS),
+                        g.rules().resolve(Scope.GAME, Score.TARGET), color))
+                .cardSection(
+                        (g, seat, th, side) -> th.prose("Goals: ")
+                                .append(th.meter(g.state().get(Scope.team(seat.team()), Bridge.GOALS),
+                                        g.rules().resolve(Scope.GAME, Score.TARGET), side)),
+                        (g, seat, th, side) -> th.prose("Kills: ")
+                                .append(th.value(g.state().get(Scope.slot(seat.index()), Bridge.KILLS))));
+    }
+
     // captured rows: Goals, Damage Dealt, accuracies, gapples, blocks - fillers until their mechanics land
     static Summary hypixel() {
         return Matches.summary().hypixel("Bridge Duel")
@@ -55,7 +69,7 @@ final class Ends {
                 .row("Golden Apples Eaten", (g, side, th, c) -> th.value(0))
                 .row("Blocks Placed", (g, side, th, c) -> th.value(0))
                 .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bridge hypixel"));
+                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bridge -preset=hypixel"));
     }
 
     static Results minemen() {

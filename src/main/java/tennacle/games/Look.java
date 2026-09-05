@@ -12,6 +12,7 @@ import io.github.term4.grotto.modules.combat.HitReport;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
+import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -119,6 +120,23 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                     p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
                             .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak);
 
+    /** The house look: the brand gradient on titles, muted prose, cyan values, names in their team's tint. */
+    public static final Look TENNACLE = new Look(Msg.THEME, Look::tennacleDeath, Look::tennacleVerdict,
+            new Count(n -> Msg.THEME.prose("Starting in ").append(Msg.THEME.value(n)),
+                    // the beat on screen walks the palette in: muted, then cyan, then magenta at one
+                    n -> Component.text(n, n >= 4 ? Msg.THEME.mutedColor() : n >= 2 ? Msg.THEME.valueColor()
+                            : Msg.THEME.accentColor(), TextDecoration.BOLD),
+                    (g, p) -> Msg.THEME.title(p, "GO!")),
+            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO)
+                    .cue(SoundSet.SCORED, Sound.sound(SoundEvent.ENTITY_PLAYER_LEVELUP, Sound.Source.MASTER, 1f, 1.4f))
+                    .cue(SoundSet.KILL, Sound.sound(SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP, Sound.Source.MASTER, 1f, 1.6f)),
+            (g, speaker, message) -> Component.text(speaker.getUsername(), Match.teamColor(g, speaker))
+                    .append(Msg.THEME.dim(" \u00bb "))
+                    .append(Component.text(message, NamedTextColor.WHITE)),
+            new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline()).append(Msg.THEME.prose(ADDRESS)),
+                    p -> Component.newline().append(Msg.THEME.dim(STORE))),
+            true, Look::tennacleHit, Look::tennacleTiebreak);
+
     // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
     private static void scrimsTiebreak(Game game, Player viewer) {
         tiebreak(game, viewer, Msg.SCRIMS);
@@ -130,6 +148,54 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     private static void minemenTiebreak(Game game, Player viewer) {
         tiebreak(game, viewer, Msg.MINEMEN);
+    }
+
+    private static void tennacleTiebreak(Game game, Player viewer) {
+        tiebreak(game, viewer, Msg.THEME);
+    }
+
+    // team-tinted names, muted prose, a dim period
+    private static Component tennacleDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
+        Component line = Component.text(loser + " ", game.roster().team(seat.team()).color());
+        if (verb == null) return line.append(Msg.THEME.prose("forfeited")).append(Msg.THEME.dim("."));
+        if (winner == null) return line.append(Msg.THEME.prose(verb));
+        return line.append(Msg.THEME.prose(verb + " "))
+                .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
+                .append(Msg.THEME.dim("."));
+    }
+
+    // VICTORY in the gradient, DEFEAT muted and bold; the winner's name in its tint, a scoring mode's score after it
+    private static void tennacleVerdict(Game game, Player viewer, boolean won, Player winner) {
+        Component title = won ? Msg.THEME.boardTitle(viewer, "VICTORY")
+                : Component.text("DEFEAT", Msg.THEME.mutedColor(), TextDecoration.BOLD);
+        Component subtitle = Component.text(winner.getUsername(), Match.teamColor(game, winner))
+                .append(Msg.THEME.prose(" wins"));
+        Mode mode = Matches.modeOf(game);
+        if (mode != null && mode.teamScore() != null) {
+            subtitle = subtitle.append(Msg.THEME.dim("  ")).append(scoreLine(game, mode.teamScore(), winner));
+        }
+        viewer.showTitle(Title.title(title, subtitle, Match.times(game, 0, 40, 10)));
+    }
+
+    // the winner's side first, each score in its team's tint
+    private static Component scoreLine(Game game, StateKey<Integer> key, Player winner) {
+        Slot seat = game.roster().slotOf(winner);
+        List<Team> teams = new ArrayList<>(game.roster().teams());
+        teams.sort(Comparator.comparing(t -> seat != null && t.id().equals(seat.team()) ? 0 : 1));
+        Component line = Component.empty();
+        for (int i = 0; i < teams.size(); i++) {
+            Team t = teams.get(i);
+            if (i > 0) line = line.append(Msg.THEME.dim(" - "));
+            line = line.append(Component.text(game.state().get(Scope.team(t.id()), key), t.color()));
+        }
+        return line;
+    }
+
+    // the house callout: cyan name, muted prose, the health as the theme's hearts
+    private static Component tennacleHit(Player target, float health, float impact) {
+        return Msg.THEME.value(target.getUsername())
+                .append(Msg.THEME.prose(" is at "))
+                .append(Msg.THEME.hearts(num(Math.max(0f, health))));
     }
 
     private static void tiebreak(Game game, Player viewer, Theme theme) {

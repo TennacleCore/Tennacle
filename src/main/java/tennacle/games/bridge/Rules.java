@@ -312,7 +312,8 @@ public final class Rules implements GameModule {
         Component banner = switch (look) {
             case "minemen" -> null; // captured: minemen announces goals on the board and title only
             case "hypixel" -> Banners.hypixel(game, scorer, color, goals);
-            default -> Banners.scrims(game, scorer, color);
+            case "scrims" -> Banners.scrims(game, scorer, color);
+            default -> Banners.tennacle(game, scorer, color);
         };
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title

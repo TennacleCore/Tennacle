@@ -10,8 +10,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public record Platform(@NotNull String name, @NotNull String ruleset, @NotNull String look, @Nullable String mechanics) {
 
-    /** What a match runs as when no preset is asked for: scrims' rules and look on hypixel's mechanics. */
-    public static final Platform DEFAULT = new Platform("default", "scrims", "scrims", "hypixel");
+    /** What a match runs as when no preset is asked for: scrims' rules on hypixel's mechanics, in the house look. */
+    public static final Platform DEFAULT = new Platform("default", "scrims", "tennacle", "hypixel");
 
     /** A platform whose ruleset and look share its name, its mechanics the ruleset's - the three measured ones. */
     public static @NotNull Platform of(@NotNull String name) {

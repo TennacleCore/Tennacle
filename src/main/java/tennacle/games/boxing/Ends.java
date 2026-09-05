@@ -32,7 +32,12 @@ final class Ends {
                 .row("W-Taps", (g, side, th, c) ->
                         th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))))
                 .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " boxing hypixel"));
+                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " boxing -preset=hypixel"));
+    }
+
+    // the same three stats under the house theme
+    static Summary tennacle() {
+        return scrims();
     }
 
     static Summary scrims() {

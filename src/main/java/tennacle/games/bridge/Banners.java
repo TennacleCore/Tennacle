@@ -46,6 +46,23 @@ final class Banners {
                 .append(Component.newline()).append(theme.rule());
     }
 
+    // the house block: dim rules around "<scorer> (hearts) scored!" and the score, centered
+    static Component tennacle(Game game, Player scorer, TextColor color) {
+        var theme = Msg.THEME;
+        Component rule = theme.rule(29, theme.dimColor());
+        return Component.empty()
+                .append(rule).append(Component.newline())
+                .append(ChatWidth.center(Component.empty()
+                        .append(Component.text(scorer.getUsername() + " ", color))
+                        .append(theme.dim("("))
+                        .append(theme.hearts(hearts(scorer)))
+                        .append(theme.dim(") "))
+                        .append(theme.accent("scored!"))))
+                .append(Component.newline())
+                .append(ChatWidth.center(scoreLine(game, false, Bridge.teamOf(game, scorer))))
+                .append(Component.newline()).append(rule);
+    }
+
     // captured: gold rules and blank lines around a bold team name, "(4❤)", yellow scored!,
     // gold "(1st Goal)", and the bold team-colored score
     static Component hypixel(Game game, Player scorer, TextColor color, int goal) {

@@ -40,6 +40,17 @@ final class Boards {
                 .line((g, me) -> Frames.hypixelRow("Combo: ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO));
     }
 
+    // the house board: your hits against theirs, the combo, the target
+    static Scoreboard tennacle() {
+        return Frames.tennacle("Boxing", b -> b
+                .line((g, me) -> Frames.tennacleRow("Hits ", Msg.THEME.value(Boxing.hits(g, me))
+                        .append(Msg.THEME.dim(" | "))
+                        .append(Msg.THEME.value(Boxing.hits(g, Match.opponent(g, me))))), Boxing.HITS)
+                .line((g, me) -> Frames.tennacleRow("Combo ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO)
+                .blank()
+                .line((g, me) -> Msg.THEME.dim("first to " + g.rules().resolve(Scope.GAME, Score.TARGET))));
+    }
+
     // the scrims frame with boxing content
     static Scoreboard scrims() {
         return Frames.scrims("Boxing", b -> b

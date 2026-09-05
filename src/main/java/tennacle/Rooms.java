@@ -35,11 +35,11 @@ public final class Rooms {
         TabList.footer(Rooms::tabFooter);
     }
 
-    /** The viewer's game's look, else the server chrome (the scrims shape: server-wide, not per game). */
+    /** The viewer's game's look, else the server chrome in the house look. */
     private static Look lookFor(Player viewer) {
         Game game = gameOf(viewer);
         if (game == null) game = Matches.grotto().spectating(viewer);
-        return game != null ? Matches.lookOf(game) : Look.SCRIMS;
+        return game != null ? Matches.lookOf(game) : Look.TENNACLE;
     }
 
     static Component tabHeader(Player viewer) {

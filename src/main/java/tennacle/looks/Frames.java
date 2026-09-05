@@ -1,6 +1,7 @@
 package tennacle.looks;
 
 import tennacle.Msg;
+import tennacle.games.Look;
 import tennacle.games.Match;
 
 import io.github.term4.canvas.board.Shine;
@@ -83,6 +84,28 @@ public final class Frames {
         return board
                 .line(rule)
                 .line((g, me) -> Msg.SCRIMS.value("tennacle"));
+    }
+
+    /** Tennacle: the gradient title, dim rules, the game code, the address as the footer. */
+    public static Scoreboard tennacle(String title, Consumer<Scoreboard> content) {
+        Component rule = Msg.THEME.rule(16, Msg.THEME.dimColor());
+        Scoreboard board = Scoreboard.of(me -> Msg.THEME.boardTitle(me, title))
+                .line(rule)
+                .line((g, me) -> Msg.THEME.dim(g.code()))
+                .blank();
+        content.accept(board);
+        return board
+                .blank()
+                .line(rule)
+                .line((g, me) -> Msg.THEME.accent(Look.ADDRESS));
+    }
+
+    public static Component tennacleRow(String label, Object value) {
+        return tennacleRow(label, Msg.THEME.value(value));
+    }
+
+    public static Component tennacleRow(String label, Component value) {
+        return Msg.THEME.prose(label).append(value);
     }
 
     public static Component minemenRow(String label, Object value) {

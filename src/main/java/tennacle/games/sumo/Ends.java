@@ -33,6 +33,11 @@ final class Ends {
                 .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())));
     }
 
+    // the one stat, under the house theme
+    static Summary tennacle() {
+        return scrims();
+    }
+
 
     private static String accuracy(Game game, Slot seat) {
         int swings = game.state().get(Scope.slot(seat.index()), Sumo.SWINGS);

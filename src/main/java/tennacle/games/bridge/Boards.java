@@ -3,6 +3,7 @@ package tennacle.games.bridge;
 import tennacle.Msg;
 import tennacle.looks.Frames;
 
+import io.github.term4.canvas.theme.Theme;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.outcome.Score;
 import io.github.term4.grotto.modules.view.Scoreboard;
@@ -37,12 +38,23 @@ final class Boards {
                 .line((g, me) -> teamLine(g, teamAt(g, 1))));
     }
 
+    // the house board: the clock, team-badged goal circles, your kills
+    static Scoreboard tennacle() {
+        return Frames.tennacle("Bridge", b -> b
+                .line((g, me) -> Frames.tennacleRow("Time ", Frames.timeLeft(g)))
+                .blank()
+                .line((g, me) -> circles(g, teamAt(g, 0), Msg.THEME, false), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> circles(g, teamAt(g, 1), Msg.THEME, false), Bridge.GOALS, Score.TARGET)
+                .blank()
+                .line((g, me) -> Frames.tennacleRow("Kills ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS));
+    }
+
     // captured: [R]/[B] circle meters, Kills/Goals
     static Scoreboard hypixel() {
         return Frames.hypixel("BRIDGE", "Bridge Duel",
                 g -> TimeLimit.left(g), b -> b
-                .line((g, me) -> circles(g, teamAt(g, 0), false), Bridge.GOALS, Score.TARGET)
-                .line((g, me) -> circles(g, teamAt(g, 1), false), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> circles(g, teamAt(g, 0), Msg.HYPIXEL, false), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> circles(g, teamAt(g, 1), Msg.HYPIXEL, false), Bridge.GOALS, Score.TARGET)
                 .blank()
                 .line((g, me) -> Frames.hypixelRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .line((g, me) -> Frames.hypixelRow("Goals: ", myTeamGoals(g, me)), Bridge.GOALS));
@@ -51,8 +63,8 @@ final class Boards {
     // captured: bold [B]/[R] circle meters, Kills, Time Left
     static Scoreboard minemen() {
         return Frames.minemen("Bridge", b -> b
-                .line((g, me) -> circles(g, teamAt(g, 1), true), Bridge.GOALS, Score.TARGET)
-                .line((g, me) -> circles(g, teamAt(g, 0), true), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> circles(g, teamAt(g, 1), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> circles(g, teamAt(g, 0), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
@@ -81,15 +93,14 @@ final class Boards {
         return Component.text(String.join(" ", names), team.color());
     }
 
-    // captured on both networks: "[R] " team label + team-colored filled circles, gray empties
-    private static Component circles(Game game, Team team, boolean boldLabel) {
+    // captured on both networks: "[R] " team label + team-colored filled circles, the theme's empties
+    private static Component circles(Game game, Team team, Theme theme, boolean boldLabel) {
         int goals = game.state().get(Scope.team(team.id()), Bridge.GOALS);
         int target = Math.max(goals, game.rules().resolve(Scope.GAME, Score.TARGET));
         String tag = "[" + tennacle.games.Palette.letter(team) + "] ";
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);
-        return Component.empty().append(label)
-                .append((boldLabel ? Msg.MINEMEN : Msg.HYPIXEL).circles(goals, target, team.color()));
+        return Component.empty().append(label).append(theme.circles(goals, target, team.color()));
     }
 
     private static int mySeat(Game game, Player me, StateKey<Integer> key) {
