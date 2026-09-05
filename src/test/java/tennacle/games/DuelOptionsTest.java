@@ -74,7 +74,7 @@ class DuelOptionsTest extends HeadlessServerTest {
         Game game = null;
         try {
             List<String> sent = chat(a, "duel OptB bridge -preset=minemen -cage=off");
-            assertTrue(sent.stream().anyMatch(l -> l.contains("request sent")), "the request went out: " + sent);
+            assertTrue(sent.stream().anyMatch(l -> l.contains("duel request to")), "the request went out: " + sent);
             game = accept(a, b);
             assertEquals("minemen", Matches.lookNameOf(game), "the preset's look");
             assertEquals("mmc18", game.rules().resolve(Scope.GAME, Presets.KEY), "and its mechanics");

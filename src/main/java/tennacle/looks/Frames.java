@@ -4,6 +4,7 @@ import tennacle.Msg;
 import tennacle.games.Look;
 import tennacle.games.Match;
 
+import io.github.term4.canvas.board.Board;
 import io.github.term4.canvas.board.Shine;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.flow.TimeLimit;
@@ -88,16 +89,38 @@ public final class Frames {
 
     /** Tennacle: the scrims frame on the house theme - the gradient title, the address as the footer. */
     public static Scoreboard tennacle(String title, Consumer<Scoreboard> content) {
-        Component rule = Msg.THEME.rule(16, NamedTextColor.DARK_AQUA);
         Scoreboard board = Scoreboard.of(me -> Msg.THEME.boardTitle(me, title))
                 .width(100)
-                .line(rule)
+                .line(houseRule())
                 .line((g, me) -> Msg.THEME.prose(LocalDate.now().toString()).append(Msg.THEME.dim(" " + g.code())))
                 .blank();
         content.accept(board);
         return board
-                .line(rule)
-                .line((g, me) -> Msg.THEME.accent(Look.ADDRESS));
+                .line(houseRule())
+                .line(houseFooter());
+    }
+
+    /** The lobby sidebar in the same chrome, around the server's own rows. */
+    public static Board tennacleLobby(Consumer<Board.Builder> content) {
+        Board.Builder board = Board.builder()
+                .title(me -> Msg.THEME.boardTitle(me, "TENNACLE"))
+                .width(100)
+                .line(houseRule());
+        content.accept(board);
+        return board.line(houseRule()).line(houseFooter()).build();
+    }
+
+    /** A scrims-shaped row on the house theme: white label, themed value. */
+    public static Component row(String label, Object value) {
+        return Component.text(label, NamedTextColor.WHITE).append(Msg.THEME.value(value));
+    }
+
+    private static Component houseRule() {
+        return Msg.THEME.rule(16, NamedTextColor.DARK_AQUA);
+    }
+
+    private static Component houseFooter() {
+        return Msg.THEME.accent(Look.ADDRESS);
     }
 
     public static Component minemenRow(String label, Object value) {

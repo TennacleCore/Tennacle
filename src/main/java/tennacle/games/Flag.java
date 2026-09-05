@@ -25,6 +25,11 @@ public interface Flag {
         return null;
     }
 
+    /** One line on what the flag does - the request's flag line and {@code /flags} read it. */
+    default @NotNull String description() {
+        return "";
+    }
+
     /** The values worth offering after the equals sign, when the set is small enough to name. */
     default @NotNull Collection<String> values(@NotNull Mode mode) {
         return List.of();

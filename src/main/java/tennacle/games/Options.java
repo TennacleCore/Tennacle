@@ -102,4 +102,9 @@ public record Options(@Nullable String map, @Nullable String platform,
     public @NotNull String describe() {
         return words.isEmpty() ? "" : " " + String.join(" ", words);
     }
+
+    /** The flag words alone, as typed - the request's flag line. */
+    public @NotNull List<String> flags() {
+        return words.stream().filter(w -> w.startsWith("-")).toList();
+    }
 }

@@ -1,39 +1,30 @@
 package tennacle.lobby;
 
-
 import tennacle.games.Matches;
+import tennacle.looks.Frames;
 
-import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.board.Board;
 import io.github.term4.canvas.board.Boards;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.timer.TaskSchedule;
 
-import java.time.LocalDate;
-
 /**
- * The lobby sidebar: server filler (date, online, playing) offered at priority 0 - any game board sits
- * on top of it and this reappears at the exit. The app owns the cadence: one coarse timer touches it.
+ * The lobby sidebar: scrims' lobby shape in the house frame - winstreaks, online, playing - offered at priority
+ * 0, so any game board sits on top of it and this reappears at the exit. The app owns the cadence: one coarse
+ * timer touches it.
  */
 public final class Lobby {
 
     private Lobby() {}
 
     public static void install() {
-        Board board = Board.builder()
-                .title(viewer -> Canvas.themeFor(viewer).boardTitle(viewer, "Tennacle"))
-                .line(viewer -> Canvas.themeFor(viewer).dim(LocalDate.now().toString()))
+        Board board = Frames.tennacleLobby(b -> b
+                .line(viewer -> Frames.row("Daily Winstreak: ", 0)) // filler until the vault tracks them
+                .line(viewer -> Frames.row("Overall Winstreak: ", 0))
                 .blank()
-                .line(viewer -> Component.text("Online: ", NamedTextColor.WHITE)
-                        .append(Canvas.themeFor(viewer).good(MinecraftServer.getConnectionManager().getOnlinePlayerCount())))
-                .line(viewer -> Component.text("Playing: ", NamedTextColor.WHITE)
-                        .append(Canvas.themeFor(viewer).value(playing())))
-                .blank()
-                .line(viewer -> Canvas.themeFor(viewer).dim("tennacle"))
-                .build();
+                .line(viewer -> Frames.row("Online: ", MinecraftServer.getConnectionManager().getOnlinePlayerCount()))
+                .line(viewer -> Frames.row("Playing: ", playing())));
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, event -> {
             if (event.isFirstSpawn()) Boards.show(event.getPlayer(), board, 0);
         });
