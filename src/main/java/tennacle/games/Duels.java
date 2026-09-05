@@ -148,11 +148,13 @@ public final class Duels {
             return;
         }
         requests.put(me.getUuid(), new Request(target.getUuid(), mode.name(), options, System.currentTimeMillis()));
-        // scrims' lines on the house palette: the sentence in the accent, the name in prose, the map or pool a value
+        // scrims' lines as captured: a yellow sentence, the name in prose, the map or pool a value
         String what = title(mode) + " duel request";
-        me.sendMessage(Msg.THEME.accent("Sent a " + what + " to ").append(Msg.THEME.prose(target.getUsername())).append(on(mode, options)));
+        me.sendMessage(Component.text("Sent a " + what + " to ", NamedTextColor.YELLOW)
+                .append(Msg.THEME.prose(target.getUsername())).append(on(mode, options)));
         flagsLine(me, options);
-        target.sendMessage(Msg.THEME.accent(what + " from ").append(Msg.THEME.prose(me.getUsername())).append(on(mode, options)));
+        target.sendMessage(Component.text(what + " from ", NamedTextColor.YELLOW)
+                .append(Msg.THEME.prose(me.getUsername())).append(on(mode, options)));
         target.sendMessage(acceptLine(me));
         flagsLine(target, options);
     }
@@ -199,16 +201,14 @@ public final class Duels {
 
     // the map when one was named, else the pool it will come from
     private static Component on(Mode mode, Options options) {
-        return Msg.THEME.accent(" on ").append(Msg.v(options.map() != null ? options.map() : mode.arena().label()));
+        return Component.text(" on ", NamedTextColor.YELLOW).append(Msg.v(options.map() != null ? options.map() : mode.arena().label()));
     }
 
-    // scrims' [Accept]: a bold green click that runs the accept, the hover naming what it runs
+    // scrims' [Accept]: a bold green click that runs the accept
     private static Component acceptLine(Player requester) {
-        String command = "/duel accept " + requester.getUsername();
         return Msg.THEME.good("[Accept]").decorate(TextDecoration.BOLD)
-                .clickEvent(ClickEvent.runCommand(command))
-                .hoverEvent(HoverEvent.showText(Msg.THEME.prose("Click to accept!").append(Component.newline())
-                        .append(Msg.THEME.dim("Runs ")).append(Msg.THEME.accent(command)).append(Msg.THEME.dim(" on click."))));
+                .clickEvent(ClickEvent.runCommand("/duel accept " + requester.getUsername()))
+                .hoverEvent(HoverEvent.showText(Msg.THEME.prose("Click to accept!")));
     }
 
     // "Duel Flags: -preset=minemen" with scrims' info glyph; the hover says what each flag is, one line each
