@@ -54,7 +54,11 @@ public final class Mechanics {
         polyp.viaProxyDetails = true;
         polyp.installViaBridge = true; // the proxies run the ViaBridge plugin
         polyp.init();
+        // in the profile as well as handed to the system: a ruleset's vri/... path edit then layers over the whole
+        // config, where over nothing it builds a sparse one - and VRI reads an unset knob as off
+        VriConfig vri = VriConfig.all();
         polyp.profiles().setGlobal(PRESET.profile().toBuilder()
+                .set(MechanicsKeys.VRI, vri)
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
                 .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder()
                         .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
@@ -72,7 +76,7 @@ public final class Mechanics {
         BlockingSystem.install(polyp);
         HungerSystem.install(polyp);
         FixesSystem.install(polyp); // legacy-client fix set (targeted placement rollback, self-place, equipment, ...)
-        Vri.install(polyp, VriConfig.all()); // crack overlay, break FX, drops, pickup - all shard-aware
+        Vri.install(polyp, vri); // crack overlay, break FX, drops, pickup - all shard-aware
         explosions = ExplosionSystem.install(polyp);
         ItemDamageSystem.install(polyp); // ground loot: explosions, fire, lava, cactus, void
 
