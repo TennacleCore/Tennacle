@@ -78,7 +78,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     @Test
     void aFullRound() {
         Mode bridge = Matches.mode("bridge");
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), fixture()); // the launch fold, nobody seated
+        Game game = Matches.launch(bridge, Matches.platformFor("scrims"), fixture()); // the launch fold, nobody seated
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BridgeRed");
         FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BridgeBlue");
         try {
@@ -96,7 +96,7 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertEquals(Boolean.FALSE, arrow.critDamage.constantOrNull(), "scrims: the crit roll is dropped");
             assertNull(arrow.critParticles, "the crit trail follows the actual crit, never overridden");
 
-            // a TEAM-scoped entry lands in the SAME world profile (stuckInBody proves it - the base sets it false)
+            // a TEAM-scoped entry lands in the SAME world profile (stuckInBody proves it - scrims sets it false)
             String redTeam = Bridge.teamOf(game, red.player);
             var reFold = Mechanics.polyp.profiles().world(game.shard()).toBuilder();
             tennacle.games.Ruleset.named("proof")
@@ -192,7 +192,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     void minemenClockWaitsForGo() {
         Mode bridge = Matches.mode("bridge");
         assertNotNull(bridge);
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, "minemen"), fixture());
+        Game game = Matches.launch(bridge, Matches.platformFor("minemen"), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ClockRed");
         try {
             red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
@@ -213,7 +213,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     void minemenOpensAtTheRespawnSpot() {
         Mode bridge = Matches.mode("bridge");
         assertNotNull(bridge);
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, "minemen"), fixture());
+        Game game = Matches.launch(bridge, Matches.platformFor("minemen"), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "MinemenRed");
         try {
             red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
@@ -232,7 +232,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     @Test
     void aDeadPlayerWaitsGhostedWithTheDeathScreenThenRespawns() {
         Mode bridge = Matches.mode("bridge");
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), fixture());
+        Game game = Matches.launch(bridge, Matches.platformFor(null), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DeadRed");
         FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "DeadBlue");
         try {

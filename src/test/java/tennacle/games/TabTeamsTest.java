@@ -41,7 +41,7 @@ class TabTeamsTest extends HeadlessServerTest {
             assertTrue(lib.getMembers().contains("TeamTabAlpha"));
             Mode sumo = Matches.mode("sumo");
             assertNotNull(sumo);
-            game = Matches.start(sumo, Matches.platformFor(sumo, null), List.of(List.of(a.player), List.of(b.player)));
+            game = Matches.start(sumo, Matches.platformFor(null), List.of(List.of(a.player), List.of(b.player)));
             long deadline = System.currentTimeMillis() + 4000;
             while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();

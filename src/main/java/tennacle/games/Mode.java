@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  */
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
-                   @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants, @NotNull String defaultPlatform,
+                   @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants,
                    @NotNull List<Component> intro, boolean ghostLoser, @Nullable StateKey<Integer> teamScore) {
 
     public Mode {

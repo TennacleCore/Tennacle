@@ -29,7 +29,7 @@ class PlatformPvpTest extends HeadlessServerTest {
     private static void onPlatform(String platform, String preset, ProjectileTypeConfig.HitResponse selfHit) {
         Mode bridge = Matches.mode("bridge");
         assertNotNull(bridge);
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, platform), bridge.arena().get());
+        Game game = Matches.launch(bridge, Matches.platformFor(platform), bridge.arena().get());
         try {
             assertEquals(preset, game.rules().resolve(Scope.GAME, Presets.KEY), platform + " pvp");
             var arrow = Mechanics.polyp.profiles().world(game.shard())

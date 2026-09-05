@@ -34,7 +34,7 @@ class PlatformMechanicsTest extends HeadlessServerTest {
         try {
             Mode m = Matches.mode(mode);
             assertNotNull(m);
-            game = Matches.start(m, Matches.platformFor(m, platform), List.of(List.of(a.player), List.of(b.player)));
+            game = Matches.start(m, Matches.platformFor(platform), List.of(List.of(a.player), List.of(b.player)));
             long deadline = System.currentTimeMillis() + 4000;
             while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();

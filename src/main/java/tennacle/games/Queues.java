@@ -110,7 +110,7 @@ public final class Queues {
                 return;
             }
         }
-        Platform platform = Matches.platformFor(mode, platformName);
+        Platform platform = Matches.platformFor(platformName);
         int seats;
         try {
             seats = Matches.seatsPerSide(mode);

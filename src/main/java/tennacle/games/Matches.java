@@ -119,13 +119,13 @@ public final class Matches {
 
     public static @NotNull Look lookOf(@NotNull Game game) {
         Look look = looks.get(game.state().get(Scope.GAME, LOOK));
-        return look != null ? look : Look.MINEMEN;
+        return look != null ? look : Look.SCRIMS;
     }
 
     /** {@link #lookOf} as its registry name - what a per-look module pick switches on. */
     public static @NotNull String lookNameOf(@NotNull Game game) {
         String name = game.state().get(Scope.GAME, LOOK);
-        return looks.containsKey(name) ? name : "minemen";
+        return looks.containsKey(name) ? name : "scrims";
     }
 
     /** The per-look module choice - picked at install off the stamped look, every variant declared. */
@@ -162,11 +162,11 @@ public final class Matches {
         return launch(mode, platform, arena, Options.NONE);
     }
 
-    /** {@link #launch} with a request's {@link Options}: its look over the platform's, its rules as the first live modifier. */
+    /** {@link #launch} with a request's {@link Options}: its rules as the first live modifier. */
     public static @NotNull Game launch(@NotNull Mode mode, @NotNull Platform platform, @NotNull Arena arena,
                                        @NotNull Options options) {
         return grotto.launch(mode.type(), arena, null, g -> {
-            g.state().set(Scope.GAME, LOOK, options.look() != null ? options.look() : platform.look());
+            g.state().set(Scope.GAME, LOOK, platform.look());
             g.state().set(Scope.GAME, PLATFORM, platform.name());
             if (!options.rules().isEmpty()) modifiers.put(g.id(), options.rules());
             fold(g);
@@ -178,7 +178,7 @@ public final class Matches {
     public static void fold(@NotNull Game game) {
         Mode mode = modeOf(game);
         if (mode == null) throw new IllegalStateException("not a registered mode: " + game.type().id());
-        Platform platform = platformFor(mode, game.state().get(Scope.GAME, PLATFORM));
+        Platform platform = platformFor(game.state().get(Scope.GAME, PLATFORM));
         Ruleset rules = mode.ruleset(platform.ruleset());
         Ruleset live = modifiers.get(game.id());
         if (live != null) rules = live.over(rules);
@@ -272,15 +272,9 @@ public final class Matches {
         return perTeam.values().stream().mapToInt(Integer::intValue).max().orElse(1);
     }
 
-    /** The platform a request named, the mode's default when it named none. */
-    public static @NotNull Platform platformFor(@NotNull Mode mode, @Nullable String name) {
+    /** The platform a request named; {@link Platform#DEFAULT} when it named none. */
+    public static @NotNull Platform platformFor(@Nullable String name) {
         Platform named = name != null ? platforms.get(name) : null;
-        if (named != null) return named;
-        Platform fallback = platforms.get(mode.defaultPlatform());
-        return fallback != null ? fallback : Platform.of("minemen");
-    }
-
-    static @NotNull List<String> lookNames() {
-        return List.copyOf(looks.keySet());
+        return named != null ? named : Platform.DEFAULT;
     }
 }

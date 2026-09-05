@@ -7,6 +7,7 @@ import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
+import tennacle.games.Flags;
 import tennacle.games.HotArena;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -134,11 +135,12 @@ public final class Boxing {
                                 .best(BEST_COMBO, CAREER_COMBO))
                 .build();
         for (Ruleset ruleset : VARIANTS.values()) ruleset.check(Mechanics.polyp.profiles().global(), type);
-        Mode boxing = new Mode("boxing", type, arena, MechanicsProfile::builder, BASE, VARIANTS, "minemen",
+        Mode boxing = new Mode("boxing", type, arena, MechanicsProfile::builder, BASE, VARIANTS,
                 // no boxing capture - sumo's single-bold-line pattern
                 List.of(Component.text("First player to land 10 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
                 true, null);
         Duels.mode(boxing);
+        Flags.offer(boxing, "preset");
         registerStats();
     }
 

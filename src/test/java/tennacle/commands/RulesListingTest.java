@@ -48,7 +48,7 @@ class RulesListingTest extends HeadlessServerTest {
     private static Game start(FakePlayer a, FakePlayer b) throws InterruptedException {
         Mode bridge = Matches.mode("bridge");
         assertNotNull(bridge);
-        Game game = Matches.start(bridge, Matches.platformFor(bridge, "scrims"), List.of(List.of(a.player), List.of(b.player)));
+        Game game = Matches.start(bridge, Matches.platformFor("scrims"), List.of(List.of(a.player), List.of(b.player)));
         long deadline = System.currentTimeMillis() + 4000;
         while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
             MinecraftServer.getSchedulerManager().processTick();

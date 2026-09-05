@@ -10,6 +10,7 @@ import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
+import tennacle.games.Flags;
 import tennacle.games.KitLayouts;
 import tennacle.games.MapPool;
 import tennacle.games.Sections;
@@ -240,7 +241,7 @@ public final class Bridge {
         MinecraftServer.getCommandManager().register(cageCmd);
         KitLayouts.editable("bridge", KIT);
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
-        Mode bridge = new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(), "scrims",
+        Mode bridge = new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(),
                 List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
                         Component.text("Knock off your opponent to gain a clear path.", NamedTextColor.YELLOW),
                         Component.empty(),
@@ -248,6 +249,7 @@ public final class Bridge {
                 false, // no death animation or spectate: everyone stays where they stand
                 GOALS); // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
         Duels.mode(bridge);
+        Flags.offer(bridge, "preset");
         // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
     }
 

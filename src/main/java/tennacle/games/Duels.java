@@ -57,7 +57,7 @@ public final class Duels {
         });
         duel.setDefaultExecutor((sender, ctx) ->
                 Msg.tag(sender, "duel", "usage: ", Msg.run("/duel <player> [" + String.join("|", Matches.modes())
-                        + "] [map] [-look=<look> -platform=<platform> -<rule>=<value> ...]")));
+                        + "] [map] [-preset=<" + String.join("|", Matches.platforms()) + ">]")));
         duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), defaultMode, List.of()), name);
         duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), List.of()), name, mode);
         duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), List.of(ctx.get(options))),
@@ -122,7 +122,7 @@ public final class Duels {
     }
 
     private static void start(Mode mode, Options options, Player a, Player b) {
-        Platform platform = Matches.platformFor(mode, options.platform());
+        Platform platform = Matches.platformFor(options.platform());
         try {
             Matches.start(mode, platform, List.of(Parties.of(a), Parties.of(b)), options);
         } catch (IllegalStateException e) { // the map may not be authored yet

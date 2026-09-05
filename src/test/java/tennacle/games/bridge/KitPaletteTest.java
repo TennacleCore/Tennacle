@@ -39,7 +39,7 @@ class KitPaletteTest extends HeadlessServerTest {
         FakePlayer one = null;
         try {
             Mode bridge = Matches.mode("bridge");
-            game = Matches.launch(bridge, Matches.platformFor(bridge, null), SectionsTest.fixture());
+            game = Matches.launch(bridge, Matches.platformFor(null), SectionsTest.fixture());
             one = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "SlimeOne");
             one.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
             assertTrue(game.join(one.player));
@@ -64,7 +64,7 @@ class KitPaletteTest extends HeadlessServerTest {
         List<Tint> before = Livery.ordinals();
         Livery.ordinals(List.of(Tint.parse("dark_purple"), Tint.parse("gold")));
         Mode bridge = Matches.mode("bridge");
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), SectionsTest.fixture());
+        Game game = Matches.launch(bridge, Matches.platformFor(null), SectionsTest.fixture());
         FakePlayer one = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "KitOne");
         FakePlayer two = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "KitTwo");
         try {

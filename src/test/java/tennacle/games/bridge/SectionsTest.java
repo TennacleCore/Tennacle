@@ -62,7 +62,7 @@ class SectionsTest extends HeadlessServerTest {
 
     private static Game stamped(Arena map) {
         Mode bridge = Matches.mode("bridge");
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), map);
+        Game game = Matches.launch(bridge, Matches.platformFor(null), map);
         for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
         return game;
     }

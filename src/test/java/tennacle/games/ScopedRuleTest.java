@@ -27,7 +27,7 @@ class ScopedRuleTest extends HeadlessServerTest {
     void aTeamKeepsItsOwn() {
         Mode bridge = Matches.mode("bridge");
         assertNotNull(bridge);
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), bridge.arena().get());
+        Game game = Matches.launch(bridge, Matches.platformFor(null), bridge.arena().get());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ScopedRed");
         try {
             red.player.setInstance(game.instance(), new Pos(0.5, 65, 0.5)).join();

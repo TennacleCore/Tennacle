@@ -40,7 +40,7 @@ class DuelCommandTest extends HeadlessServerTest {
         try {
             Mode sumo = Matches.mode("sumo");
             assertNotNull(sumo);
-            game = Matches.start(sumo, Matches.platformFor(sumo, null), java.util.List.of(java.util.List.of(first.player)));
+            game = Matches.start(sumo, Matches.platformFor(null), java.util.List.of(java.util.List.of(first.player)));
             long deadline = System.currentTimeMillis() + 4000;
             while (Game.of(first.player) == null && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();
@@ -129,7 +129,7 @@ class DuelCommandTest extends HeadlessServerTest {
         try {
             Mode sumo = Matches.mode("sumo");
             assertNotNull(sumo);
-            game = Matches.start(sumo, Matches.platformFor(sumo, null), java.util.List.of(java.util.List.of(a.player), java.util.List.of(b.player)));
+            game = Matches.start(sumo, Matches.platformFor(null), java.util.List.of(java.util.List.of(a.player), java.util.List.of(b.player)));
             long deadline = System.currentTimeMillis() + 4000;
             while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();
@@ -158,7 +158,7 @@ class DuelCommandTest extends HeadlessServerTest {
         try {
             Mode sumo = Matches.mode("sumo");
             assertNotNull(sumo);
-            game = Matches.start(sumo, Matches.platformFor(sumo, null),
+            game = Matches.start(sumo, Matches.platformFor(null),
                     java.util.List.of(java.util.List.of(a.player), java.util.List.of(b.player)));
             long deadline = System.currentTimeMillis() + 4000;
             while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {

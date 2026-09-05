@@ -5,14 +5,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The registered {@link Flag}s, and which of them each mode offers. Registering defines a flag; {@link #offer}
- * puts it on a mode's menu, in the order the mode lists them. Nothing registers itself: a flag exists once the
- * app defines it, and a mode offers none until it lists them.
+ * puts it on a mode's menu, in the order the mode lists them. The app defines one: {@code preset}, the copied
+ * version of a game - its rules and its look together, by platform name. A mode offers none until it lists them.
  */
 public final class Flags {
 
@@ -20,6 +21,19 @@ public final class Flags {
     private static final Map<String, List<Flag>> offered = new ConcurrentHashMap<>();
 
     private Flags() {}
+
+    static {
+        register(new Flag() {
+            @Override public @NotNull String name() { return "preset"; }
+            @Override public @NotNull Collection<String> values(@NotNull Mode mode) { return Matches.platforms(); }
+            @Override public void apply(@NotNull Mode mode, @NotNull String value, @NotNull Options.Builder into) {
+                if (Matches.platform(value) == null) {
+                    throw new IllegalArgumentException("no preset named " + value + " (" + String.join(", ", Matches.platforms()) + ")");
+                }
+                into.platform(value);
+            }
+        });
+    }
 
     public static void register(@NotNull Flag flag) {
         flags.put(flag.name(), flag);

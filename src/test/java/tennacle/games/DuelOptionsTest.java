@@ -6,7 +6,6 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
-import io.github.term4.grotto.modules.flow.Rounds;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -15,11 +14,9 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.network.packet.client.play.ClientTabCompletePacket;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import net.minestom.server.network.packet.server.play.TabCompletePacket;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -32,22 +29,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@code /duel <player> <mode> [map] [-flag ...]}: a flag the app defines rides the request, is checked before it
- * is sent, and completes; a mode that lists none offers none.
+ * is sent, and completes; a rule is no flag, and a mode that lists none offers none.
  */
 class DuelOptionsTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
-        // this class's own flags, on bridge alone: a rule by another name, a rule spoken as on/off, and no rule at all
-        Flags.register(Flag.rule("clock", TimeLimit.LIMIT, value -> Long.parseLong(value) * 1200, List.of()));
+        // this class's own flag over a rule, on bridge alone, next to the app's preset
         Flags.register(Flag.onOff("cage", Cages.BLOCKS));
-        Flags.register(new Flag() {
-            @Override public @NotNull String name() { return "theme"; }
-            @Override public @NotNull Collection<String> values(@NotNull Mode mode) { return Matches.lookNames(); }
-            @Override public void apply(@NotNull Mode mode, @NotNull String value, @NotNull Options.Builder into) { into.look(value); }
-        });
-        Flags.offer(Matches.mode("bridge"), "clock", "cage", "theme");
+        Flags.offer(Matches.mode("bridge"), "cage");
     }
 
     private static List<String> chat(FakePlayer p, String command) {
@@ -63,13 +54,16 @@ class DuelOptionsTest extends HeadlessServerTest {
         return p.sent(TabCompletePacket.class).stream().flatMap(t -> t.matches().stream()).map(m -> m.match()).toList();
     }
 
-    private static Game await(FakePlayer p) throws InterruptedException {
+    private static Game accept(FakePlayer requester, FakePlayer target) throws InterruptedException {
+        MinecraftServer.getCommandManager().execute(target.player, "duel " + requester.player.getUsername());
         long deadline = System.currentTimeMillis() + 4000;
-        while (Game.of(p.player) == null && System.currentTimeMillis() < deadline) {
+        while (Game.of(requester.player) == null && System.currentTimeMillis() < deadline) {
             MinecraftServer.getSchedulerManager().processTick();
             Thread.sleep(10);
         }
-        return Game.of(p.player);
+        Game game = Game.of(requester.player);
+        assertNotNull(game, "the accept launched");
+        return game;
     }
 
     @Test
@@ -78,18 +72,33 @@ class DuelOptionsTest extends HeadlessServerTest {
         FakePlayer b = FakePlayer.connect(instance, new Pos(502.5, 65, 502.5), "OptB");
         Game game = null;
         try {
-            List<String> sent = chat(a, "duel OptB bridge -theme=scrims -clock=1 -cage=off -flow.round.reopen=false");
+            List<String> sent = chat(a, "duel OptB bridge -preset=minemen -cage=off");
             assertTrue(sent.stream().anyMatch(l -> l.contains("request sent")), "the request went out: " + sent);
-            MinecraftServer.getCommandManager().execute(b.player, "duel OptA");
-            game = await(a);
-            assertNotNull(game, "the accept launched");
-            assertEquals("scrims", Matches.lookNameOf(game), "the flag's look, not the platform's");
-            assertEquals(1200L, game.rules().resolve(Scope.GAME, TimeLimit.LIMIT), "-clock lands as the rule it names");
-            assertFalse(game.rules().resolve(Scope.GAME, Cages.BLOCKS), "-cage speaks on and off");
-            assertFalse(game.rules().resolve(Scope.GAME, Rounds.REOPEN), "a raw rule id still lands");
+            game = accept(a, b);
+            assertEquals("minemen", Matches.lookNameOf(game), "the preset's look");
+            assertEquals("mmc18", game.rules().resolve(Scope.GAME, Presets.KEY), "and its mechanics");
+            assertFalse(game.rules().resolve(Scope.GAME, Cages.BLOCKS), "a flag over a rule lands as the rule");
             Matches.modify(game, Ruleset.named("later").rule(TimeLimit.LIMIT, 600L));
-            assertEquals(600L, game.rules().resolve(Scope.GAME, TimeLimit.LIMIT), "and /rules still layers over it");
-            assertFalse(game.rules().resolve(Scope.GAME, Cages.BLOCKS), "without dropping the other flags");
+            assertEquals(600L, game.rules().resolve(Scope.GAME, TimeLimit.LIMIT), "/rules still layers over it");
+            assertFalse(game.rules().resolve(Scope.GAME, Cages.BLOCKS), "without dropping the flags");
+        } finally {
+            if (game != null) game.end(Outcome.draw());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void noPresetIsHypixelUnderScrims() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(510.5, 65, 510.5), "OptF");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(512.5, 65, 512.5), "OptG");
+        Game game = null;
+        try {
+            chat(a, "duel OptG bridge");
+            game = accept(a, b);
+            assertEquals(Platform.DEFAULT.name(), game.state().get(Scope.GAME, Matches.PLATFORM));
+            assertEquals("hypixel", game.rules().resolve(Scope.GAME, Presets.KEY), "hypixel's rules");
+            assertEquals("scrims", Matches.lookNameOf(game), "under the scrims look");
         } finally {
             if (game != null) game.end(Outcome.draw());
             a.player.remove();
@@ -102,12 +111,13 @@ class DuelOptionsTest extends HeadlessServerTest {
         FakePlayer a = FakePlayer.connect(instance, new Pos(504.5, 65, 504.5), "OptC");
         FakePlayer b = FakePlayer.connect(instance, new Pos(506.5, 65, 506.5), "OptD");
         try {
-            assertTrue(chat(a, "duel OptD sumo -nope").stream().anyMatch(l -> l.contains("unknown flag -nope")));
+            assertTrue(chat(a, "duel OptD sumo -nope").stream().anyMatch(l -> l.contains("not a flag of sumo; sumo offers -preset")));
             assertTrue(chat(a, "duel OptD sumo nosuchmap").stream().anyMatch(l -> l.contains("no map named")));
-            assertTrue(chat(a, "duel OptD sumo -cage=off").stream().anyMatch(l -> l.contains("not a flag of sumo; sumo offers no flags")),
+            assertTrue(chat(a, "duel OptD bridge -preset=nosuch").stream().anyMatch(l -> l.contains("no preset named nosuch")));
+            assertTrue(chat(a, "duel OptD bridge -flow.round.reopen=false").stream().anyMatch(l -> l.contains("not a flag of bridge")),
+                    "a rule is no flag");
+            assertTrue(chat(a, "duel OptD sumo -cage=off").stream().anyMatch(l -> l.contains("not a flag of sumo")),
                     "a flag another mode offers");
-            assertTrue(chat(a, "duel OptD bridge -clock=soon").stream().anyMatch(l -> l.contains("-clock=soon")),
-                    "a value the flag cannot read");
             MinecraftServer.getCommandManager().execute(b.player, "duel OptC");
             for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
             assertNull(Game.of(a.player), "none of those became a request to accept");
@@ -123,13 +133,11 @@ class DuelOptionsTest extends HeadlessServerTest {
         try {
             assertEquals(List.of("bridge"), complete(a, "/duel OptE br"), "the mode, read at the request");
             List<String> flags = complete(a, "/duel OptE bridge -");
-            assertEquals(Set.of("-clock", "-cage", "-theme"), Set.copyOf(flags), "what bridge listed, nothing else: " + flags);
-            assertFalse(flags.contains("-flow.time.limit"), "rule ids wait for a dot");
-            assertTrue(complete(a, "/duel OptE bridge -flow.").contains("-flow.time.limit"), "and then they come");
-            assertEquals(List.of("-cage=on", "-cage=off"), complete(a, "/duel OptE bridge -cage="));
-            assertEquals(List.of("-theme=scrims"), complete(a, "/duel OptE bridge -theme=sc"));
+            assertEquals(Set.of("-preset", "-cage"), Set.copyOf(flags), "what bridge listed, nothing else: " + flags);
+            assertEquals(Set.of("-preset=minemen", "-preset=scrims", "-preset=hypixel"), Set.copyOf(complete(a, "/duel OptE bridge -preset=")));
+            assertTrue(complete(a, "/duel OptE bridge -flow.").isEmpty(), "a rule is no flag, so nothing");
             assertFalse(complete(a, "/duel OptE bridge ").isEmpty(), "the pool's map names, bare");
-            assertTrue(complete(a, "/duel OptE sumo -").isEmpty(), "sumo listed nothing, so nothing");
+            assertEquals(List.of("-preset"), complete(a, "/duel OptE sumo -"), "sumo lists the preset alone");
         } finally {
             a.player.remove();
         }
@@ -139,6 +147,6 @@ class DuelOptionsTest extends HeadlessServerTest {
     void offerNeedsTheRule() {
         Mode sumo = Matches.mode("sumo");
         assertThrows(IllegalStateException.class, () -> Flags.offer(sumo, "cage"), "no cage rule in sumo to speak of");
-        assertTrue(Flags.of(sumo).isEmpty(), "and the refusal left the menu as it was");
+        assertEquals(1, Flags.of(sumo).size(), "and the refusal left the menu as it was");
     }
 }

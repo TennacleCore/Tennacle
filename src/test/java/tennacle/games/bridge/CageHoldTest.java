@@ -37,7 +37,7 @@ class CageHoldTest extends HeadlessServerTest {
     private Game bridge() {
         Mode bridge = Matches.mode("bridge");
         assertNotNull(bridge);
-        Game game = Matches.launch(bridge, Matches.platformFor(bridge, null), bridge.arena().get());
+        Game game = Matches.launch(bridge, Matches.platformFor(null), bridge.arena().get());
         for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
         return game;
     }

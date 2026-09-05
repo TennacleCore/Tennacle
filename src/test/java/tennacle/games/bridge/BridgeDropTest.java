@@ -48,7 +48,7 @@ class BridgeDropTest extends HeadlessServerTest {
         try {
             Mode bridge = Matches.mode("bridge");
             assertNotNull(bridge);
-            game = Matches.start(bridge, Matches.platformFor(bridge, "scrims"), List.of(List.of(a.player), List.of(b.player)));
+            game = Matches.start(bridge, Matches.platformFor("scrims"), List.of(List.of(a.player), List.of(b.player)));
             long deadline = System.currentTimeMillis() + 4000;
             while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
                 tick();
