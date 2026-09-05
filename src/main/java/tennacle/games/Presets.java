@@ -4,6 +4,7 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.MechanicsProfile;
 import io.github.term4.polyp.presets.Preset;
 import net.minestom.server.codec.Codec;
@@ -27,7 +28,10 @@ public final class Presets implements GameModule {
         String name = game.rules().resolve(Scope.GAME, KEY);
         if (name.isEmpty()) return mode.profile().get();
         for (Preset preset : Preset.values()) {
-            if (preset.name().equalsIgnoreCase(name)) return preset.profile().toBuilder();
+            // the compat layer rides with it: a preset's mechanics and its cross-version layer are one entry
+            if (preset.name().equalsIgnoreCase(name)) {
+                return preset.profile().toBuilder().set(MechanicsKeys.COMPAT, preset.compat());
+            }
         }
         throw new IllegalStateException("match.preset '" + name + "' is not a preset - one of "
                 + Arrays.stream(Preset.values()).map(p -> p.name().toLowerCase(Locale.ROOT)).toList());

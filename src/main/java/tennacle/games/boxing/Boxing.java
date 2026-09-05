@@ -70,12 +70,18 @@ public final class Boxing {
     public static final StateKey<Integer> COMBO = StateKey.of("ledger.boxing.combo", Codec.INT, 0, true);
     public static final StateKey<Integer> BEST_COMBO = StateKey.of("ledger.boxing.best-combo", Codec.INT, 0, true);
 
-    /** No hunger drain and only swings hurt: what boxing IS, as paths over whatever preset the server runs. */
-    static final Ruleset RULES = Ruleset.named("boxing")
+    /** No hunger drain and only swings hurt: what boxing IS, over whichever preset the platform names. */
+    static final Ruleset BASE = Ruleset.named("boxing")
             .path("hunger/exhaustionScale", 0)
             .path("damage/enabledTypes", "only(minecraft:player_attack)")
             // captured: a duel reads health off the body, neither under the name nor in tab - on every network
             .rule(HealthDisplay.SURFACES, List.of());
+
+    /** What each platform IS, over the base: a hit's reach and reset are its preset's, so the preset is the mode. */
+    private static final Map<String, Ruleset> VARIANTS = Map.of(
+            "hypixel", Ruleset.named("hypixel").rule(Presets.KEY, "hypixel").over(BASE),
+            "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18").over(BASE),
+            "minemen", Ruleset.named("minemen").rule(Presets.KEY, "mmc18").over(BASE));
 
     // career truth, in the vault
     public static final VaultKey<Integer> CAREER_HITS = VaultKey.of("boxing:career-hits", Codec.INT, 0);
@@ -124,8 +130,8 @@ public final class Boxing {
                                 .counter(SPRINT_HITS, CAREER_SPRINT)
                                 .best(BEST_COMBO, CAREER_COMBO))
                 .build();
-        RULES.check(Mechanics.polyp.profiles().global(), type);
-        Duels.mode(new Mode("boxing", type, arena, MechanicsProfile::builder, RULES, Map.of(), "minemen",
+        for (Ruleset ruleset : VARIANTS.values()) ruleset.check(Mechanics.polyp.profiles().global(), type);
+        Duels.mode(new Mode("boxing", type, arena, MechanicsProfile::builder, BASE, VARIANTS, "minemen",
                 // no boxing capture - sumo's single-bold-line pattern
                 List.of(Component.text("First player to land 10 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
                 true, null));
