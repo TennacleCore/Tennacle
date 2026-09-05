@@ -7,7 +7,7 @@ import net.minestom.server.command.CommandSender;
 
 /**
  * The Tennacle look, as a Canvas {@link Theme}: a light blue to light pink gradient on tags and titles (flat
- * light purple for a legacy client), light gray prose, light blue values, light purple accents and
+ * light blue for a legacy client), light gray prose, light blue values, light purple accents and
  * click-to-suggest commands, red errors. Installed as the server theme at boot; these statics are the app's
  * shorthand over it.
  */
@@ -15,7 +15,7 @@ public final class Msg {
 
     /** The 1.8 wire's own colors, so both generations read the same; the gradient is the modern extra. */
     public static final Theme THEME = Theme.builder()
-            .brand(NamedTextColor.LIGHT_PURPLE)
+            .brand(NamedTextColor.AQUA)
             .gradient(0x55FFFF, 0xB58CFF, 0xFF55FF)
             .accent(NamedTextColor.LIGHT_PURPLE)
             .value(NamedTextColor.AQUA)

@@ -48,7 +48,7 @@ final class Boards {
                         .append(Msg.THEME.value(Boxing.hits(g, Match.opponent(g, me))))), Boxing.HITS)
                 .line((g, me) -> Frames.tennacleRow("Combo ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO)
                 .blank()
-                .line((g, me) -> Msg.THEME.dim("first to " + g.rules().resolve(Scope.GAME, Score.TARGET))));
+                .line((g, me) -> Msg.THEME.prose("first to " + g.rules().resolve(Scope.GAME, Score.TARGET))));
     }
 
     // the scrims frame with boxing content

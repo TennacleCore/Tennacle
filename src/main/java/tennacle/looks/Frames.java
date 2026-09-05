@@ -105,7 +105,7 @@ public final class Frames {
     }
 
     public static Component tennacleRow(String label, Component value) {
-        return Msg.THEME.prose(label).append(value);
+        return Component.text(label, NamedTextColor.WHITE).append(value);
     }
 
     public static Component minemenRow(String label, Object value) {

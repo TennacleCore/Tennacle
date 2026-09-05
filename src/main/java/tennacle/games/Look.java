@@ -130,8 +130,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             (g, speaker, message) -> Component.text(speaker.getUsername(), Match.teamColor(g, speaker))
                     .append(Msg.THEME.prose(" \u00bb "))
                     .append(Component.text(message, NamedTextColor.WHITE)),
-            new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline()).append(Msg.THEME.prose(ADDRESS)),
-                    p -> Component.newline().append(Msg.THEME.prose(STORE))),
+            new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline()).append(Msg.THEME.value(ADDRESS)),
+                    p -> Component.newline().append(Msg.THEME.accent(STORE))),
             true, Look::tennacleHit, Look::tennacleTiebreak);
 
     // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
