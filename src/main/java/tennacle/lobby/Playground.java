@@ -112,7 +112,7 @@ public final class Playground {
             // format (gradient vs flat) depends on it
             Msg.onceProtocolKnown(p, 60, () -> {
                 List<String[]> rows = new ArrayList<>(List.of(
-                        new String[]{"/duel <player> [mode] [map] [-flags]", "a 1v1; -look, -platform, or any rule"},
+                        new String[]{"/duel <player> [mode] [map] [-flags]", "a 1v1; -look -time -cages ... tab lists them"},
                         new String[]{"/queue <mode>", "the next two sides start"},
                         new String[]{"/party", "a side that duels and queues together"},
                         new String[]{"/spectate <player>", "watch their game"},

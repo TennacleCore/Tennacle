@@ -10,6 +10,8 @@ import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
+import tennacle.games.Flag;
+import tennacle.games.Flags;
 import tennacle.games.KitLayouts;
 import tennacle.games.MapPool;
 import tennacle.games.Sections;
@@ -238,6 +240,9 @@ public final class Bridge {
         MinecraftServer.getCommandManager().register(cageCmd);
         KitLayouts.editable("bridge", KIT);
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
+        // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
+        Flags.register(Flag.onOff("cages", Cages.BLOCKS));
+        Flags.register(Flag.in(Flag.rule("goals", Score.TARGET, Integer::parseInt, List.of()), "bridge"));
         Duels.mode(new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(), "scrims",
                 List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
                         Component.text("Knock off your opponent to gain a clear path.", NamedTextColor.YELLOW),
