@@ -74,8 +74,8 @@ public final class Boxing {
     static final Ruleset RULES = Ruleset.named("boxing")
             .path("hunger/exhaustionScale", 0)
             .path("damage/enabledTypes", "only(minecraft:player_attack)")
-            // a duel reads health off the other player's body, not a number under their name
-            .rule(HealthDisplay.SURFACES, List.of(HealthDisplay.TAB));
+            // captured: a duel reads health off the body, neither under the name nor in tab - on every network
+            .rule(HealthDisplay.SURFACES, List.of());
 
     // career truth, in the vault
     public static final VaultKey<Integer> CAREER_HITS = VaultKey.of("boxing:career-hits", Codec.INT, 0);

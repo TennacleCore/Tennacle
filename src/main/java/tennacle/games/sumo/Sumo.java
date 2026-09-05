@@ -50,8 +50,8 @@ public final class Sumo {
     /** Only swings hurt - a selection over the damage catalog, as a path. */
     static final Ruleset RULES = Ruleset.named("sumo")
             .path("damage/enabledTypes", "only(minecraft:player_attack)")
-            // a duel reads health off the other player's body, not a number under their name
-            .rule(HealthDisplay.SURFACES, List.of(HealthDisplay.TAB));
+            // captured: a duel reads health off the body, neither under the name nor in tab - on every network
+            .rule(HealthDisplay.SURFACES, List.of());
 
     private Sumo() {}
 

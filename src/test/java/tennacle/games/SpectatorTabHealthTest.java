@@ -7,6 +7,7 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.view.HealthDisplay;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.network.packet.server.play.ScoreboardObjectivePacket;
@@ -20,7 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** A spectator gets the tab health column: every player's row, and their own row reading 0. */
+/** A spectator gets the tab health column: every player's row, and their own row reading 0. A duel lists no
+ *  health on any network, so the column is turned on here - which is also the list rule's live re-arm. */
 class SpectatorTabHealthTest extends HeadlessServerTest {
 
     @BeforeAll
@@ -29,7 +31,7 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
     }
 
     @Test
-    void aSpectatorSeesThePlayersHealthAndAZeroOnTheirOwnRow() throws InterruptedException {
+    void spectatorSeesTheHealthColumn() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "TabHpA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "TabHpB");
         FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "TabHpWatch");
@@ -45,6 +47,8 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
                 Thread.sleep(10);
             }
             assertNotNull(Game.of(b.player));
+            Matches.modify(game, Ruleset.named("tab-health")
+                    .rule(HealthDisplay.SURFACES, List.of(HealthDisplay.NAME, HealthDisplay.TAB)));
             String objective = "ht-" + game.code();
             w.sent.clear();
             Spectators.enter(game, w.player, a.player);
