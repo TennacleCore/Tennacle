@@ -66,11 +66,11 @@ public final class Rules implements GameModule {
     private int minBuildY;
     private int maxBuildY;
     /** Absolute max build Y; {@code -1} keeps the {@code bridge:height} marker. */
-    public static final StateKey<Integer> HEIGHT = StateKey.of("build:height", Codec.INT, -1);
+    public static final StateKey<Integer> HEIGHT = StateKey.of("bridge.build.height", Codec.INT, -1);
     /** May place outside the {@code bridge:build} slices - still under the height and above the floor. */
-    public static final StateKey<Boolean> OUTSIDE = StateKey.of("build:outside", Codec.BOOLEAN, false);
+    public static final StateKey<Boolean> OUTSIDE = StateKey.of("bridge.build.outside", Codec.BOOLEAN, false);
     /** May break MAP blocks outside the bridge sections; a block you placed is always yours to break. */
-    public static final StateKey<Boolean> BREAK_OUTSIDE = StateKey.of("build:break-outside", Codec.BOOLEAN, false);
+    public static final StateKey<Boolean> BREAK_OUTSIDE = StateKey.of("bridge.build.break-outside", Codec.BOOLEAN, false);
 
     private Game game;
     private Respawns respawns;

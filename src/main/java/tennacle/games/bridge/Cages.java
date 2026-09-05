@@ -58,37 +58,37 @@ import java.util.Set;
 public final class Cages implements GameModule {
 
     /** Seconds on the cage count; captured: 3 on hypixel, 5 on scrims. */
-    public static final StateKey<Integer> SECONDS = StateKey.of("cage:seconds", Codec.INT, 3);
+    public static final StateKey<Integer> SECONDS = StateKey.of("bridge.cage.seconds", Codec.INT, 3);
     /** Off: no cage blocks. The break after a goal is {@link #REOPEN}'s - a cage is a look, not the break itself. */
-    public static final StateKey<Boolean> ENABLED = StateKey.of("cage:enabled", Codec.BOOLEAN, true);
+    public static final StateKey<Boolean> ENABLED = StateKey.of("bridge.cage.enabled", Codec.BOOLEAN, true);
     /** Whether a goal reopens the count; off, the goal plays straight on with nobody re-seated. */
-    public static final StateKey<Boolean> REOPEN = StateKey.of("cage:reopen", Codec.BOOLEAN, true);
+    public static final StateKey<Boolean> REOPEN = StateKey.of("bridge.cage.reopen", Codec.BOOLEAN, true);
 
     /**
      * Blocks from the seat a held player may reach on x and z. Every cage gets the same box, whatever it looks
      * like, so an unlocked cage is never room to move. {@code 0} holds them on the spot; below zero the server
      * holds nobody at all and the cage's own walls do it.
      */
-    public static final StateKey<Integer> BOUNDS = StateKey.of("cage:bounds", Codec.INT, 3);
+    public static final StateKey<Integer> BOUNDS = StateKey.of("bridge.cage.bounds", Codec.INT, 3);
     /**
      * Blocks above and below the seat a held player may reach. Anything under a jump's apex (~1.25) clamps the
      * jump itself, so {@code 0} is the only true pin - nailed to the spot, feet included.
      */
-    public static final StateKey<Integer> HEIGHT = StateKey.of("cage:height", Codec.INT, 3);
+    public static final StateKey<Integer> HEIGHT = StateKey.of("bridge.cage.height", Codec.INT, 3);
     /**
      * Where a side is held for the opening: {@link #SEAT_CAGE} or {@link #SEAT_RESPAWN}. The stamp, the hold and
      * the teleport after a goal all read it, so the cage is never somewhere the players are not.
      */
-    public static final StateKey<String> SEAT = StateKey.of("cage:seat", Codec.STRING, "cage");
+    public static final StateKey<String> SEAT = StateKey.of("bridge.cage.seat", Codec.STRING, "cage");
     /** The team's {@code bridge:cage} marker - the seat the roster hands out. */
     public static final String SEAT_CAGE = "cage";
     /** The team's {@code bridge:respawn} marker, for a mode that opens where it respawns. */
     public static final String SEAT_RESPAWN = "respawn";
 
     /** The only cages a game allows; empty = all of them. */
-    public static final StateKey<List<String>> WHITELIST = StateKey.of("cage:whitelist", Codec.STRING.list(), List.of());
+    public static final StateKey<List<String>> WHITELIST = StateKey.of("bridge.cage.whitelist", Codec.STRING.list(), List.of());
     /** Cages a game refuses, whitelisted or not. */
-    public static final StateKey<List<String>> BLACKLIST = StateKey.of("cage:blacklist", Codec.STRING.list(), List.of());
+    public static final StateKey<List<String>> BLACKLIST = StateKey.of("bridge.cage.blacklist", Codec.STRING.list(), List.of());
 
     static final String RECAGE_ALARM = "bridge:recage";
     private static final String COUNT_ALARM = "bridge:cage-count";

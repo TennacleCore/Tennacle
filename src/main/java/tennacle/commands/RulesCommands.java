@@ -38,8 +38,10 @@ public final class RulesCommands {
             }
             Map<String, StateKey<?>> supported = game.type().supportedRules();
             Msg.tag(p, "rules", game.type().id() + ": " + supported.size() + " rule(s)");
-            for (StateKey<?> k : supported.values()) {
-                Msg.tag(p, "rules", "  " + k.id() + " = ", Msg.v(game.rules().resolve(Scope.GAME, k)));
+            // sorted: ids lead with their package, so the listing groups itself
+            for (String id : new java.util.TreeSet<>(supported.keySet())) {
+                StateKey<?> k = supported.get(id);
+                Msg.tag(p, "rules", "  " + id + " = ", Msg.v(game.rules().resolve(Scope.GAME, k)));
             }
         });
         rules.addSyntax((sender, ctx) -> {

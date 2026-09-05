@@ -20,7 +20,7 @@ import java.util.Set;
  */
 public final class Presets implements GameModule {
 
-    public static final StateKey<String> KEY = StateKey.of("mechanics:preset", Codec.STRING, "");
+    public static final StateKey<String> KEY = StateKey.of("match.preset", Codec.STRING, "");
 
     /** The builder the fold starts from: the named preset, else the mode's profile. */
     public static @NotNull MechanicsProfile.Builder builderFor(@NotNull Game game, @NotNull Mode mode) {
@@ -29,7 +29,7 @@ public final class Presets implements GameModule {
         for (Preset preset : Preset.values()) {
             if (preset.name().equalsIgnoreCase(name)) return preset.profile().toBuilder();
         }
-        throw new IllegalStateException("mechanics:preset '" + name + "' is not a preset - one of "
+        throw new IllegalStateException("match.preset '" + name + "' is not a preset - one of "
                 + Arrays.stream(Preset.values()).map(p -> p.name().toLowerCase(Locale.ROOT)).toList());
     }
 
