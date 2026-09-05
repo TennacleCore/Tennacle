@@ -65,10 +65,10 @@ import java.util.UUID;
 public final class Boxing {
 
     // match truth, at the seat - replayable, branch-safe
-    public static final StateKey<Integer> HITS = StateKey.of("boxing:hits", Codec.INT, 0, true);
-    public static final StateKey<Integer> SPRINT_HITS = StateKey.of("boxing:sprint-hits", Codec.INT, 0, true);
-    public static final StateKey<Integer> COMBO = StateKey.of("boxing:combo", Codec.INT, 0, true);
-    public static final StateKey<Integer> BEST_COMBO = StateKey.of("boxing:best-combo", Codec.INT, 0, true);
+    public static final StateKey<Integer> HITS = StateKey.of("ledger.boxing.hits", Codec.INT, 0, true);
+    public static final StateKey<Integer> SPRINT_HITS = StateKey.of("ledger.boxing.sprint-hits", Codec.INT, 0, true);
+    public static final StateKey<Integer> COMBO = StateKey.of("ledger.boxing.combo", Codec.INT, 0, true);
+    public static final StateKey<Integer> BEST_COMBO = StateKey.of("ledger.boxing.best-combo", Codec.INT, 0, true);
 
     /** No hunger drain and only swings hurt: what boxing IS, as paths over whatever preset the server runs. */
     static final Ruleset RULES = Ruleset.named("boxing")

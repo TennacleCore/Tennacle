@@ -46,9 +46,9 @@ import java.util.function.Supplier;
 public final class Matches {
 
     /** The active look's name, stamped at launch. */
-    public static final StateKey<String> LOOK = StateKey.of("match:look", Codec.STRING, "");
+    public static final StateKey<String> LOOK = StateKey.of("ledger.match.look", Codec.STRING, "");
     /** The platform's name, stamped at launch - what a re-fold resolves the ruleset from. */
-    public static final StateKey<String> PLATFORM = StateKey.of("match:platform", Codec.STRING, "");
+    public static final StateKey<String> PLATFORM = StateKey.of("ledger.match.platform", Codec.STRING, "");
 
     private static final Map<String, Mode> modes = new LinkedHashMap<>();
     private static final Map<String, Look> looks = new LinkedHashMap<>(Map.of(

@@ -97,8 +97,8 @@ public final class Bridge {
     public static final MarkerKey<RegionMarker> SECTION = MarkerKey.region("section");
     public static final MarkerKey<RegionMarker> CENTER = MarkerKey.region("center");
 
-    public static final StateKey<Integer> GOALS = StateKey.of("bridge:goals", Codec.INT, 0, true);
-    public static final StateKey<Integer> KILLS = StateKey.of("bridge:kills", Codec.INT, 0, true);
+    public static final StateKey<Integer> GOALS = StateKey.of("ledger.bridge.goals", Codec.INT, 0, true);
+    public static final StateKey<Integer> KILLS = StateKey.of("ledger.bridge.kills", Codec.INT, 0, true);
     /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
     public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
 

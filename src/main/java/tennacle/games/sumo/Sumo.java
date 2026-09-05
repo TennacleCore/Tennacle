@@ -44,8 +44,8 @@ import java.util.Map;
  */
 public final class Sumo {
 
-    public static final StateKey<Integer> SWINGS = StateKey.of("sumo:swings", Codec.INT, 0, true);
-    public static final StateKey<Integer> LANDED = StateKey.of("sumo:landed", Codec.INT, 0, true);
+    public static final StateKey<Integer> SWINGS = StateKey.of("ledger.sumo.swings", Codec.INT, 0, true);
+    public static final StateKey<Integer> LANDED = StateKey.of("ledger.sumo.landed", Codec.INT, 0, true);
 
     /** Only swings hurt - a selection over the damage catalog, as a path. */
     static final Ruleset RULES = Ruleset.named("sumo").path("damage/enabledTypes", "only(minecraft:player_attack)");
