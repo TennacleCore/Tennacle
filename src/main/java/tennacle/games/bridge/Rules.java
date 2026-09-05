@@ -69,8 +69,13 @@ public final class Rules implements GameModule {
     public static final StateKey<Integer> HEIGHT = StateKey.of("space.build.height", Codec.INT, -1);
     /** May place outside the {@code bridge:build} slices - still under the height and above the floor. */
     public static final StateKey<Boolean> OUTSIDE = StateKey.of("space.build.outside", Codec.BOOLEAN, false);
-    /** May break MAP blocks outside the bridge sections; a block you placed is always yours to break. */
-    public static final StateKey<Boolean> BREAK_OUTSIDE = StateKey.of("space.build.break-outside", Codec.BOOLEAN, false);
+    /** A block a member put there. */
+    public static final String PLACED = "placed";
+    /** The map's own. */
+    public static final String MAP = "map";
+    /** What may be broken outside the bridge sections; a kind nobody names stays standing out there. */
+    public static final StateKey<List<String>> BREAKABLE_OUTSIDE =
+            StateKey.of("space.build.breakable-outside", Codec.STRING.list(), List.of(PLACED));
 
     private Game game;
     private Respawns respawns;
@@ -80,7 +85,7 @@ public final class Rules implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(HEIGHT, OUTSIDE, BREAK_OUTSIDE);
+        return Set.of(HEIGHT, OUTSIDE, BREAKABLE_OUTSIDE);
     }
 
     @Override
@@ -150,12 +155,13 @@ public final class Rules implements GameModule {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
-            boolean own = placed.remove(packed(pos));
-            if (!own && !inBridge(game, pos) && !game.rules().resolve(Scope.GAME, BREAK_OUTSIDE)) {
+            boolean own = placed.contains(packed(pos));
+            if (!inBridge(game, pos) && !game.rules().resolve(player, BREAKABLE_OUTSIDE).contains(own ? PLACED : MAP)) {
                 e.setCancelled(true);
                 Msg.err(player, "bridge", "you can't break that");
                 return;
             }
+            placed.remove(packed(pos)); // after the refusal: a block that stays is still the one who placed it
             respawns.unprotect(player);
         });
         game.on(net.minestom.server.event.item.ItemDropEvent.class, e -> {
