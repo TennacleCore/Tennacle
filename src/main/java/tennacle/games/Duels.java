@@ -10,7 +10,6 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -18,12 +17,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The duel front: {@code /duel <player> [mode] [platform]} requests, dueling back accepts (the REQUESTER's mode
- * and platform win), and {@link Matches#start} seats each party as a side. Modes register at boot.
+ * The duel front: {@code /duel <player> [mode] [map] [-flag ...]} requests, dueling back accepts (the REQUESTER's
+ * mode and {@link Options} win), and {@link Matches#start} seats each party as a side. Modes register at boot.
  */
 public final class Duels {
 
-    private record Request(UUID target, String mode, @Nullable String platform, long at) {
+    private record Request(UUID target, String mode, Options options, long at) {
         boolean expired() {
             return System.currentTimeMillis() - at > 60_000;
         }
@@ -50,26 +49,34 @@ public final class Duels {
         var name = ArgumentType.Word("player");
         name.setSuggestionCallback(PlayerNames.suggest());
         var mode = ArgumentType.Word("mode");
-        var platform = ArgumentType.Word("platform");
+        mode.setSuggestionCallback(Completions.of(Matches::modes)); // modes register after this command does
+        var options = ArgumentType.StringArray("options");
+        options.setSuggestionCallback((sender, ctx, suggestion) -> {
+            Mode picked = Matches.mode(ctx.get(mode));
+            if (picked != null) Completions.offer(suggestion, Options.completions(picked, Completions.partial(suggestion)));
+        });
         duel.setDefaultExecutor((sender, ctx) ->
                 Msg.tag(sender, "duel", "usage: ", Msg.run("/duel <player> [" + String.join("|", Matches.modes())
-                        + "] [" + String.join("|", Matches.platforms()) + "]")));
-        duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), defaultMode, null), name);
-        duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), null), name, mode);
-        duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), ctx.get(platform)),
-                name, mode, platform);
+                        + "] [map] [-look=<look> -platform=<platform> -<rule>=<value> ...]")));
+        duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), defaultMode, List.of()), name);
+        duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), List.of()), name, mode);
+        duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), List.of(ctx.get(options))),
+                name, mode, options);
         MinecraftServer.getCommandManager().register(duel);
     }
 
-    private static void request(Object sender, String targetName, String modeName, @Nullable String platformName) {
+    private static void request(Object sender, String targetName, String modeName, List<String> words) {
         if (!(sender instanceof Player me)) return;
         Mode mode = modeName != null ? Matches.mode(modeName) : null;
         if (mode == null) {
             Msg.err(me, "duel", "modes: ", Msg.v(String.join(", ", Matches.modes())));
             return;
         }
-        if (platformName != null && Matches.platform(platformName) == null) {
-            Msg.err(me, "duel", "platforms: ", Msg.v(String.join(", ", Matches.platforms())));
+        Options options;
+        try {
+            options = Options.parse(mode, words);
+        } catch (IllegalArgumentException e) {
+            Msg.err(me, "duel", e.getMessage());
             return;
         }
         Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(targetName);
@@ -102,22 +109,22 @@ public final class Duels {
             requests.remove(target.getUuid());
             theirs = null;
         }
-        if (theirs != null && theirs.target().equals(me.getUuid())) { // accepting: the requester's mode wins
+        if (theirs != null && theirs.target().equals(me.getUuid())) { // accepting: the requester's mode and options win
             requests.remove(target.getUuid());
             requests.remove(me.getUuid());
-            start(Matches.mode(theirs.mode()), theirs.platform(), target, me);
+            start(Matches.mode(theirs.mode()), theirs.options(), target, me);
             return;
         }
-        requests.put(me.getUuid(), new Request(target.getUuid(), modeName, platformName, System.currentTimeMillis()));
-        Msg.tag(me, "duel", modeName + " request sent to ", Msg.v(target.getUsername()));
-        Msg.tag(target, "duel", Msg.v(me.getUsername()), " wants to " + modeName + " - ",
+        requests.put(me.getUuid(), new Request(target.getUuid(), modeName, options, System.currentTimeMillis()));
+        Msg.tag(me, "duel", modeName + options.describe() + " request sent to ", Msg.v(target.getUsername()));
+        Msg.tag(target, "duel", Msg.v(me.getUsername()), " wants to " + modeName + options.describe() + " - ",
                 Msg.run("/duel " + me.getUsername()), " to accept");
     }
 
-    private static void start(Mode mode, @Nullable String platformName, Player a, Player b) {
-        Platform platform = Matches.platformFor(mode, platformName);
+    private static void start(Mode mode, Options options, Player a, Player b) {
+        Platform platform = Matches.platformFor(mode, options.platform());
         try {
-            Matches.start(mode, platform, List.of(Parties.of(a), Parties.of(b)));
+            Matches.start(mode, platform, List.of(Parties.of(a), Parties.of(b)), options);
         } catch (IllegalStateException e) { // the map may not be authored yet
             for (Player p : new Player[]{a, b}) Msg.err(p, "duel", e.getMessage());
             return;
@@ -126,8 +133,8 @@ public final class Duels {
             for (Player p : new Player[]{a, b}) Msg.err(p, "duel", "could not start: " + e.getMessage());
             return;
         }
-        // name the active platform: the REQUESTER's mode and platform win an accept, which is invisible otherwise
-        String tag = mode.name() + (platformName != null ? " (" + platformName + ")" : "");
+        // name what runs: the REQUESTER's mode and options win an accept, which is invisible otherwise
+        String tag = mode.name() + options.describe();
         Msg.tag(a, "duel", tag + " vs ", Msg.v(b.getUsername()));
         Msg.tag(b, "duel", tag + " vs ", Msg.v(a.getUsername()));
     }

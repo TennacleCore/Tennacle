@@ -10,7 +10,9 @@ import net.minestom.server.MinecraftServer;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.Supplier;
+import java.util.Set;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code .bncl}-backed arena: reads {@code arenas/<name>.bncl} lazily and hot-reloads on
@@ -18,7 +20,7 @@ import java.util.function.Supplier;
  * instance unregisters once its last game drains. A missing file never blocks boot (this is the server maps
  * are authored ON); launching before the map exists is the error.
  */
-public final class HotArena implements Supplier<Arena> {
+public final class HotArena implements Maps {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HotArena.class);
 
@@ -48,6 +50,16 @@ public final class HotArena implements Supplier<Arena> {
             throw new IllegalStateException(file + " missing or unreadable - build the map in Bloom and /arena save it", e);
         }
         return loaded;
+    }
+
+    @Override
+    public @Nullable Arena named(@NotNull String map) {
+        return map.equals(name) ? get() : null;
+    }
+
+    @Override
+    public @NotNull Set<String> names() {
+        return Set.of(name);
     }
 
     private void reload(Path file) {

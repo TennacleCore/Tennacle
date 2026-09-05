@@ -11,9 +11,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Supplier;
 
 /**
  * Every {@code arenas/*.bncl} carrying {@code tag} is in the rotation - maps are named freely (urban,
@@ -21,7 +25,7 @@ import java.util.function.Supplier;
  * launch, never at boot, and {@code /arena save} adds, retags, or refreshes a map live (the NEXT game;
  * in-flight games finish on the arena they have).
  */
-public final class MapPool implements Supplier<Arena> {
+public final class MapPool implements Maps {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MapPool.class);
 
@@ -53,6 +57,27 @@ public final class MapPool implements Supplier<Arena> {
                     + "' - build one in Bloom, /arena tag " + tag + ", and /arena save");
         }
         return live.get(ThreadLocalRandom.current().nextInt(live.size()));
+    }
+
+    @Override
+    public @Nullable Arena named(@NotNull String name) {
+        if (!scanned) scan();
+        for (var entry : maps.entrySet()) {
+            if (stem(entry.getKey()).equals(name) && Files.exists(entry.getKey())) return entry.getValue();
+        }
+        return null;
+    }
+
+    @Override
+    public @NotNull Set<String> names() {
+        if (!scanned) scan();
+        maps.keySet().removeIf(file -> !Files.exists(file));
+        return maps.keySet().stream().map(MapPool::stem).collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    private static String stem(Path file) {
+        String name = file.getFileName().toString();
+        return name.substring(0, name.length() - ".bncl".length());
     }
 
     private synchronized void scan() {

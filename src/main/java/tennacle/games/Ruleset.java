@@ -49,6 +49,10 @@ public final class Ruleset {
 
     public String name() { return name; }
 
+    public boolean isEmpty() {
+        return paths.isEmpty() && rules.isEmpty() && data.isEmpty();
+    }
+
     /** Every problem with the mechanics half against {@code fallback}; rules by id need {@link #validate(MechanicsProfile, GameType)}. */
     public List<String> validate(@Nullable MechanicsProfile fallback) {
         List<String> problems = new ArrayList<>();
@@ -135,7 +139,10 @@ public final class Ruleset {
         List<Rule<?>> next = new ArrayList<>(rules);
         next.removeIf(r -> r.scope().equals(scope) && r.key().equals(key));
         next.add(new Rule<>(scope, key, value));
-        return new Ruleset(name, paths, List.copyOf(next), data);
+        // one entry per scope and key whichever form named it: a typed rule displaces the same rule by id
+        List<DataRule> nextData = new ArrayList<>(data);
+        nextData.removeIf(d -> d.scope().equals(scope) && d.id().equals(key.id()));
+        return new Ruleset(name, paths, List.copyOf(next), List.copyOf(nextData));
     }
 
     /** A rule by id, as data ({@code score:target = 3}); the key and the value resolve against the game's type at the fold. */
@@ -147,7 +154,9 @@ public final class Ruleset {
         List<DataRule> next = new ArrayList<>(data);
         next.removeIf(d -> d.scope().equals(scope) && d.id().equals(id));
         next.add(new DataRule(scope, id, value));
-        return new Ruleset(name, paths, rules, List.copyOf(next));
+        List<Rule<?>> nextRules = new ArrayList<>(rules);
+        nextRules.removeIf(r -> r.scope().equals(scope) && r.key().id().equals(id));
+        return new Ruleset(name, paths, List.copyOf(nextRules), List.copyOf(next));
     }
 
     public Ruleset with(@NotNull String path, @NotNull Object value) {

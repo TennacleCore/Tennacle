@@ -159,9 +159,16 @@ public final class Matches {
      * {@link #start} does before seating; the round harnesses seat their own players.
      */
     public static @NotNull Game launch(@NotNull Mode mode, @NotNull Platform platform, @NotNull Arena arena) {
+        return launch(mode, platform, arena, Options.NONE);
+    }
+
+    /** {@link #launch} with a request's {@link Options}: its look over the platform's, its rules as the first live modifier. */
+    public static @NotNull Game launch(@NotNull Mode mode, @NotNull Platform platform, @NotNull Arena arena,
+                                       @NotNull Options options) {
         return grotto.launch(mode.type(), arena, null, g -> {
-            g.state().set(Scope.GAME, LOOK, platform.look());
+            g.state().set(Scope.GAME, LOOK, options.look() != null ? options.look() : platform.look());
             g.state().set(Scope.GAME, PLATFORM, platform.name());
+            if (!options.rules().isEmpty()) modifiers.put(g.id(), options.rules());
             fold(g);
         });
     }
@@ -212,6 +219,12 @@ public final class Matches {
      */
     public static @NotNull Game start(@NotNull Mode mode, @NotNull Platform platform,
                                       @NotNull List<? extends Collection<Player>> sides) {
+        return start(mode, platform, sides, Options.NONE);
+    }
+
+    /** {@link #start} on the map the options name, else the pool's pick. */
+    public static @NotNull Game start(@NotNull Mode mode, @NotNull Platform platform,
+                                      @NotNull List<? extends Collection<Player>> sides, @NotNull Options options) {
         for (Collection<Player> side : sides) { // before the launch, so a refusal orphans nothing
             for (Player player : side) {
                 // engaged, not seated: the shard tag lands at the end of the transfer, and a player mid-flight
@@ -219,7 +232,9 @@ public final class Matches {
                 if (grotto.engaged(player)) throw new IllegalStateException(player.getUsername() + " is in a game");
             }
         }
-        Game game = launch(mode, platform, mode.arena().get());
+        Arena arena = options.map() != null ? mode.arena().named(options.map()) : mode.arena().get();
+        if (arena == null) throw new IllegalStateException("no map named " + options.map() + " for " + mode.name());
+        Game game = launch(mode, platform, arena, options);
         List<Team> teams = game.roster().teams();
         if (sides.size() > teams.size()) {
             game.end(Outcome.aborted());

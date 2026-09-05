@@ -40,7 +40,9 @@ public final class Queues {
         });
         Command queue = new Command("queue");
         var mode = ArgumentType.Word("mode");
+        mode.setSuggestionCallback(Completions.of(Matches::modes));
         var platform = ArgumentType.Word("platform");
+        platform.setSuggestionCallback(Completions.of(Matches::platforms));
         queue.setDefaultExecutor((sender, ctx) ->
                 Msg.tag(sender, "queue", "usage: ", Msg.run("/queue <" + String.join("|", Matches.modes())
                         + "> [" + String.join("|", Matches.platforms()) + "] | /queue leave")));
