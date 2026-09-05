@@ -206,12 +206,12 @@ class DuelCommandTest extends HeadlessServerTest {
             game = Game.of(a.player);
             assertNotNull(game, "the duel launched");
             assertTrue(Match.opening(game));
-            game.state().set(Scope.GAME, Cages.SECONDS, 30);
+            game.state().set(Scope.GAME, Countdown.FROM, 30);
             long grace = game.rules().resolve(Scope.GAME, Countdown.GRACE);
             long interval = game.rules().resolve(Scope.GAME, Countdown.INTERVAL);
             for (int i = 0; i < grace + 2 * interval + 5; i++) MinecraftServer.getSchedulerManager().processTick();
             assertTrue(Match.opening(game), "a thirty-second count is still going");
-            game.state().set(Scope.GAME, Cages.SECONDS, 3); // under what is already shown: the next beat opens
+            game.state().set(Scope.GAME, Countdown.FROM, 3); // under what is already shown: the next beat opens
             for (int i = 0; i < 2 * interval + 5; i++) MinecraftServer.getSchedulerManager().processTick();
             assertFalse(Match.opening(game), "the shortened count opened the match");
         } finally {

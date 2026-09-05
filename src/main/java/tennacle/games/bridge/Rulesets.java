@@ -2,6 +2,7 @@ package tennacle.games.bridge;
 
 import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.modules.combat.Freeze;
+import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import tennacle.games.Match;
 import tennacle.games.Presets;
@@ -53,7 +54,7 @@ final class Rulesets {
                     .rule(Presets.KEY, "scrims18")
                     .path("projectiles/minecraft:arrow/critDamage", false)
                     .path("projectiles/minecraft:arrow/stuckInBody", false) // captured: no body arrows on scrims
-                    .rule(Cages.SECONDS, 5) // captured: five on scrims, three elsewhere
+                    .rule(Countdown.FROM, 5) // captured: five beats on scrims, three elsewhere
                     .over(BASE),
             "minemen", VANILLA_RULES.over(BASE));
 

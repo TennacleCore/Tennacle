@@ -181,6 +181,7 @@ public final class Bridge {
                 .expect(SECTION, 2)
                 .expect(CENTER, 1)
                 .body(Body.fresh().gamemode(GameMode.SURVIVAL)) // bridge digs and builds
+                .rule(Countdown.FROM, 3) // captured: three beats, five on scrims
                 .rule(Score.TARGET, 5)
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
                 .rule(TimeLimit.TIEBREAKER, false) // ranked turns this on: a drawn clock plays on

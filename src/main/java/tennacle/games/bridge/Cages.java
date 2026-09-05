@@ -54,12 +54,11 @@ import java.util.Set;
  * where the player stands, facing the FRONT. {@code accent}/{@code accent.<family>} regions mark cells whose
  * authored RED blocks follow the team's {@code cage} value. Players pick a variant ({@code /cage}, vault-backed);
  * a side's one cage is drawn from its members' picks, rotated so the front faces the map center. The count is the captured per-network
- * voice; GO advances the {@link Phases}, the freeze is the {@code Freeze} module's.
+ * voice ({@link Countdown#FROM} beats, its own presentation); GO advances the {@link Phases}, the freeze is
+ * the {@code Freeze} module's.
  */
 public final class Cages implements GameModule {
 
-    /** Seconds on the cage count; captured: 3 on hypixel, 5 on scrims. */
-    public static final StateKey<Integer> SECONDS = StateKey.of("cage.seconds", Codec.INT, 3);
     /** Off: no cage blocks. The break after a goal is the round's - a cage is a look, not the break itself. */
     public static final StateKey<Boolean> BLOCKS = StateKey.of("cage.blocks", Codec.BOOLEAN, true);
 
@@ -118,7 +117,7 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, BLOCKS, WHITELIST, BLACKLIST, Countdown.GRACE, Countdown.INTERVAL);
+        return Set.of(BLOCKS, WHITELIST, BLACKLIST, Countdown.FROM, Countdown.GRACE, Countdown.INTERVAL);
     }
 
     /** The roster lands them on the seat marker; the rule decides whether that is where they open. */
@@ -186,7 +185,7 @@ public final class Cages implements GameModule {
         st.alarms().register(RECAGE_ALARM, (tick, payload) -> recage(game, payload));
         st.alarms().arm(STAMP_ALARM, st.tick() + 2);
         armCount(game, st.tick() + game.rules().resolve(Scope.GAME, Countdown.GRACE));
-        game.rules().watch(SECONDS, (scope, value) -> recount(game));
+        game.rules().watch(Countdown.FROM, (scope, value) -> recount(game));
     }
 
     private void armCount(Game game, long at) {
@@ -209,7 +208,7 @@ public final class Cages implements GameModule {
     }
 
     private static int seconds(Game game) {
-        return game.rules().resolve(Scope.GAME, SECONDS);
+        return game.rules().resolve(Scope.GAME, Countdown.FROM);
     }
 
     private void beat(Game game, int n) {
