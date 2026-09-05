@@ -180,6 +180,7 @@ public final class Matches {
         if (mode == null) throw new IllegalStateException("not a registered mode: " + game.type().id());
         Platform platform = platformFor(game.state().get(Scope.GAME, PLATFORM));
         Ruleset rules = mode.ruleset(platform.ruleset());
+        if (platform.mechanics() != null) rules = Ruleset.named(platform.name()).rule(Presets.KEY, platform.mechanics()).over(rules);
         Ruleset live = modifiers.get(game.id());
         if (live != null) rules = live.over(rules);
         rules.seed(game); // first: the preset the profile starts from is itself a rule - read after seeding, or a

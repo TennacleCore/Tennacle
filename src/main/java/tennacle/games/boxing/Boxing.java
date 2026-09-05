@@ -114,7 +114,7 @@ public final class Boxing {
                 .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
-                .rule(Score.TARGET, 10)
+                .rule(Score.TARGET, 100)
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
                 .modules(() -> Matches.byLook(Ends::hypixel, Ends::results, Ends::scrims), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
@@ -137,7 +137,7 @@ public final class Boxing {
         for (Ruleset ruleset : VARIANTS.values()) ruleset.check(Mechanics.polyp.profiles().global(), type);
         Mode boxing = new Mode("boxing", type, arena, MechanicsProfile::builder, BASE, VARIANTS,
                 // no boxing capture - sumo's single-bold-line pattern
-                List.of(Component.text("First player to land 10 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
+                List.of(Component.text("First player to land 100 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
                 true, null);
         Duels.mode(boxing);
         Flags.offer(boxing, "preset");

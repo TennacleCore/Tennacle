@@ -6,6 +6,7 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -89,7 +90,7 @@ class DuelOptionsTest extends HeadlessServerTest {
     }
 
     @Test
-    void noPresetIsHypixelUnderScrims() throws InterruptedException {
+    void noPresetIsScrimsOnHypixelMechanics() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(510.5, 65, 510.5), "OptF");
         FakePlayer b = FakePlayer.connect(instance, new Pos(512.5, 65, 512.5), "OptG");
         Game game = null;
@@ -97,7 +98,8 @@ class DuelOptionsTest extends HeadlessServerTest {
             chat(a, "duel OptG bridge");
             game = accept(a, b);
             assertEquals(Platform.DEFAULT.name(), game.state().get(Scope.GAME, Matches.PLATFORM));
-            assertEquals("hypixel", game.rules().resolve(Scope.GAME, Presets.KEY), "hypixel's rules");
+            assertEquals("hypixel", game.rules().resolve(Scope.GAME, Presets.KEY), "hypixel's mechanics");
+            assertEquals(5, game.rules().resolve(Scope.GAME, Countdown.FROM), "on scrims' rules");
             assertEquals("scrims", Matches.lookNameOf(game), "under the scrims look");
         } finally {
             if (game != null) game.end(Outcome.draw());
