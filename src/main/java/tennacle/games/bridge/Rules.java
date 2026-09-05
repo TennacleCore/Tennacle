@@ -12,8 +12,8 @@ import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
-import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.flow.Rounds;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.outcome.Goals;
 import io.github.term4.grotto.modules.combat.KillCredit;
@@ -66,11 +66,11 @@ public final class Rules implements GameModule {
     private int minBuildY;
     private int maxBuildY;
     /** Absolute max build Y; {@code -1} keeps the {@code bridge:height} marker. */
-    public static final StateKey<Integer> HEIGHT = StateKey.of("bridge.build.height", Codec.INT, -1);
+    public static final StateKey<Integer> HEIGHT = StateKey.of("space.build.height", Codec.INT, -1);
     /** May place outside the {@code bridge:build} slices - still under the height and above the floor. */
-    public static final StateKey<Boolean> OUTSIDE = StateKey.of("bridge.build.outside", Codec.BOOLEAN, false);
+    public static final StateKey<Boolean> OUTSIDE = StateKey.of("space.build.outside", Codec.BOOLEAN, false);
     /** May break MAP blocks outside the bridge sections; a block you placed is always yours to break. */
-    public static final StateKey<Boolean> BREAK_OUTSIDE = StateKey.of("bridge.build.break-outside", Codec.BOOLEAN, false);
+    public static final StateKey<Boolean> BREAK_OUTSIDE = StateKey.of("space.build.break-outside", Codec.BOOLEAN, false);
 
     private Game game;
     private Respawns respawns;
@@ -179,8 +179,8 @@ public final class Rules implements GameModule {
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
         st.alarms().register(REFIT_ALARM, (tick, payload) -> {
-            boolean body = game.rules().resolve(Scope.GAME, Bodies.RESET);
-            boolean kit = game.rules().resolve(Scope.GAME, Kits.RESET);
+            boolean body = Rounds.resets(game, Rounds.BODY);
+            boolean kit = Rounds.resets(game, Rounds.KIT);
             game.forEachMember(member -> {
                 if (game.roster().slotOf(member) == null) return;
                 if (body) game.body().fresh(member);
@@ -312,7 +312,7 @@ public final class Rules implements GameModule {
         };
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title
-        if (!game.rules().resolve(Scope.GAME, Cages.REOPEN)) { // no break between goals: play on
+        if (!Rounds.reopens(game)) { // no break between goals: play on
             st.alarms().arm(REFIT_ALARM, st.tick() + 1); // the alarm reads both halves; neither is this call's business
             return;
         }

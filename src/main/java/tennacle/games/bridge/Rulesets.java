@@ -7,6 +7,7 @@ import tennacle.games.Match;
 import tennacle.games.Presets;
 import tennacle.games.Ruleset;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -37,12 +38,12 @@ final class Rulesets {
     static final Ruleset VANILLA_RULES = Ruleset.named("minemen")
             .rule(Presets.KEY, "mmc18")
             .path("projectiles/minecraft:arrow/selfHit", "hit") // captured: bow boosting, minemen alone
-            .rule(Freeze.SHOOT, false)             // captured: nothing is thrown or fired from the cage
-            .rule(Cages.ENABLED, false)            // captured: no cage at all
-            .rule(Cages.SEAT, Cages.SEAT_RESPAWN)  // held where they respawn instead
-            .rule(Cages.BOUNDS, 0)                 // captured: pinned there, no room to move at all
-            .rule(Bodies.ARROWS, false)            // captured: a reset pulls the stuck arrows out
-            .rule(TimeLimit.FROM, Match.LIVE);     // captured: the clock starts when the cages open, not on the count
+            .rule(Freeze.ALLOWS, List.of(Freeze.DAMAGE)) // captured: nothing is thrown or fired from the cage
+            .rule(Cages.BLOCKS, false)                  // captured: no cage at all
+            .rule(Freeze.SEAT, Freeze.SEAT_RESPAWN)     // held where they respawn instead
+            .rule(Freeze.BOUNDS, 0)                     // captured: pinned there, no room to move at all
+            .rule(Bodies.CLEARS, List.of(Bodies.ARROWS)) // captured: a reset pulls the stuck arrows out
+            .rule(TimeLimit.FROM, Match.LIVE);          // captured: the clock starts when the cages open, not on the count
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel")
                     .rule(Presets.KEY, "hypixel")

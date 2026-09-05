@@ -38,6 +38,7 @@ import io.github.term4.grotto.modules.gear.Kits;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.space.Limits;
 import io.github.term4.grotto.modules.flow.Phases;
+import io.github.term4.grotto.modules.flow.Rounds;
 import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.modules.gear.Restock;
 import io.github.term4.grotto.modules.outcome.Score;
@@ -187,6 +188,7 @@ public final class Bridge {
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
                 .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
+                        Rounds::new,
                         Sections::new, // the arms follow the palette, per match
                         Cages::new, // the opener, and the re-cage after a goal
                         () -> Freeze.during(Match.OPENING).after(Match.OVER).hold(Cages::hold).at(Cages::seat),

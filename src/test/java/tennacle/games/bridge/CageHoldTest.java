@@ -2,6 +2,7 @@ package tennacle.games.bridge;
 
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.grotto.roster.Slot;
@@ -51,7 +52,7 @@ class CageHoldTest extends HeadlessServerTest {
 
             PosMarker respawn = game.arena().marker(Bridge.RESPAWN, seat.team());
             assertNotNull(respawn, "the map declares one per team");
-            game.state().set(Scope.GAME, Cages.SEAT, Cages.SEAT_RESPAWN);
+            game.state().set(Scope.GAME, Freeze.SEAT, Freeze.SEAT_RESPAWN);
             assertEquals(respawn.pos(), Cages.seat(game, seat), "held where the team respawns instead");
         } finally {
             game.end(Outcome.aborted());
@@ -62,7 +63,7 @@ class CageHoldTest extends HeadlessServerTest {
     void boundedHoldsInsideTheBoxWhateverTheCageLooksLike() {
         Game game = bridge();
         try {
-            assertEquals(3, game.rules().resolve(Scope.GAME, Cages.BOUNDS), "a three-block box by default");
+            assertEquals(3, game.rules().resolve(Scope.GAME, Freeze.BOUNDS), "a three-block box by default");
 
             Pos inside = SEAT.add(0.4, 0, -0.4);
             assertSame(inside, Cages.hold(game, SEAT, inside), "a move that stays inside is left alone");
@@ -76,18 +77,18 @@ class CageHoldTest extends HeadlessServerTest {
                     "and bounded upward too - a ceiling of blocks is no ceiling to a flier");
             assertEquals(SEAT.y() - 3, Cages.hold(game, SEAT, SEAT.sub(0, 40, 0)).y());
 
-            game.state().set(Scope.GAME, Cages.BOUNDS, 4);
+            game.state().set(Scope.GAME, Freeze.BOUNDS, 4);
             assertEquals(SEAT.x() + 4, Cages.hold(game, SEAT, far).x(), "the box is a rule, live");
 
-            game.state().set(Scope.GAME, Cages.BOUNDS, 0);
+            game.state().set(Scope.GAME, Freeze.BOUNDS, 0);
             assertEquals(SEAT.x(), Cages.hold(game, SEAT, far).x(), "a box of nothing holds them on the spot");
             Pos apex = SEAT.add(0, 1.25, 0);
             assertSame(apex, Cages.hold(game, SEAT, apex), "a jump still clears, even on the spot");
 
-            game.state().set(Scope.GAME, Cages.HEIGHT, 0);
+            game.state().set(Scope.GAME, Freeze.HEIGHT, 0);
             assertEquals(SEAT.y(), Cages.hold(game, SEAT, apex).y(), "no height either, and the jump is a pin");
 
-            game.state().set(Scope.GAME, Cages.BOUNDS, -1);
+            game.state().set(Scope.GAME, Freeze.BOUNDS, -1);
             assertSame(far, Cages.hold(game, SEAT, far), "below zero the walls hold them, not the server");
         } finally {
             game.end(Outcome.aborted());

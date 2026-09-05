@@ -150,12 +150,12 @@ class BridgeRoundTest extends HeadlessServerTest {
             tickUntil(game, "GO again", () -> Match.live(game));
 
             // a cage is a look, not the break itself: with the blocks off a goal still reopens the count
-            game.state().set(Scope.GAME, Cages.ENABLED, false);
+            game.state().set(Scope.GAME, Cages.BLOCKS, false);
             EventDispatcher.call(new PlayerMoveEvent(scorer, goal, true));
             tickUntil(game, "second goal counted", () -> game.state().get(Scope.team(team), Bridge.GOALS) == 2);
             tickUntil(game, "an uncaged goal still reopens", () -> Match.opening(game));
             tickUntil(game, "GO once more", () -> Match.live(game));
-            game.state().set(Scope.GAME, Cages.ENABLED, true);
+            game.state().set(Scope.GAME, Cages.BLOCKS, true);
 
             Player faller = scorer == red.player ? blue.player : red.player;
             double home = game.arena().marker(Bridge.RESPAWN, Bridge.teamOf(game, faller)).pos().x();

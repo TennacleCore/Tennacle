@@ -22,6 +22,7 @@ import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.flow.Countdown;
+import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.GameState;
@@ -58,37 +59,19 @@ import java.util.Set;
 public final class Cages implements GameModule {
 
     /** Seconds on the cage count; captured: 3 on hypixel, 5 on scrims. */
-    public static final StateKey<Integer> SECONDS = StateKey.of("bridge.cage.seconds", Codec.INT, 3);
-    /** Off: no cage blocks. The break after a goal is {@link #REOPEN}'s - a cage is a look, not the break itself. */
-    public static final StateKey<Boolean> ENABLED = StateKey.of("bridge.cage.enabled", Codec.BOOLEAN, true);
-    /** Whether a goal reopens the count; off, the goal plays straight on with nobody re-seated. */
-    public static final StateKey<Boolean> REOPEN = StateKey.of("bridge.cage.reopen", Codec.BOOLEAN, true);
+    public static final StateKey<Integer> SECONDS = StateKey.of("cage.seconds", Codec.INT, 3);
+    /** Off: no cage blocks. The break after a goal is the round's - a cage is a look, not the break itself. */
+    public static final StateKey<Boolean> BLOCKS = StateKey.of("cage.blocks", Codec.BOOLEAN, true);
 
-    /**
-     * Blocks from the seat a held player may reach on x and z. Every cage gets the same box, whatever it looks
-     * like, so an unlocked cage is never room to move. {@code 0} holds them on the spot; below zero the server
-     * holds nobody at all and the cage's own walls do it.
-     */
-    public static final StateKey<Integer> BOUNDS = StateKey.of("bridge.cage.bounds", Codec.INT, 3);
-    /**
-     * Blocks above and below the seat a held player may reach. Anything under a jump's apex (~1.25) clamps the
-     * jump itself, so {@code 0} is the only true pin - nailed to the spot, feet included.
-     */
-    public static final StateKey<Integer> HEIGHT = StateKey.of("bridge.cage.height", Codec.INT, 3);
-    /**
-     * Where a side is held for the opening: {@link #SEAT_CAGE} or {@link #SEAT_RESPAWN}. The stamp, the hold and
-     * the teleport after a goal all read it, so the cage is never somewhere the players are not.
-     */
-    public static final StateKey<String> SEAT = StateKey.of("bridge.cage.seat", Codec.STRING, "cage");
     /** The team's {@code bridge:cage} marker - the seat the roster hands out. */
     public static final String SEAT_CAGE = "cage";
     /** The team's {@code bridge:respawn} marker, for a mode that opens where it respawns. */
     public static final String SEAT_RESPAWN = "respawn";
 
     /** The only cages a game allows; empty = all of them. */
-    public static final StateKey<List<String>> WHITELIST = StateKey.of("bridge.cage.whitelist", Codec.STRING.list(), List.of());
+    public static final StateKey<List<String>> WHITELIST = StateKey.of("cage.whitelist", Codec.STRING.list(), List.of());
     /** Cages a game refuses, whitelisted or not. */
-    public static final StateKey<List<String>> BLACKLIST = StateKey.of("bridge.cage.blacklist", Codec.STRING.list(), List.of());
+    public static final StateKey<List<String>> BLACKLIST = StateKey.of("cage.blacklist", Codec.STRING.list(), List.of());
 
     static final String RECAGE_ALARM = "bridge:recage";
     private static final String COUNT_ALARM = "bridge:cage-count";
@@ -135,8 +118,7 @@ public final class Cages implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SECONDS, ENABLED, REOPEN, BOUNDS, HEIGHT, SEAT, WHITELIST, BLACKLIST,
-                Countdown.GRACE, Countdown.INTERVAL);
+        return Set.of(SECONDS, BLOCKS, WHITELIST, BLACKLIST, Countdown.GRACE, Countdown.INTERVAL);
     }
 
     /** The roster lands them on the seat marker; the rule decides whether that is where they open. */
@@ -146,22 +128,22 @@ public final class Cages implements GameModule {
         if (at != null && !at.samePoint(player.getPosition())) player.teleport(at, Vec.ZERO);
     }
 
-    /** Where a seat opens, per {@link #SEAT}: its own marker, or the team's respawn spot. */
+    /** Where a seat opens, per {@link Freeze#SEAT}: its own marker, or the team's respawn spot. */
     static @Nullable Pos seat(Game game, Slot seat) {
         return seatOf(game, seat.team(), seat.spawn());
     }
 
     private static @Nullable Pos seatOf(Game game, String team, @Nullable Pos own) {
-        if (!SEAT_RESPAWN.equals(game.rules().resolve(Scope.GAME, SEAT))) return own;
+        if (!Freeze.SEAT_RESPAWN.equals(game.rules().resolve(Scope.GAME, Freeze.SEAT))) return own;
         PosMarker respawn = game.arena().marker(Bridge.RESPAWN, team);
         return respawn != null ? respawn.pos() : own;
     }
 
     /** The hold {@code Freeze} asks: inside the box, or anywhere when the box is off. */
     static Pos hold(Game game, Pos anchor, Pos to) {
-        int b = game.rules().resolve(Scope.GAME, BOUNDS);
+        int b = game.rules().resolve(Scope.GAME, Freeze.BOUNDS);
         if (b < 0) return to;
-        int h = Math.max(0, game.rules().resolve(Scope.GAME, HEIGHT));
+        int h = Math.max(0, game.rules().resolve(Scope.GAME, Freeze.HEIGHT));
         double x = clamp(to.x(), anchor.x() - b, anchor.x() + b);
         double y = clamp(to.y(), anchor.y() - h, anchor.y() + h);
         double z = clamp(to.z(), anchor.z() - b, anchor.z() + b);
@@ -403,7 +385,7 @@ public final class Cages implements GameModule {
 
     // all writes ride the game's shard - the arena container is shared by concurrent games
     private void stamp(Game game) {
-        if (!game.rules().resolve(Scope.GAME, ENABLED)) return; // read here, so /rules reaches the next recage
+        if (!game.rules().resolve(Scope.GAME, BLOCKS)) return; // read here, so /rules reaches the next recage
         Map<String, CageDef> defs = cages();
         if (defs.isEmpty()) return;
         for (PosMarker spawn : game.arena().markers(Bridge.CAGE)) {
