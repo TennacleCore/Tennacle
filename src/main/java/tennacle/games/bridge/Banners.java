@@ -46,24 +46,6 @@ final class Banners {
                 .append(Component.newline()).append(theme.rule());
     }
 
-    // the house block: scrims' shape, the rules dark aqua and "scored!" in the accent
-    static Component tennacle(Game game, Player scorer, TextColor color) {
-        var theme = Msg.THEME;
-        Component rule = theme.rule(29, NamedTextColor.DARK_AQUA);
-        return Component.empty()
-                .append(rule).append(Component.newline())
-                .append(ChatWidth.center(Component.empty()
-                        .append(Component.text(scorer.getUsername() + " ", color))
-                        .append(theme.prose("("))
-                        .append(theme.good(hearts(scorer)))
-                        .append(Component.text("❤", NamedTextColor.RED))
-                        .append(theme.prose(") "))
-                        .append(theme.accent("scored!"))))
-                .append(Component.newline())
-                .append(ChatWidth.center(scoreLine(game, false, Bridge.teamOf(game, scorer))))
-                .append(Component.newline()).append(rule);
-    }
-
     // captured: gold rules and blank lines around a bold team name, "(4❤)", yellow scored!,
     // gold "(1st Goal)", and the bold team-colored score
     static Component hypixel(Game game, Player scorer, TextColor color, int goal) {

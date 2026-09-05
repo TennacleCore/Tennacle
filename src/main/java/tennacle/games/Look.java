@@ -77,22 +77,20 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     private static final Sound TICK = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 1f);
     private static final Sound GO = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
 
+    private static final SoundSet PLINGS = SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO);
+    private static final Count SCRIMS_COUNT = new Count(Look::scrimsNumber, null, (g, p) -> null);
+
     /** Yellow names, gray prose, VICTORY!/DEFEATED! - the minemen profile. Chat and tab are server-wide there. */
     public static final Look MINEMEN = new Look(Msg.MINEMEN, Look::minemenDeath, Look::minemenVerdict,
             new Count(n -> Component.text(n + "...", NamedTextColor.YELLOW), null,
                     (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
-            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
+            PLINGS,
             (g, speaker, message) -> Chat.plain(speaker, message),
             new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak);
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
-            new Count(Look::scrimsNumber, null, (g, p) -> null),
-            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
-            // captured: [RED] Dogln: message - the team tag in the team color, the rest white
-            (g, speaker, message) -> Component.text("[" + Match.teamName(g, speaker) + "] ", Match.teamColor(g, speaker))
-                    .append(Component.text(speaker.getUsername() + ": ", NamedTextColor.GRAY))
-                    .append(Component.text(message, NamedTextColor.WHITE)),
+            SCRIMS_COUNT, PLINGS, Look::scrimsChat,
             // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
             new Tab(p -> Component.text("TENNACLE", NamedTextColor.AQUA, TextDecoration.BOLD)
                             .append(Component.text("\nPlaying on " + ADDRESS + "\n", NamedTextColor.YELLOW)),
@@ -120,19 +118,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                             .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak);
 
     /** The house look: the gradient on titles, light gray prose, light blue values, names in their team's tint. */
-    public static final Look TENNACLE = new Look(Msg.THEME, Look::tennacleDeath, Look::scrimsVerdict,
-            new Count(n -> Msg.THEME.prose("Starting in ").append(Msg.THEME.value(n)),
-                    // the beat on screen: light blue, then light purple, red at one
-                    n -> Component.text(n, n >= 4 ? Msg.THEME.valueColor() : n >= 2 ? Msg.THEME.accentColor()
-                            : NamedTextColor.RED, TextDecoration.BOLD),
-                    (g, p) -> Msg.THEME.title(p, "GO!")),
-            SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO),
-            (g, speaker, message) -> Component.text(speaker.getUsername(), Match.teamColor(g, speaker))
-                    .append(Msg.THEME.prose(" \u00bb "))
-                    .append(Component.text(message, NamedTextColor.WHITE)),
-            new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline()).append(Msg.THEME.value(ADDRESS)),
+    public static final Look TENNACLE = new Look(Msg.THEME, Look::scrimsDeath, Look::scrimsVerdict,
+            SCRIMS_COUNT, PLINGS, Look::scrimsChat,
+            new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline())
+                            .append(Msg.THEME.prose("Playing on ")).append(Msg.THEME.value(ADDRESS)),
                     p -> Component.newline().append(Msg.THEME.accent(STORE))),
-            true, Look::tennacleHit, Look::tennacleTiebreak);
+            true, Look::scrimsHit, Look::tennacleTiebreak);
 
     // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
     private static void scrimsTiebreak(Game game, Player viewer) {
@@ -151,22 +142,11 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         tiebreak(game, viewer, Msg.THEME);
     }
 
-    // team-tinted names, light gray prose
-    private static Component tennacleDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
-        Component line = Component.text(loser + " ", game.roster().team(seat.team()).color());
-        if (verb == null) return line.append(Msg.THEME.prose("forfeited."));
-        if (winner == null) return line.append(Msg.THEME.prose(verb));
-        return line.append(Msg.THEME.prose(verb + " "))
-                .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
-                .append(Msg.THEME.prose("."));
-    }
-
-    // scrims' callout on the house palette: light blue name, gray "has", green health, a red heart
-    private static Component tennacleHit(Player target, float health, float impact) {
-        return Msg.THEME.value(target.getUsername())
-                .append(Msg.THEME.prose(" has "))
-                .append(Msg.THEME.good(num(Math.max(0f, health))))
-                .append(Component.text("❤", NamedTextColor.RED));
+    // captured: [RED] Dogln: message - the team tag in the team color, the rest white
+    private static Component scrimsChat(Game game, Player speaker, String message) {
+        return Component.text("[" + Match.teamName(game, speaker) + "] ", Match.teamColor(game, speaker))
+                .append(Component.text(speaker.getUsername() + ": ", NamedTextColor.GRAY))
+                .append(Component.text(message, NamedTextColor.WHITE));
     }
 
     private static void tiebreak(Game game, Player viewer, Theme theme) {

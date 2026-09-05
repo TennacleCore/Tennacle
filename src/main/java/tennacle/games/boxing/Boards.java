@@ -40,26 +40,23 @@ final class Boards {
                 .line((g, me) -> Frames.hypixelRow("Combo: ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO));
     }
 
-    // the house board: your hits against theirs, the combo, the target
-    static Scoreboard tennacle() {
-        return Frames.tennacle("Boxing", b -> b
-                .line((g, me) -> Frames.tennacleRow("Hits ", Msg.THEME.value(Boxing.hits(g, me))
-                        .append(Msg.THEME.dim(" | "))
-                        .append(Msg.THEME.value(Boxing.hits(g, Match.opponent(g, me))))), Boxing.HITS)
-                .line((g, me) -> Frames.tennacleRow("Combo ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO)
-                .blank()
-                .line((g, me) -> Msg.THEME.prose("first to " + g.rules().resolve(Scope.GAME, Score.TARGET))));
-    }
-
     // the scrims frame with boxing content
     static Scoreboard scrims() {
-        return Frames.scrims("Boxing", b -> b
-                .line((g, me) -> Component.text("Hits: ", NamedTextColor.WHITE)
+        return Frames.scrims("Boxing", Boards::scrimsRows);
+    }
+
+    // the house board is scrims' rows in the house frame
+    static Scoreboard tennacle() {
+        return Frames.tennacle("Boxing", Boards::scrimsRows);
+    }
+
+    private static void scrimsRows(Scoreboard b) {
+        b.line((g, me) -> Component.text("Hits: ", NamedTextColor.WHITE)
                         .append(Msg.SCRIMS.value(Boxing.hits(g, me)))
                         .append(Msg.SCRIMS.prose(" | "))
                         .append(Msg.SCRIMS.value(Boxing.hits(g, Match.opponent(g, me)))), Boxing.HITS)
                 .line((g, me) -> Component.text("Combo: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.value(Boxing.seatStat(g, me, Boxing.COMBO))), Boxing.COMBO));
+                        .append(Msg.SCRIMS.value(Boxing.seatStat(g, me, Boxing.COMBO))), Boxing.COMBO);
     }
 
     private static String signed(int diff) {

@@ -86,26 +86,18 @@ public final class Frames {
                 .line((g, me) -> Msg.SCRIMS.value("tennacle"));
     }
 
-    /** Tennacle: the gradient title, dark aqua rules under it, the date and game code, the address as the footer. */
+    /** Tennacle: the scrims frame on the house theme - the gradient title, the address as the footer. */
     public static Scoreboard tennacle(String title, Consumer<Scoreboard> content) {
         Component rule = Msg.THEME.rule(16, NamedTextColor.DARK_AQUA);
         Scoreboard board = Scoreboard.of(me -> Msg.THEME.boardTitle(me, title))
+                .width(100)
                 .line(rule)
                 .line((g, me) -> Msg.THEME.prose(LocalDate.now().toString()).append(Msg.THEME.dim(" " + g.code())))
                 .blank();
         content.accept(board);
         return board
-                .blank()
                 .line(rule)
                 .line((g, me) -> Msg.THEME.accent(Look.ADDRESS));
-    }
-
-    public static Component tennacleRow(String label, Object value) {
-        return tennacleRow(label, Msg.THEME.value(value));
-    }
-
-    public static Component tennacleRow(String label, Component value) {
-        return Component.text(label, NamedTextColor.WHITE).append(value);
     }
 
     public static Component minemenRow(String label, Object value) {

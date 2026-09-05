@@ -25,28 +25,25 @@ final class Boards {
 
     private Boards() {}
 
-    // captured: clock, badged goal meters, the players
     static Scoreboard scrims() {
-        return Frames.scrims("Bridge", b -> b
-                .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Component.text(clock(TimeLimit.left(g)), Frames.timeColor(g, TimeLimit.left(g)))))
-                .blank()
-                .line((g, me) -> meterLine(g, teamAt(g, 0), Msg.SCRIMS), Bridge.GOALS, Score.TARGET)
-                .line((g, me) -> meterLine(g, teamAt(g, 1), Msg.SCRIMS), Bridge.GOALS, Score.TARGET)
-                .blank()
-                .line((g, me) -> teamLine(g, teamAt(g, 0)))
-                .line((g, me) -> teamLine(g, teamAt(g, 1))));
+        return Frames.scrims("Bridge", Boards::scrimsRows);
     }
 
-    // the house board: the clock, scrims' arrowed goal meters, your kills
+    // the house board is scrims' rows in the house frame
     static Scoreboard tennacle() {
-        return Frames.tennacle("Bridge", b -> b
-                .line((g, me) -> Frames.tennacleRow("Time ", Frames.timeLeft(g)))
+        return Frames.tennacle("Bridge", Boards::scrimsRows);
+    }
+
+    // captured: clock, badged goal meters, the players
+    private static void scrimsRows(Scoreboard b) {
+        b.line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
+                        .append(Component.text(clock(TimeLimit.left(g)), Frames.timeColor(g, TimeLimit.left(g)))))
                 .blank()
-                .line((g, me) -> meterLine(g, teamAt(g, 0), Msg.THEME), Bridge.GOALS, Score.TARGET)
-                .line((g, me) -> meterLine(g, teamAt(g, 1), Msg.THEME), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS, Score.TARGET)
+                .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS, Score.TARGET)
                 .blank()
-                .line((g, me) -> Frames.tennacleRow("Kills ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS));
+                .line((g, me) -> teamLine(g, teamAt(g, 0)))
+                .line((g, me) -> teamLine(g, teamAt(g, 1)));
     }
 
     // captured: [R]/[B] circle meters, Kills/Goals
@@ -77,10 +74,10 @@ final class Boards {
     }
 
     // heavy bold arrow + team badge square + the goal meter (siblings: bold must not bleed into the meter)
-    private static Component meterLine(Game game, Team team, Theme theme) {
+    private static Component meterLine(Game game, Team team) {
         return Component.empty()
                 .append(Component.text("➜ ", team.color(), TextDecoration.BOLD))
-                .append(theme.meter(game.state().get(Scope.team(team.id()), Bridge.GOALS),
+                .append(Msg.SCRIMS.meter(game.state().get(Scope.team(team.id()), Bridge.GOALS),
                         game.rules().resolve(Scope.GAME, Score.TARGET), team.color()));
     }
 
