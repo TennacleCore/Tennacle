@@ -72,8 +72,8 @@ class SectionsTest extends HeadlessServerTest {
         Arena map = fixture();
         Game game = stamped(map);
         try {
-            assertEquals(Block.RED_TERRACOTTA, game.shard().getBlock(-16, 64, 0), "team 1's arm");
-            assertEquals(Block.BLUE_TERRACOTTA, game.shard().getBlock(16, 64, 0), "team 2's arm");
+            assertEquals(Block.BLUE_TERRACOTTA, game.shard().getBlock(-16, 64, 0), "team 1's arm");
+            assertEquals(Block.RED_TERRACOTTA, game.shard().getBlock(16, 64, 0), "team 2's arm");
             assertEquals(Block.WHITE_TERRACOTTA, game.shard().getBlock(0, 64, 0), "the center is nobody's section");
             assertEquals(Block.STONE, game.shard().getBlock(-15, 64, 0), "in no dyed family: left as built");
 

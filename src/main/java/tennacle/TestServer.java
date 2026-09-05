@@ -29,6 +29,7 @@ import tennacle.commands.GrottoCommands;
 import tennacle.commands.LobbyCommands;
 import tennacle.commands.ReplayCommands;
 import tennacle.commands.RulesCommands;
+import tennacle.commands.TeamCommands;
 import tennacle.commands.ShardCommands;
 import tennacle.commands.SimTpsCommands;
 import tennacle.commands.SpectateCommands;
@@ -216,6 +217,7 @@ public final class TestServer {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
                 e -> vault.forget(e.getPlayer().getUuid()));
         RulesCommands.register(); // /rules: live modifiers over the running game
+        TeamCommands.register(); // /team: which ordinal is which color, and who is on it
         PlayerPrefs.install();
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         GameIds.install(Matches.grotto(), gameSecret(data));
