@@ -13,6 +13,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import io.github.term4.polyp.config.PathEdits;
+import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,9 +45,7 @@ public final class RulesCommands {
                 Msg.err(p, "rules", "you're not in a game");
                 return;
             }
-            Map<String, StateKey<?>> supported = game.type().supportedRules();
-            Msg.tag(p, "rules", game.type().id() + ": " + supported.size() + " rule(s)");
-            list(p, game, Scope.GAME);
+            list(p, game, Scope.GAME, "");
         });
         rules.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
@@ -61,11 +60,19 @@ public final class RulesCommands {
                 return;
             }
             Scope scope = scopeOf(game, word);
-            if (scope == null) {
-                Msg.err(p, "rules", "no team or player named ", Msg.v(word.startsWith("@") ? word.substring(1) : word));
+            if (scope != null) {
+                list(p, game, scope, "");
                 return;
             }
-            list(p, game, scope);
+            if (word.startsWith("@")) {
+                Msg.err(p, "rules", "no team or player named ", Msg.v(word.substring(1)));
+                return;
+            }
+            if (game.type().supportedRules().keySet().stream().noneMatch(id -> under(word, id))) {
+                Msg.err(p, "rules", "no rule, team or player named ", Msg.v(word));
+                return;
+            }
+            list(p, game, Scope.GAME, word);
         }, key);
         rules.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
@@ -88,10 +95,14 @@ public final class RulesCommands {
                     return;
                 }
                 if (words.isEmpty()) {
-                    Msg.err(p, "rules", "usage: ", Msg.run("/rules " + id + " <id|path> <value>"));
+                    list(p, game, scope, "");
                     return;
                 }
                 id = words.removeFirst();
+            }
+            if (words.isEmpty() && !id.contains("/")) { // a name with no value reads it back, at whatever scope leads
+                list(p, game, scope, id);
+                return;
             }
             if (!words.isEmpty() && words.getFirst().equals("=")) words.removeFirst(); // the listing prints "id = value"
             String raw = String.join(" ", words);
@@ -108,16 +119,46 @@ public final class RulesCommands {
         MinecraftServer.getCommandManager().register(rules);
     }
 
-    private static void list(Player p, Game game, Scope scope) {
+    /** The rules under {@code prefix} ({@code ""} = all of them) with their live values at {@code scope}. */
+    private static void list(Player p, Game game, Scope scope, String prefix) {
         Map<String, StateKey<?>> supported = game.type().supportedRules();
-        String where = scope == Scope.GAME ? game.type().id() : scopeName(game, scope);
-        Msg.tag(p, "rules", where + ": " + supported.size() + " rule(s)");
         // sorted: ids lead with their package, so the listing groups itself
-        for (String id : new java.util.TreeSet<>(supported.keySet())) {
+        List<String> ids = new java.util.TreeSet<>(supported.keySet()).stream().filter(id -> under(prefix, id)).toList();
+        String where = scope == Scope.GAME ? game.type().id() : scopeName(game, scope);
+        Msg.tag(p, "rules", where + (prefix.isEmpty() ? "" : " " + prefix) + ": " + ids.size() + " rule(s)");
+        for (String id : ids) {
             Msg.tag(p, "rules", "  " + id + " = ", Msg.v(game.rules().resolve(scope, supported.get(id))));
         }
-        Msg.tag(p, "rules", "mechanics paths take a value too - ", Msg.run("/rules paths"));
-        Msg.tag(p, "rules", "one side or seat only: ", Msg.run("/rules @<team|player> <id|path> <value>"));
+        String lead = scope == Scope.GAME ? "" : scopeName(game, scope) + " ";
+        List<String> packages = packagesUnder(ids, prefix);
+        if (!packages.isEmpty()) {
+            var line = Component.text("  narrow: ");
+            for (int i = 0; i < packages.size(); i++) {
+                if (i > 0) line = line.append(Component.text(", "));
+                line = line.append(Msg.link(packages.get(i), "/rules " + lead + packages.get(i), "the " + packages.get(i) + " rules"));
+            }
+            Msg.tag(p, "rules", line);
+        }
+        if (prefix.isEmpty()) {
+            Msg.tag(p, "rules", "mechanics paths take a value too - ", Msg.run("/rules paths"));
+            Msg.tag(p, "rules", "one side or seat only: ", Msg.run("/rules @<team|player> <id|path> <value>"));
+        }
+    }
+
+    /** A dotted id under {@code prefix}: whole segments, so {@code flow} takes flow.time.limit and {@code flo} nothing. */
+    private static boolean under(String prefix, String id) {
+        return prefix.isEmpty() || id.equals(prefix) || id.startsWith(prefix + ".");
+    }
+
+    /** The next segment down from {@code prefix}, for the ids that have one - the listing's own way further in. */
+    private static List<String> packagesUnder(List<String> ids, String prefix) {
+        int at = prefix.isEmpty() ? 0 : prefix.length() + 1;
+        java.util.SortedSet<String> out = new java.util.TreeSet<>();
+        for (String id : ids) {
+            int dot = id.indexOf('.', at);
+            if (dot > 0) out.add(id.substring(0, dot));
+        }
+        return List.copyOf(out);
     }
 
     /** One level of the mechanics tree: what is addressable under {@code path}, and what it holds right now. */
