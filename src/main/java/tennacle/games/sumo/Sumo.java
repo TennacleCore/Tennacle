@@ -5,7 +5,6 @@ import io.github.term4.bloom.edit.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.games.Duels;
-import tennacle.games.Flags;
 import tennacle.games.HotArena;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -102,6 +101,5 @@ public final class Sumo {
                 List.of(Component.text("Eliminate your opponents!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
                 true, null);
         Duels.mode(sumo);
-        Flags.offer(sumo, "look", "platform", "map", "time", "preset", "daylight");
     }
 }

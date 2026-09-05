@@ -10,8 +10,6 @@ import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
-import tennacle.games.Flag;
-import tennacle.games.Flags;
 import tennacle.games.KitLayouts;
 import tennacle.games.MapPool;
 import tennacle.games.Sections;
@@ -251,9 +249,6 @@ public final class Bridge {
                 GOALS); // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
         Duels.mode(bridge);
         // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
-        Flags.register(Flag.onOff("cages", Cages.BLOCKS));
-        Flags.register(Flag.rule("goals", Score.TARGET, Integer::parseInt, List.of()));
-        Flags.offer(bridge, "look", "platform", "map", "time", "preset", "daylight", "cages", "goals");
     }
 
     static String teamOf(Game game, Player player) {

@@ -77,7 +77,7 @@ public record Options(@Nullable String map, @Nullable String look, @Nullable Str
             Flag flag = Flags.get(name);
             if (flag != null) {
                 if (!Flags.offers(mode, flag)) {
-                    throw new IllegalArgumentException("-" + name + " is not a flag of " + mode.name() + " (" + flagNames(mode) + ")");
+                    throw new IllegalArgumentException("-" + name + " is not a flag of " + mode.name() + "; " + menu(mode));
                 }
                 flag.apply(mode, value, into);
             } else if (name.indexOf('/') >= 0) {
@@ -85,14 +85,16 @@ public record Options(@Nullable String map, @Nullable String look, @Nullable Str
             } else if (name.indexOf('.') >= 0) {
                 into.rule(name, value);
             } else {
-                throw new IllegalArgumentException("unknown flag -" + name + " (" + flagNames(mode) + "; a rule id or a mechanics path also lands)");
+                throw new IllegalArgumentException("unknown flag -" + name + "; " + menu(mode) + "; a rule id or a mechanics path also lands");
             }
         }
         return into.build(words);
     }
 
-    private static String flagNames(Mode mode) {
-        return String.join(", ", Flags.of(mode).stream().map(f -> "-" + f.name()).toList());
+    private static String menu(Mode mode) {
+        List<Flag> flags = Flags.of(mode);
+        if (flags.isEmpty()) return mode.name() + " offers no flags";
+        return mode.name() + " offers " + String.join(", ", flags.stream().map(f -> "-" + f.name()).toList());
     }
 
     /**

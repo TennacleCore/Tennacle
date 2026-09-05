@@ -7,8 +7,6 @@ import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
-import tennacle.games.Flag;
-import tennacle.games.Flags;
 import tennacle.games.HotArena;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -141,8 +139,6 @@ public final class Boxing {
                 List.of(Component.text("First player to land 10 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
                 true, null);
         Duels.mode(boxing);
-        Flags.register(Flag.rule("hits", Score.TARGET, Integer::parseInt, List.of()));
-        Flags.offer(boxing, "look", "platform", "map", "time", "preset", "daylight", "hits");
         registerStats();
     }
 
