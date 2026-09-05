@@ -8,17 +8,17 @@ import java.util.Collection;
 import java.util.function.Supplier;
 
 /** The word under the cursor, and the entries that start with it. */
-final class Completions {
+public final class Completions {
 
     private Completions() {}
 
     /** Past the suggestion's start (which counts the leading '/'), minus the placeholder the listener appends
      *  when the next word is still empty. */
-    static String partial(Suggestion suggestion) {
+    public static String partial(Suggestion suggestion) {
         return suggestion.getInput().substring(Math.max(0, suggestion.getStart() - 1)).replace("\0", "");
     }
 
-    static void offer(Suggestion suggestion, Collection<String> entries) {
+    public static void offer(Suggestion suggestion, Collection<String> entries) {
         String partial = partial(suggestion);
         for (String entry : entries) {
             if (entry.regionMatches(true, 0, partial, 0, partial.length())) suggestion.addEntry(new SuggestionEntry(entry));

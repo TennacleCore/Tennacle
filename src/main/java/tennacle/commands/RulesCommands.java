@@ -38,6 +38,8 @@ public final class RulesCommands {
         Command rules = new Command("rules");
         var key = ArgumentType.Word("key");
         var value = ArgumentType.StringArray("value");
+        key.setSuggestionCallback(RulesCompletions.key());
+        value.setSuggestionCallback(RulesCompletions.tail(key, value));
         rules.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             Game game = Game.of(p);
