@@ -35,15 +35,14 @@ final class Boards {
     // the minemen frame (no sumo capture exists - their board look, sumo content)
     static Scoreboard minemen() {
         return Frames.minemen("Sumo", b -> b
-                .line((g, me) -> Frames.minemenRow("Time Left: ",
-                        Frames.clock(TimeLimit.left(g)))));
+                .line((g, me) -> Frames.minemenRow("Time Left: ", Frames.timeLeft(g))));
     }
 
     // the scrims frame (no sumo capture exists - their board look, sumo content)
     static Scoreboard scrims() {
         return Frames.scrims("Sumo", b -> b
                 .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.good(Frames.clock(TimeLimit.left(g)))))
+                        .append(Frames.timeLeft(g)))
                 .blank()
                 .line((g, me) -> playerLine(g, 0))
                 .line((g, me) -> playerLine(g, 1)));

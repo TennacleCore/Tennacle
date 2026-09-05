@@ -28,7 +28,7 @@ final class Boards {
     static Scoreboard scrims() {
         return Frames.scrims("Bridge", b -> b
                 .line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.good(clock(TimeLimit.left(g)))))
+                        .append(Component.text(clock(TimeLimit.left(g)), Frames.timeColor(g, TimeLimit.left(g)))))
                 .blank()
                 .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS, Score.TARGET)
@@ -56,8 +56,7 @@ final class Boards {
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
-                .line((g, me) -> Frames.minemenRow("Time Left: ",
-                        Frames.clock(TimeLimit.left(g)))));
+                .line((g, me) -> Frames.minemenRow("Time Left: ", Frames.timeLeft(g))));
     }
 
     static Team teamAt(Game game, int index) {
@@ -98,14 +97,15 @@ final class Boards {
         return seat != null ? game.state().get(Scope.slot(seat.index()), key) : 0;
     }
 
+    // captured scrims clock: minutes unpadded
+    private static String clock(long ticks) {
+        long seconds = Math.max(0, ticks) / 20;
+        return seconds / 60 + ":" + "%02d".formatted(seconds % 60);
+    }
+
     private static int myTeamGoals(Game game, Player me) {
         Slot seat = game.roster().slotOf(me);
         return seat != null ? game.state().get(Scope.team(seat.team()), Bridge.GOALS) : 0;
     }
 
-    // captured scrims clock: minutes unpadded
-    private static String clock(long ticks) {
-        long seconds = ticks / 20;
-        return seconds / 60 + ":" + "%02d".formatted(seconds % 60);
-    }
 }

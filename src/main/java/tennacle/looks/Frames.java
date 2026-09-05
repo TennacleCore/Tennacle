@@ -5,6 +5,7 @@ import tennacle.games.Match;
 
 import io.github.term4.canvas.board.Shine;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.modules.view.Scoreboard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -55,7 +56,7 @@ public final class Frames {
                         .append(Msg.HYPIXEL.dim("  " + g.code())))
                 .blank();
         if (ticksLeft != null) {
-            board.line((g, me) -> hypixelRow("Time Left: ", clock(Math.max(0, ticksLeft.applyAsLong(g)))))
+            board.line((g, me) -> hypixelRow("Time Left: ", timeLeft(g, ticksLeft.applyAsLong(g))))
                     .blank();
         }
         content.accept(board);
@@ -85,12 +86,39 @@ public final class Frames {
     }
 
     public static Component minemenRow(String label, Object value) {
-        return Component.text(label, NamedTextColor.WHITE)
-                .append(Component.text(String.valueOf(value), NamedTextColor.LIGHT_PURPLE));
+        return minemenRow(label, Component.text(String.valueOf(value), NamedTextColor.LIGHT_PURPLE));
+    }
+
+    public static Component minemenRow(String label, Component value) {
+        return Component.text(label, NamedTextColor.WHITE).append(value);
     }
 
     public static Component hypixelRow(String label, Object value) {
-        return Component.text(label, NamedTextColor.WHITE).append(Msg.HYPIXEL.value(value));
+        return hypixelRow(label, Msg.HYPIXEL.value(value));
+    }
+
+    public static Component hypixelRow(String label, Component value) {
+        return Component.text(label, NamedTextColor.WHITE).append(value);
+    }
+
+    /** The running clock in {@link #clock} form, shaded by {@link #timeColor}. */
+    public static Component timeLeft(Game game) {
+        return timeLeft(game, TimeLimit.left(game));
+    }
+
+    public static Component timeLeft(Game game, long ticksLeft) {
+        return Component.text(clock(Math.max(0, ticksLeft)), timeColor(game, ticksLeft));
+    }
+
+    /**
+     * Green through the first third of the clock, yellow through the second, red through the last - a 15:00 match
+     * turns at 10:00 and again at 5:00, as captured. An unlimited match stays green.
+     */
+    public static NamedTextColor timeColor(Game game, long ticksLeft) {
+        long left = Math.max(0, ticksLeft);
+        long limit = TimeLimit.limit(game);
+        if (limit <= 0 || left * 3 > limit * 2) return NamedTextColor.GREEN;
+        return left * 3 > limit ? NamedTextColor.YELLOW : NamedTextColor.RED;
     }
 
     /** Captured hypixel clock, both halves padded: {@code 01:59}. */
