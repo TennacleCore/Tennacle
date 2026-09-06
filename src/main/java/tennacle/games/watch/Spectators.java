@@ -1,5 +1,15 @@
 package tennacle.games.watch;
 
+import io.github.term4.canvas.screen.Screens;
+import io.github.term4.grotto.modules.combat.Respawns;
+import io.github.term4.grotto.roster.Slot;
+import net.minestom.server.event.EventListener;
+import net.minestom.server.event.inventory.InventoryPreClickEvent;
+import net.minestom.server.event.player.PlayerBlockInteractEvent;
+import net.minestom.server.event.player.PlayerUseItemEvent;
+import net.minestom.server.item.Material;
+import java.util.ArrayList;
+import java.util.List;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import io.github.term4.archipelago.shard.ShardTabList;
@@ -28,6 +38,14 @@ public final class Spectators {
     private Spectators() {}
 
     public static void install() {
+        // the compass: the picker of the players alive; Grotto refuses a spectator's use, so listen past the cancel
+        MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerUseItemEvent.class)
+                .ignoreCancelled(false).handler(e -> compass(e.getPlayer())).build());
+        MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerBlockInteractEvent.class)
+                .ignoreCancelled(false).handler(e -> compass(e.getPlayer())).build());
+        MinecraftServer.getGlobalEventHandler().addListener(InventoryPreClickEvent.class, e -> {
+            if (Matches.grotto().spectating(e.getPlayer()) != null && Screens.screen(e.getPlayer()) == null) e.setCancelled(true);
+        });
         // a spectator's click is the 26.x spectate-entity packet, never an attack: ViaBackwards rewrites a legacy
         // spectator's attack into it too (EntityPacketRewriter26_1, by the game mode it tracks)
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpectateEntityEvent.class, e -> ride(e.getPlayer(), e.getTarget()));
@@ -50,11 +68,16 @@ public final class Spectators {
         if (watched != null && (Game.of(target) == watched || watched.isGhost(target))) SpectatorMode.camera(viewer, target);
     }
 
-    /** Puts {@code viewer} on {@code game}'s main world as a ghost: at {@code target}'s position, or the map's landing. */
+    /**
+     * Puts {@code viewer} on {@code game}'s main world as a ghost: at {@code target}'s position, or the map's landing,
+     * holding nothing but the players' compass.
+     */
     public static void enter(@NotNull Game game, @NotNull Player viewer, @Nullable Player target) {
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true); // landed inside a player: no push, either way
         game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags greys the tab name
+        viewer.getInventory().clear();
+        viewer.getInventory().setItemStack(0, Lineup.compass());
     }
 
     /** Drops the view and gives the body back; {@code false} = was not spectating. */
@@ -62,9 +85,32 @@ public final class Spectators {
         Game watched = Matches.grotto().spectating(viewer);
         boolean wore = SpectatorMode.exit(viewer); // the camera home and the body back before the world changes
         if (watched == null && !wore) return false;
-        if (watched != null) watched.unspectate(viewer);
+        if (watched != null) {
+            watched.unspectate(viewer);
+            viewer.getInventory().clear(); // the lobby dresses the arrival
+        }
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, false);
         return true;
+    }
+
+    // the compass in hand: the seated, living members of the watched game, a click landing the viewer at one
+    private static void compass(Player viewer) {
+        Game watched = Matches.grotto().spectating(viewer);
+        if (watched == null || viewer.getHeldSlot() != 0 || viewer.getItemInMainHand().material() != Material.COMPASS) return;
+        Lineup.open(viewer, alive(watched));
+    }
+
+    /** The seated members of {@code game} still on their feet, as the compass lists them. */
+    public static @NotNull List<Lineup.Entry> alive(@NotNull Game game) {
+        Respawns respawns = game.module(Respawns.class);
+        List<Lineup.Entry> out = new ArrayList<>();
+        for (Player member : game.members()) {
+            Slot seat = game.roster().slotOf(member);
+            if (seat == null || game.isGhost(member) || (respawns != null && respawns.isDead(member))) continue;
+            out.add(new Lineup.Entry(member.getUsername(), game.roster().team(seat.team()).color(), member.getSkin(),
+                    () -> member.isOnline() && Game.of(member) == game ? member.getPosition() : null));
+        }
+        return out;
     }
 
     /** Switches a spectating {@code viewer}'s body, telling them; {@code false} = not spectating. */

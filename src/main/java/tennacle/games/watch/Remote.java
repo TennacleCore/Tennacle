@@ -5,6 +5,7 @@ import tennacle.Msg;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Replay;
 import io.github.term4.canvas.screen.ClickRule;
+import io.github.term4.canvas.screen.Items;
 import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
@@ -14,9 +15,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.PlayerSkin;
+import net.minestom.server.event.EventListener;
 import net.minestom.server.event.inventory.InventoryPreClickEvent;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerBlockInteractEvent;
@@ -25,7 +25,6 @@ import net.minestom.server.event.player.PlayerSwapItemEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
-import net.minestom.server.network.player.ResolvableProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,17 +32,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * The replay's remote: the hotbar whoever leads the theater holds, and the timeline every watcher reads off the
- * experience bar and the line above the hotbar. A book of bookmarks, slower and faster on arrow heads whose left
- * click picks the step and right click takes it, a seek head each way on the same pattern, the play/pause dye,
- * and the share paper. The hotbar is theirs to press and nothing more: no drop, no move, no swap.
+ * experience bar and the line above the hotbar. The players' compass, slower and faster on arrow heads whose
+ * left click picks the step and right click takes it, a seek head each way on the same pattern, the play/pause
+ * dye, and the star that opens the replay menu (share, bookmarks, play from here). The hotbar is theirs to press
+ * and nothing more: no drop, no move, no swap.
  */
 public final class Remote {
 
     /** The hotbar slots, left to right. */
-    public static final int BOOKMARKS = 0, SLOWER = 2, BACK = 3, PLAY = 4, FORWARD = 5, FASTER = 6, SHARE = 8;
+    public static final int PLAYERS = 0, SLOWER = 2, BACK = 3, PLAY = 4, FORWARD = 5, FASTER = 6, MENU = 8;
     static final double MIN_RATE = 0.05, MAX_RATE = 16, HALVING_FLOOR = 0.25, DOUBLING_CEILING = 8;
     /** Rate steps a speed head cycles through; {@code 0} halves or doubles. */
     static final double[] RATE_STEPS = {0, 1, 0.5, 0.1, 0.05};
@@ -66,14 +67,16 @@ public final class Remote {
 
     private final Playback playback;
     private final String gameId;
+    private final Supplier<List<Lineup.Entry>> alive;
     private final Set<Player> watchers = ConcurrentHashMap.newKeySet();
     private final Map<Player, Controls> controllers = new ConcurrentHashMap<>();
     private final Map<Player, Long> pressed = new ConcurrentHashMap<>(); // a right click's tick: the swing after it is the same press
     private volatile boolean shownPaused;
 
-    Remote(@NotNull Playback playback, @NotNull String gameId) {
+    Remote(@NotNull Playback playback, @NotNull String gameId, @NotNull Supplier<List<Lineup.Entry>> alive) {
         this.playback = playback;
         this.gameId = gameId;
+        this.alive = alive;
     }
 
     /** The one set of listeners; every remote routes through {@link #BY_PLAYER}. */
@@ -81,23 +84,24 @@ public final class Remote {
         if (installed) return;
         installed = true;
         var events = MinecraftServer.getGlobalEventHandler();
-        events.addListener(PlayerUseItemEvent.class, e -> {
+        // cancelled or not: a spectator policy elsewhere may have refused the use already
+        events.addListener(EventListener.builder(PlayerUseItemEvent.class).ignoreCancelled(false).handler(e -> {
             Remote remote = BY_PLAYER.get(e.getPlayer());
             if (remote == null) return;
             e.setCancelled(true);
             remote.press(e.getPlayer(), true);
-        });
-        events.addListener(PlayerBlockInteractEvent.class, e -> {
+        }).build());
+        events.addListener(EventListener.builder(PlayerBlockInteractEvent.class).ignoreCancelled(false).handler(e -> {
             Remote remote = BY_PLAYER.get(e.getPlayer());
             if (remote == null) return;
             e.setCancelled(true);
             e.setBlockingItemUse(true);
             remote.press(e.getPlayer(), true);
-        });
-        events.addListener(PlayerHandAnimationEvent.class, e -> {
+        }).build());
+        events.addListener(EventListener.builder(PlayerHandAnimationEvent.class).ignoreCancelled(false).handler(e -> {
             Remote remote = BY_PLAYER.get(e.getPlayer());
             if (remote != null) remote.press(e.getPlayer(), false);
-        });
+        }).build());
         events.addListener(InventoryPreClickEvent.class, e -> {
             if (BY_PLAYER.containsKey(e.getPlayer()) && Screens.screen(e.getPlayer()) == null) e.setCancelled(true);
         });
@@ -107,6 +111,11 @@ public final class Remote {
         events.addListener(PlayerSwapItemEvent.class, e -> {
             if (BY_PLAYER.containsKey(e.getPlayer())) e.setCancelled(true);
         });
+    }
+
+    /** The remote {@code player} holds or watches through, or null. */
+    public static @Nullable Remote of(@NotNull Player player) {
+        return BY_PLAYER.get(player);
     }
 
     void enter(@NotNull Player viewer, boolean controller) {
@@ -162,19 +171,19 @@ public final class Remote {
     private void deal(Player viewer) {
         Controls controls = controllers.get(viewer);
         var inv = viewer.getInventory();
-        inv.setItemStack(BOOKMARKS, named(ItemStack.of(Material.BOOK), Component.text("Bookmarks", NamedTextColor.GOLD)));
-        inv.setItemStack(SLOWER, head(BLUE_DOWN, Component.text("Slower: " + rateStep(RATE_STEPS[controls.slower], false), NamedTextColor.AQUA)));
-        inv.setItemStack(BACK, head(WHITE_LEFT, Component.text("Back " + seekStep(SEEK_STEPS[controls.seek]), NamedTextColor.WHITE)));
+        inv.setItemStack(PLAYERS, Lineup.compass());
+        inv.setItemStack(SLOWER, Items.head(BLUE_DOWN, Component.text("Slower: " + rateStep(RATE_STEPS[controls.slower], false), NamedTextColor.AQUA)));
+        inv.setItemStack(BACK, Items.head(WHITE_LEFT, Component.text("Back " + seekStep(SEEK_STEPS[controls.seek]), NamedTextColor.WHITE)));
         inv.setItemStack(PLAY, playItem());
-        inv.setItemStack(FORWARD, head(WHITE_RIGHT, Component.text("Forward " + seekStep(SEEK_STEPS[controls.seek]), NamedTextColor.WHITE)));
-        inv.setItemStack(FASTER, head(BLUE_UP, Component.text("Faster: " + rateStep(RATE_STEPS[controls.faster], true), NamedTextColor.AQUA)));
-        inv.setItemStack(SHARE, named(ItemStack.of(Material.PAPER), Component.text("Share", NamedTextColor.GREEN)));
+        inv.setItemStack(FORWARD, Items.head(WHITE_RIGHT, Component.text("Forward " + seekStep(SEEK_STEPS[controls.seek]), NamedTextColor.WHITE)));
+        inv.setItemStack(FASTER, Items.head(BLUE_UP, Component.text("Faster: " + rateStep(RATE_STEPS[controls.faster], true), NamedTextColor.AQUA)));
+        inv.setItemStack(MENU, Items.named(Material.NETHER_STAR, Component.text("Replay menu", NamedTextColor.LIGHT_PURPLE)));
     }
 
     private ItemStack playItem() {
         return playback.paused()
-                ? named(ItemStack.of(Material.GRAY_DYE), Component.text("Play", NamedTextColor.GRAY))
-                : named(ItemStack.of(Material.LIME_DYE), Component.text("Pause", NamedTextColor.GREEN));
+                ? Items.named(Material.GRAY_DYE, Component.text("Play", NamedTextColor.GRAY))
+                : Items.named(Material.LIME_DYE, Component.text("Pause", NamedTextColor.GREEN));
     }
 
     // a right click and the swing the client sends after it are one press
@@ -185,7 +194,7 @@ public final class Remote {
         if (right) pressed.put(viewer, now);
         else if (pressed.getOrDefault(viewer, -1L) == now) return;
         switch (viewer.getHeldSlot()) {
-            case BOOKMARKS -> { if (right) bookmarks(viewer); }
+            case PLAYERS -> { if (right) players(viewer); }
             case SLOWER -> {
                 if (right) rate(slower(playback.rate(), RATE_STEPS[controls.slower]));
                 else controls.slower = (controls.slower + 1) % RATE_STEPS.length;
@@ -203,13 +212,7 @@ public final class Remote {
                 deal(viewer);
             }
             case PLAY -> playback.pause(!playback.paused());
-            case SHARE -> {
-                if (right) {
-                    viewer.sendMessage(Component.text("Click here to get a command to share with your friends!",
-                            NamedTextColor.AQUA, TextDecoration.BOLD)
-                            .clickEvent(ClickEvent.copyToClipboard("/replay watch " + gameId)));
-                }
-            }
+            case MENU -> { if (right) menu(viewer); }
             default -> { }
         }
     }
@@ -237,9 +240,32 @@ public final class Remote {
         return Math.min(MAX_RATE, rate + step);
     }
 
-    private void bookmarks(Player viewer) {
+    /** The players alive at the cursor, as heads; a click lands {@code viewer} at one. */
+    public void players(@NotNull Player viewer) {
+        Lineup.open(viewer, alive.get());
+    }
+
+    /** The replay menu: share, bookmarks, and play from here (not in yet). */
+    public void menu(@NotNull Player viewer) {
+        Screen screen = Screen.rows(3).title(Component.text("Replay")).ownClicks(ClickRule.DENY)
+                .button(11, Items.named(Material.PAPER, Component.text("Share", NamedTextColor.GREEN)), (who, click) -> {
+                    who.closeInventory();
+                    who.sendMessage(Component.text("Click here to get a command to share with your friends!",
+                            NamedTextColor.AQUA, TextDecoration.BOLD)
+                            .clickEvent(ClickEvent.copyToClipboard("/replay watch " + gameId)));
+                })
+                .button(13, Items.named(Material.BOOK, Component.text("Bookmarks", NamedTextColor.GOLD)), (who, click) -> bookmarks(who))
+                .item(15, Items.lore(Items.named(Material.CLOCK, Component.text("Play from here", NamedTextColor.YELLOW)),
+                        List.of(Component.text("Not in yet.", NamedTextColor.GRAY))))
+                .build();
+        Screens.open(viewer, screen);
+    }
+
+    /** The replay's bookmarks as a screen; a click seeks to one. */
+    public void bookmarks(@NotNull Player viewer) {
         List<Replay.Bookmark> marks = playback.bookmarks();
         if (marks.isEmpty()) {
+            viewer.closeInventory();
             Msg.say(viewer, "This replay has no bookmarks.");
             return;
         }
@@ -261,20 +287,11 @@ public final class Remote {
         String at = stamp(mark.tick());
         if (mark.name().equals("goal")) {
             TextColor color = data.keySet().contains("color") ? TextColor.color(data.getInt("color")) : NamedTextColor.WHITE;
-            return named(ItemStack.of(Material.PAPER), Component.text(data.getString("scorer") + " scored", color)
+            return Items.named(Material.PAPER, Component.text(data.getString("scorer") + " scored", color)
                     .append(Component.text("  " + at, NamedTextColor.GRAY)));
         }
-        return named(ItemStack.of(Material.PAPER), Component.text(mark.name(), NamedTextColor.WHITE)
+        return Items.named(Material.PAPER, Component.text(mark.name(), NamedTextColor.WHITE)
                 .append(Component.text("  " + at, NamedTextColor.GRAY)));
-    }
-
-    private static ItemStack head(String textures, Component name) {
-        return named(ItemStack.of(Material.PLAYER_HEAD).with(DataComponents.PROFILE,
-                new ResolvableProfile(new PlayerSkin(textures, null))), name);
-    }
-
-    private static ItemStack named(ItemStack item, Component name) {
-        return item.with(DataComponents.CUSTOM_NAME, name.decoration(TextDecoration.ITALIC, false));
     }
 
     static String rateStep(double step, boolean up) {
@@ -295,10 +312,5 @@ public final class Remote {
     static String stamp(long ticks) {
         long seconds = Math.max(0, ticks) / 20;
         return "%02d:%02d".formatted(seconds / 60, seconds % 60);
-    }
-
-    /** The remote {@code player} holds or watches through, or null. */
-    static @Nullable Remote of(@NotNull Player player) {
-        return BY_PLAYER.get(player);
     }
 }

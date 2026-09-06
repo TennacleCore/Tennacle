@@ -1,6 +1,7 @@
 package tennacle.games.watch;
 
 import tennacle.looks.Look;
+import io.github.term4.archipelago.replay.Ghost;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.shard.Shard;
@@ -73,9 +74,23 @@ final class Dressing {
         this.objective = "rh-" + gameId.substring(0, Math.min(8, gameId.length()));
         this.teamPrefix = "r" + gameId.substring(0, Math.min(6, gameId.length())) + "-";
         this.spectatorTeam = "r" + gameId.substring(0, Math.min(6, gameId.length())) + "~";
-        this.remote = new Remote(playback, gameId);
+        this.remote = new Remote(playback, gameId, this::alive);
         this.untick = stage.onTick(tick -> tick());
         BY_PLAYBACK.put(playback, this);
+    }
+
+    // a seat whose ghost stands in the theater right now: the compass lists these
+    private List<Lineup.Entry> alive() {
+        List<Lineup.Entry> out = new ArrayList<>();
+        for (Seat seat : lineup) {
+            Ghost ghost = playback.ghost(seat.name());
+            if (ghost == null || ghost.getInstance() == null || playback.hidden(seat.name())) continue;
+            out.add(new Lineup.Entry(seat.name(), seat.color(), playback.skin(seat.name()), () -> {
+                Ghost now = playback.ghost(seat.name());
+                return now != null && now.getInstance() != null ? now.getPosition() : null;
+            }));
+        }
+        return out;
     }
 
     /** The dressing of {@code playback}, or null for a playback nobody is watching through {@link Replays}. */
