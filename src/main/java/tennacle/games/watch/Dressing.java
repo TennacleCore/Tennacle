@@ -223,15 +223,15 @@ final class Dressing {
             String date = plain.replace(code, "").trim();
             lines.remove(i);
             lines.addAll(i, List.of(look.theme().prose(Frames.date(lookName, LocalDate.now())),
-                    look.theme().dim("Recorded:"), indented(look.theme().value(date)), indented(look.theme().value(code))));
+                    look.theme().dim("Recorded:"), under(look.theme().value(date)), under(look.theme().value(code))));
             break;
         }
         return new Replays.Rows(recorded.title(), lines);
     }
 
-    /** A row set in under its label: the recording's own date and code hang off "Recorded:". */
-    private static Component indented(Component value) {
-        return Component.text("     ").append(value);
+    /** A row hung off its label, marked the way a command's tag line marks its own: a dim chevron, then the value. */
+    private Component under(Component value) {
+        return Component.text("  ").append(look.theme().dim("» ")).append(value);
     }
 
     // the recorded health at the cursor, scored under the ghost's name: the tab column and the nameplate's read

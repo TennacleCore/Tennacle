@@ -251,7 +251,7 @@ class ReplaysTest extends HeadlessServerTest {
             String today = java.time.LocalDate.now().toString();
             int dated = rows.indexOf(today);
             assertTrue(dated >= 0 && dated + 4 <= rows.size(), "today's date on the board: " + rows);
-            assertEquals(List.of(today, "Recorded:", today, game.code()), rows.subList(dated, dated + 4).stream().map(String::trim).toList(),
+            assertEquals(List.of(today, "Recorded:", "» " + today, "» " + game.code()), rows.subList(dated, dated + 4).stream().map(String::trim).toList(),
                     "today, then the recording's own date and code, a row each: " + rows);
             assertTrue(rows.get(dated + 2).startsWith(" ") && rows.get(dated + 3).startsWith(" "), "the recording's rows sit in: " + rows);
             assertTrue(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction c
