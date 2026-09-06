@@ -1,9 +1,9 @@
 package tennacle.commands;
 
+import tennacle.games.watch.Spectators;
 import tennacle.Msg;
 import tennacle.Sessions;
 import tennacle.games.Matches;
-import tennacle.games.Spectators;
 
 import io.github.term4.grotto.Game;
 import net.minestom.server.entity.Player;

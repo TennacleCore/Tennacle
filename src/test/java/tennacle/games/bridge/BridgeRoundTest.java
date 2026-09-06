@@ -1,5 +1,7 @@
 package tennacle.games.bridge;
 
+import tennacle.games.Ruleset;
+import tennacle.games.TestWiring;
 import io.github.term4.grotto.modules.combat.Respawns;
 import tennacle.Mechanics;
 import tennacle.games.Match;

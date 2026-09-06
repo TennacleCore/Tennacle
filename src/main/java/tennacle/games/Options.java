@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import tennacle.games.map.Maps;
 import tennacle.Mechanics;
 
 import io.github.term4.grotto.Game;
@@ -87,7 +88,7 @@ public record Options(@Nullable String map, @Nullable String platform,
     }
 
     /** What the tail can hold at {@code token}: map names bare, the mode's flags after a dash, a flag's values after its equals sign. */
-    static @NotNull Collection<String> completions(@NotNull Mode mode, @NotNull String token) {
+    public static @NotNull Collection<String> completions(@NotNull Mode mode, @NotNull String token) {
         if (!token.startsWith("-")) return mode.arena().names();
         String body = token.substring(1);
         int eq = body.indexOf('=');

@@ -1,7 +1,7 @@
 package tennacle.games.bridge;
 
+import tennacle.looks.Look;
 import tennacle.Msg;
-import tennacle.games.Look;
 import tennacle.games.Matches;
 
 import io.github.term4.canvas.chat.ChatWidth;

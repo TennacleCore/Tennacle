@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import tennacle.games.watch.Replays;
+import tennacle.looks.Palette;
 import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.flow.Phases;

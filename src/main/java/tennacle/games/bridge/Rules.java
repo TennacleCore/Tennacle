@@ -1,16 +1,16 @@
 package tennacle.games.bridge;
 
+import tennacle.games.watch.Replays;
+import tennacle.looks.Look;
+import tennacle.looks.Deaths;
 import net.kyori.adventure.text.format.NamedTextColor;
 import tennacle.looks.Fireworks;
 import io.github.term4.canvas.theme.SoundSet;
-import tennacle.games.Deaths;
 import java.util.Set;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
-import tennacle.games.Look;
 import tennacle.games.Match;
 import tennacle.games.Matches;
-import tennacle.games.Replays;
 import io.github.term4.canvas.Canvas;
 
 import io.github.term4.barnacle.marker.LimitMarker;

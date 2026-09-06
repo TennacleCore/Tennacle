@@ -1,5 +1,10 @@
 package tennacle.games;
 
+import tennacle.games.matchmaking.Queues;
+import tennacle.games.watch.Spectators;
+import tennacle.games.watch.Replays;
+import tennacle.looks.Look;
+import tennacle.looks.GameSounds;
 import tennacle.storage.MatchLog;
 import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.Mechanics;

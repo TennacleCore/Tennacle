@@ -1,10 +1,10 @@
 package tennacle.commands;
 
+import tennacle.games.watch.Replays;
 import tennacle.storage.SafeName;
 import tennacle.Msg;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
-import tennacle.games.Replays;
 
 import io.github.term4.archipelago.Storage;
 import io.github.term4.archipelago.event.replay.PlaybackStopEvent;

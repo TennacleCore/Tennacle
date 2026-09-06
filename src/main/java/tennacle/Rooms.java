@@ -1,11 +1,11 @@
 package tennacle;
 
+import tennacle.games.matchmaking.Parties;
+import tennacle.games.watch.Replays;
+import tennacle.looks.Look;
 import io.github.term4.canvas.tab.TabList;
 import net.kyori.adventure.text.Component;
-import tennacle.games.Look;
 import tennacle.games.Matches;
-import tennacle.games.Parties;
-import tennacle.games.Replays;
 
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.canvas.chat.Chat;

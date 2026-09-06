@@ -1,10 +1,10 @@
 package tennacle.games.bridge;
 
+import tennacle.games.watch.Replays;
 import tennacle.bridge.ReplayBridge;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
-import tennacle.games.Replays;
 import tennacle.games.TestWiring;
 
 import io.github.term4.archipelago.replay.Playback;
@@ -141,6 +141,16 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),
                     "the health column is up");
             assertTrue(Boolean.TRUE.equals(viewer.player.getTag(ShardTabList.SPECTATOR)), "a watcher lists as a spectator");
+            assertTrue(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.teamName().endsWith("~")
+                    && t.action() instanceof TeamsPacket.CreateTeamAction c && c.entities().contains("ChanViewer")),
+                    "the watcher's own row sinks on a team past the lineup's");
+            // backward: the beats' titles show again and the board walks back to an earlier reading
+            Boards.Rendered late = Boards.rendered(viewer.player);
+            viewer.sent.clear();
+            playback.reverse(true);
+            tickUntil(theater, "the cage beats cross backward", () -> subtitled(viewer, "Cages open in"));
+            tickUntil(theater, "the board walks back", () -> !late.equals(Boards.rendered(viewer.player)));
+            playback.reverse(false);
             tickUntil(theater, "the replay runs out and sends the watcher home", () -> Replays.watching(viewer.player) == null);
             assertTrue(said(viewer, "The replay ended."));
             await("back in the lobby", () -> viewer.player.getInstance() == instance);

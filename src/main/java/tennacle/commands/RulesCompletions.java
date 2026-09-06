@@ -1,7 +1,6 @@
 package tennacle.commands;
 
 import tennacle.Mechanics;
-import tennacle.games.Completions;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.state.StateKey;

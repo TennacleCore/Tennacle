@@ -1,8 +1,8 @@
 package tennacle.commands;
 
+import tennacle.games.watch.Spectators;
 import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.polyp.platform.player.PlayerNames;
-import tennacle.games.Spectators;
 import tennacle.GameIds;
 import tennacle.Msg;
 import tennacle.games.Matches;

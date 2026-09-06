@@ -1,5 +1,13 @@
 package tennacle;
 
+import tennacle.games.map.SectionCommands;
+import tennacle.games.matchmaking.Parties;
+import tennacle.games.matchmaking.Duels;
+import tennacle.games.matchmaking.Queues;
+import tennacle.games.watch.Spectators;
+import tennacle.games.watch.Replays;
+import tennacle.looks.GameSounds;
+import tennacle.looks.TabStats;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Arrays;
@@ -37,15 +45,8 @@ import tennacle.commands.ShardCommands;
 import tennacle.commands.SimTpsCommands;
 import tennacle.commands.SpectateCommands;
 import tennacle.lobby.Welcome;
-import tennacle.games.Duels;
-import tennacle.games.GameSounds;
-import tennacle.games.TabStats;
 import tennacle.games.Matches;
 import io.github.term4.archipelago.Storage;
-import tennacle.games.Replays;
-import tennacle.games.Parties;
-import tennacle.games.Queues;
-import tennacle.games.Spectators;
 import tennacle.games.boxing.Boxing;
 import tennacle.games.bridge.Bridge;
 import tennacle.games.sumo.Sumo;
@@ -247,7 +248,7 @@ public final class TestServer {
         Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
         Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
         Commands.describe(AppCommand.Audience.DEV, "give", "An item by material, for the editor.");
-        tennacle.games.SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
+        tennacle.games.map.SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
         Sessions.register(p -> { // /l leaves the editor OPEN - the idle watchdog below owns closing
             var editing = Bloom.session();
             if (editing == null || p.getInstance() != editing.instance()) return null;

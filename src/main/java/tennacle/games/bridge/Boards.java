@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import tennacle.looks.Palette;
 import tennacle.Msg;
 import tennacle.looks.Frames;
 
@@ -97,7 +98,7 @@ final class Boards {
     private static Component circles(Game game, Team team, Theme theme, boolean boldLabel) {
         int goals = game.state().get(Scope.team(team.id()), Bridge.GOALS);
         int target = Math.max(goals, game.rules().resolve(Scope.GAME, Score.TARGET));
-        String tag = "[" + tennacle.games.Palette.letter(team) + "] ";
+        String tag = "[" + tennacle.looks.Palette.letter(team) + "] ";
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);
         return Component.empty().append(label).append(theme.circles(goals, target, team.color()));

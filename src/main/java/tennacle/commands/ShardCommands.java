@@ -1,8 +1,8 @@
 package tennacle.commands;
 
+import tennacle.games.watch.Spectators;
 import tennacle.storage.SafeName;
 import io.github.term4.grotto.modules.view.Spectating;
-import tennacle.games.Spectators;
 import io.github.term4.grotto.Game;
 import tennacle.Msg;
 import tennacle.dev.DemoLights;

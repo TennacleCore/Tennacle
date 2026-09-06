@@ -1,9 +1,15 @@
 package tennacle.games.bridge;
 
-import tennacle.games.Parties;
+import tennacle.games.map.MapPool;
+import tennacle.games.map.Sections;
+import tennacle.games.matchmaking.Parties;
+import tennacle.games.matchmaking.Duels;
+import tennacle.looks.Look;
+import tennacle.looks.Palette;
+import tennacle.looks.Presentation;
+import tennacle.looks.Deaths;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Abandonment;
-import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.combat.Projectiles;
 import io.github.term4.grotto.modules.view.Sight;
@@ -17,15 +23,11 @@ import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;
 import tennacle.Mechanics;
 import tennacle.Msg;
-import tennacle.games.Duels;
 import tennacle.games.Flags;
 import tennacle.games.KitLayouts;
-import tennacle.games.MapPool;
-import tennacle.games.Sections;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
-import tennacle.games.Presentation;
 
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
@@ -184,7 +186,7 @@ public final class Bridge {
         Cages.editable();
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, Parties.MAX)) // a party shares its cage
-                .teams(a -> tennacle.games.Palette.teams(a, CAGE, DEFAULTS))
+                .teams(a -> tennacle.looks.Palette.teams(a, CAGE, DEFAULTS))
                 .expect(CAGE, 2)
                 .expect(GOAL, 2)
                 .expect(RESPAWN, 2)

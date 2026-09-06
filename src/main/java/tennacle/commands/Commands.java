@@ -1,7 +1,6 @@
 package tennacle.commands;
 
 import tennacle.Msg;
-import tennacle.games.Completions;
 
 import io.github.term4.canvas.Canvas;
 import net.kyori.adventure.text.Component;

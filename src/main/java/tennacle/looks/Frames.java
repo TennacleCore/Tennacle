@@ -1,7 +1,7 @@
 package tennacle.looks;
 
+import tennacle.games.Mode;
 import tennacle.Msg;
-import tennacle.games.Look;
 import tennacle.games.Match;
 
 import io.github.term4.canvas.board.Board;

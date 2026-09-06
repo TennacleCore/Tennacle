@@ -1,10 +1,14 @@
 package tennacle.games.boxing;
 
-import tennacle.games.Parties;
+import tennacle.games.map.HotArena;
+import tennacle.games.matchmaking.Parties;
+import tennacle.games.matchmaking.Duels;
+import tennacle.looks.Look;
+import tennacle.looks.Palette;
+import tennacle.looks.Presentation;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
-import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.polyp.platform.player.PlayerNames;
@@ -14,13 +18,10 @@ import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;
 import tennacle.Mechanics;
 import tennacle.Msg;
-import tennacle.games.Duels;
 import tennacle.games.Flags;
-import tennacle.games.HotArena;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
-import tennacle.games.Presentation;
 import tennacle.games.Ruleset;
 
 import io.github.term4.grotto.Body;
@@ -119,7 +120,7 @@ public final class Boxing {
         HotArena arena = HotArena.of("boxing");
         GameType type = GameType.builder("boxing")
                 .slots(SlotLayout.groups(Markers.SPAWN, Parties.MAX)) // a party shares its marker
-                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, DEFAULTS))
+                .teams(a -> tennacle.looks.Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(Score.TARGET, 100)

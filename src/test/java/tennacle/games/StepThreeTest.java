@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import tennacle.games.matchmaking.Queues;
 import tennacle.Mechanics;
 
 import io.github.term4.archipelago.testsupport.FakePlayer;

@@ -1,5 +1,11 @@
 package tennacle.games;
 
+import tennacle.games.matchmaking.Parties;
+import tennacle.games.matchmaking.Duels;
+import tennacle.games.matchmaking.Queues;
+import tennacle.games.watch.Spectators;
+import tennacle.looks.GameSounds;
+import tennacle.looks.TabStats;
 import tennacle.games.sumo.Sumo;
 
 import io.github.term4.archipelago.shard.ShardManager;

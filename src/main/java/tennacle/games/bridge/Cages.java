@@ -1,5 +1,7 @@
 package tennacle.games.bridge;
 
+import tennacle.games.map.Chunks;
+import tennacle.games.map.HotArena;
 import io.github.term4.bloom.Bloom;
 import io.github.term4.barnacle.marker.DataMarker;
 import java.util.concurrent.ThreadLocalRandom;
@@ -7,8 +9,6 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.canvas.theme.Role;
-import tennacle.games.HotArena;
-import tennacle.games.Chunks;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 

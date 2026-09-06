@@ -1,22 +1,23 @@
 package tennacle.games.sumo;
 
-import tennacle.games.Parties;
+import tennacle.games.map.HotArena;
+import tennacle.games.matchmaking.Parties;
+import tennacle.games.matchmaking.Duels;
+import tennacle.looks.Look;
+import tennacle.looks.Palette;
+import tennacle.looks.Presentation;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
-import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.bloom.edit.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
-import tennacle.games.Duels;
 import tennacle.games.Flags;
-import tennacle.games.HotArena;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
-import tennacle.games.Presentation;
 import tennacle.games.Ruleset;
 
 import io.github.term4.grotto.Body;
@@ -79,7 +80,7 @@ public final class Sumo {
         HotArena arena = HotArena.of("sumo");
         GameType type = GameType.builder("sumo")
                 .slots(SlotLayout.groups(Markers.SPAWN, Parties.MAX)) // a party shares its marker
-                .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, DEFAULTS))
+                .teams(a -> tennacle.looks.Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1) // the spectate anchor's fallback
                 .expect(Markers.VOID, 1)

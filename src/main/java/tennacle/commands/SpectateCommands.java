@@ -1,12 +1,13 @@
 package tennacle.commands;
 
+import tennacle.games.watch.Spectators;
+import tennacle.games.Mode;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.grotto.modules.view.Spectating;
 import java.util.List;
 import tennacle.Msg;
 import tennacle.games.Matches;
-import tennacle.games.Spectators;
 
 import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;

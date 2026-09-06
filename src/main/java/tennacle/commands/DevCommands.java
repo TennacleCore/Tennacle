@@ -1,7 +1,7 @@
 package tennacle.commands;
 
+import tennacle.games.watch.Spectators;
 import io.github.term4.polyp.mechanics.attribute.catalog.VanillaPotions;
-import tennacle.games.Spectators;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.dev.Arsenal;
@@ -291,7 +291,7 @@ public final class DevCommands {
         AppCommand enchant = Commands.dev("enchant", "Enchant the held item.")
                 .usage("/enchant <enchantment> [level]", "e.g. /enchant fire_aspect 2");
         Argument<String> enchName = ArgumentType.Word("enchantment");
-        enchName.setSuggestionCallback(tennacle.games.Completions.of(() ->
+        enchName.setSuggestionCallback(tennacle.commands.Completions.of(() ->
                 MinecraftServer.getEnchantmentRegistry().keys().stream().map(key -> key.key().value()).sorted().toList()));
         Argument<Integer> enchLevel = ArgumentType.Integer("level");
         enchant.addSyntax((sender, ctx) -> {
@@ -307,7 +307,7 @@ public final class DevCommands {
                 .usage("/effect <effect> [strength] [seconds]", "e.g. /effect strength 2")
                 .usage("/effect clear", "clear all effects");
         Argument<String> effName = ArgumentType.Word("effect");
-        effName.setSuggestionCallback(tennacle.games.Completions.of(() ->
+        effName.setSuggestionCallback(tennacle.commands.Completions.of(() ->
                 PotionEffect.values().stream().map(effect -> effect.key().value()).sorted().toList()));
         Argument<Integer> effStrength = ArgumentType.Integer("strength");
         Argument<Integer> effSeconds = ArgumentType.Integer("seconds");

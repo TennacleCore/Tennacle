@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import tennacle.games.Matches;
 import tennacle.Msg;
 
 import io.github.term4.grotto.Game;
