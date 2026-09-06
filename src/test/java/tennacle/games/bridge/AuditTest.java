@@ -12,12 +12,16 @@ import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.archipelago.shard.ShardView;
+import io.github.term4.barnacle.Arena;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.item.Material;
+import net.minestom.server.instance.Instance;
+import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -108,6 +112,55 @@ class AuditTest extends HeadlessServerTest {
             game.end(Outcome.aborted());
             red.player.remove();
             blue.player.remove();
+            admin.player.remove();
+        }
+    }
+    private static List<String> lines(FakePlayer p) {
+        return p.sent(SystemChatPacket.class).stream()
+                .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
+    }
+
+    /** A tree's row counts what stands under it and who watches it, beside its players. */
+    @Test
+    void aTreeRowCountsItsShards() {
+        Shard root = new Shard(instance);
+        Shard child = new Shard(root);
+        new Shard(child);
+        Audit.shards().register(root, "audit-grove");
+        FakePlayer admin = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "AuditGrove");
+        FakePlayer watcher = FakePlayer.connect(instance, new Pos(8.5, 65, 0.5), "AuditWatcher");
+        try {
+            ShardView.set(watcher.player, ShardView.of(root));
+            admin.sent.clear();
+            Audit.shards(admin.player);
+            String row = lines(admin).stream().filter(l -> l.contains("audit-grove")).findFirst().orElse("");
+            assertTrue(row.contains("0 players"), row);
+            assertTrue(row.contains("1 viewing"), row);
+            assertTrue(row.contains("2 shards under it"), row);
+        } finally {
+            ShardView.set(watcher.player, null);
+            Audit.shards().destroy(root);
+            admin.player.remove();
+            watcher.player.remove();
+        }
+    }
+
+    /** A pooled map's row names the modes that play it and, with no game on it, reads ready. */
+    @Test
+    void aWarmMapNamesItsModes() {
+        Mode boxing = Matches.mode("boxing");
+        assertNotNull(boxing);
+        Arena arena = boxing.arena().named("boxing");
+        assertNotNull(arena, "the boxing map is in the arenas dir");
+        Instance warm = arena.instantiate();
+        FakePlayer admin = FakePlayer.connect(instance, new Pos(10.5, 65, 0.5), "AuditWarm");
+        try {
+            assertEquals(List.of("boxing"), Audit.modesOf(warm));
+            admin.sent.clear();
+            Audit.overview(admin.player);
+            String row = lines(admin).stream().filter(l -> l.contains("map boxing ")).findFirst().orElse("");
+            assertTrue(row.contains("map boxing · boxing · ready"), row);
+        } finally {
             admin.player.remove();
         }
     }

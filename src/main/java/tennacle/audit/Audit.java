@@ -94,20 +94,54 @@ public final class Audit {
     /** What an instance is to the app: the lobby, a map's world, the editor's, or a bare world. */
     public static @NotNull String label(@NotNull Instance instance) {
         if (instance == Matches.lobby()) return "lobby";
+        Arena arena = arenaOf(instance);
+        if (arena != null) return "map " + mapName(arena);
+        Session editing = Bloom.session();
+        if (editing != null && editing.instance() == instance) return "editor " + editing.id();
+        return "world " + instance.getDimensionName() + " " + instance.getUuid().toString().substring(0, 6);
+    }
+
+    /** The arena {@code instance} is the world of: a game's, or one a mode warmed for its next game; else null. */
+    public static @Nullable Arena arenaOf(@NotNull Instance instance) {
         for (Grotto.InstanceView row : Matches.grotto().instances()) {
-            if (row.instance() == instance && row.arena() != null) return "map " + row.arena().meta().id();
+            if (row.instance() == instance && row.arena() != null) return row.arena();
         }
-        for (String name : Matches.modes()) { // a map warmed for its next game, before any game names it
+        for (String name : Matches.modes()) {
             Mode mode = Matches.mode(name);
             if (mode == null) continue;
             for (String map : mode.arena().names()) {
                 Arena arena = mode.arena().named(map);
-                if (arena != null && arena.instantiated() == instance) return "map " + map;
+                if (arena != null && arena.instantiated() == instance) return arena;
             }
         }
-        Session editing = Bloom.session();
-        if (editing != null && editing.instance() == instance) return "editor " + editing.id();
-        return "world " + instance.getDimensionName() + " " + instance.getUuid().toString().substring(0, 6);
+        return null;
+    }
+
+    // the name a pool plays it under (the one commands and the rotation use), else the id it was authored with
+    private static String mapName(Arena arena) {
+        for (String name : Matches.modes()) {
+            Mode mode = Matches.mode(name);
+            String pooled = mode != null ? mode.arena().nameOf(arena) : null;
+            if (pooled != null) return pooled;
+        }
+        return arena.meta().id();
+    }
+
+    /** The modes whose map pools hold the arena {@code instance} stands for; empty for the lobby or the editor. */
+    public static @NotNull List<String> modesOf(@NotNull Instance instance) {
+        List<String> out = new ArrayList<>();
+        for (String name : Matches.modes()) {
+            Mode mode = Matches.mode(name);
+            if (mode == null) continue;
+            for (String map : mode.arena().names()) {
+                Arena arena = mode.arena().named(map);
+                if (arena != null && arena.instantiated() == instance) {
+                    out.add(name);
+                    break;
+                }
+            }
+        }
+        return out;
     }
 
     /** {@code tree <handle>} for a shard with children, {@code shard <handle>} for one without. */
@@ -215,14 +249,45 @@ public final class Audit {
         return out;
     }
 
-    /** {@code text} that opens {@code shard}'s players as heads. */
+    /** {@code text} that opens {@code shard}'s players as heads; the hover is its standing. */
     public static @NotNull Component whoLink(@NotNull String text, @NotNull Shard shard) {
-        return Msg.link(text, "/audit who " + handle(shard), "click for who is in it");
+        return Msg.link(text, "/audit who " + handle(shard), card(shard, "click for who is in it"));
     }
 
-    /** {@code text} that opens {@code shard}'s tree. */
+    /** {@code text} that opens {@code shard}'s tree; the hover is its standing. */
     public static @NotNull Component treeLink(@NotNull String text, @NotNull Shard shard) {
-        return Msg.link(text, "/audit tree " + handle(shard), "click to expand");
+        return Msg.link(text, "/audit tree " + handle(shard), card(shard, "click to expand"));
+    }
+
+    public static long entitiesIn(@NotNull Shard shard) {
+        return shard.entities().stream().filter(e -> !(e instanceof Player)).count();
+    }
+
+    /** A shard's standing, a line each: who owns it, where, who is in and watching it, what it holds. */
+    public static @NotNull List<Component> standing(@NotNull Shard shard) {
+        List<Component> lines = new ArrayList<>();
+        String owner = owner(shard);
+        if (owner != null) lines.add(Component.text(owner, NamedTextColor.AQUA));
+        lines.add(Component.text(label(shard.instance()), NamedTextColor.GRAY));
+        int players = shard.members().size(), viewing = viewersOf(shard).size();
+        lines.add(Component.text(players + plural(players, " player"), NamedTextColor.GRAY));
+        lines.add(Component.text(viewing + " viewing", NamedTextColor.GRAY));
+        long entities = entitiesIn(shard);
+        lines.add(Component.text(entities + plural((int) entities, " entity", " entities"), NamedTextColor.GRAY));
+        lines.add(Component.text(shard.overlaySize() + plural(shard.overlaySize(), " block") + " in the diff", NamedTextColor.GRAY));
+        lines.add(Component.text(shard.domain() != null ? "own clock" : "server clock", NamedTextColor.DARK_GRAY));
+        if (!shard.children().isEmpty()) {
+            int under = under(shard);
+            lines.add(Component.text(under + plural(under, " shard") + " under it", NamedTextColor.GRAY));
+        }
+        return lines;
+    }
+
+    // the hover behind a shard's name: its standing, then what the click does
+    private static Component card(Shard shard, String hint) {
+        Component out = Component.text(handle(shard), shard.children().isEmpty() ? NamedTextColor.WHITE : NamedTextColor.GREEN);
+        for (Component line : standing(shard)) out = out.append(Component.newline()).append(line);
+        return out.append(Component.newline()).append(Component.text(hint, NamedTextColor.YELLOW));
     }
 
     /** A player count that hovers the names (up to {@link #HOVER_NAMES}) and opens {@code shard}'s heads. */
@@ -381,6 +446,16 @@ public final class Audit {
         List<Object> parts = new ArrayList<>();
         parts.add(indent);
         parts.add(Msg.v(label(instance)));
+        List<String> modes = modesOf(instance);
+        if (!modes.isEmpty()) {
+            parts.add(" · ");
+            parts.add(Msg.v(String.join(", ", modes)).hoverEvent(Component.text(
+                    modes.size() == 1 ? "the mode this map plays" : "the modes this map plays")));
+            if (gamesIn(instance).isEmpty()) {
+                parts.add(" · ");
+                parts.add(Msg.v("ready").hoverEvent(Component.text("warm: a game starts here without building the world first")));
+            }
+        }
         parts.add(" · ");
         parts.add(players(here, null, null));
         parts.add(" · " + instance.getChunks().size() + " chunks · " + entities + plural((int) entities, " entity", " entities"));
@@ -422,12 +497,12 @@ public final class Audit {
         parts.add(" · ");
         parts.add(players(new ArrayList<>(root.members()), root, Game.of(root)));
         List<Player> viewing = viewersOf(root);
-        if (!viewing.isEmpty()) {
-            parts.add(" · ");
-            parts.add(Msg.v(viewing.size() + " viewing").hoverEvent(names(viewing, null)));
+        parts.add(" · ");
+        parts.add(Msg.v(viewing.size() + " viewing").hoverEvent(viewing.isEmpty() ? Component.text("nobody") : names(viewing, null)));
+        if (!root.children().isEmpty()) {
+            int under = under(root);
+            parts.add(" · " + under + plural(under, " shard") + " under it");
         }
-        int under = under(root);
-        if (under > 0) parts.add(" · " + under + " under it");
         Msg.tag(to, "audit", parts.toArray());
     }
 

@@ -191,25 +191,14 @@ public final class AuditViews {
     }
 
     private static long entities(Shard shard) {
-        return shard.entities().stream().filter(e -> !(e instanceof Player)).count();
+        return Audit.entitiesIn(shard);
     }
 
     /** A sapling for a tree, a stick for a lone shard, its standing in the lore. */
     public static @NotNull ItemStack shardItem(@NotNull Shard shard, boolean child) {
         boolean tree = !shard.children().isEmpty();
         Component name = Component.text(Audit.handle(shard), tree ? NamedTextColor.GREEN : NamedTextColor.WHITE);
-        List<Component> lore = new ArrayList<>();
-        String owner = Audit.owner(shard);
-        if (owner != null) lore.add(Component.text(owner, NamedTextColor.AQUA));
-        lore.add(Component.text(Audit.label(shard.instance()), NamedTextColor.GRAY));
-        lore.add(Component.text(shard.members().size() + Audit.plural(shard.members().size(), " player"), NamedTextColor.GRAY));
-        int viewing = Audit.viewersOf(shard).size();
-        if (viewing > 0) lore.add(Component.text(viewing + " viewing", NamedTextColor.GRAY));
-        long entities = entities(shard);
-        lore.add(Component.text(entities + Audit.plural((int) entities, " entity", " entities"), NamedTextColor.GRAY));
-        lore.add(Component.text(shard.overlaySize() + Audit.plural(shard.overlaySize(), " block") + " in the diff", NamedTextColor.GRAY));
-        lore.add(Component.text(shard.domain() != null ? "own clock" : "server clock", NamedTextColor.DARK_GRAY));
-        if (tree) lore.add(Component.text(Audit.under(shard) + " under it", NamedTextColor.GRAY));
+        List<Component> lore = new ArrayList<>(Audit.standing(shard));
         if (child) {
             lore.add(Component.text(tree ? "Click: expand · Right click: players" : "Click: players", NamedTextColor.YELLOW));
         }
