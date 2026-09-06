@@ -212,14 +212,16 @@ final class Dressing {
         }
     }
 
-    // the theater's frame over the recorded rows: today's date goes over the recorded date and code
+    // the theater's frame over the recorded rows: today's date as any board writes it, the recorded date and
+    // code under it, labeled as the recording's
     private Replays.Rows adorn(Replays.Rows recorded) {
         List<Component> lines = new ArrayList<>(recorded.lines());
         for (int i = 0; !code.isEmpty() && i < lines.size(); i++) {
-            if (PlainTextComponentSerializer.plainText().serialize(lines.get(i)).contains(code)) {
-                lines.add(i, look.theme().prose(Frames.date(lookName, LocalDate.now())));
-                break;
-            }
+            String plain = PlainTextComponentSerializer.plainText().serialize(lines.get(i));
+            if (!plain.contains(code)) continue;
+            lines.set(i, look.theme().dim("Recorded " + plain.trim()));
+            lines.add(i, look.theme().prose(Frames.date(lookName, LocalDate.now())));
+            break;
         }
         return new Replays.Rows(recorded.title(), lines);
     }

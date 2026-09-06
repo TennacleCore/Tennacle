@@ -40,8 +40,8 @@ import java.util.function.Supplier;
  * The replay's remote: the hotbar whoever leads the theater holds, and the timeline every watcher reads off the
  * experience bar and the line above the hotbar. The players' compass, slower and faster on arrow heads that walk
  * the {@link #LADDER} a rung at a time, a seek head each way sharing one step (left click picks it, right click
- * takes it), the play/pause dye, the lever that flips the direction, and the star that opens the replay menu
- * (share, bookmarks, play from here).
+ * takes it), the play/pause dye, the direction head pointing the way it plays, and the star that opens the
+ * replay menu (share, bookmarks, play from here). A run-out replay unpaused forward starts over.
  * {@code /rate} sets any speed between {@link #MIN_RATE} and {@link #MAX_RATE}; the heads then snap back onto the
  * ladder. The hotbar is theirs to press and nothing more: no drop, no move, no swap.
  */
@@ -61,6 +61,8 @@ public final class Remote {
     private static final String BLUE_DOWN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjBkMWRmODA0NmYwYjVkOTM0YzNlMDU3OThlYWNmZWVhNmQ3YjU5NWRiZTI2ZGViZjdkYjlhY2M4YzRmYTc5OCJ9fX0=";
     private static final String WHITE_LEFT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTE4NWM5N2RiYjgzNTNkZTY1MjY5OGQyNGI2NDMyN2I3OTNhM2YzMmE5OGJlNjdiNzE5ZmJlZGFiMzVlIn19fQ==";
     private static final String WHITE_RIGHT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzFjMGVkZWRkNzExNWZjMWIyM2Q1MWNlOTY2MzU4YjI3MTk1ZGFmMjZlYmI2ZTQ1YTY2YzM0YzY5YzM0MDkxIn19fQ==";
+    private static final String BLUE_RIGHT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTE3ZjM2NjZkM2NlZGZhZTU3Nzc4Yzc4MjMwZDQ4MGM3MTlmZDVmNjVmZmEyYWQzMjU1Mzg1ZTQzM2I4NmUifX19";
+    private static final String BLUE_LEFT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWFlNzg0NTFiZjI2Y2Y0OWZkNWY1NGNkOGYyYjM3Y2QyNWM5MmU1Y2E3NjI5OGIzNjM0Y2I1NDFlOWFkODkifX19";
 
     private static final Map<Player, Remote> BY_PLAYER = new ConcurrentHashMap<>();
     private static boolean installed;
@@ -227,8 +229,8 @@ public final class Remote {
 
     private ItemStack directionItem() {
         return playback.reversed()
-                ? Items.named(Material.LEVER, Component.text("Direction: reverse", NamedTextColor.RED))
-                : Items.named(Material.LEVER, Component.text("Direction: forward", NamedTextColor.GREEN));
+                ? Items.head(BLUE_LEFT, Component.text("Playing in reverse", NamedTextColor.RED))
+                : Items.head(BLUE_RIGHT, Component.text("Playing forward", NamedTextColor.GREEN));
     }
 
     private ItemStack playItem() {
@@ -254,7 +256,11 @@ public final class Remote {
                 else controls.seek = (controls.seek + 1) % SEEK_STEPS.length;
                 deal(viewer);
             }
-            case PLAY -> playback.pause(!playback.paused());
+            case PLAY -> {
+                boolean over = playback.paused() && !playback.reversed() && playback.tick() >= playback.length();
+                if (over) seek(0); // a run-out replay plays again from the top
+                playback.pause(!playback.paused());
+            }
             case DIRECTION -> playback.reverse(!playback.reversed());
             case MENU -> { if (right) menu(viewer); }
             default -> { }

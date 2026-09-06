@@ -148,7 +148,8 @@ class ReplaysTest extends HeadlessServerTest {
             assertEquals("REPLAY", PlainTextComponentSerializer.plainText().serialize(board.title()), "the theater's title");
             String today = java.time.LocalDate.now().toString();
             int dated = rows.indexOf(rows.stream().filter(l -> l.equals(today)).findFirst().orElse(null));
-            assertTrue(dated >= 0 && rows.get(dated + 1).contains(game.code()), "today over the recorded date and code: " + rows);
+            assertTrue(dated >= 0 && rows.get(dated + 1).startsWith("Recorded ") && rows.get(dated + 1).contains(game.code()),
+                    "today over the recording's own date and code: " + rows);
             assertTrue(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction c
                     && c.entities().contains("ChanRed")), "the lineup colors the ghosts' names");
             assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),
@@ -158,7 +159,7 @@ class ReplaysTest extends HeadlessServerTest {
             assertEquals(Material.PLAYER_HEAD, viewer.player.getInventory().getItemStack(Remote.FASTER).material());
             assertEquals(Material.COMPASS, viewer.player.getInventory().getItemStack(Remote.PLAYERS).material());
             assertEquals(Material.NETHER_STAR, viewer.player.getInventory().getItemStack(Remote.MENU).material());
-            assertEquals(Material.LEVER, viewer.player.getInventory().getItemStack(Remote.DIRECTION).material());
+            assertEquals(Material.PLAYER_HEAD, viewer.player.getInventory().getItemStack(Remote.DIRECTION).material());
             Remote remote = Remote.of(viewer.player);
             assertNotNull(remote);
             remote.players(viewer.player);
@@ -190,7 +191,7 @@ class ReplaysTest extends HeadlessServerTest {
             playback.reverse(true);
             tickUntil(theater, "the cage beats cross backward", () -> subtitled(viewer, "Cages open in"));
             assertTrue(PlainTextComponentSerializer.plainText().serialize(viewer.player.getInventory().getItemStack(Remote.DIRECTION)
-                    .get(net.minestom.server.component.DataComponents.CUSTOM_NAME)).contains("reverse"), "the lever follows the direction");
+                    .get(net.minestom.server.component.DataComponents.CUSTOM_NAME)).contains("reverse"), "the head follows the direction");
             tickUntil(theater, "the board walks back", () -> !late.equals(Boards.rendered(viewer.player)));
             playback.reverse(false);
             tickUntil(theater, "the replay runs out and holds its last frame", () -> playback.paused() && playback.tick() >= playback.length());
