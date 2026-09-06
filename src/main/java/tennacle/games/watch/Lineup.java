@@ -41,6 +41,10 @@ public final class Lineup {
                         @NotNull Supplier<@Nullable Pos> at) {}
 
     private static final Component NAME = Component.text("Players", NamedTextColor.AQUA);
+    /** A screen's own title: no color, so it draws in the gray a container's label always has. */
+    private static final Component TITLE = Component.text("Players");
+    private static final int PAGE = 36; // rows two to five; the top row breathes, the bottom row turns the page
+    private static final int PREV = 45, PAPER = 49, NEXT = 53;
 
     private record Aim(Supplier<@Nullable Pos> at, @Nullable Point sent) {}
 
@@ -89,24 +93,42 @@ public final class Lineup {
 
     /** Opens the picker on {@code entries}; nobody alive says so instead. */
     public static void open(@NotNull Player viewer, @NotNull List<Entry> entries) {
+        open(viewer, entries, 0);
+    }
+
+    private static void open(Player viewer, List<Entry> entries, int page) {
         if (entries.isEmpty()) {
             Msg.say(viewer, "Nobody is alive right now.");
             return;
         }
-        int rows = Math.min(6, (entries.size() + 8) / 9);
-        Screen.Builder screen = Screen.rows(rows).title(NAME).ownClicks(ClickRule.DENY);
-        for (int i = 0; i < Math.min(entries.size(), rows * 9); i++) {
+        int pages = (entries.size() + PAGE - 1) / PAGE;
+        int at = Math.max(0, Math.min(pages - 1, page));
+        Screen.Builder screen = Screen.rows(6).title(TITLE).ownClicks(ClickRule.DENY);
+        for (int i = at * PAGE; i < Math.min(entries.size(), (at + 1) * PAGE); i++) {
             Entry entry = entries.get(i);
-            screen.button(i, Items.head(entry.skin(), Component.text(entry.name(), entry.color())), (who, click) -> {
-                Pos at = entry.at().get();
-                who.closeInventory();
-                if (at == null) {
-                    Msg.fail(who, Msg.v(entry.name()), " is gone.");
-                    return;
-                }
-                who.teleport(at);
-                aim(who, entry.at());
-            });
+            screen.button(9 + i - at * PAGE, Items.head(entry.skin(), Component.text(entry.name(), entry.color())),
+                    (who, click) -> {
+                        Pos to = entry.at().get();
+                        who.closeInventory();
+                        if (to == null) {
+                            Msg.fail(who, Msg.v(entry.name()), " is gone.");
+                            return;
+                        }
+                        who.teleport(to);
+                        aim(who, entry.at());
+                    });
+        }
+        if (pages > 1) {
+            screen.item(PAPER, Items.named(Material.PAPER,
+                    Component.text("Page " + (at + 1) + " of " + pages, NamedTextColor.YELLOW)));
+            if (at > 0) {
+                screen.button(PREV, Items.named(Material.ARROW, Component.text("Previous page", NamedTextColor.GRAY)),
+                        (who, click) -> open(who, entries, at - 1));
+            }
+            if (at < pages - 1) {
+                screen.button(NEXT, Items.named(Material.ARROW, Component.text("Next page", NamedTextColor.GRAY)),
+                        (who, click) -> open(who, entries, at + 1));
+            }
         }
         Screens.open(viewer, screen.build());
     }

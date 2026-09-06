@@ -269,8 +269,9 @@ class ReplaysTest extends HeadlessServerTest {
             remote.players(viewer.player);
             var picker = Screens.inventory(viewer.player);
             assertNotNull(picker, "the compass opens the players");
-            assertEquals(Material.PLAYER_HEAD, picker.getItemStack(0).material(), "a head per player alive");
-            assertEquals(Material.PLAYER_HEAD, picker.getItemStack(1).material());
+            assertEquals(6 * 9, picker.getSize(), "the picker fills a double chest, paged like the others");
+            assertEquals(Material.PLAYER_HEAD, picker.getItemStack(9).material(), "a head per player alive");
+            assertEquals(Material.PLAYER_HEAD, picker.getItemStack(10).material());
             remote.menu(viewer.player);
             var menu = Screens.inventory(viewer.player);
             assertNotNull(menu, "the star opens the menu");
