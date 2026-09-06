@@ -25,7 +25,9 @@ public final class TestWiring {
         wired = true;
         tennacle.Mechanics.polyp = MechanicsBoot.ensure();
         io.github.term4.archipelago.shard.ShardTabList.install(); // the server's tab list: spawn/entry order is tested
-        Matches.install(lobby, new Pos(0.5, 65, 0.5), new ShardManager());
+        ShardManager shards = new ShardManager();
+        Matches.install(lobby, new Pos(0.5, 65, 0.5), shards);
+        tennacle.audit.Audit.install(shards);
         tennacle.commands.Commands.help();
         Duels.install();
         Parties.install();

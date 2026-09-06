@@ -361,6 +361,14 @@ public final class Replays {
         return watching.get(viewer);
     }
 
+    /** The game whose replay plays on {@code stage} (a theater's root), or null. */
+    public static @Nullable String replayOf(@NotNull Shard stage) {
+        for (Map.Entry<String, Theater> entry : theaters.entrySet()) {
+            if (entry.getValue().stage() == stage) return entry.getKey();
+        }
+        return null;
+    }
+
     /** The playback {@code viewer} is watching, or null. */
     public static @Nullable Playback playbackOf(@NotNull Player viewer) {
         String id = watching.get(viewer);

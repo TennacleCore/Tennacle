@@ -7,8 +7,6 @@ import tennacle.GameIds;
 import tennacle.Msg;
 import tennacle.games.Matches;
 
-import io.github.term4.archipelago.shard.Shard;
-import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Grotto;
 import net.kyori.adventure.text.Component;
@@ -19,22 +17,16 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-/** {@code /grotto} - DEV tooling, like {@link DevCommands}: chat over the api for the test environment
- *  (the {@code instances()} live map, spectate, {@link GameIds#derive} as {@code id}). Not a player surface. */
+/** {@code /grotto} - DEV tooling, like {@link DevCommands}: chat over the api for the test environment (spectate,
+ *  {@link GameIds#derive} as {@code id}). Not a player surface; the live map is {@code /audit}. */
 public final class GrottoCommands {
 
     private GrottoCommands() {}
 
-    public static void register(ShardManager shards) {
-        AppCommand grotto = Commands.dev("grotto", "The live map: instances, games, players.")
-                .usage("/grotto list", "every game and where it runs")
+    public static void register() {
+        AppCommand grotto = Commands.dev("grotto", "Spectate a player's game; derive a game id from a board code.")
                 .usage("/grotto spectate <player>", "follow them into their game")
                 .usage("/grotto id <code> [date]", "derive a game id from a board code");
-        grotto.setDefaultExecutor((sender, ctx) -> list(sender, shards));
-        grotto.addSyntax((sender, ctx) -> list(sender, shards), ArgumentType.Literal("list"));
         var target = ArgumentType.Word("player");
         target.setSuggestionCallback(PlayerNames.suggest());
         grotto.addSyntax((sender, ctx) -> spectate(sender, ctx.get(target)), ArgumentType.Literal("spectate"), target);
@@ -116,57 +108,5 @@ public final class GrottoCommands {
         Spectators.enter(game, p, null); // the same entry as /spectate: body swapped, HUD, tab
         Msg.tag(p, "grotto", "watching ", Msg.v(subject.getUsername()), "'s " + game.type().id()
                 + " (", Msg.run("/grotto spectate off"), ")");
-    }
-
-    private static void list(CommandSender sender, ShardManager shards) {
-        List<Grotto.InstanceView> rows = Matches.grotto().instances();
-        if (rows.isEmpty()) {
-            Msg.tag(sender, "grotto", "no live games or shard trees");
-            return;
-        }
-        for (Grotto.InstanceView row : rows) {
-            boolean idle = row.games().isEmpty() && row.roots().isEmpty();
-            long m = row.quietMillis() / 60000;
-            String state = idle ? "idle " + (m > 0 ? m + "m" : row.quietMillis() / 1000 + "s") : "active";
-            String what = row.arena() != null ? "map " + row.arena().meta().id() : "world " + row.instance().getDimensionName();
-            Msg.tag(sender, "grotto", Msg.v(what), " - " + state
-                    + (row.games().isEmpty() ? "" : ", " + row.games().size() + (row.games().size() == 1 ? " game" : " games")));
-            java.util.Set<Shard> owned = new java.util.HashSet<>();
-            for (Game game : row.games()) {
-                owned.add(game.shard());
-                String players = game.members().stream()
-                        .map(mem -> game.isGhost(mem) ? mem.getUsername() + " (ghost)" : mem.getUsername())
-                        .collect(Collectors.joining(", "));
-                String shard = shards.nameOf(game.shard());
-                Msg.tag(sender, "grotto", "  ", Msg.v(game.type().id() + "#" + game.code())
-                                .hoverEvent(Component.text("click to copy the game id"))
-                                .clickEvent(ClickEvent.copyToClipboard(game.id())),
-                        ": " + game.status().name().toLowerCase() + " at tick " + game.tick() + ", ",
-                        Msg.v(players.isEmpty() ? "nobody in" : players),
-                        shard != null ? " on shard " + shard : "");
-                String specs = game.spectators().stream().map(Player::getUsername).collect(Collectors.joining(", "));
-                if (!specs.isEmpty()) Msg.tag(sender, "grotto", "    watched by ", Msg.v(specs));
-            }
-            for (Shard root : row.roots()) {
-                if (owned.contains(root)) continue; // a game's shard is on its own line
-                String name = shards.nameOf(root);
-                int under = descendants(shards, root);
-                Msg.tag(sender, "grotto", "  shard tree ", Msg.v(name != null ? name : "unnamed"),
-                        under > 0 ? " (+" + under + " under it)" : "", " - no game");
-            }
-        }
-    }
-
-    private static int descendants(ShardManager shards, Shard root) {
-        int n = 0;
-        for (Shard shard : shards.shards()) {
-            for (Shard up = shard.parent(); up != null; up = up.parent()) {
-                if (up == root) {
-                    n++;
-                    break;
-                }
-            }
-        }
-        return n;
     }
 }

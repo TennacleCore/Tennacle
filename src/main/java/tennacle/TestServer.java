@@ -55,6 +55,8 @@ import tennacle.lobby.Playground;
 import tennacle.storage.Atomic;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchLog;
+import tennacle.audit.Audit;
+import tennacle.commands.AuditCommands;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -239,7 +241,9 @@ public final class TestServer {
         GameSounds.register(); // /sounds: which cues a player hears
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         GameIds.install(Matches.grotto(), gameSecret(data));
-        GrottoCommands.register(shards); // /grotto: the live map (instances, games, players, shard trees)
+        Audit.install(shards);
+        AuditCommands.register(); // /audit: the server's worlds (instances, games, shard trees, players)
+        GrottoCommands.register(); // /grotto: spectate, and a game id from a board code
         LobbyCommands.register(); // /spawn|/lobby|/l - a seated player departs their game first
         Sumo.install();   // ring-out over a void plane; the platform picks the knockback
         Boxing.install(); // speed 2, first to 10 hits; /stats for career numbers

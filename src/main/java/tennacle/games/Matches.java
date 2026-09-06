@@ -67,11 +67,13 @@ public final class Matches {
     // live modifiers by game id - pruned as games end
     private static final Map<String, Ruleset> modifiers = new ConcurrentHashMap<>();
     private static Grotto grotto;
+    private static InstanceContainer lobby;
     private static Consumer<Player> lobbyRoute = player -> {};
 
     private Matches() {}
 
     public static void install(@NotNull InstanceContainer lobby, @NotNull Pos lobbySpawn, @NotNull ShardManager shards) {
+        Matches.lobby = lobby;
         grotto = Grotto.install(shards); // shared manager: /shard tree shows the game trees
         lobbyRoute = player -> {
             Spectators.exit(player); // a game's end routes its spectators here; restore the body and the HUD
@@ -90,6 +92,11 @@ public final class Matches {
 
     public static @NotNull Grotto grotto() {
         return grotto;
+    }
+
+    /** The lobby world, once installed. */
+    public static @Nullable InstanceContainer lobby() {
+        return lobby;
     }
 
     /** The exit route - for commands that send players home. */
