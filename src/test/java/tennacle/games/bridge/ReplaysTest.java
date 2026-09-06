@@ -141,9 +141,10 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),
                     "the health column is up");
             assertTrue(Boolean.TRUE.equals(viewer.player.getTag(ShardTabList.SPECTATOR)), "a watcher lists as a spectator");
-            assertTrue(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.teamName().endsWith("~")
-                    && t.action() instanceof TeamsPacket.CreateTeamAction c && c.entities().contains("ChanViewer")),
-                    "the watcher's own row sinks on a team past the lineup's");
+            assertEquals(-1, viewer.player.getTag(ShardTabList.LIST_ORDER), "a modern watcher's own row sinks on its order");
+            assertEquals("\u00a7oChanViewer", viewer.player.getTag(ShardTabList.SORT_NAME), "a 1.8 row apart from the ghost's");
+            assertFalse(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction c
+                    && c.entities().contains("ChanViewer")), "a modern watcher's name joins no team: their ghost keeps its color");
             // backward: the beats' titles show again and the board walks back to an earlier reading
             Boards.Rendered late = Boards.rendered(viewer.player);
             viewer.sent.clear();

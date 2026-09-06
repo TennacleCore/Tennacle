@@ -5,6 +5,7 @@ import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardTabList;
+import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.board.Board;
 import io.github.term4.canvas.board.Boards;
 import io.github.term4.canvas.tab.TabList;
@@ -34,8 +35,10 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * What a theater's watchers see besides the world: the lineup's colors on names and nameplates, the health column
  * the game showed, the game's sidebar as its first seat saw it, the look's tab chrome, and each other greyed and
- * sunk below the players the way a game lists its spectators. One per playback; {@link #enter} dresses a
- * watcher, {@link #exit} undresses.
+ * sunk below the players the way a game lists its spectators. A watcher's own ghost shares their name, and
+ * teams key on names: the watcher lists under a sort name on 1.8 (a team past the lineup's sinks it) and on
+ * nothing but the list order on a modern client, so the ghost keeps the seat's color either way. One per
+ * playback; {@link #enter} dresses a watcher, {@link #exit} undresses.
  */
 final class Dressing {
 
@@ -93,19 +96,23 @@ final class Dressing {
         if (!dressed.add(viewer)) return;
         viewer.setTag(ShardTabList.SPECTATOR, true); // both eras sink and grey a spectator entry natively
         viewer.setTag(ShardTabList.LIST_ORDER, -1); // a modern client's own row sorts on this
+        viewer.setTag(ShardTabList.SORT_NAME, sortName(viewer.getUsername())); // a 1.8 row apart from the ghost's
         viewer.setDisplayName(Component.text(viewer.getUsername(), NamedTextColor.GRAY)
                 .decoration(TextDecoration.ITALIC, false));
         ShardTabList.resync(viewer);
         TabList.refresh(viewer);
-        // a 1.8 client sorts its own row by team name: the watchers' team sits past the lineup's ('~' after '-')
         SharedTeam.suspend(viewer, true);
-        TeamsPacket joined = new TeamsPacket(spectatorTeam, new TeamsPacket.AddEntitiesToTeamAction(List.of(viewer.getUsername())));
-        for (Player other : dressed) if (other != viewer) other.sendPacket(joined);
+        // a 1.8 client sorts its own row by team name: the watchers' team sits past the lineup's ('~' after '-')
+        TeamsPacket joined = new TeamsPacket(spectatorTeam,
+                new TeamsPacket.AddEntitiesToTeamAction(List.of(ShardTabList.listName(viewer))));
+        for (Player other : dressed) if (other != viewer && Canvas.isLegacy(other)) other.sendPacket(joined);
         teams().forEach((team, names) -> viewer.sendPacket(new TeamsPacket(teamPrefix + team,
                 new TeamsPacket.CreateTeamAction(settings(colorOf(team), TeamsPacket.NameTagVisibility.ALWAYS), names))));
-        viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.CreateTeamAction(
-                settings(NamedTextColor.GRAY, TeamsPacket.NameTagVisibility.NEVER),
-                dressed.stream().map(Player::getUsername).toList())));
+        if (Canvas.isLegacy(viewer)) {
+            viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.CreateTeamAction(
+                    settings(NamedTextColor.GRAY, TeamsPacket.NameTagVisibility.NEVER),
+                    dressed.stream().map(ShardTabList::listName).toList())));
+        }
         if (tabHealth || nameHealth) {
             viewer.sendPacket(new ScoreboardObjectivePacket(objective, (byte) 0, HEALTH_LABEL,
                     ScoreboardObjectivePacket.Type.INTEGER, null));
@@ -127,12 +134,14 @@ final class Dressing {
         for (String team : teams().keySet()) {
             viewer.sendPacket(new TeamsPacket(teamPrefix + team, new TeamsPacket.RemoveTeamAction()));
         }
-        viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.RemoveTeamAction()));
-        TeamsPacket left = new TeamsPacket(spectatorTeam, new TeamsPacket.RemoveEntitiesToTeamAction(List.of(viewer.getUsername())));
-        for (Player other : dressed) other.sendPacket(left);
+        if (Canvas.isLegacy(viewer)) viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.RemoveTeamAction()));
+        TeamsPacket left = new TeamsPacket(spectatorTeam,
+                new TeamsPacket.RemoveEntitiesToTeamAction(List.of(ShardTabList.listName(viewer))));
+        for (Player other : dressed) if (Canvas.isLegacy(other)) other.sendPacket(left);
         SharedTeam.suspend(viewer, false);
         viewer.removeTag(ShardTabList.SPECTATOR);
         viewer.removeTag(ShardTabList.LIST_ORDER);
+        viewer.removeTag(ShardTabList.SORT_NAME);
         viewer.setDisplayName(null);
         ShardTabList.resync(viewer);
         TabList.refresh(viewer);
@@ -185,6 +194,11 @@ final class Dressing {
             UpdateScorePacket packet = new UpdateScorePacket(seat.name(), objective, points, null, null);
             for (Player viewer : dressed) viewer.sendPacket(packet);
         }
+    }
+
+    // the italic code marks a spectator row, as Nametags does; the 1.8 profile-name cap holds the rest
+    private static String sortName(String username) {
+        return "\u00a7o" + username.substring(0, Math.min(username.length(), 14));
     }
 
     private Map<String, List<String>> teams() {
