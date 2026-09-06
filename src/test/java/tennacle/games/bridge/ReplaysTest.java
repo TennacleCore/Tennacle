@@ -193,11 +193,17 @@ class ReplaysTest extends HeadlessServerTest {
                     .get(net.minestom.server.component.DataComponents.CUSTOM_NAME)).contains("reverse"), "the lever follows the direction");
             tickUntil(theater, "the board walks back", () -> !late.equals(Boards.rendered(viewer.player)));
             playback.reverse(false);
-            tickUntil(theater, "the replay runs out and sends the watcher home", () -> Replays.watching(viewer.player) == null);
-            assertTrue(said(viewer, "The replay ended."));
+            tickUntil(theater, "the replay runs out and holds its last frame", () -> playback.paused() && playback.tick() >= playback.length());
+            assertTrue(playback.active(), "the theater stays up");
+            assertEquals(game.id(), Replays.watching(viewer.player), "and so does the watcher");
+            tickUntil(theater, "told so", () -> said(viewer, "The replay is over."));
+            assertTrue(Replays.leave(viewer.player), "the leader leaves");
+            Matches.toLobby(viewer.player);
+            assertNull(Replays.watching(viewer.player));
+            assertNull(Replays.watching(mate.player), "the party went home too");
+            assertFalse(playback.active(), "the last one out closed the theater");
             await("back in the lobby", () -> viewer.player.getInstance() == instance);
             assertNull(viewer.player.getTag(ShardTabList.SPECTATOR));
-            assertNull(Replays.watching(mate.player), "the party went home too");
             assertTrue(viewer.player.getInventory().getItemStack(Remote.PLAY).isAir(), "the remote stays in the theater");
         } finally {
             Replays.leave(viewer.player);

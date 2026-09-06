@@ -79,6 +79,7 @@ public final class Remote {
     private final Map<Player, Long> pressed = new ConcurrentHashMap<>(); // a right click's tick: the swing after it is the same press
     private volatile boolean shownPaused;
     private volatile boolean shownReversed;
+    private volatile boolean saidOver;
 
     /** {@code marks} renders a bookmark as the mode reads it; {@link #plainMark} for a mode with no say. */
     Remote(@NotNull Playback playback, @NotNull String gameId, @NotNull Supplier<List<Lineup.Entry>> alive,
@@ -191,6 +192,11 @@ public final class Remote {
             shownReversed = reversed;
             for (Player viewer : controllers.keySet()) viewer.getInventory().setItemStack(DIRECTION, directionItem());
         }
+        boolean over = paused && playback.tick() >= playback.length();
+        if (over && !saidOver) {
+            for (Player viewer : watchers) Msg.say(viewer, "The replay is over. ", Msg.run("/l"), " to leave.");
+        }
+        saidOver = over;
     }
 
     private void timeline(Player viewer) {

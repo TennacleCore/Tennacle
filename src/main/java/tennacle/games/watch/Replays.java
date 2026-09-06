@@ -72,9 +72,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * is kept on change, so a watcher reads the kill lines, sees the titles and the board as the players did. Everyone
  * who held a seat then hears it is there to watch, wherever they are by then. A watch raises a theater over the
  * map's own world and puts the viewer in it as a ghost, {@link Dressing dressed} the way a game's spectator is,
- * holding the {@link Remote}; a party watches together behind its leader, who holds it for them. The last viewer
- * out closes the theater, and a replay that runs out sends everyone home. The file is what a later store takes;
- * the spool beside it is gone once the file is kept.
+ * holding the {@link Remote}; a party watches together behind its leader, who holds it for them. A replay that
+ * runs out holds its last frame until the watchers leave; the last viewer out closes the theater. The file is
+ * what a later store takes; the spool beside it is gone once the file is kept.
  */
 public final class Replays {
 
@@ -376,6 +376,7 @@ public final class Replays {
                 Msg.fail(viewer, "That replay could not be opened: " + e.getMessage());
                 return;
             }
+            playback.holdAtEnd(true); // the last frame stays up until the watchers leave; the last one out closes the theater
             String lookName = data.get(LOOK);
             String code = data.get(CODE);
             List<String> lineup = data.get(LINEUP);
@@ -441,7 +442,7 @@ public final class Replays {
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, false);
     }
 
-    // the playback ran out: everyone watching goes home
+    // the playback was halted under its watchers (a dev's /replay halt): everyone watching goes home
     private static void over(Playback playback) {
         for (Map.Entry<String, Theater> entry : theaters.entrySet()) {
             Theater theater = entry.getValue();
