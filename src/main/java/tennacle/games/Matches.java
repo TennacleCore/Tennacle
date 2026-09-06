@@ -8,6 +8,7 @@ import tennacle.looks.GameSounds;
 import tennacle.storage.MatchLog;
 import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.Mechanics;
+import tennacle.Msg;
 
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.barnacle.Arena;
@@ -29,6 +30,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.InstanceContainer;
+import net.minestom.server.MinecraftServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -43,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The one launch for any seating: a mode, a platform (its ruleset and look), the sides. The look name is
@@ -266,6 +269,62 @@ public final class Matches {
     /** {@link #start} on the map the options name, else the pool's pick. */
     public static @NotNull Game start(@NotNull Mode mode, @NotNull Platform platform,
                                       @NotNull List<? extends Collection<Player>> sides, @NotNull Options options) {
+        return seat(mode, platform, sides, options, pick(mode, options));
+    }
+
+    /**
+     * {@link #start}, with a cold map built off the tick thread first: the pool's pick is instantiated on a
+     * virtual thread when nothing has loaded it yet, and the seating lands on the next tick after. The future
+     * fails as {@link #start} throws. A launch is the only thing that loads a map, so a boot loads none and an
+     * idle one leaves when the engine's sweep says so.
+     */
+    public static @NotNull CompletableFuture<Game> begin(@NotNull Mode mode, @NotNull Platform platform,
+                                                         @NotNull List<? extends Collection<Player>> sides,
+                                                         @NotNull Options options) {
+        Arena arena;
+        try {
+            arena = pick(mode, options);
+        } catch (RuntimeException e) { // the map may not be authored yet
+            return CompletableFuture.failedFuture(e);
+        }
+        if (arena.instantiated() != null) {
+            try {
+                return CompletableFuture.completedFuture(seat(mode, platform, sides, options, arena));
+            } catch (RuntimeException e) {
+                return CompletableFuture.failedFuture(e);
+            }
+        }
+        CompletableFuture<Game> out = new CompletableFuture<>();
+        for (Collection<Player> side : sides) {
+            for (Player p : side) Msg.say(p, "Preparing ", Msg.v(arena.meta().name()), "...");
+        }
+        Thread.ofVirtual().name("tennacle-map-" + mode.name()).start(() -> {
+            try {
+                arena.instantiate();
+            } catch (RuntimeException e) {
+                out.completeExceptionally(e);
+                return;
+            }
+            MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                try {
+                    out.complete(seat(mode, platform, sides, options, arena));
+                } catch (RuntimeException e) {
+                    out.completeExceptionally(e);
+                }
+            });
+        });
+        return out;
+    }
+
+    // the map the options name, else the pool's pick - chosen once, so a warm-up and its seating agree
+    private static Arena pick(Mode mode, Options options) {
+        Arena arena = options.map() != null ? mode.arena().named(options.map()) : mode.arena().get();
+        if (arena == null) throw new IllegalStateException("no map named " + options.map() + " for " + mode.name());
+        return arena;
+    }
+
+    private static Game seat(Mode mode, Platform platform, List<? extends Collection<Player>> sides, Options options,
+                             Arena arena) {
         for (Collection<Player> side : sides) { // before the launch, so a refusal orphans nothing
             for (Player player : side) {
                 // engaged, not seated: the shard tag lands at the end of the transfer, and a player mid-flight
@@ -273,8 +332,6 @@ public final class Matches {
                 if (grotto.engaged(player)) throw new IllegalStateException(player.getUsername() + " is in a game");
             }
         }
-        Arena arena = options.map() != null ? mode.arena().named(options.map()) : mode.arena().get();
-        if (arena == null) throw new IllegalStateException("no map named " + options.map() + " for " + mode.name());
         Game game = launch(mode, platform, arena, options);
         List<Team> teams = game.roster().teams();
         if (sides.size() > teams.size()) {

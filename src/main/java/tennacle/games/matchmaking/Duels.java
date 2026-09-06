@@ -14,6 +14,7 @@ import tennacle.commands.Commands;
 
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.polyp.platform.player.PlayerNames;
+import io.github.term4.grotto.Game;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>} - the
@@ -118,10 +120,10 @@ public final class Duels {
         List<Player> b = theirs.within() ? List.of(me) : Parties.of(me);
         if (!free(me, a) || !free(me, b)) return;
         // the request outlives a launch that failed, so the click can be tried again
-        if (start(Matches.mode(theirs.mode()), theirs.options(), a, b)) {
+        start(Matches.mode(theirs.mode()), theirs.options(), a, b).thenRun(() -> {
             requests.remove(from.getUuid());
             requests.remove(me.getUuid());
-        }
+        });
     }
 
     private static void request(CommandSender sender, String targetName, String modeName, List<String> words) {
@@ -256,26 +258,25 @@ public final class Duels {
         }
     }
 
-    /** {@code true} when the match launched; both sides hear why when it did not. */
-    private static boolean start(Mode mode, Options options, List<Player> a, List<Player> b) {
+    /** The match, once its map is up; both sides hear why when it fails. */
+    private static CompletableFuture<Game> start(Mode mode, Options options, List<Player> a, List<Player> b) {
         Platform platform = Matches.platformFor(options.platform());
-        try {
-            Matches.start(mode, platform, List.of(a, b), options);
-        } catch (IllegalStateException e) { // the map may not be authored yet
-            for (Player p : a) Msg.fail(p, e.getMessage());
-            for (Player p : b) Msg.fail(p, e.getMessage());
-            return false;
-        } catch (RuntimeException e) {
-            // a bad ruleset path fails inside the launch, which tears its own shard down - nothing is orphaned
-            for (Player p : a) Msg.fail(p, "The duel could not start: " + e.getMessage());
-            for (Player p : b) Msg.fail(p, "The duel could not start: " + e.getMessage());
-            return false;
-        }
-        // name what runs: the REQUESTER's mode and options win an accept, which is invisible otherwise
-        String what = mode.title() + options.describe();
-        for (Player p : a) Msg.say(p, what + " vs ", Msg.v(names(b)), ".");
-        for (Player p : b) Msg.say(p, what + " vs ", Msg.v(names(a)), ".");
-        return true;
+        CompletableFuture<Game> launch = Matches.begin(mode, platform, List.of(a, b), options);
+        launch.whenComplete((game, failure) -> {
+            if (failure != null) {
+                // a missing map says so; a bad ruleset path fails inside the launch, which tears its own shard down
+                String why = failure instanceof IllegalStateException ? failure.getMessage()
+                        : "The duel could not start: " + failure.getMessage();
+                for (Player p : a) Msg.fail(p, why);
+                for (Player p : b) Msg.fail(p, why);
+                return;
+            }
+            // name what runs: the REQUESTER's mode and options win an accept, which is invisible otherwise
+            String what = mode.title() + options.describe();
+            for (Player p : a) Msg.say(p, what + " vs ", Msg.v(names(b)), ".");
+            for (Player p : b) Msg.say(p, what + " vs ", Msg.v(names(a)), ".");
+        });
+        return launch;
     }
 
     private static String names(List<Player> side) {

@@ -348,6 +348,49 @@ public final class Audit {
         }
     }
 
+    /** Every map a mode's pool holds, loaded or not: what a game would land on, and what is warm right now. */
+    public static void maps(@NotNull CommandSender to) {
+        boolean any = false;
+        for (String name : Matches.modes()) {
+            Mode mode = Matches.mode(name);
+            if (mode == null) continue;
+            Set<String> names;
+            try {
+                names = mode.arena().names();
+            } catch (RuntimeException e) {
+                names = Set.of();
+            }
+            if (names.isEmpty()) continue;
+            any = true;
+            Msg.tag(to, "audit", Msg.v(name));
+            for (String map : names) {
+                Arena arena = mode.arena().named(map);
+                Instance loaded = arena != null ? arena.instantiated() : null;
+                List<Object> parts = new ArrayList<>();
+                parts.add(INDENT);
+                parts.add(Msg.v(map));
+                parts.add(" · ");
+                if (loaded == null) {
+                    parts.add(Msg.v("unloaded").hoverEvent(Component.text("loads on its first game, and leaves again once idle")));
+                } else {
+                    List<Game> games = gamesIn(loaded);
+                    parts.add(Msg.v(games.isEmpty() ? "loaded" : games.size() + plural(games.size(), " game")));
+                    parts.add(" · ");
+                    parts.add(players(new ArrayList<>(loaded.getPlayers()), null, null));
+                    parts.add(" · " + loaded.getChunks().size() + " chunks");
+                    for (Grotto.InstanceView row : Matches.grotto().instances()) {
+                        if (row.instance() == loaded && row.quietMillis() > 0) {
+                            long m = row.quietMillis() / 60000;
+                            parts.add(" · idle " + (m > 0 ? m + "m" : row.quietMillis() / 1000 + "s"));
+                        }
+                    }
+                }
+                Msg.tag(to, "audit", parts.toArray());
+            }
+        }
+        if (!any) Msg.tag(to, "audit", "no mode holds a map");
+    }
+
     public static void shards(@NotNull CommandSender to) {
         boolean any = false;
         for (Instance instance : instances()) {

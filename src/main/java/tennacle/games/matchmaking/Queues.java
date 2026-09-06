@@ -7,6 +7,7 @@ import tennacle.games.Platform;
 import tennacle.Msg;
 import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;
+import tennacle.games.Options;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.arguments.ArgumentType;
@@ -162,16 +163,16 @@ public final class Queues {
     }
 
     private static void start(Mode mode, Platform platform, List<Player> a, List<Player> b) {
-        try {
-            Matches.start(mode, platform, List.of(a, b));
-        } catch (RuntimeException e) {
-            for (Player p : a) Msg.fail(p, "The match could not start: " + e.getMessage());
-            for (Player p : b) Msg.fail(p, "The match could not start: " + e.getMessage());
-            return;
-        }
-        String what = label(mode, platform);
-        for (Player p : a) Msg.say(p, what + " vs ", Msg.v(names(b)), ".");
-        for (Player p : b) Msg.say(p, what + " vs ", Msg.v(names(a)), ".");
+        Matches.begin(mode, platform, List.of(a, b), Options.NONE).whenComplete((game, failure) -> {
+            if (failure != null) {
+                for (Player p : a) Msg.fail(p, "The match could not start: " + failure.getMessage());
+                for (Player p : b) Msg.fail(p, "The match could not start: " + failure.getMessage());
+                return;
+            }
+            String what = label(mode, platform);
+            for (Player p : a) Msg.say(p, what + " vs ", Msg.v(names(b)), ".");
+            for (Player p : b) Msg.say(p, what + " vs ", Msg.v(names(a)), ".");
+        });
     }
 
     // the platform only when one was asked for

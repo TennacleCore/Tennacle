@@ -29,6 +29,7 @@ public final class AuditCommands {
                 .usage("/audit instances", "every world and what stands in it")
                 .usage("/audit minis", "every game: who is in, who watches, its tree")
                 .usage("/audit shards", "every shard tree and what owns it")
+                .usage("/audit maps", "every map a mode holds, loaded or not")
                 .usage("/audit players", "everyone online and where they are")
                 .usage("/audit player <name>", "one player in detail")
                 .usage("/audit go <name>", "to them: their game as a spectator, their replay, or their side")
@@ -39,6 +40,7 @@ public final class AuditCommands {
         audit.addSyntax((sender, ctx) -> Audit.minis(sender), ArgumentType.Literal("minis"));
         audit.addSyntax((sender, ctx) -> Audit.minis(sender), ArgumentType.Literal("games"));
         audit.addSyntax((sender, ctx) -> Audit.shards(sender), ArgumentType.Literal("shards"));
+        audit.addSyntax((sender, ctx) -> Audit.maps(sender), ArgumentType.Literal("maps"));
         audit.addSyntax((sender, ctx) -> Audit.players(sender), ArgumentType.Literal("players"));
         var name = ArgumentType.Word("name");
         name.setSuggestionCallback(PlayerNames.suggest());

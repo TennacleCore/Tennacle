@@ -69,6 +69,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.io.IOException;
+import java.time.Duration;
 
 /**
  * The games server: a lobby, three modes (sumo, boxing, bridge) on three networks' rules, duels, queues,
@@ -282,8 +283,9 @@ public final class TestServer {
         Canvas.profile("scrims", Msg.SCRIMS);
 
         Health.install();
-        warmArenas();
-        Bloom.onSave(saved -> warmArenas()); // the edit replaced an arena: build the new world before a launch does
+        // a map loads on its first game, off the tick thread (Matches.begin), and leaves once idle this long
+        int idle = Config.integer("tennacle.map-idle-minutes", 10);
+        Matches.grotto().expireBasesAfter(idle > 0 ? Duration.ofMinutes(idle) : null);
         shutdownSteps(vault);
         server.start(bind, port);
         LOGGER.info("listening on {}:{} (dev commands {})", bind, port, devCommands ? "on" : "off");
@@ -317,25 +319,6 @@ public final class TestServer {
         });
         Shutdown.step("shard clocks", 10, ExecutionDomain::shutdown);
         Shutdown.step("health endpoint", 5, Health::stop);
-    }
-
-    /**
-     * Reads, parses and BUILDS every mode's map off the tick thread, at boot and after a save. A cold map is
-     * otherwise done inside the command that asks for it, and commands run on the tick loop. {@code instantiate}
-     * caches per arena under its own lock, so a launch racing this waits rather than building a second world.
-     */
-    private static void warmArenas() {
-        Thread.ofVirtual().name("tennacle-arena-warm").start(() -> {
-            for (String name : Matches.modes()) {
-                var mode = Matches.mode(name);
-                if (mode == null) continue;
-                try {
-                    mode.arena().get().instantiate();
-                } catch (RuntimeException e) {
-                    LOGGER.warn("no map ready for {} yet: {}", name, e.getMessage());
-                }
-            }
-        });
     }
 
     /** Runs {@code action} on the tick thread and waits: game teardown is not safe from a shutdown thread. */

@@ -160,6 +160,10 @@ class AuditTest extends HeadlessServerTest {
             Audit.overview(admin.player);
             String row = lines(admin).stream().filter(l -> l.contains("map boxing ")).findFirst().orElse("");
             assertTrue(row.contains("map boxing · boxing · ready"), row);
+            admin.sent.clear();
+            Audit.maps(admin.player);
+            List<String> maps = lines(admin);
+            assertTrue(maps.stream().anyMatch(l -> l.contains("boxing · loaded")), "the loaded map says so: " + maps);
         } finally {
             admin.player.remove();
         }
