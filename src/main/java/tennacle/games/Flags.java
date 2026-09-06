@@ -25,7 +25,7 @@ public final class Flags {
     static {
         register(new Flag() {
             @Override public @NotNull String name() { return "preset"; }
-            @Override public @NotNull String description() { return "a network's rules and look"; }
+            @Override public @NotNull String description() { return "a preset of mechanics, rules and look"; }
             @Override public @NotNull Collection<String> values(@NotNull Mode mode) { return Matches.platforms(); }
             @Override public void apply(@NotNull Mode mode, @NotNull String value, @NotNull Options.Builder into) {
                 if (Matches.platform(value) == null) {
