@@ -1,5 +1,6 @@
 package tennacle.games.sumo;
 
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -32,6 +33,7 @@ final class Ends {
 
     static Summary scrims() {
         return Matches.summary()
+                .sideColors(NamedTextColor.WHITE, NamedTextColor.WHITE) // a plain duel has no sides to color
                 .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())));
     }
 

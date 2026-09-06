@@ -27,15 +27,16 @@ final class RulesCompletions {
 
     private RulesCompletions() {}
 
-    /** The first word: {@code paths}, a side or seat by {@code @}, or a rule id by segment. */
+    /** The first word: {@code paths}, a seat by {@code @} or a side by {@code #}, or a rule id by segment. */
     static SuggestionCallback key() {
         return (sender, context, suggestion) -> {
             Game game = gameOf(sender);
             if (game == null) return;
             String partial = Completions.partial(suggestion);
             List<String> out = new ArrayList<>();
-            if (partial.startsWith("@") || partial.isEmpty()) out.addAll(scopes(game));
-            if (!partial.startsWith("@")) {
+            boolean scoped = partial.startsWith("@") || partial.startsWith("#");
+            if (scoped || partial.isEmpty()) out.addAll(scopes(game));
+            if (!scoped) {
                 out.add("paths");
                 out.addAll(ids(game, partial));
             }
@@ -57,7 +58,7 @@ final class RulesCompletions {
             List<String> out;
             if (lead.equals("paths")) {
                 out = paths(game, String.join("/", done), partial);
-            } else if (lead.startsWith("@")) {
+            } else if (lead.startsWith("@") || lead.startsWith("#")) {
                 out = done.isEmpty() ? ids(game, partial) : done.size() == 1 ? values(game, done.getFirst()) : List.of();
             } else {
                 out = done.isEmpty() ? values(game, lead) : List.of();
@@ -72,7 +73,7 @@ final class RulesCompletions {
 
     private static List<String> scopes(Game game) {
         List<String> out = new ArrayList<>();
-        game.roster().teams().forEach(t -> out.add("@" + t.id()));
+        game.roster().teams().forEach(t -> out.add("#" + t.id()));
         game.members().forEach(m -> out.add("@" + m.getUsername()));
         return out;
     }

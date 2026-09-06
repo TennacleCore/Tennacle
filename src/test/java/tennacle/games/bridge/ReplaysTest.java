@@ -35,7 +35,7 @@ class ReplaysTest extends HeadlessServerTest {
     static void wire() {
         TestWiring.ensure(instance);
         ReplayBridge.install(); // the recording sources the server wires at boot
-        Replays.install(replays);
+        Replays.install(replays, new io.github.term4.archipelago.shard.ShardManager());
     }
 
     private static boolean said(FakePlayer p, String line) {
@@ -75,7 +75,8 @@ class ReplaysTest extends HeadlessServerTest {
             String json = blue.sent(SystemChatPacket.class).stream()
                     .map(c -> GsonComponentSerializer.gson().serialize(c.message()))
                     .filter(l -> l.contains("recorded")).findFirst().orElseThrow();
-            assertTrue(json.contains("/replay watch " + game.code()), "the click puts the watch command in chat: " + json);
+            assertTrue(json.contains("copy_to_clipboard") && json.contains("/replay watch " + game.id()),
+                    "the click copies the watch command with the full id: " + json);
             assertTrue(json.contains("bridge-fixture"), "the hover names the map: " + json);
             await("the spool is gone", () -> !Files.exists(replays.resolve("spool").resolve(game.id() + ".spool")));
         } finally {

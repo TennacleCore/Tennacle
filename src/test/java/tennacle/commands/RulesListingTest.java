@@ -76,7 +76,7 @@ class RulesListingTest extends HeadlessServerTest {
                     "a deeper package narrows again");
             assertTrue(lines(a, "rules view.health.display").stream().anyMatch(l -> l.contains("view.health.display =")),
                     "a whole id with no value reads it back");
-            assertTrue(lines(a, "rules nosuchpackage").stream().anyMatch(l -> l.contains("No rule, team or player")),
+            assertTrue(lines(a, "rules nosuchpackage").stream().anyMatch(l -> l.contains("No rule named")),
                     "and a name that is none of the three says so");
         } finally {
             if (game != null) game.end(Outcome.draw());
@@ -100,7 +100,7 @@ class RulesListingTest extends HeadlessServerTest {
             assertTrue(complete(a, "/rules space.build.").contains("space.build.breakable-outside"), "then the ids themselves");
             List<String> first = complete(a, "/rules ");
             assertTrue(first.contains("paths") && first.contains("@RuleTabA") && first.contains("flow")
-                    && first.stream().anyMatch(w -> w.startsWith("@") && !w.equals("@RuleTabA") && !w.equals("@RuleTabB")),
+                    && first.stream().anyMatch(w -> w.startsWith("#")),
                     "paths, sides, seats and packages: " + first);
             assertEquals(List.of("true", "false"), complete(a, "/rules " + bool + " "), "a boolean's two values");
             assertEquals(List.of("space"), complete(a, "/rules @RuleTabA spa"), "an id after a seat");

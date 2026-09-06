@@ -1,17 +1,33 @@
 package tennacle.games;
 
+import tennacle.GameIds;
 import tennacle.Msg;
+import tennacle.Sessions;
 import tennacle.storage.Atomic;
 
+import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Recording;
 import io.github.term4.archipelago.replay.Replay;
+import io.github.term4.archipelago.shard.Shard;
+import io.github.term4.archipelago.shard.ShardManager;
+import io.github.term4.archipelago.shard.ShardView;
+import io.github.term4.archipelago.storage.DataKey;
+import io.github.term4.archipelago.storage.ShardFile;
+import io.github.term4.archipelago.storage.UserData;
+import io.github.term4.barnacle.Arena;
 import io.github.term4.canvas.presets.Versus;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Roster;
+import io.github.term4.polyp.platform.SharedTeam;
+import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.codec.Codec;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.instance.Instance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -20,36 +36,51 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Every game is recorded: the log spools to disk as it grows and lands as {@code <game id>.shard} in the replay
- * directory when the game ends. Everyone who held a seat then hears it is there to watch, wherever they are by
- * then. The file is what a later store takes; the spool beside it is gone once the file is kept.
+ * directory when the game ends, naming its mode and map. Everyone who held a seat then hears it is there to
+ * watch, wherever they are by then. A watch raises a theater over the map's own world and puts the viewer in it
+ * as a ghost, the way spectating a game does; the last viewer out closes it. The file is what a later store takes;
+ * the spool beside it is gone once the file is kept.
  */
 public final class Replays {
 
+    public static final DataKey<String> MODE = new DataKey<>("tennacle:mode", Codec.STRING);
+    public static final DataKey<String> MAP = new DataKey<>("tennacle:map", Codec.STRING);
+    public static final DataKey<String> CODE = new DataKey<>("tennacle:code", Codec.STRING);
+
     private static final Logger LOGGER = LoggerFactory.getLogger(Replays.class);
     private static final int SPOOL_TICKS = 1200;
+
+    private record Theater(Shard stage, Playback playback, Arena arena, Set<Player> watchers) {}
+
     private static volatile @Nullable Path dir;
+    private static volatile @Nullable ShardManager shards;
     private static final Map<String, Recording> live = new ConcurrentHashMap<>();
+    private static final Map<String, Theater> theaters = new ConcurrentHashMap<>();
+    private static final Map<Player, String> watching = new ConcurrentHashMap<>();
 
     private Replays() {}
 
-    public static void install(@NotNull Path replays) {
+    public static void install(@NotNull Path replays, @NotNull ShardManager shardManager) {
         dir = replays;
+        shards = shardManager;
         Matches.grotto().onGameEnd(Replays::ended);
+        Sessions.register(viewer -> watching.containsKey(viewer) ? () -> {
+            leave(viewer);
+            Matches.toLobby(viewer);
+        } : null);
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> leave(e.getPlayer()));
     }
 
-    /** The replay directory, once installed. */
-    public static @Nullable Path dir() {
-        return dir;
-    }
-
-    /** {@code <game id>.shard} under the replay directory. */
+    /** {@code <game id>.shard} under the replay directory, once installed. */
     public static @Nullable Path fileOf(@NotNull String gameId) {
         Path at = dir;
         return at == null ? null : at.resolve(gameId + ".shard");
@@ -73,16 +104,27 @@ public final class Replays {
         return live.containsKey(game.id());
     }
 
+    /** The game {@code viewer} is watching a replay of, or null. */
+    public static @Nullable String watching(@NotNull Player viewer) {
+        return watching.get(viewer);
+    }
+
     private static void ended(Game game, Outcome outcome) {
         Recording recording = live.remove(game.id());
         Path at = dir;
         if (recording == null || at == null) return;
         // read now: the ledger and roster go with the game right after this
-        String map = game.arena().meta().name();
+        Mode mode = Matches.modeOf(game);
+        String map = game.arena().meta().id();
+        String mapName = game.arena().meta().name();
         long ticks = game.tick();
         List<UUID> seated = game.roster().participants().stream().map(Roster.Participant::uuid).distinct().toList();
-        Component line = recordedLine(game.code(), map, ticks);
-        recording.stopAsync().thenAccept(bytes -> {
+        Component line = recordedLine(game.id(), mapName, ticks);
+        recording.stopAsync(data -> {
+            if (mode != null) data.put(MODE, mode.name());
+            data.put(MAP, map);
+            data.put(CODE, game.code());
+        }).thenAccept(bytes -> {
             if (bytes == null) return; // the encode failed and logged
             try {
                 Files.createDirectories(at);
@@ -99,15 +141,111 @@ public final class Replays {
         });
     }
 
-    /** Scrims' line: green, a click puts the watch command in chat, the hover names the map and the length. */
-    static @NotNull Component recordedLine(@NotNull String code, @NotNull String map, long ticks) {
+    /** Scrims' line: green, a click copies the watch command, the hover names the map and the length. */
+    static @NotNull Component recordedLine(@NotNull String gameId, @NotNull String map, long ticks) {
         Component hover = Msg.THEME.prose("Click to watch replay of game on ").append(Msg.v(map))
                 .append(Msg.THEME.prose(" for " + clock(ticks)));
-        return Versus.recordedLine(Msg.THEME, "/replay watch " + code, hover);
+        return Versus.recordedLine(Msg.THEME, "/replay watch " + gameId, hover);
     }
 
     public static @NotNull String clock(long ticks) {
         long seconds = Math.max(0, ticks) / 20;
         return seconds / 60 + ":" + "%02d".formatted(seconds % 60);
+    }
+
+    /** Plays the replay of game {@code idOrCode} for {@code viewer}: a theater over the map's world, a ghost in it. */
+    public static void watch(@NotNull Player viewer, @NotNull String idOrCode) {
+        ShardManager manager = shards;
+        String id = idOf(idOrCode);
+        Path file = id == null || manager == null ? null : fileOf(id);
+        if (file == null || !Files.exists(file)) {
+            Msg.fail(viewer, "No replay of a game ", Msg.v(idOrCode), ".");
+            return;
+        }
+        if (Game.of(viewer) != null) {
+            Msg.fail(viewer, "You're in a game. ", Msg.run("/l"), " first.");
+            return;
+        }
+        Theater theater = theaters.get(id);
+        if (theater == null) {
+            byte[] bytes;
+            try {
+                bytes = Files.readAllBytes(file);
+            } catch (IOException e) {
+                Msg.fail(viewer, "That replay could not be read.");
+                return;
+            }
+            UserData.View data = ShardFile.userData(bytes);
+            String modeName = data.get(MODE);
+            String map = data.get(MAP);
+            Mode mode = modeName != null ? Matches.mode(modeName) : null;
+            Arena arena = mode != null && map != null ? mode.arena().named(map) : null;
+            if (arena == null) {
+                Msg.fail(viewer, "That replay's map is not on this server.");
+                return;
+            }
+            Instance world = arena.instantiate();
+            Shard stage = new Shard(world);
+            manager.register(stage, "replay-" + id.substring(0, 8));
+            Playback playback;
+            try {
+                playback = Replay.play(stage, bytes);
+            } catch (IllegalArgumentException e) {
+                manager.destroy(stage);
+                Msg.fail(viewer, "That replay could not be opened: " + e.getMessage());
+                return;
+            }
+            theater = new Theater(stage, playback, arena, ConcurrentHashMap.newKeySet());
+            theaters.put(id, theater);
+        }
+        leave(viewer); // a view elsewhere ends first
+        Spectators.exit(viewer);
+        SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
+        SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true);
+        theater.watchers().add(viewer);
+        watching.put(viewer, id);
+        Pos spawn = theater.arena().meta().spawn();
+        Pos landing = spawn != null ? spawn : new Pos(0.5, 64, 0.5);
+        Shard stage = theater.stage();
+        viewer.setInstance(stage.instance(), landing).thenRun(() -> {
+            if (id.equals(watching.get(viewer))) ShardView.set(viewer, ShardView.of(stage));
+        });
+        Msg.ok(viewer, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
+    }
+
+    /** Takes {@code viewer} out of a replay; the last one out closes the theater. {@code false} = was not watching. */
+    public static boolean leave(@NotNull Player viewer) {
+        String id = watching.remove(viewer);
+        if (id == null) return false;
+        ShardView.set(viewer, null);
+        SpectatorMode.exit(viewer);
+        SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, false);
+        Theater theater = theaters.get(id);
+        ShardManager manager = shards;
+        if (theater != null) {
+            theater.watchers().remove(viewer);
+            if (theater.watchers().isEmpty() && theaters.remove(id) != null) {
+                theater.playback().halt();
+                if (manager != null) manager.destroy(theater.stage());
+            }
+        }
+        return true;
+    }
+
+    // the id itself, or a board code re-derived for the day it was shown; a game past midnight had yesterday's
+    private static @Nullable String idOf(String idOrCode) {
+        try {
+            return UUID.fromString(idOrCode).toString();
+        } catch (IllegalArgumentException notAnId) {
+            for (LocalDate day : List.of(LocalDate.now(), LocalDate.now().minusDays(1))) {
+                try {
+                    String id = GameIds.derive(day, idOrCode);
+                    if (id != null) return id;
+                } catch (IllegalArgumentException notACode) {
+                    return null;
+                }
+            }
+            return null;
+        }
     }
 }

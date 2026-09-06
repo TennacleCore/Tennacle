@@ -142,8 +142,8 @@ public final class Rules implements GameModule {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
-            boolean allowed = buildable(build, pos)
-                    || (game.rules().resolve(Scope.GAME, OUTSIDE) && inBand(pos)); // off the slices, still in the band
+            boolean allowed = buildable(build, pos, player)
+                    || (game.rules().resolve(player, OUTSIDE) && inBand(pos, player)); // off the slices, still in the band
             if (!allowed || onASpawn(game, pos)) {
                 e.setCancelled(true); // Refusals says so
                 return;
@@ -269,7 +269,7 @@ public final class Rules implements GameModule {
         credit.forget(victim);
         respawns.queue(victim);
         Deaths.cue(game, victim, by);
-        Match.addSeat(game, victim, Bridge.DEATHS);
+        Match.addSeat(game, victim, by != null ? Bridge.DEATHS : Bridge.UNCREDITED);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
         }
@@ -279,26 +279,26 @@ public final class Rules implements GameModule {
 
     // a flat (1-tall) box is an X/Z slice under the global band; a taller box is its own 3D volume,
     // for maps whose buildable ceiling varies along the bridge
-    private boolean buildable(RegionMarker build, Point pos) {
+    private boolean buildable(RegionMarker build, Point pos, Player placer) {
         for (RegionMarker.Cuboid box : build.boxes()) {
             if (pos.blockX() < box.min().blockX() || pos.blockX() > box.max().blockX()
                     || pos.blockZ() < box.min().blockZ() || pos.blockZ() > box.max().blockZ()) continue;
             boolean flat = box.min().blockY() == box.max().blockY();
             int lo = flat ? minBuildY : box.min().blockY();
-            int hi = flat ? ceiling() : box.max().blockY();
+            int hi = flat ? ceiling(placer) : box.max().blockY();
             if (pos.blockY() >= lo && pos.blockY() <= hi) return true;
         }
         return false;
     }
 
-    // the global band: the bridge's underside up to the marker, or the rule when one is set
-    private int ceiling() {
-        int rule = game.rules().resolve(Scope.GAME, HEIGHT);
+    // the band's top: the marker, or the rule when one is set - the placer's own, so a seat can carry its own
+    private int ceiling(Player placer) {
+        int rule = game.rules().resolve(placer, HEIGHT);
         return rule >= 0 ? rule : maxBuildY;
     }
 
-    private boolean inBand(Point pos) {
-        return pos.blockY() >= minBuildY && pos.blockY() <= ceiling();
+    private boolean inBand(Point pos, Player placer) {
+        return pos.blockY() >= minBuildY && pos.blockY() <= ceiling(placer);
     }
 
     private static boolean onASpawn(Game game, Point pos) {
@@ -322,7 +322,7 @@ public final class Rules implements GameModule {
         if (!Match.live(game)) return;
         Player by = credit.creditFor(fallen);
         Deaths.cue(game, fallen, by);
-        Match.addSeat(game, fallen, Bridge.DEATHS);
+        Match.addSeat(game, fallen, by != null ? Bridge.DEATHS : Bridge.UNCREDITED);
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
         }

@@ -46,6 +46,7 @@ final class Ends {
 
     static Summary scrims() {
         return Matches.summary()
+                .sideColors(NamedTextColor.WHITE, NamedTextColor.WHITE) // a plain duel has no sides to color
                 .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
                 .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
                 .row("W-Taps", "Sprint hits over total hits", (g, side, th, c) ->

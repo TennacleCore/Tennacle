@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import io.github.term4.polyp.mechanics.attribute.catalog.VanillaPotions;
 import tennacle.games.Spectators;
 import tennacle.Mechanics;
 import tennacle.Msg;
@@ -289,7 +290,9 @@ public final class DevCommands {
         // /enchant <enchantment> [level]: enchant the held item (e.g. /enchant fire_aspect 2)
         AppCommand enchant = Commands.dev("enchant", "Enchant the held item.")
                 .usage("/enchant <enchantment> [level]", "e.g. /enchant fire_aspect 2");
-        Argument<String> enchName = ArgumentType.String("enchantment");
+        Argument<String> enchName = ArgumentType.Word("enchantment");
+        enchName.setSuggestionCallback(tennacle.games.Completions.of(() ->
+                MinecraftServer.getEnchantmentRegistry().keys().stream().map(key -> key.key().value()).sorted().toList()));
         Argument<Integer> enchLevel = ArgumentType.Integer("level");
         enchant.addSyntax((sender, ctx) -> {
             if (sender instanceof Player p) applyEnchant(p, ctx.get(enchName), 1);
@@ -303,7 +306,9 @@ public final class DevCommands {
         AppCommand effectCmd = Commands.dev("effect", "Apply a potion effect.")
                 .usage("/effect <effect> [strength] [seconds]", "e.g. /effect strength 2")
                 .usage("/effect clear", "clear all effects");
-        Argument<String> effName = ArgumentType.String("effect");
+        Argument<String> effName = ArgumentType.Word("effect");
+        effName.setSuggestionCallback(tennacle.games.Completions.of(() ->
+                PotionEffect.values().stream().map(effect -> effect.key().value()).sorted().toList()));
         Argument<Integer> effStrength = ArgumentType.Integer("strength");
         Argument<Integer> effSeconds = ArgumentType.Integer("seconds");
         effectCmd.addSyntax((sender, ctx) -> {
@@ -341,7 +346,8 @@ public final class DevCommands {
         PotionEffect effect = PotionEffect.fromKey(name.contains(":") ? name : "minecraft:" + name);
         if (effect == null) { Msg.err(p, "effect", "unknown effect: ", Msg.v(name)); return; }
         int amplifier = Math.max(0, strength - 1); // strength 1 -> amplifier 0 (level I)
-        p.addEffect(new Potion(effect, amplifier, seconds * 20));
+        // the lifecycle the game runs: attribute effects land, the particles show
+        VanillaPotions.addEffect(p, new Potion(effect, amplifier, seconds * 20, Potion.PARTICLES_FLAG | Potion.ICON_FLAG));
         Msg.tag(p, "effect", "applied ", Msg.v(effect.key().asString()), " ", Msg.v(strength), " for ", Msg.v(seconds + "s"));
     }
 

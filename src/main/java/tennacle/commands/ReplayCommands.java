@@ -3,12 +3,8 @@ package tennacle.commands;
 import tennacle.storage.SafeName;
 import tennacle.Msg;
 import net.minestom.server.entity.Player;
-import io.github.term4.archipelago.shard.ShardView;
 import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.time.LocalDate;
 import tennacle.games.Replays;
-import tennacle.GameIds;
 
 import io.github.term4.archipelago.Storage;
 import io.github.term4.archipelago.event.replay.PlaybackStopEvent;
@@ -50,19 +46,6 @@ public final class ReplayCommands {
         return file;
     }
 
-    // the board code re-derives the id for the day it was shown; a game past midnight still had yesterday's code
-    private static @Nullable String gameIdOf(String code) {
-        for (LocalDate day : List.of(LocalDate.now(), LocalDate.now().minusDays(1))) {
-            try {
-                String id = GameIds.derive(day, code);
-                if (id != null) return id;
-            } catch (IllegalArgumentException notACode) {
-                return null;
-            }
-        }
-        return null;
-    }
-
     public static void register(ShardManager shards, InstanceContainer world) {
         Path replayDir = Storage.dir("replay-dir", "replays");
         AppCommand replay = Commands.dev("replay", "Record and replay a shard.")
@@ -76,7 +59,7 @@ public final class ReplayCommands {
                 .usage("/replay bookmark <name> | bookmarks | goto <name>", "mark + jump")
                 .usage("/replay state <actor>", "the folded player state at this tick")
                 .usage("/replay halt", "end the playback")
-                .usage("/replay watch <code>", "watch a recorded game by its board code");
+                .usage("/replay watch <game>", "watch a recorded game by its id or board code");
         Argument<String> name = ArgumentType.Word("name");
         Argument<String> replayName = ArgumentType.Word("replayName");
         Argument<String> newName = ArgumentType.Word("newName");
@@ -166,37 +149,11 @@ public final class ReplayCommands {
             });
         };
         replay.addSyntax(doPlay, ArgumentType.Literal("play"), replayName, newName);
-        // a game's own replay, by the code its board showed; the theater is named after it and shared by watchers
-        Argument<String> code = ArgumentType.Word("code");
+        // a game's own replay, by its id or the code its board showed
+        Argument<String> game = ArgumentType.Word("game");
         replay.addSyntax((sender, ctx) -> {
-            if (!(sender instanceof Player p)) return;
-            String c = ctx.get(code);
-            Path source = Replays.fileOf(gameIdOf(c));
-            if (source == null || !Files.exists(source)) {
-                Msg.fail(p, "No replay of a game ", Msg.v(c), ".");
-                return;
-            }
-            String n = "replay-" + c;
-            offClock(() -> {
-                Shard theater = shards.byName(n);
-                if (theater == null) {
-                    if (playback != null) {
-                        Msg.fail(p, "One replay plays at a time. ", Msg.run("/replay halt"), " ends it.");
-                        return;
-                    }
-                    theater = shards.create(world, n, ExecutionDomain.create());
-                    try {
-                        playback = Replay.play(theater, Files.readAllBytes(source));
-                    } catch (IOException | IllegalArgumentException e) {
-                        shards.destroy(theater);
-                        Msg.fail(p, "That replay could not be opened: " + e.getMessage());
-                        return;
-                    }
-                }
-                ShardCommands.spectate(p, theater, ShardView.of(theater), () -> Msg.ok(p, "Watching the replay of game ",
-                        Msg.v(c), ". ", Msg.run("/shard spectate off"), " to stop."));
-            });
-        }, ArgumentType.Literal("watch"), code);
+            if (sender instanceof Player p) Replays.watch(p, ctx.get(game));
+        }, ArgumentType.Literal("watch"), game);
         replay.addSyntax((sender, ctx) -> {
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             long target = ctx.get(seekTick);

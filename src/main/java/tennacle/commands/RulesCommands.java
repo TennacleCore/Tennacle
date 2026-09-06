@@ -36,7 +36,7 @@ public final class RulesCommands {
         AppCommand rules = Commands.player("rules", "The running game's rules, live.")
                 .usage("/rules [package|id]", "read them, or one part")
                 .usage("/rules <id|path> <value>", "set one for the game")
-                .usage("/rules @<team|player> <id|path> <value>", "for one side or seat only")
+                .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
                 .usage("/rules paths [path]", "the mechanics tree a path can reach")
                 .featured();
         var key = ArgumentType.Word("key");
@@ -69,12 +69,12 @@ public final class RulesCommands {
                 list(p, game, scope, "");
                 return;
             }
-            if (word.startsWith("@")) {
-                Msg.fail(p, "No team or player named ", Msg.v(word.substring(1)), ".");
+            if (word.startsWith("@") || word.startsWith("#")) {
+                Msg.fail(p, nobody(word));
                 return;
             }
             if (game.type().supportedRules().keySet().stream().noneMatch(id -> under(word, id))) {
-                Msg.fail(p, "No rule, team or player named ", Msg.v(word), ".");
+                Msg.fail(p, "No rule named ", Msg.v(word), ".");
                 return;
             }
             list(p, game, Scope.GAME, word);
@@ -93,10 +93,10 @@ public final class RulesCommands {
                 return;
             }
             Scope scope = Scope.GAME;
-            if (id.startsWith("@")) { // the whole game unless a side or a seat leads
+            if (id.startsWith("@") || id.startsWith("#")) { // the whole game unless a seat or a side leads
                 scope = scopeOf(game, id);
                 if (scope == null) {
-                    Msg.fail(p, "No team or player named ", Msg.v(id.substring(1)), ".");
+                    Msg.fail(p, nobody(id));
                     return;
                 }
                 if (words.isEmpty()) {
@@ -146,7 +146,7 @@ public final class RulesCommands {
         }
         if (prefix.isEmpty()) {
             Msg.say(p, "Mechanics paths take a value too: ", Msg.run("/rules paths"), ".");
-            Msg.say(p, "One side or seat only: ", Msg.run("/rules @<team|player> <id|path> <value>"), ".");
+            Msg.say(p, "One seat or side only: ", Msg.run("/rules <@player|#team> <id|path> <value>"), ".");
         }
     }
 
@@ -192,19 +192,25 @@ public final class RulesCommands {
         if (!path.isEmpty()) Msg.say(p, "One knob: ", Msg.run("/rules paths " + path + "/<knob>"), ".");
     }
 
-    /** {@code @1} a side, {@code @Term4} that member's seat; anything else is nobody. */
+    /** {@code #1} a side, {@code @Term4} that member's seat - a player may be named like a team; anything else is nobody. */
     private static @Nullable Scope scopeOf(Game game, String who) {
-        if (!who.startsWith("@")) return null;
         String name = who.substring(1);
-        if (game.roster().teams().stream().anyMatch(t -> t.id().equals(name))) return Scope.team(name);
+        if (who.startsWith("#")) {
+            return game.roster().teams().stream().anyMatch(t -> t.id().equals(name)) ? Scope.team(name) : null;
+        }
+        if (!who.startsWith("@")) return null;
         Player member = game.memberNamed(name);
         Slot seat = member != null ? game.roster().slotOf(member) : null;
         return seat != null ? Scope.slot(seat.index()) : null;
     }
 
+    private static String nobody(String who) {
+        return (who.startsWith("#") ? "No team " : "No player named ") + who.substring(1) + " in this game.";
+    }
+
     private static String scopeName(Game game, Scope scope) {
         return switch (scope) {
-            case Scope.Team t -> "@" + t.id();
+            case Scope.Team t -> "#" + t.id();
             case Scope.Slot s -> {
                 String owner = game.roster().ownerOf(game.roster().slot(s.index()));
                 yield "@" + (owner != null ? owner : "seat " + s.index());

@@ -107,7 +107,9 @@ public final class Bridge {
 
     public static final StateKey<Integer> GOALS = StateKey.of("ledger.bridge.goals", Codec.INT, 0, true);
     public static final StateKey<Integer> KILLS = StateKey.of("ledger.bridge.kills", Codec.INT, 0, true);
+    /** A seat's deaths a player caused - the ones a ratio counts; a fall with nobody to credit is {@link #UNCREDITED}. */
     public static final StateKey<Integer> DEATHS = StateKey.of("ledger.bridge.deaths", Codec.INT, 0, true);
+    public static final StateKey<Integer> UNCREDITED = StateKey.of("ledger.bridge.uncredited", Codec.INT, 0, true);
     /** A seat's own goals; {@link #GOALS} is the team's. */
     public static final StateKey<Integer> SCORED = StateKey.of("ledger.bridge.scored", Codec.INT, 0, true);
     /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
