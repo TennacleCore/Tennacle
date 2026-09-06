@@ -83,8 +83,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     public record Tab(@NotNull Function<Player, Component> header, @NotNull Function<Player, Component> footer) {}
 
     /** The address and store lines the tab chrome names - the app's, whatever network shape wraps them. */
-    public static final String ADDRESS = "play.tennacle.gg";
-    public static final String STORE = "store.tennacle.gg";
+    public static final String ADDRESS = "tennacle.net";
+    public static final String STORE = "store.tennacle.net";
 
     /** Renders a kill line; {@code winner}/{@code verb} null = a forfeit with no killer. */
     @FunctionalInterface
