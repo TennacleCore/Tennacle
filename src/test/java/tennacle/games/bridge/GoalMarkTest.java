@@ -43,4 +43,19 @@ class GoalMarkTest extends HeadlessServerTest {
         assertTrue(lines.get(1).contains("24"), "the scorer's hearts, absorption and all: " + lines);
         assertTrue(lines.get(2).contains("01:27"), "the moment: " + lines);
     }
+
+    @Test
+    void pastTenGoalsTheScoreReadsAsNumbers() {
+        ListBinaryTag sides = ListBinaryTag.builder(BinaryTagTypes.COMPOUND)
+                .add(CompoundBinaryTag.builder().putString("team", "1").putInt("color", NamedTextColor.RED.value()).putInt("goals", 12).build())
+                .add(CompoundBinaryTag.builder().putString("team", "2").putInt("color", NamedTextColor.BLUE.value()).putInt("goals", 7).build())
+                .build();
+        CompoundBinaryTag data = CompoundBinaryTag.builder().putString("scorer", "Dogln").putString("team", "1")
+                .putInt("color", NamedTextColor.RED.value()).putInt("goals", 12).putInt("target", 15)
+                .putFloat("health", 20f).put("sides", sides).build();
+        ItemStack item = Banners.mark(new Replay.Bookmark(20, "goal", data), Msg.SCRIMS);
+        List<Component> lore = item.get(DataComponents.LORE);
+        String score = PlainTextComponentSerializer.plainText().serialize(lore.getFirst());
+        assertEquals("12 - 7", score, "no glyph meter has fifteen squares");
+    }
 }

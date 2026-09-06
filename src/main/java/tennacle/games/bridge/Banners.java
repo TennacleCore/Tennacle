@@ -170,15 +170,17 @@ final class Banners {
         TextColor color = TextColor.color(data.getInt("color"));
         Component score = Component.empty();
         int target = data.getInt("target", 1);
+        boolean glyphs = target <= Theme.METER_GLYPHS; // past ten the meter itself reads as numbers
         ListBinaryTag sides = data.getList("sides", BinaryTagTypes.COMPOUND);
         for (int i = 0; i < sides.size(); i++) {
             CompoundBinaryTag side = sides.getCompound(i);
             TextColor sideColor = TextColor.color(side.getInt("color"));
             int goals = side.getInt("goals");
             if (i > 0) score = score.append(Component.text(" - ", NamedTextColor.GRAY));
-            score = i == 0
-                    ? score.append(theme.meter(goals, target, sideColor)).append(Component.text(" " + goals, sideColor))
-                    : score.append(Component.text(goals + " ", sideColor)).append(theme.meter(goals, target, sideColor));
+            Component count = Component.text(goals, sideColor);
+            if (!glyphs) score = score.append(count);
+            else if (i == 0) score = score.append(theme.meter(goals, target, sideColor)).append(Component.text(" ")).append(count);
+            else score = score.append(count).append(Component.text(" ")).append(theme.meter(goals, target, sideColor));
         }
         List<Component> lore = new ArrayList<>();
         if (sides.size() > 0) lore.add(score);

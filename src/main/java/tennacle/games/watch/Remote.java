@@ -301,22 +301,40 @@ public final class Remote {
         Screens.open(viewer, screen);
     }
 
-    /** The replay's bookmarks as the mode renders them, from the second row down; a click seeks to one. */
+    /** The bookmarks as the mode renders them: a double chest, four rows a page, the pages turned from the bottom row. */
     public void bookmarks(@NotNull Player viewer) {
+        bookmarks(viewer, 0);
+    }
+
+    private static final int PAGE = 36; // rows one to four; the top row breathes, the bottom row turns the page
+
+    private void bookmarks(Player viewer, int page) {
         List<Replay.Bookmark> marks = playback.bookmarks();
         if (marks.isEmpty()) {
             viewer.closeInventory();
             Msg.say(viewer, "This replay has no bookmarks.");
             return;
         }
-        int rows = Math.min(6, 2 + (marks.size() + 8) / 9);
-        Screen.Builder screen = Screen.rows(rows).title(Component.text("Bookmarks")).ownClicks(ClickRule.DENY);
-        for (int i = 0; i < Math.min(marks.size(), (rows - 2) * 9); i++) {
+        int pages = (marks.size() + PAGE - 1) / PAGE;
+        int at = Math.max(0, Math.min(pages - 1, page));
+        Screen.Builder screen = Screen.rows(6).title(Component.text("Bookmarks")).ownClicks(ClickRule.DENY);
+        for (int i = at * PAGE; i < Math.min(marks.size(), (at + 1) * PAGE); i++) {
             Replay.Bookmark mark = marks.get(i);
-            screen.button(9 + i, this.marks.apply(mark), (who, click) -> {
+            screen.button(9 + i - at * PAGE, this.marks.apply(mark), (who, click) -> {
                 seek(mark.tick());
                 who.closeInventory();
             });
+        }
+        if (pages > 1) {
+            screen.item(49, Items.named(Material.PAPER, Component.text("Page " + (at + 1) + " of " + pages, NamedTextColor.YELLOW)));
+            if (at > 0) {
+                screen.button(45, Items.named(Material.ARROW, Component.text("Previous page", NamedTextColor.GRAY)),
+                        (who, click) -> bookmarks(who, at - 1));
+            }
+            if (at < pages - 1) {
+                screen.button(53, Items.named(Material.ARROW, Component.text("Next page", NamedTextColor.GRAY)),
+                        (who, click) -> bookmarks(who, at + 1));
+            }
         }
         Screens.open(viewer, screen.build());
     }

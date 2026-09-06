@@ -35,6 +35,7 @@ import io.github.term4.grotto.modules.view.HealthDisplay;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.platform.SharedTeam;
+import io.github.term4.polyp.platform.compatibility.SpectatorHud;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
@@ -398,6 +399,7 @@ public final class Replays {
         leave(viewer); // a view elsewhere ends first
         Spectators.exit(viewer);
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
+        SpectatorHud.show(viewer); // the ghost body drops a 1.8 screen's bars, and the timeline rides the experience bar
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true);
         theater.watchers().add(viewer);
         watching.put(viewer, id);
