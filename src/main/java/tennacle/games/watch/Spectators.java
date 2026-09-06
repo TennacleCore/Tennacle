@@ -1,5 +1,7 @@
 package tennacle.games.watch;
 
+import net.minestom.server.coordinate.Pos;
+import java.util.function.Supplier;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.roster.Slot;
@@ -38,6 +40,7 @@ public final class Spectators {
     private Spectators() {}
 
     public static void install() {
+        Lineup.install();
         // the compass: the picker of the players alive; Grotto refuses a spectator's use, so listen past the cancel
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerUseItemEvent.class)
                 .ignoreCancelled(false).handler(e -> compass(e.getPlayer())).build());
@@ -78,6 +81,10 @@ public final class Spectators {
         game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags greys the tab name
         viewer.getInventory().clear();
         viewer.getInventory().setItemStack(0, Lineup.compass());
+        // the compass starts on whom they came to watch; a spectator's own aim carries through to theirs
+        Supplier<Pos> inherited = target != null ? Lineup.aimOf(target) : null;
+        if (inherited != null) Lineup.aim(viewer, inherited);
+        else if (target != null) Lineup.aim(viewer, () -> target.isOnline() && Game.of(target) == game ? target.getPosition() : null);
     }
 
     /** Drops the view and gives the body back; {@code false} = was not spectating. */
@@ -88,6 +95,7 @@ public final class Spectators {
         if (watched != null) {
             watched.unspectate(viewer);
             viewer.getInventory().clear(); // the lobby dresses the arrival
+            Lineup.unaim(viewer);
         }
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, false);
         return true;

@@ -1,5 +1,13 @@
 package tennacle.games.watch;
 
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.BlockVec;
+import net.minestom.server.coordinate.Point;
+import net.minestom.server.network.packet.server.play.SpawnPositionPacket;
+import net.minestom.server.network.packet.server.play.data.WorldPos;
+import net.minestom.server.timer.TaskSchedule;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import tennacle.Msg;
 
 import io.github.term4.canvas.screen.ClickRule;
@@ -21,9 +29,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * The players alive right now, as heads on a screen; a click lands the viewer at one. A replay reads its ghosts,
- * a live game its seated members - each hands over a {@link Supplier} of {@link Entry entries}, read at the
- * moment the compass is used.
+ * The players alive right now, as heads on a screen; a click lands the viewer at one, and the compass then
+ * points at them ({@link #aim}) as they move, until the next pick. A replay reads its ghosts, a live game its
+ * seated members - each hands over a {@link Supplier} of {@link Entry entries}, read at the moment the compass
+ * is used.
  */
 public final class Lineup {
 
@@ -33,7 +42,45 @@ public final class Lineup {
 
     private static final Component NAME = Component.text("Players", NamedTextColor.AQUA);
 
+    private record Aim(Supplier<@Nullable Pos> at, @Nullable Point sent) {}
+
+    private static final Map<Player, Aim> AIMS = new ConcurrentHashMap<>();
+    private static boolean installed;
+
     private Lineup() {}
+
+    /** The tick that keeps every aimed compass on its player: the world's compass position is the target's block. */
+    public static void install() {
+        if (installed) return;
+        installed = true;
+        MinecraftServer.getSchedulerManager().buildTask(() -> AIMS.forEach((viewer, aim) -> {
+            if (!viewer.isOnline() || viewer.getInstance() == null) return;
+            Pos at = aim.at().get();
+            if (at == null) return;
+            Point block = new BlockVec(at.blockX(), at.blockY(), at.blockZ());
+            if (block.equals(aim.sent())) return;
+            AIMS.put(viewer, new Aim(aim.at(), block));
+            viewer.sendPacket(new SpawnPositionPacket(new WorldPos(viewer.getInstance().getDimensionName(), block), 0f, 0f));
+        })).repeat(TaskSchedule.tick(1)).schedule();
+    }
+
+    /** Points {@code viewer}'s compass at whatever {@code at} says, tick by tick, until {@link #unaim}. */
+    public static void aim(@NotNull Player viewer, @NotNull Supplier<@Nullable Pos> at) {
+        AIMS.put(viewer, new Aim(at, null));
+    }
+
+    /** Where {@code viewer}'s compass points, or null - what a spectator of a spectator inherits. */
+    public static @Nullable Supplier<@Nullable Pos> aimOf(@NotNull Player viewer) {
+        Aim aim = AIMS.get(viewer);
+        return aim != null ? aim.at() : null;
+    }
+
+    /** The compass back on the world's own spawn. */
+    public static void unaim(@NotNull Player viewer) {
+        if (AIMS.remove(viewer) == null || !viewer.isOnline() || viewer.getInstance() == null) return;
+        Pos home = viewer.getRespawnPoint();
+        viewer.sendPacket(new SpawnPositionPacket(new WorldPos(viewer.getInstance().getDimensionName(), home), home.yaw(), home.pitch()));
+    }
 
     /** The compass the picker opens from. */
     public static @NotNull ItemStack compass() {
@@ -58,6 +105,7 @@ public final class Lineup {
                     return;
                 }
                 who.teleport(at);
+                aim(who, entry.at());
             });
         }
         Screens.open(viewer, screen.build());

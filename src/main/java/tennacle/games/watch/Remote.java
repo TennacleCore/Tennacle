@@ -93,6 +93,7 @@ public final class Remote {
     static void install() {
         if (installed) return;
         installed = true;
+        Lineup.install();
         var events = MinecraftServer.getGlobalEventHandler();
         // cancelled or not: a spectator policy elsewhere may have refused the use already
         events.addListener(EventListener.builder(PlayerUseItemEvent.class).ignoreCancelled(false).handler(e -> {
@@ -166,6 +167,7 @@ public final class Remote {
         controllers.remove(viewer);
         pressed.remove(viewer);
         BY_PLAYER.remove(viewer, this);
+        Lineup.unaim(viewer);
         viewer.getInventory().clear(); // the lobby dresses the arrival
         viewer.setLevel(0);
         viewer.setExp(0f);

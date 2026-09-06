@@ -159,6 +159,12 @@ class SpectatorModeTest extends HeadlessServerTest {
             assertEquals(net.minestom.server.item.Material.COMPASS, w.player.getInventory().getItemStack(0).material(),
                     "a spectator holds the players' compass");
             assertEquals(2, Spectators.alive(game).size(), "both seats stand");
+            assertEquals(a.player.getPosition(), Lineup.aimOf(w.player).get(), "the compass starts on whom they came to watch");
+            Spectators.exit(x.player);
+            Spectators.enter(game, x.player, w.player); // watching a watcher: their aim carries through
+            assertEquals(a.player.getPosition(), Lineup.aimOf(x.player).get(), "a spectator of a spectator inherits the aim");
+            Spectators.exit(x.player);
+            Spectators.enter(game, x.player, a.player);
             deadline = System.currentTimeMillis() + 4000;
             while ((!x.player.isViewer(w.player) || !w.player.isViewer(x.player)) && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();
