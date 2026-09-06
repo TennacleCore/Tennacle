@@ -7,6 +7,7 @@ import io.github.term4.grotto.modules.view.Refusals;
 import java.util.function.Function;
 import io.github.term4.canvas.chat.Chat;
 import tennacle.Msg;
+import tennacle.games.watch.Replays;
 
 import io.github.term4.canvas.presets.HypixelIntro;
 import io.github.term4.canvas.theme.SoundSet;
@@ -23,6 +24,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.entity.Player;
 import net.minestom.server.sound.SoundEvent;
+import net.minestom.server.MinecraftServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -157,8 +159,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     public static final Look TENNACLE = new Look(Msg.THEME, Look::scrimsDeath, Look::scrimsVerdict,
             SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING).cue(SoundSet.BLOCKED, BLOCK).cue(SoundSet.SCORED, FIREWORK),
             Look::scrimsChat,
-            new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline())
-                            .append(Msg.THEME.prose("Playing on ")).append(Msg.THEME.value(ADDRESS)),
+            new Tab(Look::houseHeader,
                     p -> seatStats(p).append(Component.newline()).append(Msg.THEME.accent(STORE))),
             true, Look::scrimsHit, Look::tennacleTiebreak);
 
@@ -177,6 +178,29 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     private static Call tennacleTiebreak(Game game, boolean legacy) {
         return tiebreak(game, legacy, Msg.THEME);
+    }
+
+    // the network in the house gradient, then the room the viewer is actually in
+    private static Component houseHeader(Player viewer) {
+        return Msg.THEME.boardTitle(viewer, ADDRESS.toUpperCase(Locale.ROOT))
+                .append(Component.newline()).append(houseWhere(viewer));
+    }
+
+    private static Component houseWhere(Player viewer) {
+        String replay = Replays.watching(viewer);
+        if (replay != null) {
+            return Msg.THEME.prose("Replay ").append(Msg.THEME.value(replay.substring(0, Math.min(8, replay.length()))));
+        }
+        Game game = Game.of(viewer);
+        if (game == null) game = Matches.grotto().spectating(viewer); // a ghost holds no seat to read
+        if (game == null) {
+            int online = MinecraftServer.getConnectionManager().getOnlinePlayerCount();
+            return Msg.THEME.value(online).append(Msg.THEME.prose(online == 1 ? " player online" : " players online"));
+        }
+        Mode mode = Matches.modeOf(game);
+        return Msg.THEME.value(mode != null ? mode.title() : game.type().id())
+                .append(Msg.THEME.prose(" on ")).append(Msg.THEME.value(game.arena().meta().name()))
+                .append(Msg.THEME.prose(" · ")).append(Msg.THEME.value(game.code()));
     }
 
     // bedwars' tab line for the viewer's own seat - "Kills: 0 Deaths: 0 Goals: 0" - the counters they picked
