@@ -425,7 +425,7 @@ public final class ShardCommands {
             String n = ctx.get(name);
             if (n.equals("off")) { ShardView.set(p, null); Msg.shard(p, "view reset"); return; }
             Shard g = shards.byName(n);
-            if (g == null) { p.sendMessage("[shard] no shard named '" + n + "'"); return; }
+            if (g == null) { Msg.err(p, "shard", "no shard named ", Msg.v(n)); return; }
             Game game = Game.of(g);
             if (game != null) { // a game's shard: the app's spectator entry, the same as /spectate
                 if (!Spectating.allowed(game)) { Msg.err(p, "shard", "that game doesn't allow spectators"); return; }

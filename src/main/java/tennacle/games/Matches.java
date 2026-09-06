@@ -31,6 +31,8 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.instance.InstanceContainer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -49,6 +51,8 @@ import java.util.function.Supplier;
  * looks and platforms register at boot; the lobby route is the app's only exit.
  */
 public final class Matches {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Matches.class);
 
     /** The active look's name, stamped at launch. */
     public static final StateKey<String> LOOK = StateKey.of("ledger.match.look", Codec.STRING, "");
@@ -220,7 +224,7 @@ public final class Matches {
             try {
                 fold(game);
             } catch (RuntimeException restore) {
-                System.err.println("[rules] rollback re-fold failed for " + game.id() + ": " + restore);
+                LOGGER.error("the rollback re-fold failed for game {}", game.id(), restore);
             }
             throw e;
         }

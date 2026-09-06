@@ -270,7 +270,7 @@ public final class ReplayCommands {
         }, ArgumentType.Literal("state"), actorName);
         MinecraftServer.getGlobalEventHandler().addListener(PlaybackStopEvent.class, e -> {
             if (e.playback() == demo) {
-                e.playback().shard().sendMessage(Component.text("[replay] finished"));
+                e.playback().shard().forEachWatcher(w -> Msg.replay(w, "finished"));
                 demo = null;
             }
         });

@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import tennacle.Msg;
 import io.github.term4.polyp.platform.compatibility.via.ViaBridgeException;
 import io.github.term4.polyp.platform.compatibility.via.ViaBridgeRpc;
 import io.github.term4.polyp.tracking.motion.LegacyVelocity;
@@ -34,14 +35,13 @@ public final class VelocityCapCommands {
     public static void applyNormalCap(@NotNull Player player) {
         Vec snapped = LegacyVelocity.snap(capPerSecond());
         player.setVelocity(snapped);
-        player.sendMessage("[velcap] normal setVelocity X="
-                + formatBpt(snapped.x())
-                + " b/s (snapped). On 1.8 via LpVec3 expect ~3.899875 b/t, not 3.9.");
+        Msg.tag(player, "velcap", "normal setVelocity X=", Msg.v(formatBpt(snapped.x())),
+                " b/s (snapped). On 1.8 via LpVec3 expect ~3.899875 b/t, not 3.9.");
     }
 
     public static void applyBridgeCap(@NotNull Player player) {
         if (!ViaBridgeRpc.isInstalled()) {
-            player.sendMessage("ViaBridge is not installed (Polyp.installViaBridge)");
+            Msg.err(player, "velcap", "ViaBridge is not installed (Polyp.installViaBridge)");
             return;
         }
         Vec snapped = LegacyVelocity.snap(capPerSecond());
@@ -59,13 +59,12 @@ public final class VelocityCapCommands {
             player.scheduleNextTick(entity -> entity.removeTag(SUPPRESS_VELOCITY_PACKET));
             if (!player.isOnline()) return;
             if (err == null) {
-                player.sendMessage("[velcapbridge] ViaBridge short X=" + CAP_SHORT
-                        + " (3.9 b/t). 1.8 client should read exactly 3.9.");
+                Msg.tag(player, "velcap", "ViaBridge short X=", Msg.v(CAP_SHORT),
+                        " (3.9 b/t). 1.8 client should read exactly 3.9.");
                 return;
             }
             String detail = err instanceof ViaBridgeException ? err.getMessage() : err.toString();
-            player.sendMessage("[velcapbridge] failed: " + detail
-                    + " - is ViaBridge on the Velocity proxy?");
+            Msg.err(player, "velcap", "failed: " + detail + " - is ViaBridge on the Velocity proxy?");
         });
     }
 

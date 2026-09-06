@@ -40,6 +40,8 @@ import net.minestom.server.instance.block.Block;
 import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,6 +60,8 @@ import java.util.Set;
  * the {@code Freeze} module's.
  */
 public final class Cages implements GameModule {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Cages.class);
 
     /** Off: no cage blocks. The break after a goal is the round's - a cage is a look, not the break itself. */
     public static final StateKey<Boolean> BLOCKS = StateKey.of("cage.blocks", Codec.BOOLEAN, true);
@@ -302,7 +306,7 @@ public final class Cages implements GameModule {
                     fills(arena.marker(CAGE_FILL_SET, spot.group()))));
         }
         arena.unload();
-        if (defs.isEmpty()) System.err.println("[cages] the cages arena has no cage region+pos pair");
+        if (defs.isEmpty()) LOGGER.warn("the cages arena has no cage region+pos pair");
         cageDefs = Map.copyOf(defs);
         return cageDefs;
     }
@@ -316,7 +320,7 @@ public final class Cages implements GameModule {
             try {
                 fills.put(team, Role.Fill.parse(payload.getString(team)));
             } catch (IllegalArgumentException bad) {
-                System.err.println("[cages] " + marker.group() + " fill " + team + ": " + bad.getMessage());
+                LOGGER.warn("{} fill {}: {}", marker.group(), team, bad.getMessage());
             }
         }
         return Map.copyOf(fills);
