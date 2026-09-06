@@ -302,6 +302,12 @@ public final class Cages implements GameModule {
                     }
                 }
             }
+            long accented = cells.stream().filter(Cell::accented).count();
+            long loose = cells.stream().filter(c -> !c.accented() && c.block().key().value().startsWith("red_")).count();
+            LOGGER.info("cage {}: {} blocks, {} follow the team's color", spot.group(), cells.size(), accented);
+            if (loose > 0) {
+                LOGGER.warn("cage {}: {} red blocks sit outside any accent region and keep their color", spot.group(), loose);
+            }
             defs.put(spot.group(), new CageDef(Facing.fromYaw(spot.pos().yaw()), List.copyOf(cells),
                     fills(arena.marker(CAGE_FILL_SET, spot.group()))));
         }
