@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -60,6 +61,8 @@ class ScopedBuildTest extends HeadlessServerTest {
             blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
             assertTrue(game.join(red.player));
             assertTrue(game.join(blue.player));
+            tennacle.Mechanics.polyp.clientInfo().setProtocol(red.player, 47); // 1.8 clients: the band is the rule here,
+            tennacle.Mechanics.polyp.clientInfo().setProtocol(blue.player, 47); // not a modern client's placement reach
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
             BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
             assertTrue(refused(red, game, -3, 80), "the marker tops the band at 72");
@@ -74,6 +77,14 @@ class ScopedBuildTest extends HeadlessServerTest {
             assertFalse(refused(blue, game, 3, 80), "a side's rule reaches its seat");
             assertTrue(chat(red, "rules @nobody space.build.height 1").stream().anyMatch(l -> l.contains("No player named nobody")));
             assertTrue(chat(red, "rules #9 space.build.height 1").stream().anyMatch(l -> l.contains("No team 9")));
+
+            // the seat's override drops: the value above it shows through again, not the 90 the ledger still held
+            assertEquals(90, game.rules().resolve(red.player, Rules.HEIGHT));
+            List<String> dropped = chat(red, "rules @ScopeRed space.build.height unset");
+            assertTrue(dropped.stream().anyMatch(l -> l.contains("space.build.height unset")), dropped.toString());
+            assertEquals(game.rules().resolve(io.github.term4.grotto.state.Scope.GAME, Rules.HEIGHT),
+                    game.rules().resolve(red.player, Rules.HEIGHT), "back on the game's value");
+            assertTrue(chat(red, "rules @ScopeRed space.build.height unset").stream().anyMatch(l -> l.contains("Nothing is set")));
             game.decide(Outcome.draw(), 1);
         } finally {
             red.player.remove();

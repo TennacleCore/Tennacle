@@ -172,6 +172,21 @@ public final class Ruleset {
         return keep(s -> !s.equals(scope));
     }
 
+    /** Everything but {@code id}'s entry (a rule or a path) at {@code scope}: the scope above shows through again. */
+    public Ruleset without(@NotNull Scope scope, @NotNull String id) {
+        return new Ruleset(name,
+                paths.stream().filter(p -> !(p.scope().equals(scope) && p.path().equals(id))).toList(),
+                rules.stream().filter(r -> !(r.scope().equals(scope) && r.key().id().equals(id))).toList(),
+                data.stream().filter(d -> !(d.scope().equals(scope) && d.id().equals(id))).toList());
+    }
+
+    /** Whether an entry for {@code id} stands at {@code scope}. */
+    public boolean names(@NotNull Scope scope, @NotNull String id) {
+        return paths.stream().anyMatch(p -> p.scope().equals(scope) && p.path().equals(id))
+                || rules.stream().anyMatch(r -> r.scope().equals(scope) && r.key().id().equals(id))
+                || data.stream().anyMatch(d -> d.scope().equals(scope) && d.id().equals(id));
+    }
+
     /** Only the entries whose scope {@code test} accepts - {@code s -> s instanceof Scope.Game} is "game-wide only". */
     public Ruleset keep(@NotNull Predicate<Scope> test) {
         return new Ruleset(name,

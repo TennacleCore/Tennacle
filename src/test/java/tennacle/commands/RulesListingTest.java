@@ -97,20 +97,21 @@ class RulesListingTest extends HeadlessServerTest {
             assertEquals(List.of("space"), complete(a, "/rules spa"), "a segment at a time");
             List<String> under = complete(a, "/rules space.");
             assertTrue(under.contains("space.build") && under.stream().allMatch(w -> w.startsWith("space.")), "the next segment down: " + under);
-            assertTrue(complete(a, "/rules space.build.").contains("space.build.breakable-outside"), "then the ids themselves");
+            assertTrue(complete(a, "/rules space.build.").contains("space.build.height"), "then the ids themselves");
+            assertTrue(complete(a, "/rules space.break.").contains("space.break.outside"), "breaking has its own branch");
             List<String> first = complete(a, "/rules ");
             assertTrue(first.contains("paths") && first.contains("@RuleTabA") && first.contains("flow")
                     && first.stream().anyMatch(w -> w.startsWith("#")),
                     "paths, sides, seats and packages: " + first);
-            assertEquals(List.of("true", "false"), complete(a, "/rules " + bool + " "), "a boolean's two values");
+            assertEquals(List.of("true", "false", "unset"), complete(a, "/rules " + bool + " "), "a boolean's two values, and unset");
             assertEquals(List.of("space"), complete(a, "/rules @RuleTabA spa"), "an id after a seat");
-            assertEquals(List.of("true", "false"), complete(a, "/rules @RuleTabA " + bool + " "), "and then its value");
+            assertEquals(List.of("true", "false", "unset"), complete(a, "/rules @RuleTabA " + bool + " "), "and then its value");
             assertTrue(complete(a, "/rules paths att").contains("attack"), "the mechanics tree");
             List<String> knobs = complete(a, "/rules paths attack/");
             assertTrue(knobs.contains("attack/fullHitScale"), "one level down, the separator kept: " + knobs);
             assertTrue(complete(a, "/rules paths attack.full").contains("attack.fullHitScale"), "either separator");
             assertTrue(complete(a, "/rules paths attack full").contains("fullHitScale"), "or a space");
-            assertEquals(List.of("true", "false"), complete(a, "/rules projectiles/minecraft:arrow/critDamage "), "a knob's boolean");
+            assertEquals(List.of("true", "false", "unset"), complete(a, "/rules projectiles/minecraft:arrow/critDamage "), "a knob's boolean, and unset");
             assertTrue(complete(a, "/rules projectiles/minecraft:arrow/selfHit ").contains("pass_through"), "an enum knob's constants");
         } finally {
             if (game != null) game.end(Outcome.draw());

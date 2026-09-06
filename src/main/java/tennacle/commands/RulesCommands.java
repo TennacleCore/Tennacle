@@ -37,6 +37,7 @@ public final class RulesCommands {
                 .usage("/rules [package|id]", "read them, or one part")
                 .usage("/rules <id|path> <value>", "set one for the game")
                 .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
+                .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through")
                 .usage("/rules paths [path]", "the mechanics tree a path can reach")
                 .featured();
         var key = ArgumentType.Word("key");
@@ -111,6 +112,12 @@ public final class RulesCommands {
             }
             if (!words.isEmpty() && words.getFirst().equals("=")) words.removeFirst(); // the listing prints "id = value"
             String raw = String.join(" ", words);
+            if (raw.equalsIgnoreCase("unset")) {
+                String where = scope == Scope.GAME ? "" : scopeName(game, scope) + " ";
+                if (Matches.unset(game, scope, id)) Msg.ok(p, where + id + " unset. The scope above shows through.");
+                else Msg.fail(p, "Nothing is set for " + where + id + ".");
+                return;
+            }
             Ruleset live = id.contains("/") ? Ruleset.named("live").path(scope, id, raw)
                     : Ruleset.named("live").rule(scope, id, raw);
             try {
@@ -132,7 +139,9 @@ public final class RulesCommands {
         String where = scope == Scope.GAME ? game.type().id() : scopeName(game, scope);
         Msg.say(p, where + (prefix.isEmpty() ? "" : " " + prefix) + ": " + ids.size() + (ids.size() == 1 ? " rule" : " rules"));
         for (String id : ids) {
-            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, supported.get(id))));
+            List<String> words = RulesCompletions.words(id);
+            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, supported.get(id))),
+                    words.isEmpty() ? "" : "  any of " + String.join(", ", words));
         }
         String lead = scope == Scope.GAME ? "" : scopeName(game, scope) + " ";
         List<String> packages = packagesUnder(ids, prefix);

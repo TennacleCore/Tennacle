@@ -11,6 +11,7 @@ import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
 import tennacle.games.Match;
 import tennacle.games.Matches;
+import tennacle.commands.RulesCompletions;
 import tennacle.games.watch.Spectators;
 import io.github.term4.canvas.Canvas;
 
@@ -73,6 +74,8 @@ public final class Rules implements GameModule {
     private String look;
     private int minBuildY;
     private int maxBuildY;
+    /** Building at all: off, and a seat neither places nor breaks. */
+    public static final StateKey<Boolean> BUILD = StateKey.of("space.build", Codec.BOOLEAN, true);
     /** Absolute max build Y; {@code -1} keeps the {@code bridge:height} marker. */
     public static final StateKey<Integer> HEIGHT = StateKey.of("space.build.height", Codec.INT, -1);
     /** May place outside the {@code bridge:build} slices - still under the height and above the floor. */
@@ -81,9 +84,16 @@ public final class Rules implements GameModule {
     public static final String PLACED = "placed";
     /** The map's own. */
     public static final String MAP = "map";
-    /** What may be broken outside the bridge sections; a kind nobody names stays standing out there. */
-    public static final StateKey<List<String>> BREAKABLE_OUTSIDE =
-            StateKey.of("space.build.breakable-outside", Codec.STRING.list(), List.of(PLACED));
+    /** What may be broken inside the bridge sections; a kind nobody names stays standing. */
+    public static final StateKey<List<String>> BREAK = StateKey.of("space.break", Codec.STRING.list(), List.of(PLACED, MAP));
+    /** What may be broken outside the bridge sections. */
+    public static final StateKey<List<String>> BREAK_OUTSIDE =
+            StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
+
+    static {
+        RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
+        RulesCompletions.words(BREAK_OUTSIDE.id(), List.of(PLACED, MAP));
+    }
 
     private Game game;
     private Respawns respawns;
@@ -93,7 +103,7 @@ public final class Rules implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(HEIGHT, OUTSIDE, BREAKABLE_OUTSIDE);
+        return Set.of(BUILD, HEIGHT, OUTSIDE, BREAK, BREAK_OUTSIDE);
     }
 
     @Override
@@ -150,8 +160,8 @@ public final class Rules implements GameModule {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
-            boolean allowed = buildable(build, pos, player)
-                    || (game.rules().resolve(player, OUTSIDE) && inBand(pos, player)); // off the slices, still in the band
+            boolean allowed = game.rules().resolve(player, BUILD) && (buildable(build, pos, player)
+                    || (game.rules().resolve(player, OUTSIDE) && inBand(pos, player))); // off the slices, still in the band
             if (!allowed || onASpawn(game, pos)) {
                 e.setCancelled(true); // Refusals says so
                 return;
@@ -164,7 +174,8 @@ public final class Rules implements GameModule {
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
             boolean own = placed.contains(packed(pos));
-            if (!inBridge(game, pos) && !game.rules().resolve(player, BREAKABLE_OUTSIDE).contains(own ? PLACED : MAP)) {
+            List<String> may = game.rules().resolve(player, inBridge(game, pos) ? BREAK : BREAK_OUTSIDE);
+            if (!game.rules().resolve(player, BUILD) || !may.contains(own ? PLACED : MAP)) {
                 e.setCancelled(true);
                 return;
             }

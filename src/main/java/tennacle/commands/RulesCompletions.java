@@ -10,19 +10,22 @@ import net.minestom.server.command.builder.arguments.Argument;
 import net.minestom.server.command.builder.suggestion.SuggestionCallback;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * What {@code /rules} completes, a segment at a time: {@code spa} offers {@code space}, {@code space.} the packages
  * and ids under it, and {@code paths att} walks the mechanics tree the same way a slash at a time. Read at the
  * request, from the sender's game; the last word is what completes, the words before it say where we are.
  */
-final class RulesCompletions {
+public final class RulesCompletions {
 
     private RulesCompletions() {}
 
@@ -108,21 +111,37 @@ final class RulesCompletions {
         return steps.stream().map(step -> lead + step.name()).toList();
     }
 
-    /** A boolean's two values, an enum knob's constants; anything else is typed by hand. */
+    private static final Map<String, List<String>> WORDS = new ConcurrentHashMap<>();
+
+    /** The words a list rule takes, for the completion and the listing: {@code space.break} takes placed and map. */
+    public static void words(@NotNull String id, @NotNull List<String> words) {
+        WORDS.put(id, List.copyOf(words));
+    }
+
+    public static @NotNull List<String> words(@NotNull String id) {
+        return WORDS.getOrDefault(id, List.of());
+    }
+
+    /** A boolean's two values, an enum knob's constants, a list rule's words, and unset; anything else is typed by hand. */
     private static List<String> values(Game game, String id) {
+        List<String> out = new ArrayList<>();
         if (id.contains("/")) {
             int cut = id.lastIndexOf('/');
             try {
                 for (PathEdits.Step step : PathEdits.browse(id.substring(0, cut), k -> Mechanics.polyp.profiles().resolveWorld(game.shard(), k))) {
-                    if (step.name().equals(id.substring(cut + 1))) return choices(step.type());
+                    if (step.name().equals(id.substring(cut + 1))) out.addAll(choices(step.type()));
                 }
             } catch (RuntimeException e) {
                 return List.of();
             }
-            return List.of();
+        } else {
+            StateKey<?> rule = game.type().supportedRules().get(id);
+            if (rule == null) return List.of();
+            if (rule.initial() instanceof Boolean) out.addAll(List.of("true", "false"));
+            out.addAll(words(id));
         }
-        StateKey<?> rule = game.type().supportedRules().get(id);
-        return rule != null && rule.initial() instanceof Boolean ? List.of("true", "false") : List.of();
+        out.add("unset");
+        return out;
     }
 
     // an enum's type reads "Kind (a|b|c)": the constants, as the editor takes them

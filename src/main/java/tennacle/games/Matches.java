@@ -238,6 +238,23 @@ public final class Matches {
     }
 
     /**
+     * Drops the live entry for {@code id} at {@code scope} and re-folds; the ledger's cell there goes with it, so
+     * a seat freed of its override reads its team's value again. {@code false}: nothing was set there.
+     */
+    public static boolean unset(@NotNull Game game, @NotNull Scope scope, @NotNull String id) {
+        if (game.status() != Game.Status.OPEN) throw new IllegalStateException("the game is over");
+        Ruleset live = modifiers.get(game.id());
+        if (live == null || !live.names(scope, id)) return false;
+        Ruleset less = live.without(scope, id);
+        if (less.isEmpty()) modifiers.remove(game.id());
+        else modifiers.put(game.id(), less);
+        StateKey<?> key = game.type().supportedRules().get(id);
+        if (key != null) game.state().unset(scope, key);
+        fold(game);
+        return true;
+    }
+
+    /**
      * {@link #launch} on the mode's own map, then every side seated on its own team - the type's body policy
      * stashes, freshens and kits them. A side the map cannot seat aborts the launch and throws.
      */
