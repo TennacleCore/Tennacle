@@ -48,6 +48,8 @@ public final class Audit {
 
     /** Names in a hover past this many read as a count: the screen lists them. */
     public static final int HOVER_NAMES = 10;
+    /** One level of the readout's tree; a chat space is four pixels, so two read as nothing. */
+    private static final String INDENT = "    ";
 
     private static volatile ShardManager shards;
 
@@ -255,16 +257,16 @@ public final class Audit {
                 plural(games, " game"), " · ", Msg.v(roots), plural((int) roots, " shard tree"), " · ",
                 Msg.v(online), plural(online, " player"));
         for (Instance instance : all) {
-            instanceRow(to, instance);
-            for (Game game : gamesIn(instance)) gameRow(to, game, "  ");
+            instanceRow(to, instance, INDENT);
+            for (Game game : gamesIn(instance)) gameRow(to, game, INDENT + INDENT);
             for (Shard root : rootsIn(instance)) {
-                if (Game.of(root) == null) treeRow(to, root, "  ");
+                if (Game.of(root) == null) treeRow(to, root, INDENT + INDENT);
             }
         }
     }
 
     public static void instances(@NotNull CommandSender to) {
-        for (Instance instance : instances()) instanceRow(to, instance);
+        for (Instance instance : instances()) instanceRow(to, instance, "");
     }
 
     public static void minis(@NotNull CommandSender to) {
@@ -277,7 +279,7 @@ public final class Audit {
             List<Game> here = gamesIn(instance);
             if (here.isEmpty()) continue;
             Msg.tag(to, "audit", Msg.v(label(instance)));
-            for (Game game : here) gameRow(to, game, "  ");
+            for (Game game : here) gameRow(to, game, INDENT);
         }
     }
 
@@ -288,7 +290,7 @@ public final class Audit {
             if (roots.isEmpty()) continue;
             any = true;
             Msg.tag(to, "audit", Msg.v(label(instance)));
-            for (Shard root : roots) treeRow(to, root, "  ");
+            for (Shard root : roots) treeRow(to, root, INDENT);
         }
         if (!any) Msg.tag(to, "audit", "no shard stands anywhere");
     }
@@ -319,16 +321,16 @@ public final class Audit {
         Instance instance = p.getInstance();
         Shard shard = Shard.of(p);
         Pos at = p.getPosition();
-        Msg.tag(to, "audit", "  ", Msg.v(instance != null ? label(instance) : "nowhere"),
+        Msg.tag(to, "audit", INDENT, Msg.v(instance != null ? label(instance) : "nowhere"),
                 shard != null ? " · " : "", shard != null ? treeLink(label(shard), shard) : "",
                 " · at " + Math.round(at.x()) + " " + Math.round(at.y()) + " " + Math.round(at.z()));
         Game game = Game.of(p);
         if (game != null) {
-            Msg.tag(to, "audit", "  ", Msg.v(gameName(game)), " · " + game.status().name().toLowerCase() + " · "
+            Msg.tag(to, "audit", INDENT, Msg.v(gameName(game)), " · " + game.status().name().toLowerCase() + " · "
                     + Replays.clock(game.tick()) + " on ", Msg.v(game.arena().meta().name()));
         }
         if (to instanceof Player viewer && viewer != p) {
-            Msg.tag(to, "audit", "  ", Msg.link("[go there]", "/audit go " + p.getUsername(),
+            Msg.tag(to, "audit", INDENT, Msg.link("[go there]", "/audit go " + p.getUsername(),
                     game != null ? "watch their game" : "stand at their side"));
         }
     }
@@ -372,11 +374,12 @@ public final class Audit {
         Msg.ok(viewer, "At ", Msg.v(target.getUsername()), "'s side.");
     }
 
-    private static void instanceRow(CommandSender to, Instance instance) {
+    private static void instanceRow(CommandSender to, Instance instance, String indent) {
         List<Player> here = new ArrayList<>(instance.getPlayers());
         here.sort(Comparator.comparing(Player::getUsername));
         long entities = instance.getEntities().stream().filter(e -> !(e instanceof Player)).count();
         List<Object> parts = new ArrayList<>();
+        parts.add(indent);
         parts.add(Msg.v(label(instance)));
         parts.add(" · ");
         parts.add(players(here, null, null));
