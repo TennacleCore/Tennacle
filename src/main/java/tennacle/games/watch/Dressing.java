@@ -1,5 +1,9 @@
 package tennacle.games.watch;
 
+import tennacle.games.Matches;
+import tennacle.looks.Frames;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import java.time.LocalDate;
 import tennacle.games.Mode;
 import tennacle.looks.Look;
 import io.github.term4.archipelago.replay.Ghost;
@@ -50,6 +54,8 @@ final class Dressing {
     private record Seat(String name, String team, TextColor color) {}
 
     private final Playback playback;
+    private final String code;
+    private final String lookName;
     private final Look look;
     private final List<Seat> lineup;
     private final boolean tabHealth;
@@ -64,10 +70,12 @@ final class Dressing {
     private volatile @Nullable Replays.Rows rows;
     private volatile @Nullable Board board;
 
-    Dressing(@NotNull Shard stage, @NotNull Playback playback, @NotNull String gameId, @Nullable Mode mode,
-             @NotNull Look look, @NotNull List<String> lineup, @NotNull List<String> health) {
+    Dressing(@NotNull Shard stage, @NotNull Playback playback, @NotNull String gameId, @NotNull String code,
+             @Nullable Mode mode, @NotNull String lookName, @NotNull List<String> lineup, @NotNull List<String> health) {
         this.playback = playback;
-        this.look = look;
+        this.code = code;
+        this.lookName = lookName;
+        this.look = Matches.look(lookName);
         this.lineup = lineup.stream().map(Dressing::seat).toList();
         this.tabHealth = health.contains(HealthDisplay.TAB);
         this.nameHealth = health.contains(HealthDisplay.NAME);
@@ -178,7 +186,8 @@ final class Dressing {
     }
 
     /** The recorded sidebar moved: the same board re-renders, a new row count raises a fresh one. */
-    void rows(@NotNull Replays.Rows now) {
+    void rows(@NotNull Replays.Rows recorded) {
+        Replays.Rows now = adorn(recorded);
         Replays.Rows before = rows;
         rows = now;
         Board current = board;
@@ -187,10 +196,7 @@ final class Dressing {
             return;
         }
         Board.Builder builder = Board.builder().width(0) // the recorded lines carry their own padding
-                .title(viewer -> {
-                    Replays.Rows shown = rows;
-                    return shown != null ? shown.title() : Component.empty();
-                });
+                .title(viewer -> look.theme().boardTitle(viewer, "REPLAY"));
         for (int i = 0; i < now.lines().size(); i++) {
             int index = i;
             builder.line(viewer -> {
@@ -204,6 +210,18 @@ final class Dressing {
             Boards.show(viewer, fresh, Scoreboard.PRIORITY);
             if (current != null) Boards.drop(viewer, current);
         }
+    }
+
+    // the theater's frame over the recorded rows: today's date goes over the recorded date and code
+    private Replays.Rows adorn(Replays.Rows recorded) {
+        List<Component> lines = new ArrayList<>(recorded.lines());
+        for (int i = 0; !code.isEmpty() && i < lines.size(); i++) {
+            if (PlainTextComponentSerializer.plainText().serialize(lines.get(i)).contains(code)) {
+                lines.add(i, look.theme().prose(Frames.date(lookName, LocalDate.now())));
+                break;
+            }
+        }
+        return new Replays.Rows(recorded.title(), lines);
     }
 
     // the recorded health at the cursor, scored under the ghost's name: the tab column and the nameplate's read

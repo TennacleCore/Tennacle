@@ -1,5 +1,6 @@
 package tennacle.looks;
 
+import org.jetbrains.annotations.NotNull;
 import tennacle.games.Mode;
 import tennacle.Msg;
 import tennacle.games.Match;
@@ -26,6 +27,11 @@ import java.util.function.ToLongFunction;
  */
 public final class Frames {
     private static final DateTimeFormatter US_DATE = DateTimeFormatter.ofPattern("MM/dd/yy");
+
+    /** A date as the look's frame writes it: hypixel's US shape, ISO elsewhere. */
+    public static @NotNull String date(@NotNull String look, @NotNull LocalDate day) {
+        return "hypixel".equals(look) ? day.format(US_DATE) : day.toString();
+    }
 
     private Frames() {}
 

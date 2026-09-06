@@ -1,6 +1,8 @@
 package tennacle.games.watch;
 
 import tennacle.Msg;
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Replay;
@@ -13,6 +15,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.inventory.InventoryPreClickEvent;
@@ -35,18 +38,20 @@ import java.util.function.Supplier;
 
 /**
  * The replay's remote: the hotbar whoever leads the theater holds, and the timeline every watcher reads off the
- * experience bar and the line above the hotbar. The players' compass, slower and faster on arrow heads that share
- * one step (left click picks it, right click takes it), a seek head each way sharing theirs, the play/pause dye,
- * the clock back to normal speed, and the star that opens the replay menu (share, bookmarks, play from here). The
- * hotbar is theirs to press and nothing more: no drop, no move, no swap.
+ * experience bar and the line above the hotbar. The players' compass, slower and faster on arrow heads that walk
+ * the {@link #LADDER} a rung at a time, a seek head each way sharing one step (left click picks it, right click
+ * takes it), the play/pause dye, and the star that opens the replay menu (share, bookmarks, play from here).
+ * {@code /rate} sets any speed between {@link #MIN_RATE} and {@link #MAX_RATE}; the heads then snap back onto the
+ * ladder. The hotbar is theirs to press and nothing more: no drop, no move, no swap.
  */
 public final class Remote {
 
     /** The hotbar slots, left to right. */
-    public static final int PLAYERS = 0, SLOWER = 2, BACK = 3, PLAY = 4, FORWARD = 5, FASTER = 6, NORMAL = 7, MENU = 8;
-    static final double MIN_RATE = 0.05, MAX_RATE = 16, HALVING_FLOOR = 0.25, DOUBLING_CEILING = 8;
-    /** Rate steps the speed heads cycle through together; {@code 0} halves or doubles. */
-    static final double[] RATE_STEPS = {0, 1, 0.5, 0.1, 0.05};
+    public static final int PLAYERS = 0, SLOWER = 2, BACK = 3, PLAY = 4, FORWARD = 5, FASTER = 6, MENU = 8;
+    /** What {@code /rate} allows. */
+    public static final double MIN_RATE = 0.01, MAX_RATE = 10;
+    /** The speeds the heads walk. */
+    static final double[] LADDER = {0.25, 0.5, 1, 2, 4, 8};
     /** Seek steps in seconds, shared by both seek heads. */
     static final int[] SEEK_STEPS = {1, 5, 30, 60, 300};
 
@@ -59,9 +64,9 @@ public final class Remote {
     private static final Map<Player, Remote> BY_PLAYER = new ConcurrentHashMap<>();
     private static boolean installed;
 
-    /** A controller's picks: one index into {@link #RATE_STEPS} for both speed heads, one into {@link #SEEK_STEPS} for both seeks. */
+    /** A controller's pick: the index into {@link #SEEK_STEPS} both seek heads read. */
     private static final class Controls {
-        int rate, seek;
+        int seek;
     }
 
     private final Playback playback;
@@ -82,7 +87,7 @@ public final class Remote {
         this.marks = marks;
     }
 
-    /** The one set of listeners; every remote routes through {@link #BY_PLAYER}. */
+    /** The one set of listeners and the {@code /rate} command; every remote routes through {@link #BY_PLAYER}. */
     static void install() {
         if (installed) return;
         installed = true;
@@ -114,6 +119,26 @@ public final class Remote {
         events.addListener(PlayerSwapItemEvent.class, e -> {
             if (BY_PLAYER.containsKey(e.getPlayer())) e.setCancelled(true);
         });
+
+        AppCommand rate = Commands.player("rate", "Set the speed of the replay you're watching.")
+                .usage("/rate <speed>", "any speed from " + rateText(MIN_RATE) + "x to " + rateText(MAX_RATE) + "x");
+        var speed = ArgumentType.Double("speed");
+        rate.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            Remote remote = BY_PLAYER.get(p);
+            if (remote == null) {
+                Msg.fail(p, "You're not watching a replay.");
+                return;
+            }
+            if (!remote.controllers.containsKey(p)) {
+                Msg.fail(p, "Whoever started the watch holds the remote.");
+                return;
+            }
+            double asked = Math.max(MIN_RATE, Math.min(MAX_RATE, ctx.get(speed)));
+            remote.rate(asked);
+            Msg.ok(p, "Replay speed: ", Msg.v(rateText(asked) + "x"), ".");
+        }, speed);
+        Commands.register(rate);
     }
 
     /** The remote {@code player} holds or watches through, or null. */
@@ -173,16 +198,14 @@ public final class Remote {
 
     private void deal(Player viewer) {
         Controls controls = controllers.get(viewer);
-        String rate = rateStep(RATE_STEPS[controls.rate]);
         String seek = seekStep(SEEK_STEPS[controls.seek]);
         var inv = viewer.getInventory();
         inv.setItemStack(PLAYERS, Lineup.compass());
-        inv.setItemStack(SLOWER, Items.head(BLUE_DOWN, Component.text("Slower " + rate, NamedTextColor.AQUA)));
+        inv.setItemStack(SLOWER, Items.head(BLUE_DOWN, Component.text("Slower ×2", NamedTextColor.AQUA)));
         inv.setItemStack(BACK, Items.head(WHITE_LEFT, Component.text("Back " + seek, NamedTextColor.WHITE)));
         inv.setItemStack(PLAY, playItem());
         inv.setItemStack(FORWARD, Items.head(WHITE_RIGHT, Component.text("Forward " + seek, NamedTextColor.WHITE)));
-        inv.setItemStack(FASTER, Items.head(BLUE_UP, Component.text("Faster " + rate, NamedTextColor.AQUA)));
-        inv.setItemStack(NORMAL, Items.named(Material.CLOCK, Component.text("Normal speed", NamedTextColor.YELLOW)));
+        inv.setItemStack(FASTER, Items.head(BLUE_UP, Component.text("Faster ×2", NamedTextColor.AQUA)));
         inv.setItemStack(MENU, Items.named(Material.NETHER_STAR, Component.text("Replay menu", NamedTextColor.LIGHT_PURPLE)));
     }
 
@@ -201,12 +224,8 @@ public final class Remote {
         else if (pressed.getOrDefault(viewer, -1L) == now) return;
         switch (viewer.getHeldSlot()) {
             case PLAYERS -> { if (right) players(viewer); }
-            case SLOWER, FASTER -> {
-                double step = RATE_STEPS[controls.rate];
-                if (right) rate(viewer.getHeldSlot() == SLOWER ? slower(playback.rate(), step) : faster(playback.rate(), step));
-                else controls.rate = (controls.rate + 1) % RATE_STEPS.length;
-                deal(viewer);
-            }
+            case SLOWER -> { if (right) rate(slower(playback.rate())); }
+            case FASTER -> { if (right) rate(faster(playback.rate())); }
             case BACK, FORWARD -> {
                 int step = SEEK_STEPS[controls.seek] * 20;
                 if (right) seek(viewer.getHeldSlot() == BACK ? playback.tick() - step : playback.tick() + step);
@@ -214,7 +233,6 @@ public final class Remote {
                 deal(viewer);
             }
             case PLAY -> playback.pause(!playback.paused());
-            case NORMAL -> rate(1);
             case MENU -> { if (right) menu(viewer); }
             default -> { }
         }
@@ -231,16 +249,20 @@ public final class Remote {
         playback.seek(Math.max(0, Math.min(playback.length(), target)));
     }
 
-    /** The rate after a slower press: halving stops at {@link #HALVING_FLOOR}; a fixed step never goes under {@link #MIN_RATE}. */
-    static double slower(double rate, double step) {
-        if (step == 0) return rate > HALVING_FLOOR ? Math.max(HALVING_FLOOR, rate / 2) : rate;
-        return Math.max(MIN_RATE, rate - step);
+    /** The next rung of the {@link #LADDER} under {@code rate}, or {@code rate} itself below the lowest. */
+    static double slower(double rate) {
+        for (int i = LADDER.length - 1; i >= 0; i--) {
+            if (LADDER[i] < rate - 1.0e-9) return LADDER[i];
+        }
+        return rate;
     }
 
-    /** The rate after a faster press: doubling stops at {@link #DOUBLING_CEILING}; a fixed step never tops {@link #MAX_RATE}. */
-    static double faster(double rate, double step) {
-        if (step == 0) return rate < DOUBLING_CEILING ? Math.min(DOUBLING_CEILING, rate * 2) : rate;
-        return Math.min(MAX_RATE, rate + step);
+    /** The next rung of the {@link #LADDER} over {@code rate}, or {@code rate} itself past the top. */
+    static double faster(double rate) {
+        for (double rung : LADDER) {
+            if (rung > rate + 1.0e-9) return rung;
+        }
+        return rate;
     }
 
     /** The players alive at the cursor, as heads; a click lands {@code viewer} at one. */
@@ -288,11 +310,6 @@ public final class Remote {
     public static @NotNull ItemStack plainMark(@NotNull Replay.Bookmark mark) {
         return Items.lore(Items.named(Material.PAPER, Component.text(mark.name(), NamedTextColor.WHITE)),
                 List.of(Component.text("At " + stamp(mark.tick()), NamedTextColor.GRAY)));
-    }
-
-    /** {@code ×2} for the halving/doubling step, else the step as a rate. */
-    static String rateStep(double step) {
-        return step == 0 ? "×2" : rateText(step) + "x";
     }
 
     static String seekStep(int seconds) {

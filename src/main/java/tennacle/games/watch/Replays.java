@@ -376,10 +376,12 @@ public final class Replays {
                 return;
             }
             String lookName = data.get(LOOK);
+            String code = data.get(CODE);
             List<String> lineup = data.get(LINEUP);
             List<String> health = data.get(HEALTH);
-            Dressing dressing = new Dressing(stage, playback, id, mode, Matches.look(lookName != null ? lookName : "tennacle"),
-                    lineup != null ? lineup : List.of(), health != null ? health : List.of());
+            Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", mode,
+                    lookName != null ? lookName : "tennacle", lineup != null ? lineup : List.of(),
+                    health != null ? health : List.of());
             theater = new Theater(stage, playback, arena, dressing, ConcurrentHashMap.newKeySet());
             theaters.put(id, theater);
         }
