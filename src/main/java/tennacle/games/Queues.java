@@ -99,10 +99,7 @@ public final class Queues {
             Msg.fail(me, "No platform named ", Msg.v(platformName), ". Platforms: ", Msg.v(String.join(", ", Matches.platforms())), ".");
             return;
         }
-        if (!Parties.leads(me)) {
-            Msg.fail(me, "Your party leader queues for you.");
-            return;
-        }
+        if (!Parties.requireLeader(me)) return;
         List<Player> side = Parties.of(me);
         for (Player member : side) {
             if (Matches.grotto().engaged(member)) {

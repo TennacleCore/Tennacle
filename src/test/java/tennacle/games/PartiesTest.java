@@ -83,13 +83,48 @@ class PartiesTest extends HeadlessServerTest {
     }
 
     @Test
+    void aDisconnectGetsAGrace() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(808.5, 65, 808.5), "PartyE");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(810.5, 65, 810.5), "PartyF");
+        long grace = Parties.rejoinTicks;
+        Parties.rejoinTicks = 2;
+        try {
+            chat(a, "party invite PartyF");
+            chat(b, "party accept");
+            a.sent.clear();
+            Parties.disconnected(b.player);
+            assertTrue(said(plain(a), "PartyF has disconnected, they have 0 minutes to rejoin before they are removed from the party."), plain(a).toString());
+            a.sent.clear();
+            Parties.rejoined(b.player);
+            assertTrue(said(plain(a), "PartyF has rejoined."), plain(a).toString());
+            assertEquals(List.of(a.player, b.player), Parties.of(b.player), "still in");
+
+            b.sent.clear();
+            Parties.disconnected(a.player);
+            assertTrue(said(plain(b), "The party leader, PartyE has disconnected, they have 0 minutes to rejoin before the party is disbanded."), plain(b).toString());
+            assertEquals(List.of(a.player, b.player), Parties.of(b.player), "the party stands through the grace");
+            b.sent.clear(); // nobody rejoins: the grace runs out
+            for (int i = 0; i < 5; i++) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(5);
+            }
+            assertTrue(said(plain(b), "The party was disbanded because the party leader disconnected."), plain(b).toString());
+            assertEquals(List.of(b.player), Parties.of(b.player));
+        } finally {
+            Parties.rejoinTicks = grace;
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
     void kickTransferDisband() {
         FakePlayer a = FakePlayer.connect(instance, new Pos(804.5, 65, 804.5), "PartyC");
         FakePlayer b = FakePlayer.connect(instance, new Pos(806.5, 65, 806.5), "PartyD");
         try {
             chat(a, "party invite PartyD");
             chat(b, "party accept");
-            assertTrue(said(chat(b, "party kick PartyC"), "Only the party leader can do that."));
+            assertTrue(said(chat(b, "party kick PartyC"), "You are not party leader."));
             assertTrue(said(chat(a, "party transfer PartyD"), "The party was transferred to PartyD by PartyC"));
             assertTrue(Parties.leads(b.player));
             b.sent.clear();

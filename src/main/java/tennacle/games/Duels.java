@@ -27,13 +27,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>} - the
- * [Accept] click - is the one way to accept, with the REQUESTER's mode and {@link Options}. Dueling back is
- * another request, never an accept. {@link Matches#start} seats each party as a side. {@code /duel <player>}
- * alone has no menu to open yet and says so. Modes register at boot.
+ * [Accept] click - is the one way to accept, with the REQUESTER's mode and {@link Options}. A request is party
+ * to party: only a leader sends one out, everyone in the party it reaches reads it and any of them may accept,
+ * and the accept seats both parties as the sides. Two players of one party duel each other 1v1 without leaving
+ * it. Dueling back is another request, never an accept. {@code /duel <player>} alone has no menu yet. Modes
+ * register at boot.
  */
 public final class Duels {
 
-    private record Request(UUID target, String mode, Options options, long at) {
+    /** {@code within}: a 1v1 between party mates, which only the one named accepts. */
+    private record Request(UUID from, UUID target, UUID targetParty, boolean within, String mode, Options options, long at) {
         boolean expired() {
             return System.currentTimeMillis() - at > 60_000;
         }
@@ -51,9 +54,9 @@ public final class Duels {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> {
             UUID gone = e.getPlayer().getUuid();
             requests.remove(gone);
-            requests.values().removeIf(request -> request.target().equals(gone));
+            requests.values().removeIf(request -> request.targetParty().equals(gone) || request.within() && request.target().equals(gone));
         });
-        AppCommand duel = Commands.player("duel", "Challenge a player to a 1v1.")
+        AppCommand duel = Commands.player("duel", "Challenge a player, and their party, to a match.")
                 .usage("/duel <player> <mode> [map] [-preset=<name>]", "send a request")
                 .usage("/duel accept <player>", "accept theirs")
                 .featured();
@@ -97,15 +100,17 @@ public final class Duels {
 
     private static void accept(Player me, String fromName) {
         Player from = online(me, fromName);
-        if (from == null || !leads(me)) return;
+        if (from == null) return;
         Request theirs = pending(from, me);
         if (theirs == null) {
             Msg.fail(me, "No duel request from ", Msg.v(from.getUsername()), ".");
             return;
         }
-        if (!free(me, me) || !free(me, from)) return;
+        List<Player> a = theirs.within() ? List.of(from) : Parties.of(from);
+        List<Player> b = theirs.within() ? List.of(me) : Parties.of(me);
+        if (!free(me, a) || !free(me, b)) return;
         // the request outlives a launch that failed, so the click can be tried again
-        if (start(Matches.mode(theirs.mode()), theirs.options(), from, me)) {
+        if (start(Matches.mode(theirs.mode()), theirs.options(), a, b)) {
             requests.remove(from.getUuid());
             requests.remove(me.getUuid());
         }
@@ -130,19 +135,34 @@ public final class Duels {
             return;
         }
         Player target = online(me, targetName);
-        if (target == null || !leads(me)) return;
-        if (!free(me, me) || !free(me, target)) return;
-        requests.put(me.getUuid(), new Request(target.getUuid(), mode.name(), options, System.currentTimeMillis()));
+        if (target == null) return;
+        boolean within = Parties.together(me, target); // party mates: a 1v1 between the two, whoever leads
+        if (!within && !Parties.requireLeader(me)) return;
+        List<Player> mine = within ? List.of(me) : Parties.of(me);
+        List<Player> theirs = within ? List.of(target) : Parties.of(target);
+        if (!free(me, mine) || !free(me, theirs)) return;
+        requests.put(me.getUuid(), new Request(me.getUuid(), target.getUuid(), Parties.leaderOf(target), within,
+                mode.name(), options, System.currentTimeMillis()));
         // scrims' lines as captured: a yellow sentence, the name in prose, the map or pool a value
         String what = mode.title() + " duel request";
-        me.sendMessage(Component.text("Sent a " + what + " to ", NamedTextColor.YELLOW)
-                .append(Msg.THEME.prose(target.getUsername())).append(on(mode, options)));
-        flagsLine(me, options);
-        target.sendMessage(Component.text(what + " from ", NamedTextColor.YELLOW)
-                .append(Msg.THEME.prose(me.getUsername())).append(on(mode, options)));
-        target.sendMessage(acceptLine(me));
-        flagsLine(target, options);
-        GameSounds.lobby(target, SoundSet.DUEL_REQUEST);
+        Component warning = mine.size() == theirs.size() ? null
+                : Component.text("WARNING: Unbalanced team sizes (" + mine.size() + "v" + theirs.size() + ")", NamedTextColor.RED);
+        Component sent = Component.text("Sent a " + what + " to ", NamedTextColor.YELLOW)
+                .append(Msg.THEME.prose(target.getUsername())).append(on(mode, options));
+        for (Player member : mine) {
+            member.sendMessage(sent);
+            flagsLine(member, options);
+            if (warning != null) member.sendMessage(warning);
+        }
+        Component received = Component.text(what + " from ", NamedTextColor.YELLOW)
+                .append(Msg.THEME.prose(me.getUsername())).append(on(mode, options));
+        for (Player member : theirs) {
+            member.sendMessage(received);
+            member.sendMessage(acceptLine(me));
+            flagsLine(member, options);
+            if (warning != null) member.sendMessage(warning);
+            GameSounds.lobby(member, SoundSet.DUEL_REQUEST);
+        }
     }
 
     private static @Nullable Player online(Player me, String name) {
@@ -158,15 +178,9 @@ public final class Duels {
         return target;
     }
 
-    private static boolean leads(Player me) {
-        if (Parties.leads(me)) return true;
-        Msg.fail(me, "Your party leader duels for you.");
-        return false;
-    }
-
-    /** Whether {@code who}'s whole side is out of a game; {@code me} hears who is not. */
-    private static boolean free(Player me, Player who) {
-        for (Player member : Parties.of(who)) {
+    /** Whether everyone on {@code side} is out of a game; {@code me} hears who is not. */
+    private static boolean free(Player me, Collection<Player> side) {
+        for (Player member : side) {
             if (!Matches.grotto().engaged(member)) continue;
             if (member == me) Msg.fail(me, "You're already in a game.");
             else Msg.fail(me, Msg.v(member.getUsername()), " is already in a game.");
@@ -175,7 +189,7 @@ public final class Duels {
         return true;
     }
 
-    /** {@code from}'s live request aimed at {@code to}, or null. */
+    /** {@code from}'s live request that {@code to} may accept: the one named for a 1v1, anyone in the party otherwise. */
     private static @Nullable Request pending(Player from, Player to) {
         Request theirs = requests.get(from.getUuid());
         if (theirs == null) return null;
@@ -183,7 +197,8 @@ public final class Duels {
             requests.remove(from.getUuid());
             return null;
         }
-        return theirs.target().equals(to.getUuid()) ? theirs : null;
+        boolean mine = theirs.within() ? theirs.target().equals(to.getUuid()) : Parties.leaderOf(to).equals(theirs.targetParty());
+        return mine ? theirs : null;
     }
 
     // the map when one was named, else the pool it will come from
@@ -233,23 +248,29 @@ public final class Duels {
         }
     }
 
-    /** {@code true} when the match launched; both players hear why when it did not. */
-    private static boolean start(Mode mode, Options options, Player a, Player b) {
+    /** {@code true} when the match launched; both sides hear why when it did not. */
+    private static boolean start(Mode mode, Options options, List<Player> a, List<Player> b) {
         Platform platform = Matches.platformFor(options.platform());
         try {
-            Matches.start(mode, platform, List.of(Parties.of(a), Parties.of(b)), options);
+            Matches.start(mode, platform, List.of(a, b), options);
         } catch (IllegalStateException e) { // the map may not be authored yet
-            for (Player p : new Player[]{a, b}) Msg.fail(p, e.getMessage());
+            for (Player p : a) Msg.fail(p, e.getMessage());
+            for (Player p : b) Msg.fail(p, e.getMessage());
             return false;
         } catch (RuntimeException e) {
             // a bad ruleset path fails inside the launch, which tears its own shard down - nothing is orphaned
-            for (Player p : new Player[]{a, b}) Msg.fail(p, "The duel could not start: " + e.getMessage());
+            for (Player p : a) Msg.fail(p, "The duel could not start: " + e.getMessage());
+            for (Player p : b) Msg.fail(p, "The duel could not start: " + e.getMessage());
             return false;
         }
         // name what runs: the REQUESTER's mode and options win an accept, which is invisible otherwise
         String what = mode.title() + options.describe();
-        Msg.say(a, what + " vs ", Msg.v(b.getUsername()), ".");
-        Msg.say(b, what + " vs ", Msg.v(a.getUsername()), ".");
+        for (Player p : a) Msg.say(p, what + " vs ", Msg.v(names(b)), ".");
+        for (Player p : b) Msg.say(p, what + " vs ", Msg.v(names(a)), ".");
         return true;
+    }
+
+    private static String names(List<Player> side) {
+        return String.join(", ", side.stream().map(Player::getUsername).toList());
     }
 }

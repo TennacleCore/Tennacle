@@ -1,5 +1,8 @@
 package tennacle.games;
 
+import net.minestom.server.event.player.PlayerSpawnEvent;
+import net.minestom.server.timer.TaskSchedule;
+import net.minestom.server.timer.Task;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
@@ -27,16 +30,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * A leader and the players who accepted: one SIDE wherever a match is started. Only the leader duels or queues;
- * the party follows as their side, so a 2v2 mode seats it on one team. The command set and its lines follow the
- * hypixel shape: an invite that runs on click, a framed announcement for every change, {@code /pl} for the
- * lineup, {@code /pc} and {@code /chat party} for the party's channel. A member who disconnects stays listed
- * offline until kicked; a leader who disconnects disbands.
+ * A leader and the players who accepted: one SIDE wherever a match is started. Only the leader duels or queues
+ * outward; the party follows as their side, so a mode seats it on one team. The command set and its lines follow
+ * the hypixel shape: an invite that runs on click, a framed announcement for every change, {@code /pl} for the
+ * lineup, {@code /pc} and {@code /chat party} for the party's channel. A disconnect starts a five-minute grace:
+ * a member back in time stays, one who is not is removed; a leader who does not return disbands the party.
  */
 public final class Parties {
 
+    /** How many a party holds; a mode seats this many per side. */
+    public static final int MAX = 8;
+    /** The one line for anything only the leader does. */
+    public static final String NOT_LEADER = "You are not party leader.";
     /** How long an invite stands. */
     static final long INVITE_SECONDS = 60;
+    /** The rejoin grace after a disconnect, in ticks; a test shortens it. */
+    static volatile long rejoinTicks = 5 * 60 * 20;
     static final String CHANNEL_PARTY = "party";
     static final String CHANNEL_ALL = "all";
     private static final Tag<String> CHANNEL = Tag.Transient("tennacle:chat-channel");
@@ -72,6 +81,7 @@ public final class Parties {
 
     private static final Map<UUID, Party> byMember = new ConcurrentHashMap<>();
     private static final Map<UUID, Invite> invites = new ConcurrentHashMap<>();
+    private static final Map<UUID, Task> graces = new ConcurrentHashMap<>();
 
     private Parties() {}
 
@@ -86,6 +96,25 @@ public final class Parties {
     public static boolean leads(@NotNull Player player) {
         Party party = byMember.get(player.getUuid());
         return party == null || party.leader.equals(player.getUuid());
+    }
+
+    /** {@link #leads}, and the one line when not. */
+    public static boolean requireLeader(@NotNull Player player) {
+        if (leads(player)) return true;
+        Msg.fail(player, NOT_LEADER);
+        return false;
+    }
+
+    /** What a party is filed under: its leader's id, or the player's own when alone. */
+    public static @NotNull UUID leaderOf(@NotNull Player player) {
+        Party party = byMember.get(player.getUuid());
+        return party != null ? party.leader : player.getUuid();
+    }
+
+    /** Whether the two share a party. */
+    public static boolean together(@NotNull Player a, @NotNull Player b) {
+        Party party = byMember.get(a.getUuid());
+        return party != null && party == byMember.get(b.getUuid());
     }
 
     /** The party's online members when {@code speaker} speaks in the party channel and has one; else null. */
@@ -104,6 +133,9 @@ public final class Parties {
 
     public static void install() {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> disconnected(e.getPlayer()));
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
+            if (e.isFirstSpawn()) rejoined(e.getPlayer());
+        });
 
         AppCommand party = Commands.player("party", "Play as one side with friends.", "p")
                 .usage("/party <player>", "invite a player to the party")
@@ -188,7 +220,11 @@ public final class Parties {
     private static void invite(Player from, String targetName) {
         Party party = byMember.get(from.getUuid());
         if (party != null && !party.leader.equals(from.getUuid()) && !party.allInvite) {
-            Msg.fail(from, "Only the party leader can invite. ", Msg.run("/party allinvite"), " opens it up.");
+            Msg.fail(from, NOT_LEADER);
+            return;
+        }
+        if (party != null && party.members.size() >= MAX) {
+            Msg.fail(from, "The party is full.");
             return;
         }
         Player target = online(from, targetName);
@@ -395,15 +431,49 @@ public final class Parties {
         }
     }
 
-    private static void disconnected(Player player) {
+    // the grace: five minutes to come back before a member is removed or, for the leader, the party disbands
+    static void disconnected(Player player) {
         invites.remove(player.getUuid());
         Party party = byMember.get(player.getUuid());
         if (party == null) return;
-        if (party.leader.equals(player.getUuid())) {
+        UUID uuid = player.getUuid();
+        Component minutes = Component.text(rejoinTicks / 1200, NamedTextColor.RED);
+        Component line = party.leader.equals(uuid)
+                ? yellow("The party leader, ").append(who(player.getUsername())).append(yellow(" has disconnected, they have "))
+                        .append(minutes).append(yellow(" minutes to rejoin before the party is disbanded."))
+                : who(player.getUsername()).append(yellow(" has disconnected, they have ")).append(minutes)
+                        .append(yellow(" minutes to rejoin before they are removed from the party."));
+        for (Player member : online(party)) if (member != player) frame(member, line);
+        Task grace = MinecraftServer.getSchedulerManager().buildTask(() -> graceOver(party, uuid))
+                .delay(TaskSchedule.tick((int) rejoinTicks)).schedule();
+        Task previous = graces.put(uuid, grace);
+        if (previous != null) previous.cancel();
+    }
+
+    // a rejoin cancelled the task, so reaching here means they never came back
+    private static void graceOver(Party party, UUID uuid) {
+        graces.remove(uuid);
+        if (byMember.get(uuid) != party) return; // left, kicked, or moved on meanwhile
+        if (party.leader.equals(uuid)) {
             Component line = yellow("The party was disbanded because the party leader disconnected.");
-            for (Player member : online(party)) if (member != player) frame(member, line);
+            for (Player member : online(party)) frame(member, line);
             dissolve(party);
+            return;
         }
+        String name = party.names.get(uuid);
+        drop(party, uuid);
+        Component line = who(name).append(yellow(" was removed from the party because they disconnected."));
+        for (Player member : online(party)) frame(member, line);
+    }
+
+    static void rejoined(Player player) {
+        Task grace = graces.remove(player.getUuid());
+        if (grace != null) grace.cancel();
+        Party party = byMember.get(player.getUuid());
+        if (party == null) return;
+        party.names.put(player.getUuid(), player.getUsername());
+        Component line = who(player.getUsername()).append(yellow(" has rejoined."));
+        for (Player member : online(party)) frame(member, line);
     }
 
     private static void dissolve(Party party) {
@@ -427,7 +497,7 @@ public final class Parties {
             return null;
         }
         if (!party.leader.equals(leader.getUuid())) {
-            Msg.fail(leader, "Only the party leader can do that.");
+            Msg.fail(leader, NOT_LEADER);
             return null;
         }
         return party;

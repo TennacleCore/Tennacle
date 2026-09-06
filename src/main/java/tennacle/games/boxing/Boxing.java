@@ -1,5 +1,6 @@
 package tennacle.games.boxing;
 
+import tennacle.games.Parties;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
@@ -117,7 +118,7 @@ public final class Boxing {
         Teams.register(DEFAULTS);
         HotArena arena = HotArena.of("boxing");
         GameType type = GameType.builder("boxing")
-                .slots(SlotLayout.groups(Markers.SPAWN, 1))
+                .slots(SlotLayout.groups(Markers.SPAWN, Parties.MAX)) // a party shares its marker
                 .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))

@@ -1,5 +1,6 @@
 package tennacle.games.sumo;
 
+import tennacle.games.Parties;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
@@ -77,7 +78,7 @@ public final class Sumo {
         Teams.register(DEFAULTS);
         HotArena arena = HotArena.of("sumo");
         GameType type = GameType.builder("sumo")
-                .slots(SlotLayout.groups(Markers.SPAWN, 1))
+                .slots(SlotLayout.groups(Markers.SPAWN, Parties.MAX)) // a party shares its marker
                 .teams(a -> tennacle.games.Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .expect(Markers.BOUNDS, 1) // the spectate anchor's fallback

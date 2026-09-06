@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import tennacle.games.Parties;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Abandonment;
 import tennacle.games.Look;
@@ -182,7 +183,7 @@ public final class Bridge {
         Teams.register(DEFAULTS); // the editor shows an arena's effective look
         Cages.editable();
         TYPE = GameType.builder("bridge")
-                .slots(SlotLayout.groups(CAGE, 1))
+                .slots(SlotLayout.groups(CAGE, Parties.MAX)) // a party shares its cage
                 .teams(a -> tennacle.games.Palette.teams(a, CAGE, DEFAULTS))
                 .expect(CAGE, 2)
                 .expect(GOAL, 2)
