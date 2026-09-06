@@ -21,6 +21,9 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.archipelago.replay.Recording;
+import io.github.term4.archipelago.replay.Replay;
+import io.github.term4.archipelago.storage.ShardFile;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
@@ -72,6 +75,31 @@ class ReplaysTest extends HeadlessServerTest {
         assertEquals("0:00", Replays.clock(0));
     }
 
+    /** A crash leaves a spool; a run before the mode folders left a loose file: the boot sweep files both. */
+    @Test
+    void aBootFilesWhatWasLeft() throws Exception {
+        Shard stage = new Shard(instance);
+        Path spool = replays.resolve("spool").resolve("leftover.spool");
+        Recording cut = Replay.record(stage).spool(spool, 5, data -> data.put(Replays.MODE, "sumo").put(Replays.CODE, "LEFT"));
+        for (int i = 0; i < 12; i++) { // the harness has no ticker
+            net.minestom.server.MinecraftServer.getSchedulerManager().processTick();
+            net.minestom.server.MinecraftServer.getSchedulerManager().processTickEnd();
+        }
+        cut.stop(); // the appends settle; no discard, as a crash leaves it
+        Path loose = replays.resolve("loose.shard");
+        Files.createDirectories(replays);
+        Files.write(loose, Replay.record(stage).stop(data -> data.put(Replays.MODE, "boxing")));
+
+        Replays.install(replays, new ShardManager());
+        Path filed = replays.resolve("sumo").resolve("leftover.shard");
+        assertTrue(Files.exists(filed), "the spool became a file under its mode");
+        assertFalse(Files.exists(spool), "and is gone");
+        assertEquals("LEFT", ShardFile.userData(Files.readAllBytes(filed)).get(Replays.CODE), "with the header's data");
+        assertEquals(filed, Replays.fileOf("leftover"));
+        assertTrue(Files.exists(replays.resolve("boxing").resolve("loose.shard")), "the loose file moved under its mode");
+        assertFalse(Files.exists(loose));
+    }
+
     @Test
     void aGameLandsAsAFileAndSaysSo() {
         Mode bridge = Matches.mode("bridge");
@@ -91,8 +119,9 @@ class ReplaysTest extends HeadlessServerTest {
             blue.sent.clear();
             game.decide(Outcome.draw(), 1);
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
-            Path file = replays.resolve(game.id() + ".shard");
-            await("the file lands", () -> Files.exists(file));
+            Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
+            await("the file lands under its mode", () -> Files.exists(file));
+            assertEquals(file, Replays.fileOf(game.id()));
             await("the players hear it", () -> said(red, "This game has been recorded") && said(blue, "This game has been recorded"));
             String json = blue.sent(SystemChatPacket.class).stream()
                     .map(c -> GsonComponentSerializer.gson().serialize(c.message()))
@@ -100,7 +129,7 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(json.contains("copy_to_clipboard") && json.contains("/replay watch " + game.id()),
                     "the click copies the watch command with the full id: " + json);
             assertTrue(json.contains("bridge-fixture"), "the hover names the map: " + json);
-            await("the spool is gone", () -> !Files.exists(replays.resolve("spool").resolve(game.id() + ".spool")));
+            await("the spool is gone", () -> !Files.exists(replays.resolve("bridge").resolve("spool").resolve(game.id() + ".spool")));
         } finally {
             red.player.remove();
             blue.player.remove();
@@ -125,7 +154,7 @@ class ReplaysTest extends HeadlessServerTest {
             EventDispatcher.call(new PlayerChatEvent(red.player, List.of(red.player, blue.player), "gg"));
             game.decide(Outcome.draw(), 1);
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
-            Path file = replays.resolve(game.id() + ".shard");
+            Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
             await("the file lands", () -> Files.exists(file));
             MinecraftServer.getCommandManager().execute(viewer.player, "party ChanMate");
             MinecraftServer.getCommandManager().execute(mate.player, "party accept");

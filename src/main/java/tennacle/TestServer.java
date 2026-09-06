@@ -66,6 +66,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.io.IOException;
 
 /**
  * The games server: a lobby, three modes (sumo, boxing, bridge) on three networks' rules, duels, queues,
@@ -215,7 +216,9 @@ public final class TestServer {
         Matches.grotto().vault(vault);
         MatchLog.install(data.resolve("matches"));
         Matches.grotto().onGameEnd(MatchLog::ended);
-        Replays.install(Storage.dir("replay-dir", "replays"), shards); // every game, spooled as it runs, kept as a file
+        Path replays = Storage.dir("replay-dir", "replays");
+        leftovers(data, replays);
+        Replays.install(replays, shards); // every game, spooled as it runs, kept as a file under its mode
 
         Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto
         Parties.install(); // /party: a side that duels and queues together
@@ -282,12 +285,26 @@ public final class TestServer {
         LOGGER.info("listening on {}:{} (dev commands {})", bind, port, devCommands ? "on" : "off");
     }
 
+    // what the last run left on disk: torn temp files go, an unsaved editor session is named
+    private static void leftovers(Path data, Path replays) {
+        for (Path root : List.of(data, replays, arenaDir())) Atomic.sweep(root);
+        if (!Files.isDirectory(arenaDir())) return;
+        try (var files = Files.list(arenaDir())) {
+            for (Path sidecar : files.filter(f -> f.getFileName().toString().endsWith(".bncl.autosave")).toList()) {
+                LOGGER.warn("{} holds unsaved editor work from an earlier run", sidecar.getFileName());
+            }
+        } catch (IOException e) {
+            LOGGER.warn("the arena directory was not checked for autosaves", e);
+        }
+    }
+
     private static void shutdownSteps(FileVault vault) {
         Shutdown.step("live games", 15, () -> onTick(15, () -> {
             for (Game game : List.copyOf(Matches.grotto().games())) {
                 if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             }
         }));
+        Shutdown.step("replays", 20, () -> Replays.flush(15, TimeUnit.SECONDS)); // the cut games' files land
         Shutdown.step("editor", 10, () -> onTick(10, TestServer::autosave));
         Shutdown.step("player data", 15, () -> {
             vault.flush(10, TimeUnit.SECONDS);

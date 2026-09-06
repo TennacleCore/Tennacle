@@ -64,17 +64,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.nio.file.StandardCopyOption;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
- * Every game is recorded: the log spools to disk as it grows and lands as {@code <game id>.shard} in the replay
- * directory when the game ends, naming its mode, map, look and lineup. What the game said and showed to everyone
+ * Every game is recorded: the log spools to disk as it grows and lands as {@code <mode>/<game id>.shard} under
+ * the replay directory when the game ends, naming its mode, map, look and lineup. What the game said and showed to everyone
  * in it rides its own channels ({@link Match#say}, {@link Match#title}), and its sidebar as the first seat saw it
  * is kept on change, so a watcher reads the kill lines, sees the titles and the board as the players did. Everyone
  * who held a seat then hears it is there to watch, wherever they are by then. A watch raises a theater over the
  * map's own world and puts the viewer in it as a ghost, {@link Dressing dressed} the way a game's spectator is,
  * holding the {@link Remote}; a party watches together behind its leader, who holds it for them. A replay that
  * runs out holds its last frame until the watchers leave; the last viewer out closes the theater. The file is
- * what a later store takes; the spool beside it is gone once the file is kept.
+ * what a later store takes; the spool in {@code <mode>/spool/} is gone once the file is kept. A game a stop cuts
+ * short still lands ({@link #flush} waits for the file); one a crash cuts leaves its spool, and the next boot
+ * files what the spool holds under the mode ({@link #install}).
  */
 public final class Replays {
 
@@ -155,12 +163,14 @@ public final class Replays {
     private static final Map<Recording, Game> recorded = new ConcurrentHashMap<>();
     private static final Map<String, Theater> theaters = new ConcurrentHashMap<>();
     private static final Map<Player, String> watching = new ConcurrentHashMap<>();
+    private static final Set<CompletableFuture<?>> landing = ConcurrentHashMap.newKeySet();
 
     private Replays() {}
 
     public static void install(@NotNull Path replays, @NotNull ShardManager shardManager) {
         dir = replays;
         shards = shardManager;
+        sweep(replays);
         if (installed) return; // channels, sources and listeners are server-wide: once
         installed = true;
         Replay.register(LINES);
@@ -179,23 +189,131 @@ public final class Replays {
                 e -> MinecraftServer.getSchedulerManager().scheduleNextTick(() -> over(e.playback())));
     }
 
-    /** {@code <game id>.shard} under the replay directory, once installed. */
+    /**
+     * {@code <mode>/<game id>.shard} under the replay directory, once installed: the first mode folder holding
+     * it, else where a run before the mode folders kept it (may not exist).
+     */
     public static @Nullable Path fileOf(@NotNull String gameId) {
         Path at = dir;
-        return at == null ? null : at.resolve(gameId + ".shard");
+        if (at == null) return null;
+        String name = gameId + ".shard";
+        try (Stream<Path> entries = Files.list(at)) {
+            for (Path folder : entries.filter(Files::isDirectory).toList()) {
+                Path file = folder.resolve(name);
+                if (Files.exists(file)) return file;
+            }
+        } catch (IOException ignored) {
+            // no replay directory yet: nothing recorded
+        }
+        return at.resolve(name);
     }
 
     /** Called at launch; a no-op until {@link #install}. */
     public static void record(@NotNull Game game) {
         Path at = dir;
         if (at == null) return;
+        Mode mode = Matches.modeOf(game);
+        Path spool = at.resolve(folderOf(mode != null ? mode.name() : null)).resolve("spool").resolve(game.id() + ".spool");
         try {
-            Recording recording = Replay.record(game.shard())
-                    .spool(at.resolve("spool").resolve(game.id() + ".spool"), SPOOL_TICKS);
+            // the header carries what the end would write, so a crash leaves a spool the next boot can file
+            Recording recording = Replay.record(game.shard()).spool(spool, SPOOL_TICKS, data -> stamp(data, game, mode));
             live.put(game.id(), recording);
             recorded.put(recording, game);
         } catch (IOException | RuntimeException e) {
             LOGGER.warn("game {} is not being recorded", game.id(), e);
+        }
+    }
+
+    /** Waits for the files of games that just ended to land; {@code false} = one was still in flight. */
+    public static boolean flush(long timeout, @NotNull TimeUnit unit) {
+        try {
+            CompletableFuture.allOf(landing.toArray(CompletableFuture[]::new)).get(timeout, unit);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (ExecutionException | TimeoutException e) {
+            return false;
+        }
+    }
+
+    private static String folderOf(@Nullable String mode) {
+        return mode == null || mode.isBlank() ? "games" : mode;
+    }
+
+    // what the file names of the game, read on the game's clock while the roster stands
+    private static void stamp(UserData.Writer data, Game game, @Nullable Mode mode) {
+        String map = mode != null ? mode.arena().nameOf(game.arena()) : null; // the pool's name, what a watch looks up
+        if (mode != null) data.put(MODE, mode.name());
+        if (map != null) data.put(MAP, map);
+        data.put(CODE, game.code());
+        data.put(LOOK, Matches.lookNameOf(game));
+        data.put(LINEUP, lineup(game));
+        data.put(HEALTH, health(game));
+    }
+
+    // what an earlier run left behind: the spool of a game a crash cut short becomes its file, and a file from
+    // before the mode folders moves under its mode
+    private static void sweep(Path at) {
+        if (!Files.isDirectory(at)) return;
+        List<Path> spools = new ArrayList<>();
+        List<Path> loose = new ArrayList<>();
+        try (Stream<Path> entries = Files.list(at)) {
+            for (Path entry : entries.toList()) {
+                String name = entry.getFileName().toString();
+                if (Files.isRegularFile(entry) && name.endsWith(".shard")) loose.add(entry);
+                else if (Files.isDirectory(entry)) spools.addAll(spoolsIn(name.equals("spool") ? entry : entry.resolve("spool")));
+            }
+        } catch (IOException e) {
+            LOGGER.warn("the replay directory {} was not swept", at, e);
+            return;
+        }
+        for (Path spool : spools) salvage(at, spool);
+        for (Path file : loose) file(at, file);
+    }
+
+    private static List<Path> spoolsIn(Path folder) {
+        if (!Files.isDirectory(folder)) return List.of();
+        try (Stream<Path> entries = Files.list(folder)) {
+            return entries.filter(f -> f.getFileName().toString().endsWith(".spool")).toList();
+        } catch (IOException e) {
+            LOGGER.warn("{} was not swept", folder, e);
+            return List.of();
+        }
+    }
+
+    // a spool that fails to salvage goes too: it would fail the same way every boot
+    private static void salvage(Path at, Path spool) {
+        String id = spool.getFileName().toString().replaceFirst("\\.spool$", "");
+        try {
+            byte[] bytes = Replay.salvage(spool);
+            if (bytes == null) {
+                LOGGER.warn("the spool of game {} held nothing to keep; dropped", id);
+            } else {
+                Path file = at.resolve(folderOf(ShardFile.userData(bytes).get(MODE))).resolve(id + ".shard");
+                Atomic.write(file, bytes);
+                LOGGER.info("filed the replay of game {} from its spool, cut where the last run stopped", id);
+            }
+            Files.deleteIfExists(spool);
+        } catch (IOException | RuntimeException e) {
+            LOGGER.warn("the spool of game {} could not be salvaged; dropped", id, e);
+            try {
+                Files.deleteIfExists(spool);
+            } catch (IOException ignored) {
+                // it stays; the next boot says so again
+            }
+        }
+    }
+
+    private static void file(Path at, Path file) {
+        try {
+            UserData.View data = ShardFile.userData(Files.readAllBytes(file));
+            if (data.get(Replay.OPS) == null) return; // a plain shard save someone dropped here: not ours to move
+            Path to = at.resolve(folderOf(data.get(MODE))).resolve(file.getFileName().toString());
+            Files.createDirectories(to.getParent());
+            Files.move(file, to, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException | RuntimeException e) {
+            LOGGER.warn("{} stays where it is", file, e);
         }
     }
 
@@ -259,26 +377,15 @@ public final class Replays {
         recorded.remove(recording);
         // read now: the ledger and roster go with the game right after this
         Mode mode = Matches.modeOf(game);
-        String map = mode != null ? mode.arena().nameOf(game.arena()) : null; // the pool's name, what a watch looks up
         String mapName = game.arena().meta().name();
-        String look = Matches.lookNameOf(game);
-        List<String> lineup = lineup(game);
-        List<String> health = health(game);
         long ticks = Match.playTime(game);
         List<UUID> seated = game.roster().participants().stream().map(Roster.Participant::uuid).distinct().toList();
         Component line = recordedLine(game.id(), mapName, ticks);
-        recording.stopAsync(data -> {
-            if (mode != null) data.put(MODE, mode.name());
-            if (map != null) data.put(MAP, map);
-            data.put(CODE, game.code());
-            data.put(LOOK, look);
-            data.put(LINEUP, lineup);
-            data.put(HEALTH, health);
-        }).thenAccept(bytes -> {
+        Path file = at.resolve(folderOf(mode != null ? mode.name() : null)).resolve(game.id() + ".shard");
+        CompletableFuture<Void> landed = recording.stopAsync(data -> stamp(data, game, mode)).thenAccept(bytes -> {
             if (bytes == null) return; // the encode failed and logged
             try {
-                Files.createDirectories(at);
-                Atomic.write(at.resolve(game.id() + ".shard"), bytes);
+                Atomic.write(file, bytes);
                 recording.discard();
             } catch (IOException e) {
                 LOGGER.warn("the replay of game {} was not saved", game.id(), e);
@@ -289,6 +396,8 @@ public final class Replays {
                 if (player != null) player.sendMessage(line);
             }
         });
+        landing.add(landed);
+        landed.whenComplete((v, e) -> landing.remove(landed));
     }
 
     // everyone who held a seat, once, in the seat's color: a rejoin is the same name again
