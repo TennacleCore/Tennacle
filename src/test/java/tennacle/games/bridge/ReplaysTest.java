@@ -179,8 +179,9 @@ class ReplaysTest extends HeadlessServerTest {
             String today = java.time.LocalDate.now().toString();
             int dated = rows.indexOf(today);
             assertTrue(dated >= 0 && dated + 4 <= rows.size(), "today's date on the board: " + rows);
-            assertEquals(List.of(today, "Recorded:", today, game.code()), rows.subList(dated, dated + 4),
+            assertEquals(List.of(today, "Recorded:", today, game.code()), rows.subList(dated, dated + 4).stream().map(String::trim).toList(),
                     "today, then the recording's own date and code, a row each: " + rows);
+            assertTrue(rows.get(dated + 2).startsWith(" ") && rows.get(dated + 3).startsWith(" "), "the recording's rows sit in: " + rows);
             assertTrue(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction c
                     && c.entities().contains("ChanRed")), "the lineup colors the ghosts' names");
             assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),
@@ -208,9 +209,8 @@ class ReplaysTest extends HeadlessServerTest {
             var grab = new InventoryPreClickEvent(viewer.player.getInventory(), viewer.player, new Click.Left(Remote.PLAY));
             EventDispatcher.call(grab);
             assertTrue(grab.isCancelled(), "the remote is not for moving");
-            playback.pause(true);
-            for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
-            assertEquals(Material.GRAY_DYE, viewer.player.getInventory().getItemStack(Remote.PLAY).material(), "the dye follows the state");
+            playback.pause(true); // the theater ticks on its own clock: the dye follows on its next tick
+            await("the dye follows the state", () -> viewer.player.getInventory().getItemStack(Remote.PLAY).material() == Material.GRAY_DYE);
             playback.pause(false);
             assertEquals(-1, viewer.player.getTag(ShardTabList.LIST_ORDER), "a modern watcher's own row sinks on its order");
             assertEquals("\u00a7oChanViewer", viewer.player.getTag(ShardTabList.SORT_NAME), "a 1.8 row apart from the ghost's");

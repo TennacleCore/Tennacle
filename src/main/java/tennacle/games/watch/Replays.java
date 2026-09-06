@@ -37,6 +37,9 @@ import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorHud;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
+import io.github.term4.archipelago.ticking.ExecutionDomain;
+import io.github.term4.barnacle.marker.PosMarker;
+import io.github.term4.grotto.Markers;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -488,7 +491,7 @@ public final class Replays {
                 return;
             }
             Instance world = arena.instantiate();
-            Shard stage = new Shard(world);
+            Shard stage = new Shard(world, ExecutionDomain.create()); // its own clock, as a game has
             manager.register(stage, "replay-" + id.substring(0, 8));
             Playback playback;
             try {
@@ -523,17 +526,25 @@ public final class Replays {
         Spectators.exit(viewer);
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
         SpectatorHud.show(viewer); // the ghost body drops a 1.8 screen's bars, and the timeline rides the experience bar
+        Spectators.freshen(viewer);
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true);
         theater.watchers().add(viewer);
         watching.put(viewer, id);
-        Pos spawn = theater.arena().meta().spawn();
-        Pos landing = spawn != null ? spawn : new Pos(0.5, 64, 0.5);
+        Pos landing = landing(theater.arena());
         viewer.setInstance(theater.stage().instance(), landing).thenRun(() -> {
             if (!id.equals(watching.get(viewer))) return;
             ShardView.set(viewer, ShardView.of(theater.stage()));
             theater.dressing().enter(viewer, controller);
         });
         Msg.ok(viewer, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
+    }
+
+    // where a dead seat waits, as the game puts it (the dead marker, else the spectator's spot), leveled: a marker
+    // authored looking up or down would tilt the arrival
+    static @NotNull Pos landing(@NotNull Arena arena) {
+        List<PosMarker> dead = arena.markers(Markers.DEAD);
+        Pos at = !dead.isEmpty() ? dead.getFirst().pos() : Game.spectatorLanding(arena);
+        return (at != null ? at : new Pos(0.5, 64, 0.5)).withPitch(0);
     }
 
     /**

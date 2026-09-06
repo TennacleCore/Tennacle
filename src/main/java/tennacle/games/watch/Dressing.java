@@ -223,7 +223,7 @@ final class Dressing {
             String date = plain.replace(code, "").trim();
             lines.remove(i);
             lines.addAll(i, List.of(look.theme().prose(Frames.date(lookName, LocalDate.now())),
-                    look.theme().dim("Recorded:"), look.theme().dim(date), look.theme().dim(code)));
+                    look.theme().dim("Recorded:"), look.theme().dim("  " + date), look.theme().dim("  " + code)));
             break;
         }
         return new Replays.Rows(recorded.title(), lines);
