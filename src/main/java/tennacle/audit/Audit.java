@@ -48,8 +48,11 @@ public final class Audit {
 
     /** Names in a hover past this many read as a count: the screen lists them. */
     public static final int HOVER_NAMES = 10;
-    /** One level of the readout's tree; a chat space is four pixels, so two read as nothing. */
-    private static final String INDENT = "    ";
+    /** One level of the readout's tree, marked the way a tag line marks its own: the depth's spaces, then a
+     *  dim chevron. A chat space is four pixels, so leading spaces alone read as nothing. */
+    private static Component step(int depth) {
+        return Component.text("  ".repeat(depth * 2 - 1)).append(Msg.THEME.dim("\u00bb "));
+    }
 
     private static volatile ShardManager shards;
 
@@ -322,16 +325,16 @@ public final class Audit {
                 plural(games, " game"), " · ", Msg.v(roots), plural((int) roots, " shard tree"), " · ",
                 Msg.v(online), plural(online, " player"));
         for (Instance instance : all) {
-            instanceRow(to, instance, INDENT);
-            for (Game game : gamesIn(instance)) gameRow(to, game, INDENT + INDENT);
+            instanceRow(to, instance, step(1));
+            for (Game game : gamesIn(instance)) gameRow(to, game, step(2));
             for (Shard root : rootsIn(instance)) {
-                if (Game.of(root) == null) treeRow(to, root, INDENT + INDENT);
+                if (Game.of(root) == null) treeRow(to, root, step(2));
             }
         }
     }
 
     public static void instances(@NotNull CommandSender to) {
-        for (Instance instance : instances()) instanceRow(to, instance, "");
+        for (Instance instance : instances()) instanceRow(to, instance, Component.empty());
     }
 
     public static void minis(@NotNull CommandSender to) {
@@ -344,7 +347,7 @@ public final class Audit {
             List<Game> here = gamesIn(instance);
             if (here.isEmpty()) continue;
             Msg.tag(to, "audit", Msg.v(label(instance)));
-            for (Game game : here) gameRow(to, game, INDENT);
+            for (Game game : here) gameRow(to, game, step(1));
         }
     }
 
@@ -367,7 +370,7 @@ public final class Audit {
                 Arena arena = mode.arena().named(map);
                 Instance loaded = arena != null ? arena.instantiated() : null;
                 List<Object> parts = new ArrayList<>();
-                parts.add(INDENT);
+                parts.add(step(1));
                 parts.add(Msg.v(map));
                 parts.add(" · ");
                 if (loaded == null) {
@@ -398,7 +401,7 @@ public final class Audit {
             if (roots.isEmpty()) continue;
             any = true;
             Msg.tag(to, "audit", Msg.v(label(instance)));
-            for (Shard root : roots) treeRow(to, root, INDENT);
+            for (Shard root : roots) treeRow(to, root, step(1));
         }
         if (!any) Msg.tag(to, "audit", "no shard stands anywhere");
     }
@@ -429,16 +432,16 @@ public final class Audit {
         Instance instance = p.getInstance();
         Shard shard = Shard.of(p);
         Pos at = p.getPosition();
-        Msg.tag(to, "audit", INDENT, Msg.v(instance != null ? label(instance) : "nowhere"),
+        Msg.tag(to, "audit", step(1), Msg.v(instance != null ? label(instance) : "nowhere"),
                 shard != null ? " · " : "", shard != null ? treeLink(label(shard), shard) : "",
                 " · at " + Math.round(at.x()) + " " + Math.round(at.y()) + " " + Math.round(at.z()));
         Game game = Game.of(p);
         if (game != null) {
-            Msg.tag(to, "audit", INDENT, Msg.v(gameName(game)), " · " + game.status().name().toLowerCase() + " · "
+            Msg.tag(to, "audit", step(1), Msg.v(gameName(game)), " · " + game.status().name().toLowerCase() + " · "
                     + Replays.clock(game.tick()) + " on ", Msg.v(game.arena().meta().name()));
         }
         if (to instanceof Player viewer && viewer != p) {
-            Msg.tag(to, "audit", INDENT, Msg.link("[go there]", "/audit go " + p.getUsername(),
+            Msg.tag(to, "audit", step(1), Msg.link("[go there]", "/audit go " + p.getUsername(),
                     game != null ? "watch their game" : "stand at their side"));
         }
     }
@@ -482,7 +485,7 @@ public final class Audit {
         Msg.ok(viewer, "At ", Msg.v(target.getUsername()), "'s side.");
     }
 
-    private static void instanceRow(CommandSender to, Instance instance, String indent) {
+    private static void instanceRow(CommandSender to, Instance instance, Component indent) {
         List<Player> here = new ArrayList<>(instance.getPlayers());
         here.sort(Comparator.comparing(Player::getUsername));
         long entities = instance.getEntities().stream().filter(e -> !(e instanceof Player)).count();
@@ -511,7 +514,7 @@ public final class Audit {
         Msg.tag(to, "audit", parts.toArray());
     }
 
-    private static void gameRow(CommandSender to, Game game, String indent) {
+    private static void gameRow(CommandSender to, Game game, Component indent) {
         List<Player> seated = game.members().stream().sorted(Comparator.comparing(Player::getUsername)).toList();
         List<Player> watching = game.spectators().stream().sorted(Comparator.comparing(Player::getUsername)).toList();
         List<Object> parts = new ArrayList<>();
@@ -531,7 +534,7 @@ public final class Audit {
         Msg.tag(to, "audit", parts.toArray());
     }
 
-    private static void treeRow(CommandSender to, Shard root, String indent) {
+    private static void treeRow(CommandSender to, Shard root, Component indent) {
         List<Object> parts = new ArrayList<>();
         parts.add(indent);
         parts.add(root.children().isEmpty() ? whoLink(label(root), root) : treeLink(label(root), root));
