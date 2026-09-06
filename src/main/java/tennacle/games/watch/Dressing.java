@@ -1,5 +1,6 @@
 package tennacle.games.watch;
 
+import tennacle.games.Mode;
 import tennacle.looks.Look;
 import io.github.term4.archipelago.replay.Ghost;
 import io.github.term4.archipelago.replay.Playback;
@@ -63,8 +64,8 @@ final class Dressing {
     private volatile @Nullable Replays.Rows rows;
     private volatile @Nullable Board board;
 
-    Dressing(@NotNull Shard stage, @NotNull Playback playback, @NotNull String gameId, @NotNull Look look,
-             @NotNull List<String> lineup, @NotNull List<String> health) {
+    Dressing(@NotNull Shard stage, @NotNull Playback playback, @NotNull String gameId, @Nullable Mode mode,
+             @NotNull Look look, @NotNull List<String> lineup, @NotNull List<String> health) {
         this.playback = playback;
         this.look = look;
         this.lineup = lineup.stream().map(Dressing::seat).toList();
@@ -74,7 +75,9 @@ final class Dressing {
         this.objective = "rh-" + gameId.substring(0, Math.min(8, gameId.length()));
         this.teamPrefix = "r" + gameId.substring(0, Math.min(6, gameId.length())) + "-";
         this.spectatorTeam = "r" + gameId.substring(0, Math.min(6, gameId.length())) + "~";
-        this.remote = new Remote(playback, gameId, this::alive);
+        Mode.Marks marks = mode != null ? mode.marks() : null;
+        this.remote = new Remote(playback, gameId, this::alive,
+                marks != null ? mark -> marks.render(mark, look.theme()) : Remote::plainMark);
         this.untick = stage.onTick(tick -> tick());
         BY_PLAYBACK.put(playback, this);
     }

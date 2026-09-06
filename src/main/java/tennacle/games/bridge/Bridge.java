@@ -265,7 +265,8 @@ public final class Bridge {
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 false, // no death animation or spectate: everyone stays where they stand
                 GOALS, // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
-                List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS), new Mode.SeatStat("Goals", SCORED)));
+                List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS), new Mode.SeatStat("Goals", SCORED)),
+                Banners::mark);
         Duels.mode(bridge);
         Flags.offer(bridge, "preset");
         // what a bridge request can ask for by name; the rule ids stay reachable as the raw form

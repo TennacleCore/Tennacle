@@ -6,6 +6,9 @@ import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.MechanicsProfile;
 import net.kyori.adventure.text.Component;
+import io.github.term4.archipelago.replay.Replay;
+import io.github.term4.canvas.theme.Theme;
+import net.minestom.server.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,15 +26,22 @@ import java.util.function.Supplier;
  * @param intro      the instruction lines hypixel's game-start block shows; empty skips the block
  * @param teamScore  the per-team score key of a SCORING mode (hypixel's "TEAM WINS!" verdict); null = a plain duel
  * @param tabStats   the seat counters the house tab menu lists, in order; empty = no line
+ * @param marks      how a replay's bookmarks read on the bookmark screen; null = the name on paper
  */
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
                    @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants,
                    @NotNull List<Component> intro, boolean ghostLoser, @Nullable StateKey<Integer> teamScore,
-                   @NotNull List<SeatStat> tabStats) {
+                   @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
 
     /** A seat's own counter under a label ({@code Kills: 3}) - the viewer's, never the team's. */
     public record SeatStat(@NotNull String label, @NotNull StateKey<Integer> key) {}
+
+    /** A replay bookmark as an item: the mode wrote the bookmark's data, so it alone can read it back. */
+    @FunctionalInterface
+    public interface Marks {
+        @NotNull ItemStack render(@NotNull Replay.Bookmark mark, @NotNull Theme theme);
+    }
 
     public Mode {
         variants = Map.copyOf(variants);

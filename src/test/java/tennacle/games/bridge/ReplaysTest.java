@@ -154,6 +154,7 @@ class ReplaysTest extends HeadlessServerTest {
             assertEquals(Material.PLAYER_HEAD, viewer.player.getInventory().getItemStack(Remote.FASTER).material());
             assertEquals(Material.COMPASS, viewer.player.getInventory().getItemStack(Remote.PLAYERS).material());
             assertEquals(Material.NETHER_STAR, viewer.player.getInventory().getItemStack(Remote.MENU).material());
+            assertEquals(Material.CLOCK, viewer.player.getInventory().getItemStack(Remote.NORMAL).material());
             Remote remote = Remote.of(viewer.player);
             assertNotNull(remote);
             remote.players(viewer.player);

@@ -1,5 +1,15 @@
 package tennacle.games.bridge;
 
+import io.github.term4.archipelago.replay.Replay;
+import io.github.term4.canvas.screen.Items;
+import io.github.term4.canvas.theme.Theme;
+import io.github.term4.canvas.theme.Tint;
+import tennacle.games.watch.Remote;
+import net.kyori.adventure.nbt.BinaryTagTypes;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.nbt.ListBinaryTag;
+import net.minestom.server.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 import tennacle.looks.Look;
 import tennacle.Msg;
 import tennacle.games.Matches;
@@ -153,9 +163,37 @@ final class Banners {
         return line;
     }
 
-    /** Health with one trimmed decimal - captured: "24", "14.7", "6.7". */
+    /** A goal on the bookmark screen: the side's wool, the scorer, and the score, their health and the moment under it. */
+    static @NotNull ItemStack mark(@NotNull Replay.Bookmark mark, @NotNull Theme theme) {
+        CompoundBinaryTag data = mark.data();
+        if (!mark.name().equals("goal") || !data.keySet().contains("color")) return Remote.plainMark(mark);
+        TextColor color = TextColor.color(data.getInt("color"));
+        Component score = Component.empty();
+        int target = data.getInt("target", 1);
+        ListBinaryTag sides = data.getList("sides", BinaryTagTypes.COMPOUND);
+        for (int i = 0; i < sides.size(); i++) {
+            CompoundBinaryTag side = sides.getCompound(i);
+            TextColor sideColor = TextColor.color(side.getInt("color"));
+            int goals = side.getInt("goals");
+            if (i > 0) score = score.append(Component.text(" - ", NamedTextColor.GRAY));
+            score = i == 0
+                    ? score.append(theme.meter(goals, target, sideColor)).append(Component.text(" " + goals, sideColor))
+                    : score.append(Component.text(goals + " ", sideColor)).append(theme.meter(goals, target, sideColor));
+        }
+        List<Component> lore = new ArrayList<>();
+        if (sides.size() > 0) lore.add(score);
+        lore.add(theme.prose("Health: ").append(theme.hearts(Banners.hearts(data.getFloat("health")))));
+        lore.add(theme.dim("At " + Remote.stamp(mark.tick())));
+        return Items.lore(Items.named(Tint.of(color).block("wool"),
+                Component.text(data.getString("scorer") + " scored", color)), lore);
+    }
+
+    /** Health with absorption on top, one trimmed decimal - captured: "24", "14.7", "6.7". */
     static String hearts(Player player) {
-        float health = player.getHealth();
+        return hearts(player.getHealth() + player.getAdditionalHearts());
+    }
+
+    static String hearts(float health) {
         return health == Math.floor(health) ? String.valueOf((int) health) : "%.1f".formatted(health);
     }
 

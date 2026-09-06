@@ -48,6 +48,9 @@ import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.item.Material;
 import net.minestom.server.sound.SoundEvent;
+import io.github.term4.grotto.roster.Team;
+import net.kyori.adventure.nbt.BinaryTagTypes;
+import net.kyori.adventure.nbt.ListBinaryTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -350,8 +353,17 @@ public final class Rules implements GameModule {
             default -> Banners.scrims(game, scorer, color);
         };
         if (banner != null) Match.say(game, banner);
+        // what the bookmark screen reads back: the score on both sides as it stands after this goal
+        ListBinaryTag.Builder<CompoundBinaryTag> sides = ListBinaryTag.builder(BinaryTagTypes.COMPOUND);
+        for (Team team : game.roster().teams()) {
+            sides.add(CompoundBinaryTag.builder().putString("team", team.id()).putInt("color", team.color().value())
+                    .putInt("goals", st.get(Scope.team(team.id()), Bridge.GOALS)).build());
+        }
         Replays.mark(game, "goal", CompoundBinaryTag.builder().putString("scorer", scorer.getUsername())
-                .putString("team", seat.team()).putInt("color", color.value()).putInt("goals", goals).build());
+                .putString("team", seat.team()).putInt("color", color.value()).putInt("goals", goals)
+                .putInt("target", game.rules().resolve(Scope.GAME, Score.TARGET))
+                .putFloat("health", scorer.getHealth() + scorer.getAdditionalHearts())
+                .put("sides", sides.build()).build());
         Matches.cue(game, SoundSet.SCORED);
         if (look.equals("hypixel")) { // uncaptured: five bursts a second apart at the center, white and the team's color
             st.alarms().arm(FIREWORK_ALARM, st.tick() + 1, CompoundBinaryTag.builder()

@@ -35,7 +35,7 @@ class RemoteTest {
         assertEquals("01:28", Remote.stamp(88 * 20));
         assertEquals("5m", Remote.seekStep(300));
         assertEquals("30s", Remote.seekStep(30));
-        assertEquals("halve", Remote.rateStep(0, false));
-        assertEquals("+0.5x", Remote.rateStep(0.5, true));
+        assertEquals("\u00d72", Remote.rateStep(0));
+        assertEquals("0.5x", Remote.rateStep(0.5));
     }
 }
