@@ -19,11 +19,13 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
+import io.github.term4.polyp.mechanics.projectile.entities.arrow.StuckArrows;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.player.PlayerSpectateEntityEvent;
+import net.minestom.server.entity.attribute.Attribute;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tennacle.Msg;
@@ -47,7 +49,8 @@ public final class Spectators {
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerBlockInteractEvent.class)
                 .ignoreCancelled(false).handler(e -> compass(e.getPlayer())).build());
         MinecraftServer.getGlobalEventHandler().addListener(InventoryPreClickEvent.class, e -> {
-            if (Matches.grotto().spectating(e.getPlayer()) != null && Screens.screen(e.getPlayer()) == null) e.setCancelled(true);
+            Player who = e.getPlayer();
+            if ((Matches.grotto().spectating(who) != null || ghosting(who) != null) && Screens.screen(who) == null) e.setCancelled(true);
         });
         // a spectator's click is the 26.x spectate-entity packet, never an attack: ViaBackwards rewrites a legacy
         // spectator's attack into it too (EntityPacketRewriter26_1, by the game mode it tracks)
@@ -77,6 +80,7 @@ public final class Spectators {
      */
     public static void enter(@NotNull Game game, @NotNull Player viewer, @Nullable Player target) {
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
+        freshen(viewer);
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true); // landed inside a player: no push, either way
         game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags greys the tab name
         viewer.getInventory().clear();
@@ -104,8 +108,36 @@ public final class Spectators {
     // the compass in hand: the seated, living members of the watched game, a click landing the viewer at one
     private static void compass(Player viewer) {
         Game watched = Matches.grotto().spectating(viewer);
+        if (watched == null) watched = ghosting(viewer);
         if (watched == null || viewer.getHeldSlot() != 0 || viewer.getItemInMainHand().material() != Material.COMPASS) return;
         Lineup.open(viewer, alive(watched));
+    }
+
+    // the game whose dead seat this is, waiting on a respawn: unbound, so the shard tag cannot say
+    private static @Nullable Game ghosting(Player p) {
+        for (Game game : Matches.grotto().games()) {
+            if (game.isGhost(p)) return game;
+        }
+        return null;
+    }
+
+    /** A watcher's body as a fresh one: full bars, nothing on it, nothing in it. */
+    public static void freshen(@NotNull Player p) {
+        p.setHealth((float) p.getAttributeValue(Attribute.MAX_HEALTH));
+        p.setFood(20);
+        p.setFoodSaturation(5f);
+        p.clearEffects();
+        p.setExp(0f);
+        p.setLevel(0);
+        p.setFireTicks(0);
+        p.setAdditionalHearts(0f);
+        StuckArrows.clear(p);
+    }
+
+    /** A dead seat waiting on its respawn: nothing in hand but the players' compass; the respawn re-kits. */
+    public static void ghostKit(@NotNull Player p) {
+        p.getInventory().clear();
+        p.getInventory().setItemStack(0, Lineup.compass());
     }
 
     /** The seated members of {@code game} still on their feet, as the compass lists them. */

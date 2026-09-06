@@ -11,6 +11,7 @@ import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
 import tennacle.games.Match;
 import tennacle.games.Matches;
+import tennacle.games.watch.Spectators;
 import io.github.term4.canvas.Canvas;
 
 import io.github.term4.barnacle.marker.LimitMarker;
@@ -122,6 +123,7 @@ public final class Rules implements GameModule {
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
         look = tennacle.games.Matches.lookNameOf(game); // stamped before modules install, never changes
         respawns.onRespawn((player, seat) -> refit(game, player));
+        respawns.onDead((player, seat) -> Spectators.ghostKit(player)); // the wait: a compass to the living, nothing else
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
             Slot seat = game.roster().slotOf(victim);
