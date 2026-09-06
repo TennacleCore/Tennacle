@@ -101,6 +101,29 @@ class ReplaysTest extends HeadlessServerTest {
         assertFalse(Files.exists(loose));
     }
 
+    /** A game the countdown never outlived is nothing to watch: no file, and its spool goes with it. */
+    @Test
+    void aCountdownDropsItsReplay() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DropRed");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            await("seated", () -> Game.of(red.player) == game);
+            assertTrue(Replays.recording(game));
+            assertFalse(Match.live(game), "still in the countdown");
+            game.end(Outcome.aborted());
+            Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
+            Path spool = replays.resolve("bridge").resolve("spool").resolve(game.id() + ".spool");
+            await("the spool goes", () -> !Files.exists(spool));
+            assertFalse(Files.exists(file), "and nothing is kept");
+            assertFalse(said(red, "This game has been recorded"), "nobody is told about a game that never played");
+        } finally {
+            red.player.remove();
+        }
+    }
+
     @Test
     void aGameLandsAsAFileAndSaysSo() {
         Mode bridge = Matches.mode("bridge");

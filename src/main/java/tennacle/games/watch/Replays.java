@@ -40,6 +40,7 @@ import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.grotto.Markers;
+import io.github.term4.grotto.modules.flow.Phases;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -82,7 +83,8 @@ import java.util.stream.Stream;
  * who held a seat then hears it is there to watch, wherever they are by then. A watch raises a theater over the
  * map's own world and puts the viewer in it as a ghost, {@link Dressing dressed} the way a game's spectator is,
  * holding the {@link Remote}; a party watches together behind its leader, who holds it for them. A replay that
- * runs out holds its last frame until the watchers leave; the last viewer out closes the theater. The file is
+ * runs out holds its last frame until the watchers leave; the last viewer out closes the theater. A game the
+ * countdown never outlived keeps nothing - no file, no spool. The file is
  * what a later store takes; the spool in {@code <mode>/spool/} is gone once the file is kept. A game a stop cuts
  * short still lands ({@link #flush} waits for the file); one a crash cuts leaves its spool, and the next boot
  * files what the spool holds under the mode ({@link #install}).
@@ -391,6 +393,14 @@ public final class Replays {
         Path at = dir;
         if (recording == null || at == null) return;
         recorded.remove(recording);
+        if (!played(game)) {
+            try {
+                recording.abandon();
+            } catch (IOException e) {
+                LOGGER.warn("the spool of game {} was not dropped", game.id(), e);
+            }
+            return;
+        }
         // read now: the ledger and roster go with the game right after this
         Mode mode = Matches.modeOf(game);
         String mapName = game.arena().meta().name();
@@ -414,6 +424,14 @@ public final class Replays {
         });
         landing.add(landed);
         landed.whenComplete((v, e) -> landing.remove(landed));
+    }
+
+    // a tick of live play, which a game aborted at the countdown's end never had (the phase stamps its entry
+    // before the seating check runs); a mode with no phases says nothing either way, so its game keeps its file
+    private static boolean played(Game game) {
+        if (Phases.phase(game).isEmpty()) return true;
+        long live = Phases.enteredAt(game, Match.LIVE);
+        return live >= 0 && game.tick() > live;
     }
 
     // everyone who held a seat, once, in the seat's color: a rejoin is the same name again

@@ -248,7 +248,10 @@ class DuelCommandTest extends HeadlessServerTest {
             assertNull(Game.of(a.player), "both left");
             assertNull(Game.of(b.player));
             assertEquals(0, game.members().size(), "nobody is in it");
-            for (int i = 0; i < 800; i++) MinecraftServer.getSchedulerManager().processTick(); // the holds, then the linger
+            // bridge holds a seat for the whole game, so an emptied one waits out the rejoin grace before it closes
+            for (int i = 0; i < 600; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertEquals(Game.Status.OPEN, game.status(), "the held seats keep it open for a rejoin");
+            for (int i = 0; i < 900; i++) MinecraftServer.getSchedulerManager().processTick();
             assertNotEquals(Game.Status.OPEN, game.status(), "an emptied game ends instead of running forever");
         } finally {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.draw());
