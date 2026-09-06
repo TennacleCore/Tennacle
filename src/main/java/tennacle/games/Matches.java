@@ -122,6 +122,11 @@ public final class Matches {
         return look != null ? look : Look.TENNACLE;
     }
 
+    /** A registered look by name; the house look for one nobody registered. */
+    public static @NotNull Look look(@NotNull String name) {
+        return looks.getOrDefault(name, Look.TENNACLE);
+    }
+
     /** {@link #lookOf} as its registry name - what a per-look module pick switches on. */
     public static @NotNull String lookNameOf(@NotNull Game game) {
         String name = game.state().get(Scope.GAME, LOOK);

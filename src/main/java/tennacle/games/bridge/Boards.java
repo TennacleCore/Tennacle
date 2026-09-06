@@ -42,8 +42,8 @@ final class Boards {
                 .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS, Score.TARGET)
                 .blank()
-                .line((g, me) -> teamLine(g, teamAt(g, 0)))
-                .line((g, me) -> teamLine(g, teamAt(g, 1)));
+                .rows(g -> names(g, teamAt(g, 0)))
+                .rows(g -> names(g, teamAt(g, 1)));
     }
 
     // captured: [R]/[B] circle meters, Kills/Goals
@@ -81,13 +81,16 @@ final class Boards {
                         game.rules().resolve(Scope.GAME, Score.TARGET), team.color()));
     }
 
-    private static Component teamLine(Game game, Team team) {
-        List<String> names = new ArrayList<>();
-        game.forEachMember(member -> {
-            Slot seat = game.roster().slotOf(member);
-            if (seat != null && seat.team().equals(team.id())) names.add(member.getUsername());
-        });
-        return Component.text(String.join(" ", names), team.color());
+    // captured: a row per seat held on the side, in seat order - the holder, or who a walked-out seat waits for
+    private static List<Component> names(Game game, Team team) {
+        List<Component> out = new ArrayList<>();
+        for (Slot seat : game.roster().slots()) {
+            if (!seat.team().equals(team.id())) continue;
+            String name = game.roster().ownerOf(seat);
+            if (name == null) name = game.roster().reservedFor(seat);
+            if (name != null) out.add(Component.text(name, team.color()));
+        }
+        return out;
     }
 
     // captured on both networks: "[R] " team label + team-colored filled circles, the theme's empties

@@ -16,8 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The party round trip in hypixel's shape: an invite that runs on click, the lineup, the channel, the leave. */
+/** The party round trip in hypixel's shape: an invite that runs on click, the lineup, the channel, the leave, the end. */
 class PartiesTest extends HeadlessServerTest {
+
+    private static final String DISBANDED = "The party was disbanded because all invites expired and the party was empty.";
 
     @BeforeAll
     static void wire() {
@@ -74,9 +76,38 @@ class PartiesTest extends HeadlessServerTest {
             a.sent.clear();
             assertTrue(said(chat(b, "party leave"), "You left the party."));
             assertTrue(said(plain(a), "PartyB has left the party."), plain(a).toString());
+            assertTrue(said(plain(a), DISBANDED), "alone with nothing standing: " + plain(a));
             assertEquals(List.of(b.player), Parties.of(b.player));
+            assertEquals(List.of(a.player), Parties.of(a.player));
         } finally {
-            chat(a, "party disband");
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void anInviteRunsOut() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(812.5, 65, 812.5), "PartyG");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(814.5, 65, 814.5), "PartyH");
+        long standing = Parties.inviteTicks;
+        Parties.inviteTicks = 2;
+        try {
+            chat(a, "party PartyH");
+            assertTrue(said(chat(a, "pl"), "Party Size (1)"), "the invite made the party");
+            assertTrue(said(chat(a, "party PartyH"), "You already invited PartyH"));
+            a.sent.clear();
+            b.sent.clear();
+            for (int i = 0; i < 5; i++) {
+                MinecraftServer.getSchedulerManager().processTick();
+                Thread.sleep(5);
+            }
+            assertTrue(said(plain(a), "The party invite to PartyH has expired."), plain(a).toString());
+            assertTrue(said(plain(a), DISBANDED), plain(a).toString());
+            assertTrue(said(plain(b), "The party invite from PartyG has expired."), plain(b).toString());
+            assertEquals(List.of(a.player), Parties.of(a.player));
+            assertTrue(said(chat(b, "party accept"), "No party invite is waiting for you."));
+        } finally {
+            Parties.inviteTicks = standing;
             a.player.remove();
             b.player.remove();
         }
@@ -121,6 +152,7 @@ class PartiesTest extends HeadlessServerTest {
     void kickTransferDisband() {
         FakePlayer a = FakePlayer.connect(instance, new Pos(804.5, 65, 804.5), "PartyC");
         FakePlayer b = FakePlayer.connect(instance, new Pos(806.5, 65, 806.5), "PartyD");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(816.5, 65, 816.5), "PartyJ");
         try {
             chat(a, "party invite PartyD");
             chat(b, "party accept");
@@ -130,12 +162,18 @@ class PartiesTest extends HeadlessServerTest {
             b.sent.clear();
             assertTrue(said(chat(a, "party leave"), "You left the party."));
             assertTrue(said(plain(b), "PartyC has left the party."));
+            assertTrue(said(plain(b), DISBANDED), plain(b).toString());
+            chat(c, "party PartyC"); // stands while a starts a party of their own
             chat(a, "party PartyD");
-            assertTrue(said(chat(b, "party accept"), "No party invite is waiting for you."), "a leader cannot be invited into their own party");
+            chat(b, "party accept");
+            assertTrue(Parties.leads(a.player) && Parties.together(a.player, b.player), "a fresh party after the old one ended");
+            assertTrue(said(chat(a, "party accept"), "You're already in a party."), "an invite never pulls a member out");
         } finally {
-            chat(b, "party disband");
+            chat(a, "party disband");
+            chat(c, "party disband");
             a.player.remove();
             b.player.remove();
+            c.player.remove();
         }
     }
 }

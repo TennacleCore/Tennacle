@@ -34,9 +34,15 @@ public final class ReplayCommands {
     // demo keeps one recording/playback at a time (the lib supports many); volatile - stop events for a domain
     // theater fire on its clock thread
     private static volatile Recording recording;
-    private static volatile Playback playback;
+    private static volatile Playback demo;
 
     private ReplayCommands() {}
+
+    /** The playback a timeline command drives: the game replay {@code sender} is watching, else the demo's. */
+    private static @Nullable Playback current(net.minestom.server.command.CommandSender sender) {
+        Playback watched = sender instanceof Player p ? Replays.playbackOf(p) : null;
+        return watched != null ? watched : demo;
+    }
 
     // a command word becomes a path here: ArgumentType.Word rejects only spaces, so "../x" escapes the directory
     private static @org.jetbrains.annotations.Nullable Path named(net.minestom.server.command.CommandSender to,
@@ -65,21 +71,25 @@ public final class ReplayCommands {
         Argument<String> newName = ArgumentType.Word("newName");
         Argument<Long> seekTick = ArgumentType.Long("tick");
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             playback.reverse(true);
             Msg.replay(sender, "rewinding from tick ", Msg.v(playback.tick()));
         }, ArgumentType.Literal("reverse"));
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             playback.reverse(false);
             Msg.replay(sender, "playing forward from tick ", Msg.v(playback.tick()));
         }, ArgumentType.Literal("forward"));
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             playback.pause(true);
             Msg.replay(sender, "paused at tick ", Msg.v(playback.tick()));
         }, ArgumentType.Literal("pause"));
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             playback.pause(false);
             Msg.replay(sender, "resumed at tick ", Msg.v(playback.tick()));
@@ -122,7 +132,7 @@ public final class ReplayCommands {
         }, ArgumentType.Literal("stop"), replayName);
         // "visual" = stand-ins only, ignoring registered revivers - the mechanics-less look, for comparison
         CommandExecutor doPlay = (sender, ctx) -> {
-            if (playback != null) { Msg.err(sender, "replay", "one playback at a time (tick ", Msg.v(playback.tick()), ")"); return; }
+            if (demo != null) { Msg.err(sender, "replay", "one playback at a time (tick ", Msg.v(demo.tick()), ")"); return; }
             byte[] file;
             Path source = named(sender, replayDir, ctx.get(replayName), ".shard");
             if (source == null) return;
@@ -136,8 +146,9 @@ public final class ReplayCommands {
             if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
             offClock(() -> {
                 Shard target = shards.create(world, n, ExecutionDomain.create());
+                Playback playback;
                 try {
-                    playback = Replay.play(target, file);
+                    playback = demo = Replay.play(target, file);
                 } catch (IllegalArgumentException e) {
                     shards.destroy(target);
                     Msg.err(sender, "replay", e.getMessage());
@@ -155,6 +166,7 @@ public final class ReplayCommands {
             if (sender instanceof Player p) Replays.watch(p, ctx.get(game));
         }, ArgumentType.Literal("watch"), game);
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             long target = ctx.get(seekTick);
             offClock(() -> {
@@ -167,6 +179,7 @@ public final class ReplayCommands {
             });
         }, ArgumentType.Literal("seek"), seekTick);
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             playback.halt(); // the stop event clears the field
             Msg.replay(sender, "halted");
@@ -176,7 +189,7 @@ public final class ReplayCommands {
         Argument<Long> backTicks = ArgumentType.Long("ticks");
         replay.addSyntax((sender, ctx) -> {
             if (recording == null) { Msg.err(sender, "replay", "nothing is recording - ", Msg.run("/replay record <shard>"), " first"); return; }
-            if (playback != null) { Msg.err(sender, "replay", "one playback at a time"); return; }
+            if (demo != null) { Msg.err(sender, "replay", "one playback at a time"); return; }
             Recording rec = recording;
             recording = null;
             rec.stop();
@@ -187,7 +200,7 @@ public final class ReplayCommands {
                 if (shards.byName(n) != null) { Msg.err(sender, "shard", Msg.v(n), " already exists"); return; }
                 Shard theater = new Shard(live);
                 shards.register(theater, n);
-                playback = Replay.play(theater, rec);
+                Playback playback = demo = Replay.play(theater, rec);
                 playback.pause(true); // hold the rewound moment
                 playback.seek(Math.min(rec.tick(), Math.max(0, rec.tick() - back)));
                 Msg.replay(sender, Msg.v(n), " shows ", Msg.v(back), " ticks ago (tick ", Msg.v(playback.tick()),
@@ -196,6 +209,7 @@ public final class ReplayCommands {
             });
         }, ArgumentType.Literal("rewind"), backTicks);
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             Shard theater = playback.shard();
             Shard live = theater.parent();
@@ -210,6 +224,7 @@ public final class ReplayCommands {
         // arg id must differ from the literal's ("rate"): same-id nodes collide in the command tree
         Argument<Double> playRate = ArgumentType.Double("speed");
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             try {
                 playback.rate(ctx.get(playRate));
@@ -225,11 +240,13 @@ public final class ReplayCommands {
             Msg.replay(sender, "bookmarked ", Msg.v(ctx.get(markName)), " @ tick ", Msg.v(recording.tick()));
         }, ArgumentType.Literal("bookmark"), markName);
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             if (playback.bookmarks().isEmpty()) { Msg.err(sender, "replay", "no bookmarks"); return; }
             playback.bookmarks().forEach(b -> Msg.replay(sender, Msg.v(b.name()), " @ tick ", Msg.v(b.tick())));
         }, ArgumentType.Literal("bookmarks"));
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             var mark = playback.bookmarks().stream().filter(b -> b.name().equals(ctx.get(markName))).findFirst();
             if (mark.isEmpty()) { Msg.err(sender, "replay", "no bookmark ", Msg.v(ctx.get(markName))); return; }
@@ -241,6 +258,7 @@ public final class ReplayCommands {
         // the state channels' read seam: the folded player state at the playback's current tick
         Argument<String> actorName = ArgumentType.Word("actor");
         replay.addSyntax((sender, ctx) -> {
+            Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             String actor = ctx.get(actorName);
             var inv = StateChannels.inventory(playback, actor);
@@ -251,9 +269,9 @@ public final class ReplayCommands {
                     " inventory=", Msg.v(inv.size()), " known slots");
         }, ArgumentType.Literal("state"), actorName);
         MinecraftServer.getGlobalEventHandler().addListener(PlaybackStopEvent.class, e -> {
-            if (e.playback() == playback) {
+            if (e.playback() == demo) {
                 e.playback().shard().sendMessage(Component.text("[replay] finished"));
-                playback = null;
+                demo = null;
             }
         });
         Commands.register(replay);

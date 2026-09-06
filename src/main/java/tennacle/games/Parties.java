@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,8 +34,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * A leader and the players who accepted: one SIDE wherever a match is started. Only the leader duels or queues
  * outward; the party follows as their side, so a mode seats it on one team. The command set and its lines follow
  * the hypixel shape: an invite that runs on click, a framed announcement for every change, {@code /pl} for the
- * lineup, {@code /pc} and {@code /chat party} for the party's channel. A disconnect starts a five-minute grace:
- * a member back in time stays, one who is not is removed; a leader who does not return disbands the party.
+ * lineup, {@code /pc} and {@code /chat party} for the party's channel. The first invite makes the party; an
+ * invite stands a minute, and a party down to its leader with no invite standing is disbanded. A disconnect
+ * starts a five-minute grace: a member back in time stays, one who is not is removed; a leader who does not
+ * return disbands the party.
  */
 public final class Parties {
 
@@ -44,22 +47,22 @@ public final class Parties {
     public static final String NOT_LEADER = "You are not party leader.";
     /** How long an invite stands. */
     static final long INVITE_SECONDS = 60;
+    /** {@link #INVITE_SECONDS} in ticks; a test shortens it. */
+    static volatile long inviteTicks = INVITE_SECONDS * 20;
     /** The rejoin grace after a disconnect, in ticks; a test shortens it. */
     static volatile long rejoinTicks = 5 * 60 * 20;
     static final String CHANNEL_PARTY = "party";
     static final String CHANNEL_ALL = "all";
     private static final Tag<String> CHANNEL = Tag.Transient("tennacle:chat-channel");
 
-    private record Invite(UUID leader, long at) {
-        boolean expired() {
-            return System.currentTimeMillis() - at > INVITE_SECONDS * 1000;
-        }
-    }
+    /** An invite standing between a party and a player until accepted, or until its clock runs out. */
+    private record Invite(Party party, String from, String to, Task expiry) {}
 
     private static final class Party {
         volatile UUID leader;
         final List<UUID> members = new CopyOnWriteArrayList<>(); // leader first
         final Map<UUID, String> names = new ConcurrentHashMap<>();
+        final Set<UUID> invited = ConcurrentHashMap.newKeySet();
         volatile boolean allInvite;
 
         Party(Player leader) {
@@ -80,7 +83,7 @@ public final class Parties {
     }
 
     private static final Map<UUID, Party> byMember = new ConcurrentHashMap<>();
-    private static final Map<UUID, Invite> invites = new ConcurrentHashMap<>();
+    private static final Map<UUID, Map<Party, Invite>> invites = new ConcurrentHashMap<>(); // by the invited
     private static final Map<UUID, Task> graces = new ConcurrentHashMap<>();
 
     private Parties() {}
@@ -241,14 +244,27 @@ public final class Parties {
             Msg.fail(from, Msg.v(target.getUsername()), " is already in a party.");
             return;
         }
-        UUID leader = party != null ? party.leader : from.getUuid();
-        invites.put(target.getUuid(), new Invite(leader, System.currentTimeMillis()));
+        if (party != null && party.invited.contains(target.getUuid())) {
+            Msg.fail(from, "You already invited ", Msg.v(target.getUsername()), ". Wait for them to answer.");
+            return;
+        }
+        if (party == null) {
+            party = new Party(from);
+            byMember.put(from.getUuid(), party);
+        }
+        Party theirs = party;
+        UUID invited = target.getUuid();
+        Task expiry = MinecraftServer.getSchedulerManager().buildTask(() -> expire(invited, theirs))
+                .delay(TaskSchedule.tick((int) inviteTicks)).schedule();
+        party.invited.add(invited);
+        invites.computeIfAbsent(invited, uuid -> new ConcurrentHashMap<>())
+                .put(party, new Invite(party, from.getUsername(), target.getUsername(), expiry));
         Component sent = Component.text()
                 .append(who(from.getUsername())).append(yellow(" invited ")).append(who(target.getUsername()))
                 .append(yellow(" to the party! They have ")).append(Component.text(INVITE_SECONDS, NamedTextColor.RED))
                 .append(yellow(" seconds to accept.")).build();
-        for (Player member : party != null ? online(party) : List.of(from)) frame(member, sent);
-        String leaderName = party != null ? party.names.getOrDefault(leader, from.getUsername()) : from.getUsername();
+        for (Player member : online(party)) frame(member, sent);
+        String leaderName = party.names.getOrDefault(party.leader, from.getUsername());
         frame(target, Component.text()
                 .append(who(from.getUsername())).append(yellow(" has invited you to join their party! You have "))
                 .append(Component.text(INVITE_SECONDS, NamedTextColor.RED)).append(yellow(" seconds to accept. "))
@@ -259,36 +275,74 @@ public final class Parties {
         GameSounds.lobby(target, SoundSet.PARTY_INVITE);
     }
 
-    /** Accepts the invite from {@code leaderName}'s party, or the one standing when null. */
-    private static void accept(Player player, @Nullable String leaderName) {
-        Invite invite = invites.get(player.getUuid());
-        if (invite == null || invite.expired()) {
-            invites.remove(player.getUuid());
+    /** Accepts the invite from the party {@code name} is in (the inviter, the leader, anyone), or the one standing when null. */
+    private static void accept(Player player, @Nullable String name) {
+        Map<Party, Invite> mine = invites.getOrDefault(player.getUuid(), Map.of());
+        if (mine.isEmpty()) {
             Msg.fail(player, "No party invite is waiting for you.");
             return;
         }
-        Player leader = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(invite.leader());
-        if (leader == null) {
-            invites.remove(player.getUuid());
-            Msg.fail(player, "The party leader left.");
+        Invite invite = null;
+        if (name == null) {
+            if (mine.size() > 1) {
+                Msg.fail(player, "Several parties invited you. Name one: ", Msg.v("/party join <player>"), ".");
+                return;
+            }
+            invite = mine.values().iterator().next();
+        } else {
+            for (Invite candidate : mine.values()) {
+                if (candidate.from().equalsIgnoreCase(name) || memberNamed(candidate.party(), name) != null) invite = candidate;
+            }
+            if (invite == null) {
+                Msg.fail(player, "No party invite from ", Msg.v(name), ".");
+                return;
+            }
+        }
+        if (byMember.containsKey(player.getUuid())) {
+            Msg.fail(player, "You're already in a party. Leave it first.");
             return;
         }
-        if (leaderName != null && !leader.getUsername().equalsIgnoreCase(leaderName)) {
-            Msg.fail(player, "No party invite from ", Msg.v(leaderName), ".");
+        Party party = invite.party();
+        if (party.members.size() >= MAX) {
+            Msg.fail(player, "That party is full.");
             return;
         }
-        invites.remove(player.getUuid());
-        Party theirs = byMember.get(leader.getUuid());
-        if (theirs != null && !theirs.leader.equals(leader.getUuid())) {
-            Msg.fail(player, Msg.v(leader.getUsername()), " no longer leads a party.");
-            return;
-        }
-        leave(player);
-        Party party = byMember.computeIfAbsent(leader.getUuid(), uuid -> new Party(leader));
+        withdraw(invite, player.getUuid());
         party.add(player);
         byMember.put(player.getUuid(), party);
         Component line = who(player.getUsername()).append(yellow(" joined the party."));
         for (Player member : online(party)) frame(member, line);
+    }
+
+    // the clock ran out: both sides hear it, and a party left with nobody and nothing standing is over
+    private static void expire(UUID invited, Party party) {
+        Map<Party, Invite> mine = invites.get(invited);
+        Invite invite = mine != null ? mine.get(party) : null;
+        if (invite == null) return; // accepted, or voided with its party
+        withdraw(invite, invited);
+        Component line = yellow("The party invite to ").append(who(invite.to())).append(yellow(" has expired."));
+        for (Player member : online(party)) frame(member, line);
+        Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(invited);
+        if (target != null) {
+            frame(target, yellow("The party invite from ").append(who(invite.from())).append(yellow(" has expired.")));
+        }
+        settle(party);
+    }
+
+    private static void withdraw(Invite invite, UUID invited) {
+        invite.expiry().cancel();
+        invite.party().invited.remove(invited);
+        Map<Party, Invite> mine = invites.get(invited);
+        if (mine != null && mine.remove(invite.party()) != null && mine.isEmpty()) invites.remove(invited);
+    }
+
+    /** A party down to its leader with no invite standing is disbanded, hypixel's line and all. */
+    private static void settle(Party party) {
+        if (byMember.get(party.leader) != party || party.members.size() > 1 || !party.invited.isEmpty()) return;
+        Component line = Component.text("The party was disbanded because all invites expired and the party was empty.",
+                NamedTextColor.RED);
+        for (Player member : online(party)) frame(member, line);
+        dissolve(party);
     }
 
     private static void leave(Player player) {
@@ -306,6 +360,7 @@ public final class Parties {
         frame(player, yellow("You left the party."));
         Component line = who(player.getUsername()).append(yellow(" has left the party."));
         for (Player member : online(party)) frame(member, line);
+        settle(party);
     }
 
     private static void kick(Player leader, String targetName) {
@@ -325,6 +380,7 @@ public final class Parties {
         }
         Component line = who(name).append(yellow(" has been removed from the party."));
         for (Player member : online(party)) frame(member, line);
+        settle(party);
     }
 
     private static void transfer(Player leader, String targetName) {
@@ -367,6 +423,7 @@ public final class Parties {
         }
         Component line = yellow("Kicked ").append(who(String.join(", ", gone))).append(yellow(" because they were offline."));
         for (Player member : online(party)) frame(member, line);
+        settle(party);
     }
 
     private static void allInvite(Player leader) {
@@ -433,7 +490,6 @@ public final class Parties {
 
     // the grace: five minutes to come back before a member is removed or, for the leader, the party disbands
     static void disconnected(Player player) {
-        invites.remove(player.getUuid());
         Party party = byMember.get(player.getUuid());
         if (party == null) return;
         UUID uuid = player.getUuid();
@@ -464,6 +520,7 @@ public final class Parties {
         drop(party, uuid);
         Component line = who(name).append(yellow(" was removed from the party because they disconnected."));
         for (Player member : online(party)) frame(member, line);
+        settle(party);
     }
 
     static void rejoined(Player player) {
@@ -481,6 +538,11 @@ public final class Parties {
             byMember.remove(uuid);
             Player member = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
             if (member != null) member.removeTag(CHANNEL);
+        }
+        for (UUID invited : List.copyOf(party.invited)) { // an invite to a party that is gone stands for nothing
+            Map<Party, Invite> mine = invites.get(invited);
+            Invite invite = mine != null ? mine.get(party) : null;
+            if (invite != null) withdraw(invite, invited);
         }
     }
 

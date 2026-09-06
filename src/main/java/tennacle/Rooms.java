@@ -33,8 +33,10 @@ public final class Rooms {
         TabList.footer(Rooms::tabFooter);
     }
 
-    /** The viewer's game's look, else the server chrome in the house look. */
+    /** The viewer's game's look - the replayed game's for a watcher - else the server chrome in the house look. */
     private static Look lookFor(Player viewer) {
+        Look replayed = Replays.lookOf(viewer);
+        if (replayed != null) return replayed;
         Game game = gameOf(viewer);
         if (game == null) game = Matches.grotto().spectating(viewer);
         return game != null ? Matches.lookOf(game) : Look.TENNACLE;

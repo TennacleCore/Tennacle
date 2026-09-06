@@ -60,7 +60,10 @@ class HouseEndCardTest extends HeadlessServerTest {
             game.state().set(Scope.slot(seat.index()), Boxing.HITS, game.rules().resolve(seat, Score.TARGET));
             Game decided = game;
             awaitTicking("the score decided it", () -> decided.decided() != null);
-            for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
+            for (int i = 0; i < 3; i++) { // the card lands at the end of the deciding tick
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+            }
 
             List<String> lines = a.sent(SystemChatPacket.class).stream()
                     .map(c -> GsonComponentSerializer.gson().serialize(c.message())).toList();

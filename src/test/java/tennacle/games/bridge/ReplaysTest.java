@@ -8,10 +8,10 @@ import tennacle.games.Replays;
 import tennacle.games.TestWiring;
 
 import io.github.term4.archipelago.replay.Playback;
-import io.github.term4.archipelago.replay.Replay;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
-import io.github.term4.archipelago.shard.ShardView;
+import io.github.term4.archipelago.shard.ShardTabList;
+import io.github.term4.canvas.board.Boards;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
@@ -22,7 +22,9 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerChatEvent;
+import net.minestom.server.network.packet.server.play.ScoreboardObjectivePacket;
 import net.minestom.server.network.packet.server.play.SetTitleSubTitlePacket;
+import net.minestom.server.network.packet.server.play.TeamsPacket;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,6 +38,8 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A game records itself, lands as a file when it ends, tells its players where to watch it, and keeps what it said. */
@@ -105,8 +109,6 @@ class ReplaysTest extends HeadlessServerTest {
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ChanRed");
         FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "ChanBlue");
         FakePlayer viewer = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "ChanViewer");
-        ShardManager manager = new ShardManager();
-        Shard stage = null;
         try {
             red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
             blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
@@ -119,23 +121,32 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             Path file = replays.resolve(game.id() + ".shard");
             await("the file lands", () -> Files.exists(file));
-            byte[] bytes = Files.readAllBytes(file);
-
-            stage = new Shard(BridgeRoundTest.fixture().instantiate());
-            manager.register(stage, "replay-channel");
-            viewer.player.setInstance(stage.instance(), new Pos(0.5, 65, 0.5)).join();
-            ShardView.set(viewer.player, ShardView.of(stage));
             viewer.sent.clear();
-            Playback playback = Replay.play(stage, bytes);
+            Replays.watch(viewer.player, game.id(), BridgeRoundTest.fixture()); // the fixture is in no pool
+            Playback playback = Replays.playbackOf(viewer.player);
+            assertNotNull(playback, "the watch raised a theater");
             assertTrue(playback.counts().getOrDefault("tennacle:line", 0) > 0, playback.counts().toString());
             assertTrue(playback.counts().getOrDefault("tennacle:title", 0) > 0, playback.counts().toString());
-            Shard theater = stage;
+            assertTrue(playback.counts().getOrDefault("tennacle:rows", 0) > 0, "the board recorded: " + playback.counts());
+            Shard theater = playback.shard();
             tickUntil(theater, "the channel plays back: " + playback.counts(),
                     () -> said(viewer, "ChanRed: gg") && said(viewer, "Draw.") && subtitled(viewer, "Cages open in"));
             assertFalse(said(viewer, "This game has been recorded"), "the recorded line is the players' alone");
-            playback.halt();
+            Boards.Rendered board = Boards.rendered(viewer.player);
+            assertNotNull(board, "the game's board shows in the theater");
+            assertTrue(board.lines().stream().map(l -> PlainTextComponentSerializer.plainText().serialize(l))
+                    .anyMatch(l -> l.contains("Time:")), "the recorded rows: " + board.lines());
+            assertTrue(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction c
+                    && c.entities().contains("ChanRed")), "the lineup colors the ghosts' names");
+            assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),
+                    "the health column is up");
+            assertTrue(Boolean.TRUE.equals(viewer.player.getTag(ShardTabList.SPECTATOR)), "a watcher lists as a spectator");
+            tickUntil(theater, "the replay runs out and sends the watcher home", () -> Replays.watching(viewer.player) == null);
+            assertTrue(said(viewer, "The replay ended."));
+            await("back in the lobby", () -> viewer.player.getInstance() == instance);
+            assertNull(viewer.player.getTag(ShardTabList.SPECTATOR));
         } finally {
-            if (stage != null) manager.destroy(stage);
+            Replays.leave(viewer.player);
             red.player.remove();
             blue.player.remove();
             viewer.player.remove();
@@ -146,7 +157,7 @@ class ReplaysTest extends HeadlessServerTest {
     private static void tickUntil(Shard stage, String what, Supplier<Boolean> done) {
         long deadline = System.currentTimeMillis() + 8000;
         while (!done.get() && System.currentTimeMillis() < deadline) {
-            stage.instance().tick(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
+            if (stage.instance().isRegistered()) stage.instance().tick(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
             MinecraftServer.getSchedulerManager().processTick();
             MinecraftServer.getSchedulerManager().processTickEnd();
             try {
