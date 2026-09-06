@@ -5,6 +5,7 @@ import tennacle.looks.Palette;
 import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.flow.Phases;
+import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
@@ -66,6 +67,13 @@ public final class Match {
     /** The seat whose view a replay keeps when a line reads differently per viewer: the first one filled. */
     public static @Nullable Player reference(@NotNull Game game) {
         return game.firstMember(p -> game.roster().slotOf(p) != null);
+    }
+
+    /** Ticks of play: from the match clock's start where a time limit runs one, else from the live phase, else all. */
+    public static long playTime(@NotNull Game game) {
+        long started = TimeLimit.started(game);
+        if (started < 0) started = Phases.enteredAt(game, LIVE);
+        return started < 0 ? game.tick() : Math.max(0, game.tick() - started);
     }
 
     /** The one other side in a 1v1 (ghosts included, so boards hold through the linger), or {@code null}. */

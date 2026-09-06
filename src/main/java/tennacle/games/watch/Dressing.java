@@ -58,6 +58,7 @@ final class Dressing {
     private final Set<Player> dressed = ConcurrentHashMap.newKeySet();
     private final Map<String, Integer> scores = new ConcurrentHashMap<>();
     private final Runnable untick;
+    private final Remote remote;
     private volatile @Nullable Replays.Rows rows;
     private volatile @Nullable Board board;
 
@@ -72,6 +73,7 @@ final class Dressing {
         this.objective = "rh-" + gameId.substring(0, Math.min(8, gameId.length()));
         this.teamPrefix = "r" + gameId.substring(0, Math.min(6, gameId.length())) + "-";
         this.spectatorTeam = "r" + gameId.substring(0, Math.min(6, gameId.length())) + "~";
+        this.remote = new Remote(playback, gameId);
         this.untick = stage.onTick(tick -> tick());
         BY_PLAYBACK.put(playback, this);
     }
@@ -92,8 +94,10 @@ final class Dressing {
         return look;
     }
 
-    void enter(@NotNull Player viewer) {
+    /** {@code controller}: the watcher who holds the remote - the one who started the watch, a party's leader. */
+    void enter(@NotNull Player viewer, boolean controller) {
         if (!dressed.add(viewer)) return;
+        remote.enter(viewer, controller);
         viewer.setTag(ShardTabList.SPECTATOR, true); // both eras sink and grey a spectator entry natively
         viewer.setTag(ShardTabList.LIST_ORDER, -1); // a modern client's own row sorts on this
         viewer.setTag(ShardTabList.SORT_NAME, sortName(viewer.getUsername())); // a 1.8 row apart from the ghost's
@@ -126,6 +130,7 @@ final class Dressing {
 
     void exit(@NotNull Player viewer) {
         if (!dressed.remove(viewer)) return;
+        remote.exit(viewer);
         Board current = board;
         if (current != null) Boards.drop(viewer, current);
         if (tabHealth || nameHealth) {
@@ -151,6 +156,7 @@ final class Dressing {
         untick.run();
         BY_PLAYBACK.remove(playback);
         for (Player viewer : List.copyOf(dressed)) exit(viewer);
+        remote.close();
     }
 
     /** The recorded sidebar moved: the same board re-renders, a new row count raises a fresh one. */
@@ -184,6 +190,7 @@ final class Dressing {
 
     // the recorded health at the cursor, scored under the ghost's name: the tab column and the nameplate's read
     private void tick() {
+        remote.tick();
         if (!tabHealth && !nameHealth) return;
         for (Seat seat : lineup) {
             Float health = StateChannels.health(playback, seat.name());

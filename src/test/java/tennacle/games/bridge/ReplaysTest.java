@@ -1,5 +1,9 @@
 package tennacle.games.bridge;
 
+import tennacle.games.watch.Remote;
+import net.minestom.server.event.inventory.InventoryPreClickEvent;
+import net.minestom.server.inventory.click.Click;
+import net.minestom.server.item.Material;
 import tennacle.games.watch.Replays;
 import tennacle.bridge.ReplayBridge;
 import tennacle.games.Match;
@@ -109,6 +113,7 @@ class ReplaysTest extends HeadlessServerTest {
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ChanRed");
         FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "ChanBlue");
         FakePlayer viewer = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "ChanViewer");
+        FakePlayer mate = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "ChanMate");
         try {
             red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
             blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
@@ -121,10 +126,13 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             Path file = replays.resolve(game.id() + ".shard");
             await("the file lands", () -> Files.exists(file));
+            MinecraftServer.getCommandManager().execute(viewer.player, "party ChanMate");
+            MinecraftServer.getCommandManager().execute(mate.player, "party accept");
             viewer.sent.clear();
             Replays.watch(viewer.player, game.id(), BridgeRoundTest.fixture()); // the fixture is in no pool
             Playback playback = Replays.playbackOf(viewer.player);
             assertNotNull(playback, "the watch raised a theater");
+            assertEquals(playback, Replays.playbackOf(mate.player), "the party watches behind its leader");
             assertTrue(playback.counts().getOrDefault("tennacle:line", 0) > 0, playback.counts().toString());
             assertTrue(playback.counts().getOrDefault("tennacle:title", 0) > 0, playback.counts().toString());
             assertTrue(playback.counts().getOrDefault("tennacle:rows", 0) > 0, "the board recorded: " + playback.counts());
@@ -141,6 +149,17 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),
                     "the health column is up");
             assertTrue(Boolean.TRUE.equals(viewer.player.getTag(ShardTabList.SPECTATOR)), "a watcher lists as a spectator");
+            assertEquals(Material.LIME_DYE, viewer.player.getInventory().getItemStack(Remote.PLAY).material(), "the leader holds the remote");
+            assertEquals(Material.PLAYER_HEAD, viewer.player.getInventory().getItemStack(Remote.FASTER).material());
+            assertTrue(mate.player.getInventory().getItemStack(Remote.PLAY).isAir(), "a member watches bare-handed");
+            assertTrue(viewer.player.getExp() > 0f, "the bar reads the timeline: " + viewer.player.getExp());
+            var grab = new InventoryPreClickEvent(viewer.player.getInventory(), viewer.player, new Click.Left(Remote.PLAY));
+            EventDispatcher.call(grab);
+            assertTrue(grab.isCancelled(), "the remote is not for moving");
+            playback.pause(true);
+            for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertEquals(Material.GRAY_DYE, viewer.player.getInventory().getItemStack(Remote.PLAY).material(), "the dye follows the state");
+            playback.pause(false);
             assertEquals(-1, viewer.player.getTag(ShardTabList.LIST_ORDER), "a modern watcher's own row sinks on its order");
             assertEquals("\u00a7oChanViewer", viewer.player.getTag(ShardTabList.SORT_NAME), "a 1.8 row apart from the ghost's");
             assertFalse(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction c
@@ -156,11 +175,15 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(said(viewer, "The replay ended."));
             await("back in the lobby", () -> viewer.player.getInstance() == instance);
             assertNull(viewer.player.getTag(ShardTabList.SPECTATOR));
+            assertNull(Replays.watching(mate.player), "the party went home too");
+            assertTrue(viewer.player.getInventory().getItemStack(Remote.PLAY).isAir(), "the remote stays in the theater");
         } finally {
             Replays.leave(viewer.player);
+            MinecraftServer.getCommandManager().execute(viewer.player, "party disband");
             red.player.remove();
             blue.player.remove();
             viewer.player.remove();
+            mate.player.remove();
         }
     }
 

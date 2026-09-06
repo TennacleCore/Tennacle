@@ -350,6 +350,8 @@ public final class Rules implements GameModule {
             default -> Banners.scrims(game, scorer, color);
         };
         if (banner != null) Match.say(game, banner);
+        Replays.mark(game, "goal", CompoundBinaryTag.builder().putString("scorer", scorer.getUsername())
+                .putString("team", seat.team()).putInt("color", color.value()).putInt("goals", goals).build());
         Matches.cue(game, SoundSet.SCORED);
         if (look.equals("hypixel")) { // uncaptured: five bursts a second apart at the center, white and the team's color
             st.alarms().arm(FIREWORK_ALARM, st.tick() + 1, CompoundBinaryTag.builder()

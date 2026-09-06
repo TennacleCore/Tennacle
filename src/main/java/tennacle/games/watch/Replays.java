@@ -7,6 +7,8 @@ import tennacle.games.Mode;
 import tennacle.GameIds;
 import tennacle.Msg;
 import tennacle.Sessions;
+import tennacle.games.Match;
+import tennacle.games.matchmaking.Parties;
 import tennacle.storage.Atomic;
 
 import io.github.term4.archipelago.event.replay.PlaybackStopEvent;
@@ -34,6 +36,7 @@ import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.MinecraftServer;
@@ -67,9 +70,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * in it rides its own channels ({@link Match#say}, {@link Match#title}), and its sidebar as the first seat saw it
  * is kept on change, so a watcher reads the kill lines, sees the titles and the board as the players did. Everyone
  * who held a seat then hears it is there to watch, wherever they are by then. A watch raises a theater over the
- * map's own world and puts the viewer in it as a ghost, {@link Dressing dressed} the way a game's spectator is;
- * the last viewer out closes it, and a replay that runs out sends everyone home. The file is what a later store
- * takes; the spool beside it is gone once the file is kept.
+ * map's own world and puts the viewer in it as a ghost, {@link Dressing dressed} the way a game's spectator is,
+ * holding the {@link Remote}; a party watches together behind its leader, who holds it for them. The last viewer
+ * out closes the theater, and a replay that runs out sends everyone home. The file is what a later store takes;
+ * the spool beside it is gone once the file is kept.
  */
 public final class Replays {
 
@@ -162,6 +166,7 @@ public final class Replays {
         Replay.register(TITLES);
         Replay.register(ROWS);
         Replay.dispatchers(RowsSampler::new);
+        Remote.install();
         Matches.grotto().onGameEnd(Replays::ended);
         Sessions.register(viewer -> watching.containsKey(viewer) ? () -> {
             leave(viewer);
@@ -217,6 +222,12 @@ public final class Replays {
         return (int) (duration.toMillis() / 50);
     }
 
+    /** Bookmarks the moment in {@code game}'s replay - a goal, say - with what a watcher's list should read of it. */
+    public static void mark(@NotNull Game game, @NotNull String name, @NotNull CompoundBinaryTag data) {
+        Recording recording = live.get(game.id());
+        if (recording != null) recording.bookmark(name, data);
+    }
+
     private static int paced(int ticks, double rate) {
         return (int) Math.max(ticks > 0 ? 1 : 0, Math.round(ticks / rate));
     }
@@ -252,7 +263,7 @@ public final class Replays {
         String look = Matches.lookNameOf(game);
         List<String> lineup = lineup(game);
         List<String> health = health(game);
-        long ticks = game.tick();
+        long ticks = Match.playTime(game);
         List<UUID> seated = game.roster().participants().stream().map(Roster.Participant::uuid).distinct().toList();
         Component line = recordedLine(game.id(), mapName, ticks);
         recording.stopAsync(data -> {
@@ -310,7 +321,10 @@ public final class Replays {
         return seconds / 60 + ":" + "%02d".formatted(seconds % 60);
     }
 
-    /** Plays the replay of game {@code idOrCode} for {@code viewer}: a theater over the map's world, a ghost in it. */
+    /**
+     * Plays the replay of game {@code idOrCode} for {@code viewer}: a theater over the map's world, a ghost in it
+     * holding the remote. A party comes along behind its leader; a member on their own is refused like a duel.
+     */
     public static void watch(@NotNull Player viewer, @NotNull String idOrCode) {
         watch(viewer, idOrCode, null);
     }
@@ -328,6 +342,7 @@ public final class Replays {
             Msg.fail(viewer, "You're in a game. ", Msg.run("/l"), " first.");
             return;
         }
+        if (!Parties.requireLeader(viewer)) return;
         Theater theater = theaters.get(id);
         if (theater == null) {
             byte[] bytes;
@@ -368,6 +383,16 @@ public final class Replays {
             theater = new Theater(stage, playback, arena, dressing, ConcurrentHashMap.newKeySet());
             theaters.put(id, theater);
         }
+        for (Player member : Parties.of(viewer)) { // the leader first: the remote is theirs
+            if (member != viewer && Game.of(member) != null) {
+                Msg.say(viewer, Msg.v(member.getUsername()), " is in a game and stays behind.");
+                continue;
+            }
+            admit(member, theater, id, member == viewer);
+        }
+    }
+
+    private static void admit(Player viewer, Theater theater, String id, boolean controller) {
         leave(viewer); // a view elsewhere ends first
         Spectators.exit(viewer);
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
@@ -376,16 +401,18 @@ public final class Replays {
         watching.put(viewer, id);
         Pos spawn = theater.arena().meta().spawn();
         Pos landing = spawn != null ? spawn : new Pos(0.5, 64, 0.5);
-        Theater entered = theater;
-        viewer.setInstance(entered.stage().instance(), landing).thenRun(() -> {
+        viewer.setInstance(theater.stage().instance(), landing).thenRun(() -> {
             if (!id.equals(watching.get(viewer))) return;
-            ShardView.set(viewer, ShardView.of(entered.stage()));
-            entered.dressing().enter(viewer);
+            ShardView.set(viewer, ShardView.of(theater.stage()));
+            theater.dressing().enter(viewer, controller);
         });
         Msg.ok(viewer, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
     }
 
-    /** Takes {@code viewer} out of a replay; the last one out closes the theater. {@code false} = was not watching. */
+    /**
+     * Takes {@code viewer} out of a replay, and the party they lead out behind them, home; the last one out closes
+     * the theater. {@code false} = was not watching.
+     */
     public static boolean leave(@NotNull Player viewer) {
         String id = watching.remove(viewer);
         if (id == null) return false;
@@ -393,6 +420,11 @@ public final class Replays {
         undress(viewer, theater);
         if (theater != null) {
             theater.watchers().remove(viewer);
+            if (Parties.leads(viewer)) {
+                for (Player member : Parties.of(viewer)) {
+                    if (member != viewer && id.equals(watching.get(member)) && leave(member)) Matches.toLobby(member);
+                }
+            }
             if (theater.watchers().isEmpty() && theaters.remove(id) != null) close(theater);
         }
         return true;

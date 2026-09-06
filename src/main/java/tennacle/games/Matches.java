@@ -151,7 +151,7 @@ public final class Matches {
 
     /** End screens carrying the game's look - what every mode's {@code Ends} starts from. */
     public static @NotNull Summary summary() {
-        return Summary.of().theme(g -> lookOf(g).theme());
+        return Summary.of().theme(g -> lookOf(g).theme()).clock(Match::playTime);
     }
 
     public static @NotNull Results results() {
