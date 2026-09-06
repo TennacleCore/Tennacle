@@ -75,6 +75,18 @@ class RulesListingTest extends HeadlessServerTest {
             assertTrue(side.contains("set here"), "the side holds it: " + side);
             String other = row(lines(a, "rules #" + team + " space.build.height"), "space.build.height");
             assertTrue(other.contains("from the game"), "what the side never touched: " + other);
+
+            // the game's own: the fold seeds the launch ruleset as cells, so only a live entry reads as set here
+            List<String> all = lines(a, "rules");
+            assertTrue(all.stream().anyMatch(l -> l.contains("as launched")), "what the launch ruleset chose: " + all);
+            String launched = row(all, "space.build.outside");
+            assertTrue(launched.contains("the default"), "what nobody chose: " + launched);
+            lines(a, "rules space.build.outside false");
+            String changed = row(lines(a, "rules space.build.outside"), "space.build.outside");
+            assertTrue(changed.contains("set here"), "changed in this game: " + changed);
+            lines(a, "rules space.build.outside unset");
+            assertEquals(launched, row(lines(a, "rules space.build.outside"), "space.build.outside"),
+                    "and unset puts the launch value and its mark back");
         } finally {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();

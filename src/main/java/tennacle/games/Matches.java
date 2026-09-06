@@ -244,6 +244,12 @@ public final class Matches {
      * Drops the live entry for {@code id} at {@code scope} and re-folds; the ledger's cell there goes with it, so
      * a seat freed of its override reads its team's value again. {@code false}: nothing was set there.
      */
+    /** Whether a live entry for {@code id} stands at {@code scope} - what {@link #unset} would drop. */
+    public static boolean overrides(@NotNull Game game, @NotNull Scope scope, @NotNull String id) {
+        Ruleset live = modifiers.get(game.id());
+        return live != null && live.names(scope, id);
+    }
+
     public static boolean unset(@NotNull Game game, @NotNull Scope scope, @NotNull String id) {
         if (game.status() != Game.Status.OPEN) throw new IllegalStateException("the game is over");
         Ruleset live = modifiers.get(game.id());

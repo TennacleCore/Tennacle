@@ -34,11 +34,11 @@ public final class RulesCommands {
 
     public static void register() {
         AppCommand rules = Commands.player("rules", "The running game's rules, live.")
-                .usage("/rules [package|id]", "read them, or one part")
+                .usage("/rules [package|id]", "read them, or one part - each marked with where its value comes from")
                 .usage("/rules <id|path> <value>", "set one for the game")
                 .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
                 .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through")
-                .usage("/rules <@player|#team>", "that seat or side, each rule marked with where its value comes from")
+                .usage("/rules <@player|#team>", "that seat or side alone")
                 .usage("/rules paths [path]", "the mechanics tree a path can reach")
                 .featured();
         var key = ArgumentType.Word("key");
@@ -142,7 +142,7 @@ public final class RulesCommands {
         for (String id : ids) {
             StateKey<?> key = supported.get(id);
             List<String> words = RulesCompletions.words(id);
-            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, key)), from(game, scope, key),
+            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, key)), from(game, scope, key, id),
                     words.isEmpty() ? "" : "  any of " + String.join(", ", words));
         }
         String lead = scope == Scope.GAME ? "" : scopeName(game, scope) + " ";
@@ -162,20 +162,21 @@ public final class RulesCommands {
     }
 
     /**
-     * Which level hands {@code scope} the value it reads. A seat set to what its side already says stops
-     * following the side, and reads the same until the side moves without it - the one thing the value alone
-     * cannot show.
+     * Which level hands {@code scope} the value it reads, and whether it is yours to drop. A seat set to what
+     * its side already says stops following the side, and reads the same until the side moves without it - the
+     * one thing the value alone cannot show. The fold seeds the launch ruleset as cells too, so a live entry
+     * is what tells a change made in this game from the one it started with.
      */
-    private static Component from(Game game, Scope scope, StateKey<?> key) {
-        if (scope == Scope.GAME) return Component.empty(); // the fold seeds every rule here: "set here" for all of them
-        if (game.state().lookup(scope, key) != null) return Msg.THEME.dim("  set here");
+    private static Component from(Game game, Scope scope, StateKey<?> key, String id) {
+        if (Matches.overrides(game, scope, id)) return Msg.THEME.dim("  set here");
+        if (game.state().lookup(scope, key) != null) return Msg.THEME.dim("  as launched");
         if (scope instanceof Scope.Slot s) {
             Slot seat = game.roster().slot(s.index());
             if (seat != null && !seat.team().isEmpty() && game.state().lookup(Scope.team(seat.team()), key) != null) {
                 return Msg.THEME.dim("  from #" + seat.team());
             }
         }
-        return Msg.THEME.dim("  from the game");
+        return Msg.THEME.dim(scope == Scope.GAME ? "  the default" : "  from the game");
     }
 
     /** A dotted id under {@code prefix}: whole segments, so {@code flow} takes flow.time.limit and {@code flo} nothing. */
