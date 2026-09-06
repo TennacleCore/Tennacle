@@ -46,6 +46,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -157,6 +158,54 @@ class ReplaysTest extends HeadlessServerTest {
         } finally {
             red.player.remove();
             blue.player.remove();
+        }
+    }
+
+    /** Two people who start the same replay apart each get a theater: separate shards, separate controls. */
+    @Test
+    void twoWatchersEachGetATheater() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "TwoRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "TwoBlue");
+        FakePlayer one = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "TwoWatchA");
+        FakePlayer two = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "TwoWatchB");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
+
+            Replays.watch(one.player, game.id(), BridgeRoundTest.fixture());
+            Replays.watch(two.player, game.id(), BridgeRoundTest.fixture());
+            Playback first = Replays.playbackOf(one.player);
+            Playback second = Replays.playbackOf(two.player);
+            assertNotNull(first);
+            assertNotNull(second);
+            assertNotEquals(first, second, "each watcher plays their own");
+            assertNotEquals(first.shard(), second.shard(), "on a shard of their own");
+            assertEquals(game.id(), Replays.watching(one.player));
+            assertEquals(game.id(), Replays.watching(two.player));
+
+            first.pause(true);
+            assertFalse(second.paused(), "one remote never reaches the other");
+            assertTrue(Replays.leave(one.player), "the first leaves");
+            Matches.toLobby(one.player);
+            assertFalse(first.active(), "and their theater closes");
+            assertTrue(second.active(), "the other plays on");
+            assertTrue(Replays.leave(two.player));
+            Matches.toLobby(two.player);
+            assertFalse(second.active());
+        } finally {
+            red.player.remove();
+            blue.player.remove();
+            one.player.remove();
+            two.player.remove();
         }
     }
 

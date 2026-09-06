@@ -74,6 +74,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Every game is recorded: the log spools to disk as it grows and lands as {@code <mode>/<game id>.shard} under
@@ -82,7 +83,8 @@ import java.util.stream.Stream;
  * is kept on change, so a watcher reads the kill lines, sees the titles and the board as the players did. Everyone
  * who held a seat then hears it is there to watch, wherever they are by then. A watch raises a theater over the
  * map's own world and puts the viewer in it as a ghost, {@link Dressing dressed} the way a game's spectator is,
- * holding the {@link Remote}; a party watches together behind its leader, who holds it for them. A replay that
+ * holding the {@link Remote}; a party watches together behind its leader, who holds it for them. Every watch
+ * raises a theater of its own - two people who start the same replay apart never share a remote. A replay that
  * runs out holds its last frame until the watchers leave; the last viewer out closes the theater. A game the
  * countdown never outlived keeps nothing - no file, no spool. The file is
  * what a later store takes; the spool in {@code <mode>/spool/} is gone once the file is kept. A game a stop cuts
@@ -159,15 +161,17 @@ public final class Replays {
     private static final Logger LOGGER = LoggerFactory.getLogger(Replays.class);
     private static final int SPOOL_TICKS = 1200;
 
-    private record Theater(Shard stage, Playback playback, Arena arena, Dressing dressing, Set<Player> watchers) {}
+    private record Theater(String game, Shard stage, Playback playback, Arena arena, Dressing dressing,
+                          Set<Player> watchers) {}
 
     private static volatile @Nullable Path dir;
     private static volatile @Nullable ShardManager shards;
     private static boolean installed;
     private static final Map<String, Recording> live = new ConcurrentHashMap<>();
     private static final Map<Recording, Game> recorded = new ConcurrentHashMap<>();
-    private static final Map<String, Theater> theaters = new ConcurrentHashMap<>();
-    private static final Map<Player, String> watching = new ConcurrentHashMap<>();
+    private static final Set<Theater> theaters = ConcurrentHashMap.newKeySet();
+    private static final Map<Player, Theater> watching = new ConcurrentHashMap<>();
+    private static final AtomicInteger staged = new AtomicInteger(); // one shard name per theater, however many of a game
     private static final Set<CompletableFuture<?>> landing = ConcurrentHashMap.newKeySet();
 
     private Replays() {}
@@ -363,28 +367,27 @@ public final class Replays {
 
     /** The game {@code viewer} is watching a replay of, or null. */
     public static @Nullable String watching(@NotNull Player viewer) {
-        return watching.get(viewer);
+        Theater theater = watching.get(viewer);
+        return theater != null ? theater.game() : null;
     }
 
     /** The game whose replay plays on {@code stage} (a theater's root), or null. */
     public static @Nullable String replayOf(@NotNull Shard stage) {
-        for (Map.Entry<String, Theater> entry : theaters.entrySet()) {
-            if (entry.getValue().stage() == stage) return entry.getKey();
+        for (Theater theater : theaters) {
+            if (theater.stage() == stage) return theater.game();
         }
         return null;
     }
 
     /** The playback {@code viewer} is watching, or null. */
     public static @Nullable Playback playbackOf(@NotNull Player viewer) {
-        String id = watching.get(viewer);
-        Theater theater = id != null ? theaters.get(id) : null;
+        Theater theater = watching.get(viewer);
         return theater != null ? theater.playback() : null;
     }
 
     /** The look of the game {@code viewer} is watching a replay of, or null. */
     public static @Nullable Look lookOf(@NotNull Player viewer) {
-        String id = watching.get(viewer);
-        Theater theater = id != null ? theaters.get(id) : null;
+        Theater theater = watching.get(viewer);
         return theater != null ? theater.dressing().look() : null;
     }
 
@@ -487,59 +490,59 @@ public final class Replays {
             return;
         }
         if (!Parties.requireLeader(viewer)) return;
-        Theater theater = theaters.get(id);
-        if (theater == null) {
-            byte[] bytes;
-            try {
-                bytes = Files.readAllBytes(file);
-            } catch (IOException e) {
-                Msg.fail(viewer, "That replay could not be read.");
-                return;
-            }
-            UserData.View data = ShardFile.userData(bytes);
-            String modeName = data.get(MODE);
-            Mode mode = modeName != null ? Matches.mode(modeName) : null;
-            Arena arena = map;
-            if (arena == null) {
-                String named = data.get(MAP);
-                arena = mode != null && named != null ? mode.arena().named(named) : null;
-            }
-            if (arena == null) {
-                Msg.fail(viewer, "That replay's map is not on this server.");
-                return;
-            }
-            Instance world = arena.instantiate();
-            Shard stage = new Shard(world, ExecutionDomain.create()); // its own clock, as a game has
-            manager.register(stage, "replay-" + id.substring(0, 8));
-            Playback playback;
-            try {
-                playback = Replay.play(stage, bytes);
-            } catch (IllegalArgumentException e) {
-                manager.destroy(stage);
-                Msg.fail(viewer, "That replay could not be opened: " + e.getMessage());
-                return;
-            }
-            playback.holdAtEnd(true); // the last frame stays up until the watchers leave; the last one out closes the theater
-            String lookName = data.get(LOOK);
-            String code = data.get(CODE);
-            List<String> lineup = data.get(LINEUP);
-            List<String> health = data.get(HEALTH);
-            Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", mode,
-                    lookName != null ? lookName : "tennacle", lineup != null ? lineup : List.of(),
-                    health != null ? health : List.of());
-            theater = new Theater(stage, playback, arena, dressing, ConcurrentHashMap.newKeySet());
-            theaters.put(id, theater);
+        byte[] bytes;
+        try {
+            bytes = Files.readAllBytes(file);
+        } catch (IOException e) {
+            Msg.fail(viewer, "That replay could not be read.");
+            return;
         }
+        UserData.View data = ShardFile.userData(bytes);
+        String modeName = data.get(MODE);
+        Mode mode = modeName != null ? Matches.mode(modeName) : null;
+        Arena arena = map;
+        if (arena == null) {
+            String named = data.get(MAP);
+            arena = mode != null && named != null ? mode.arena().named(named) : null;
+        }
+        if (arena == null) {
+            Msg.fail(viewer, "That replay's map is not on this server.");
+            return;
+        }
+        // a theater of their own, over the map's one instance: another party's playback is another shard, and
+        // the two never see each other's blocks, ghosts or remote
+        Instance world = arena.instantiate();
+        Shard stage = new Shard(world, ExecutionDomain.create()); // its own clock, as a game has
+        manager.register(stage, "replay-" + id.substring(0, 8) + "-" + staged.incrementAndGet());
+        Playback playback;
+        try {
+            playback = Replay.play(stage, bytes);
+        } catch (IllegalArgumentException e) {
+            manager.destroy(stage);
+            Msg.fail(viewer, "That replay could not be opened: " + e.getMessage());
+            return;
+        }
+        playback.holdAtEnd(true); // the last frame stays up until the watchers leave; the last one out closes the theater
+        String lookName = data.get(LOOK);
+        String code = data.get(CODE);
+        List<String> lineup = data.get(LINEUP);
+        List<String> health = data.get(HEALTH);
+        Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", mode,
+                lookName != null ? lookName : "tennacle", lineup != null ? lineup : List.of(),
+                health != null ? health : List.of());
+        Theater theater = new Theater(id, stage, playback, arena, dressing, ConcurrentHashMap.newKeySet());
+        theaters.add(theater);
         for (Player member : Parties.of(viewer)) { // the leader first: the remote is theirs
             if (member != viewer && Game.of(member) != null) {
                 Msg.say(viewer, Msg.v(member.getUsername()), " is in a game and stays behind.");
                 continue;
             }
-            admit(member, theater, id, member == viewer);
+            admit(member, theater, member == viewer);
         }
+        if (theater.watchers().isEmpty() && theaters.remove(theater)) close(theater); // nobody made it in
     }
 
-    private static void admit(Player viewer, Theater theater, String id, boolean controller) {
+    private static void admit(Player viewer, Theater theater, boolean controller) {
         leave(viewer); // a view elsewhere ends first
         Spectators.exit(viewer);
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
@@ -547,14 +550,14 @@ public final class Replays {
         Spectators.freshen(viewer);
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true);
         theater.watchers().add(viewer);
-        watching.put(viewer, id);
+        watching.put(viewer, theater);
         Pos landing = landing(theater.arena());
         viewer.setInstance(theater.stage().instance(), landing).thenRun(() -> {
-            if (!id.equals(watching.get(viewer))) return;
+            if (watching.get(viewer) != theater) return;
             ShardView.set(viewer, ShardView.of(theater.stage()));
             theater.dressing().enter(viewer, controller);
         });
-        Msg.ok(viewer, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
+        Msg.ok(viewer, "Watching the replay of game ", Msg.v(theater.game()), ". ", Msg.run("/l"), " to leave.");
     }
 
     // where a dead seat waits, as the game puts it (the dead marker, else the spectator's spot), leveled: a marker
@@ -570,24 +573,21 @@ public final class Replays {
      * the theater. {@code false} = was not watching.
      */
     public static boolean leave(@NotNull Player viewer) {
-        String id = watching.remove(viewer);
-        if (id == null) return false;
-        Theater theater = theaters.get(id);
+        Theater theater = watching.remove(viewer);
+        if (theater == null) return false;
         undress(viewer, theater);
-        if (theater != null) {
-            theater.watchers().remove(viewer);
-            if (Parties.leads(viewer)) {
-                for (Player member : Parties.of(viewer)) {
-                    if (member != viewer && id.equals(watching.get(member)) && leave(member)) Matches.toLobby(member);
-                }
+        theater.watchers().remove(viewer);
+        if (Parties.leads(viewer)) {
+            for (Player member : Parties.of(viewer)) {
+                if (member != viewer && watching.get(member) == theater && leave(member)) Matches.toLobby(member);
             }
-            if (theater.watchers().isEmpty() && theaters.remove(id) != null) close(theater);
         }
+        if (theater.watchers().isEmpty() && theaters.remove(theater)) close(theater);
         return true;
     }
 
-    private static void undress(Player viewer, @Nullable Theater theater) {
-        if (theater != null) theater.dressing().exit(viewer);
+    private static void undress(Player viewer, Theater theater) {
+        theater.dressing().exit(viewer);
         ShardView.set(viewer, null);
         SpectatorMode.exit(viewer);
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, false);
@@ -595,9 +595,8 @@ public final class Replays {
 
     // the playback was halted under its watchers (a dev's /replay halt): everyone watching goes home
     private static void over(Playback playback) {
-        for (Map.Entry<String, Theater> entry : theaters.entrySet()) {
-            Theater theater = entry.getValue();
-            if (theater.playback() != playback || !theaters.remove(entry.getKey(), theater)) continue;
+        for (Theater theater : theaters) {
+            if (theater.playback() != playback || !theaters.remove(theater)) continue;
             for (Player viewer : List.copyOf(theater.watchers())) {
                 watching.remove(viewer);
                 undress(viewer, theater);
