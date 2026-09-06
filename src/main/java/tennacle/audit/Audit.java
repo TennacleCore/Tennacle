@@ -48,10 +48,11 @@ public final class Audit {
 
     /** Names in a hover past this many read as a count: the screen lists them. */
     public static final int HOVER_NAMES = 10;
-    /** One level of the readout's tree, marked the way a tag line marks its own: the depth's spaces, then a
-     *  dim chevron. A chat space is four pixels, so leading spaces alone read as nothing. */
+    /** One level of the readout's tree: the depth's spaces, then a
+     *  dim bullet, not the tag line's chevron, which already leads every one of these rows. A chat space is
+     *  four pixels, so leading spaces alone read as nothing. */
     private static Component step(int depth) {
-        return Component.text("  ".repeat(depth * 2 - 1)).append(Msg.THEME.dim("\u00bb "));
+        return Component.text("  ".repeat(depth * 2 - 1)).append(Msg.THEME.dim("\u2023 "));
     }
 
     private static volatile ShardManager shards;
