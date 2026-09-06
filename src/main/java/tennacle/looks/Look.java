@@ -190,21 +190,24 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .build();
     }
 
+    // what they are doing in the accent, where in the value color, the code that names it dim: three tones
+    // rather than one, and the eye lands on the mode first
     private static Component houseWhere(Player viewer) {
         String replay = Replays.watching(viewer);
         if (replay != null) {
-            return Msg.THEME.prose("Replay ").append(Msg.THEME.value(replay.substring(0, Math.min(8, replay.length()))));
+            return Msg.THEME.accent("Replay").append(Msg.THEME.prose(" "))
+                    .append(Msg.THEME.dim(replay.substring(0, Math.min(8, replay.length()))));
         }
         Game game = Game.of(viewer);
         if (game == null) game = Matches.grotto().spectating(viewer); // a ghost holds no seat to read
         if (game == null) {
             int online = MinecraftServer.getConnectionManager().getOnlinePlayerCount();
-            return Msg.THEME.value(online).append(Msg.THEME.prose(online == 1 ? " player online" : " players online"));
+            return Msg.THEME.accent(online).append(Msg.THEME.prose(online == 1 ? " player online" : " players online"));
         }
         Mode mode = Matches.modeOf(game);
-        return Msg.THEME.value(mode != null ? mode.title() : game.type().id())
+        return Msg.THEME.accent(mode != null ? mode.title() : game.type().id())
                 .append(Msg.THEME.prose(" on ")).append(Msg.THEME.value(game.arena().meta().name()))
-                .append(Msg.THEME.prose(" · ")).append(Msg.THEME.value(game.code()));
+                .append(Msg.THEME.dim(" · " + game.code()));
     }
 
     // bedwars' tab line for the viewer's own seat - "Kills: 0 Deaths: 0 Goals: 0" - the counters they picked
