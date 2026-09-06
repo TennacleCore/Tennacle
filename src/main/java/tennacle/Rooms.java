@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component;
 import tennacle.games.Look;
 import tennacle.games.Matches;
 import tennacle.games.Parties;
+import tennacle.games.Replays;
 
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.canvas.chat.Chat;
@@ -54,7 +55,9 @@ public final class Rooms {
         if (game != null) {
             List<Player> to = new ArrayList<>();
             game.forEachAudience(to::add);
-            return new Chat.Room(to, Matches.lookOf(game).chat().render(game, me, message));
+            Component line = Matches.lookOf(game).chat().render(game, me, message);
+            Replays.said(game, line);
+            return new Chat.Room(to, line);
         }
         Game watched = Matches.grotto().spectating(me);
         if (watched != null) return new Chat.Room(watched.spectators(), Chat.tagged("spec", me, message));

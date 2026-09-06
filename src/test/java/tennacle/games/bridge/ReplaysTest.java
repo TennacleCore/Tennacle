@@ -7,13 +7,22 @@ import tennacle.games.Mode;
 import tennacle.games.Replays;
 import tennacle.games.TestWiring;
 
+import io.github.term4.archipelago.replay.Playback;
+import io.github.term4.archipelago.replay.Replay;
+import io.github.term4.archipelago.shard.Shard;
+import io.github.term4.archipelago.shard.ShardManager;
+import io.github.term4.archipelago.shard.ShardView;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.event.EventDispatcher;
+import net.minestom.server.event.player.PlayerChatEvent;
+import net.minestom.server.network.packet.server.play.SetTitleSubTitlePacket;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -21,11 +30,15 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** A game records itself, lands as a file when it ends, and tells its players where to watch it. */
+/** A game records itself, lands as a file when it ends, tells its players where to watch it, and keeps what it said. */
 class ReplaysTest extends HeadlessServerTest {
 
     @TempDir
@@ -83,5 +96,70 @@ class ReplaysTest extends HeadlessServerTest {
             red.player.remove();
             blue.player.remove();
         }
+    }
+
+    @Test
+    void theGamesChannelPlaysBack() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ChanRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "ChanBlue");
+        FakePlayer viewer = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "ChanViewer");
+        ShardManager manager = new ShardManager();
+        Shard stage = null;
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            EventDispatcher.call(new PlayerChatEvent(red.player, List.of(red.player, blue.player), "gg"));
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            Path file = replays.resolve(game.id() + ".shard");
+            await("the file lands", () -> Files.exists(file));
+            byte[] bytes = Files.readAllBytes(file);
+
+            stage = new Shard(BridgeRoundTest.fixture().instantiate());
+            manager.register(stage, "replay-channel");
+            viewer.player.setInstance(stage.instance(), new Pos(0.5, 65, 0.5)).join();
+            ShardView.set(viewer.player, ShardView.of(stage));
+            viewer.sent.clear();
+            Playback playback = Replay.play(stage, bytes);
+            assertTrue(playback.counts().getOrDefault("tennacle:line", 0) > 0, playback.counts().toString());
+            assertTrue(playback.counts().getOrDefault("tennacle:title", 0) > 0, playback.counts().toString());
+            Shard theater = stage;
+            tickUntil(theater, "the channel plays back: " + playback.counts(),
+                    () -> said(viewer, "ChanRed: gg") && said(viewer, "Draw.") && subtitled(viewer, "Cages open in"));
+            assertFalse(said(viewer, "This game has been recorded"), "the recorded line is the players' alone");
+            playback.halt();
+        } finally {
+            if (stage != null) manager.destroy(stage);
+            red.player.remove();
+            blue.player.remove();
+            viewer.player.remove();
+        }
+    }
+
+    // a plain shard's clock is the server scheduler
+    private static void tickUntil(Shard stage, String what, Supplier<Boolean> done) {
+        long deadline = System.currentTimeMillis() + 8000;
+        while (!done.get() && System.currentTimeMillis() < deadline) {
+            stage.instance().tick(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            try {
+                Thread.sleep(2);
+            } catch (InterruptedException ignored) {
+            }
+        }
+        assertTrue(done.get(), what);
+    }
+
+    private static boolean subtitled(FakePlayer p, String text) {
+        return p.sent(SetTitleSubTitlePacket.class).stream()
+                .map(t -> PlainTextComponentSerializer.plainText().serialize(t.subtitle()))
+                .anyMatch(l -> l.contains(text));
     }
 }

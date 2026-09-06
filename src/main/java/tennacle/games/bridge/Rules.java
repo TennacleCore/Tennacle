@@ -7,8 +7,11 @@ import tennacle.games.Deaths;
 import java.util.Set;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
+import tennacle.games.Look;
 import tennacle.games.Match;
 import tennacle.games.Matches;
+import tennacle.games.Replays;
+import io.github.term4.canvas.Canvas;
 
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
@@ -214,7 +217,15 @@ public final class Rules implements GameModule {
      *  not at all, to their spawns, or to cages. */
     static void tiebreaker(@NotNull Game game) {
         game.state().set(Scope.GAME, Score.NEXT_WINS, true);
-        game.forEachAudience(viewer -> Matches.lookOf(game).tiebreak().show(game, viewer));
+        Look.Tiebreak call = Matches.lookOf(game).tiebreak();
+        game.forEachAudience(viewer -> {
+            Look.Call mine = call.render(game, Canvas.isLegacy(viewer));
+            viewer.showTitle(mine.title());
+            viewer.sendMessage(mine.line());
+        });
+        Look.Call kept = call.render(game, false);
+        Replays.shown(game, kept.title());
+        Replays.said(game, kept.line());
         switch (game.rules().resolve(Scope.GAME, TimeLimit.TIEBREAKER_RESET)) {
             case TimeLimit.RESET_CAGES -> game.state().alarms().arm(Cages.RECAGE_ALARM, game.state().tick() + 1,
                     CompoundBinaryTag.builder().putString("scorer", "").putString("team", "").build());
@@ -273,8 +284,7 @@ public final class Rules implements GameModule {
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
         }
-        Component line = Banners.killedLine(game, victim, by, range);
-        Match.each(game, p -> p.sendMessage(line));
+        Match.say(game, Banners.killedLine(game, victim, by, range));
     }
 
     // a flat (1-tall) box is an X/Z slice under the global band; a taller box is its own 3D volume,
@@ -326,8 +336,7 @@ public final class Rules implements GameModule {
         if (by != null) {
             Match.addSeat(game, by, Bridge.KILLS);
         }
-        Component line = Banners.fallLine(game, fallen, by);
-        Match.each(game, p -> p.sendMessage(line));
+        Match.say(game, Banners.fallLine(game, fallen, by));
     }
 
     // Goals wrote the counter (Score decides at the target); this is the ceremony
@@ -340,7 +349,7 @@ public final class Rules implements GameModule {
             case "hypixel" -> Banners.hypixel(game, scorer, color, goals);
             default -> Banners.scrims(game, scorer, color);
         };
-        if (banner != null) Match.each(game, p -> p.sendMessage(banner));
+        if (banner != null) Match.say(game, banner);
         Matches.cue(game, SoundSet.SCORED);
         if (look.equals("hypixel")) { // uncaptured: five bursts a second apart at the center, white and the team's color
             st.alarms().arm(FIREWORK_ALARM, st.tick() + 1, CompoundBinaryTag.builder()
@@ -354,7 +363,7 @@ public final class Rules implements GameModule {
         // the held title + firework beats take over from the re-cage count one tick later (captured)
         Title scored = Title.title(Banners.scoredTitle(game, scorer, color), Component.empty(),
                 Match.times(game, 0, 40, 0));
-        Match.each(game, p -> p.showTitle(scored));
+        Match.title(game, scored);
         game.forEachMember(member -> {
             Slot memberSeat = game.roster().slotOf(member);
             if (memberSeat != null) member.teleport(spawnOf(game, memberSeat), Vec.ZERO);

@@ -6,6 +6,7 @@ import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.entity.Player;
@@ -13,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /** The phase names every duel mode shares, and the seat helpers rules and boards keep reaching for. */
 public final class Match {
@@ -34,6 +36,34 @@ public final class Match {
     // game.members(), not shard members: ghosts still get announcements and end-of-game cleanup; spectators watch along
     public static void each(@NotNull Game game, @NotNull Consumer<Player> action) {
         game.forEachAudience(action);
+    }
+
+    /** Everyone in the game reads {@code line}, and the replay keeps it. */
+    public static void say(@NotNull Game game, @NotNull Component line) {
+        each(game, p -> p.sendMessage(line));
+        Replays.said(game, line);
+    }
+
+    /** A line that reads differently per viewer (the opponent's name): each gets theirs, the replay keeps {@link #reference}'s. */
+    public static void say(@NotNull Game game, @NotNull Function<Player, @Nullable Component> line) {
+        each(game, p -> {
+            Component mine = line.apply(p);
+            if (mine != null) p.sendMessage(mine);
+        });
+        Player seat = reference(game);
+        Component kept = seat != null ? line.apply(seat) : null;
+        if (kept != null) Replays.said(game, kept);
+    }
+
+    /** Everyone in the game sees {@code title}, and the replay keeps it. */
+    public static void title(@NotNull Game game, @NotNull Title title) {
+        each(game, p -> p.showTitle(title));
+        Replays.shown(game, title);
+    }
+
+    /** The seat whose view a replay keeps when a line reads differently per viewer: the first one filled. */
+    public static @Nullable Player reference(@NotNull Game game) {
+        return game.firstMember(p -> game.roster().slotOf(p) != null);
     }
 
     /** The one other side in a 1v1 (ghosts included, so boards hold through the linger), or {@code null}. */

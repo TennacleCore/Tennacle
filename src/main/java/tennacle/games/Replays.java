@@ -8,6 +8,7 @@ import tennacle.storage.Atomic;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Recording;
 import io.github.term4.archipelago.replay.Replay;
+import io.github.term4.archipelago.replay.channel.Recordable;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.shard.ShardView;
@@ -16,14 +17,17 @@ import io.github.term4.archipelago.storage.ShardFile;
 import io.github.term4.archipelago.storage.UserData;
 import io.github.term4.barnacle.Arena;
 import io.github.term4.canvas.presets.Versus;
+import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
+import net.minestom.server.codec.StructCodec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
@@ -36,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -45,16 +50,39 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Every game is recorded: the log spools to disk as it grows and lands as {@code <game id>.shard} in the replay
- * directory when the game ends, naming its mode and map. Everyone who held a seat then hears it is there to
- * watch, wherever they are by then. A watch raises a theater over the map's own world and puts the viewer in it
- * as a ghost, the way spectating a game does; the last viewer out closes it. The file is what a later store takes;
- * the spool beside it is gone once the file is kept.
+ * directory when the game ends, naming its mode and map. What the game said and showed to everyone in it rides
+ * its own channel ({@link Match#say}, {@link Match#title}), so a watcher reads the kill lines and sees the titles
+ * as the players did. Everyone who held a seat then hears it is there to watch, wherever they are by then. A watch
+ * raises a theater over the map's own world and puts the viewer in it as a ghost, the way spectating a game does;
+ * the last viewer out closes it. The file is what a later store takes; the spool beside it is gone once the file
+ * is kept.
  */
 public final class Replays {
 
     public static final DataKey<String> MODE = new DataKey<>("tennacle:mode", Codec.STRING);
     public static final DataKey<String> MAP = new DataKey<>("tennacle:map", Codec.STRING);
     public static final DataKey<String> CODE = new DataKey<>("tennacle:code", Codec.STRING);
+
+    /** A line everyone in the game read. */
+    public record Line(@NotNull Component text) {}
+
+    /** A title everyone in the game saw, its times in client ticks. */
+    public record Shown(@NotNull Component title, @NotNull Component subtitle, int fadeIn, int stay, int fadeOut) {}
+
+    // the game's own channel; what one player alone gets (a dead screen, command feedback, a party) never lands here
+    static final Recordable<Line> LINES = Recordable.of("tennacle:line", 1, 10,
+            StructCodec.struct("t", Codec.COMPONENT, Line::text, Line::new),
+            () -> (pb, op) -> pb.shard().forEachWatcher(w -> w.sendMessage(op.op().text())));
+    static final Recordable<Shown> TITLES = Recordable.of("tennacle:title", 1, 10, StructCodec.struct(
+                    "t", Codec.COMPONENT, Shown::title, "s", Codec.COMPONENT, Shown::subtitle,
+                    "i", Codec.INT, Shown::fadeIn, "d", Codec.INT, Shown::stay, "o", Codec.INT, Shown::fadeOut,
+                    Shown::new),
+            () -> (pb, op) -> {
+                Shown shown = op.op();
+                Title title = Title.title(shown.title(), shown.subtitle(),
+                        Titles.times(shown.fadeIn(), shown.stay(), shown.fadeOut()));
+                pb.shard().forEachWatcher(w -> w.showTitle(title));
+            });
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Replays.class);
     private static final int SPOOL_TICKS = 1200;
@@ -72,6 +100,8 @@ public final class Replays {
     public static void install(@NotNull Path replays, @NotNull ShardManager shardManager) {
         dir = replays;
         shards = shardManager;
+        Replay.register(LINES);
+        Replay.register(TITLES);
         Matches.grotto().onGameEnd(Replays::ended);
         Sessions.register(viewer -> watching.containsKey(viewer) ? () -> {
             leave(viewer);
@@ -104,6 +134,25 @@ public final class Replays {
         return live.containsKey(game.id());
     }
 
+    /** Keeps a line everyone in {@code game} read; nothing for a game not being recorded. */
+    public static void said(@NotNull Game game, @NotNull Component line) {
+        Recording recording = live.get(game.id());
+        if (recording != null) recording.emit(LINES, new Line(line));
+    }
+
+    /** Keeps a title everyone in {@code game} saw. */
+    public static void shown(@NotNull Game game, @NotNull Title title) {
+        Recording recording = live.get(game.id());
+        if (recording == null) return;
+        Title.Times times = title.times() != null ? title.times() : Title.DEFAULT_TIMES;
+        recording.emit(TITLES, new Shown(title.title(), title.subtitle(),
+                ticks(times.fadeIn()), ticks(times.stay()), ticks(times.fadeOut())));
+    }
+
+    private static int ticks(Duration duration) {
+        return (int) (duration.toMillis() / 50);
+    }
+
     /** The game {@code viewer} is watching a replay of, or null. */
     public static @Nullable String watching(@NotNull Player viewer) {
         return watching.get(viewer);
@@ -115,14 +164,14 @@ public final class Replays {
         if (recording == null || at == null) return;
         // read now: the ledger and roster go with the game right after this
         Mode mode = Matches.modeOf(game);
-        String map = game.arena().meta().id();
+        String map = mode != null ? mode.arena().nameOf(game.arena()) : null; // the pool's name, what a watch looks up
         String mapName = game.arena().meta().name();
         long ticks = game.tick();
         List<UUID> seated = game.roster().participants().stream().map(Roster.Participant::uuid).distinct().toList();
         Component line = recordedLine(game.id(), mapName, ticks);
         recording.stopAsync(data -> {
             if (mode != null) data.put(MODE, mode.name());
-            data.put(MAP, map);
+            if (map != null) data.put(MAP, map);
             data.put(CODE, game.code());
         }).thenAccept(bytes -> {
             if (bytes == null) return; // the encode failed and logged

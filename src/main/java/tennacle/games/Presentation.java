@@ -80,8 +80,7 @@ public final class Presentation implements GameModule {
         TabList.refresh(player); // the seat line leaves with the seat
         // a freed seat is a forfeit, and the elimination says so; a held one is only a walk-out
         if (departure.seat() != null && departure.reserved()) {
-            Component line = Look.departure(game, departure.seat(), player.getUsername(), false);
-            Match.each(game, p -> p.sendMessage(line));
+            Match.say(game, Look.departure(game, departure.seat(), player.getUsername(), false));
         }
     }
 
@@ -106,8 +105,7 @@ public final class Presentation implements GameModule {
         Look look = Matches.lookOf(game);
         String name = player != null ? player.getUsername() : lastOwner(game, seat);
         if (name == null) return;
-        Component line = look.death().render(game, seat, name, cause.by(), cause.verb());
-        Match.each(game, p -> p.sendMessage(line));
+        Match.say(game, look.death().render(game, seat, name, cause.by(), cause.verb()));
         if (player != null) {
             Deaths.cue(game, player, cause.by());
             fall(game, player);
@@ -140,10 +138,7 @@ public final class Presentation implements GameModule {
     @Override
     public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
         TabList.refresh(player);
-        if (reclaimed) {
-            Component line = Look.departure(game, slot, player.getUsername(), true);
-            Match.each(game, p -> p.sendMessage(line));
-        }
+        if (reclaimed) Match.say(game, Look.departure(game, slot, player.getUsername(), true));
     }
 
     @Override
@@ -155,17 +150,17 @@ public final class Presentation implements GameModule {
     public void onDecided(@NotNull Game game, @NotNull Outcome outcome) {
         Look look = Matches.lookOf(game);
         if (outcome.equals(Outcome.aborted())) {
-            Match.each(game, p -> Msg.say(p, "The duel was cancelled: your opponent never showed."));
+            Match.say(game, Msg.THEME.prose("The duel was cancelled: your opponent never showed."));
             return;
         }
         if (outcome.winner() == null) {
-            Component line = look.theme().prose(TimeLimit.expired(game) ? "Time's up - draw." : "Draw.");
-            Match.each(game, p -> p.sendMessage(line));
+            Match.say(game, look.theme().prose(TimeLimit.expired(game) ? "Time's up - draw." : "Draw."));
             return;
         }
         Player winner = game.firstMember(m -> outcome.winner().equals(Match.teamOf(game, m)));
         if (winner != null) {
-            Match.each(game, p -> look.verdict().show(game, p, outcome.winner().equals(Match.teamOf(game, p)), winner));
+            Match.each(game, p -> p.showTitle(look.verdict().title(game, outcome.winner().equals(Match.teamOf(game, p)), winner)));
+            Replays.shown(game, look.verdict().title(game, true, winner)); // the replay keeps the winner's
         }
         // a score or time ending eliminates nobody, so the losing side falls here instead of at LastStanding
         for (Player p : game.members()) {
@@ -183,11 +178,9 @@ public final class Presentation implements GameModule {
                 // captured beat title: fadeIn 0, stay 20, fadeOut 20
                 Title title = look.count().title() != null ? Title.title(look.count().title().apply(n),
                         Component.empty(), Match.times(g, 0, 20, 20)) : null;
-                Match.each(g, p -> {
-                    p.sendMessage(line);
-                    if (title != null) p.showTitle(title);
-                    GameSounds.play(g, p, SoundSet.COUNTDOWN);
-                });
+                Match.say(g, line);
+                if (title != null) Match.title(g, title);
+                Match.each(g, p -> GameSounds.play(g, p, SoundSet.COUNTDOWN));
             }
 
             @Override
@@ -195,12 +188,9 @@ public final class Presentation implements GameModule {
                 // captured: the beat title fades out empty (10, 0, 10)
                 Title clear = look.count().title() != null ? Title.title(Component.empty(), Component.empty(),
                         Match.times(g, 10, 0, 10)) : null;
-                Match.each(g, p -> {
-                    Component started = look.count().started().apply(g, p);
-                    if (started != null) p.sendMessage(started);
-                    if (clear != null) p.showTitle(clear);
-                    GameSounds.play(g, p, SoundSet.START);
-                });
+                Match.say(g, p -> look.count().started().apply(g, p));
+                if (clear != null) Match.title(g, clear);
+                Match.each(g, p -> GameSounds.play(g, p, SoundSet.START));
             }
         };
     }

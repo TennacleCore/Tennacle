@@ -59,11 +59,14 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         }, NamedTextColor.RED);
     }
 
-    /** The call when a drawn clock plays on as a tiebreaker. */
+    /** The call when a drawn clock plays on as a tiebreaker; {@code legacy} picks the title's generation. */
     @FunctionalInterface
     public interface Tiebreak {
-        void show(Game game, Player viewer);
+        Call render(Game game, boolean legacy);
     }
+
+    /** A title with its chat line. */
+    public record Call(@NotNull Title title, @NotNull Component line) {}
 
     /** A member's chat line in this look. */
     @FunctionalInterface
@@ -84,10 +87,10 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         Component render(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb);
     }
 
-    /** Shows the end-of-match title to one viewer. */
+    /** The end-of-match title as one side reads it. */
     @FunctionalInterface
     public interface Verdict {
-        void show(Game game, Player viewer, boolean won, Player winner);
+        Title title(Game game, boolean won, Player winner);
     }
 
     /** The start countdown's voice: chat line, optional title per beat, and the at-zero line. */
@@ -157,20 +160,20 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             true, Look::scrimsHit, Look::tennacleTiebreak);
 
     // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
-    private static void scrimsTiebreak(Game game, Player viewer) {
-        tiebreak(game, viewer, Msg.SCRIMS);
+    private static Call scrimsTiebreak(Game game, boolean legacy) {
+        return tiebreak(game, legacy, Msg.SCRIMS);
     }
 
-    private static void hypixelTiebreak(Game game, Player viewer) {
-        tiebreak(game, viewer, Msg.HYPIXEL);
+    private static Call hypixelTiebreak(Game game, boolean legacy) {
+        return tiebreak(game, legacy, Msg.HYPIXEL);
     }
 
-    private static void minemenTiebreak(Game game, Player viewer) {
-        tiebreak(game, viewer, Msg.MINEMEN);
+    private static Call minemenTiebreak(Game game, boolean legacy) {
+        return tiebreak(game, legacy, Msg.MINEMEN);
     }
 
-    private static void tennacleTiebreak(Game game, Player viewer) {
-        tiebreak(game, viewer, Msg.THEME);
+    private static Call tennacleTiebreak(Game game, boolean legacy) {
+        return tiebreak(game, legacy, Msg.THEME);
     }
 
     // bedwars' tab line for the viewer's own seat - "Kills: 0 Deaths: 0 Goals: 0" - the counters they picked
@@ -200,10 +203,10 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         return Component.text("[" + Match.teamName(game, speaker) + "] ", Match.teamColor(game, speaker)).append(line);
     }
 
-    private static void tiebreak(Game game, Player viewer, Theme theme) {
-        viewer.showTitle(Title.title(theme.boardTitle(viewer, "SUDDEN DEATH"),
-                theme.prose("Next goal wins!"), Match.times(game, 5, 50, 10)));
-        viewer.sendMessage(theme.prose("Sudden death! ").append(theme.value("Next goal wins")).append(theme.prose(".")));
+    private static Call tiebreak(Game game, boolean legacy, Theme theme) {
+        return new Call(Title.title(theme.boardTitle(legacy, "SUDDEN DEATH"),
+                theme.prose("Next goal wins!"), Match.times(game, 5, 50, 10)),
+                theme.prose("Sudden death! ").append(theme.value("Next goal wins")).append(theme.prose(".")));
     }
 
     // captured bow-duel callouts to the shooter, each network's own colors. `impact` is the signed health change:
@@ -275,13 +278,13 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .append(theme.prose("!"));
     }
 
-    private static void minemenVerdict(Game game, Player viewer, boolean won, Player winner) {
+    private static Title minemenVerdict(Game game, boolean won, Player winner) {
         NamedTextColor tone = won ? NamedTextColor.GREEN : NamedTextColor.RED;
-        viewer.showTitle(Title.title(
+        return Title.title(
                 Component.text(won ? "VICTORY!" : "DEFEATED!", tone, TextDecoration.BOLD),
                 Component.text(winner.getUsername(), tone)
                         .append(Component.text(" won the Match!", NamedTextColor.WHITE)),
-                Match.times(game, 0, 40, 10)));
+                Match.times(game, 0, 40, 10));
     }
 
     // captured: [gold]"IgnasSk"[gray]" was killed by "[aqua]"Dogln"[gray]"." - names are rank-colored on
@@ -319,7 +322,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     // captured: a scoring mode shows both players "<TEAM> WINS!" over the bold final score; a plain duel
     // shows DEFEAT! (VICTORY! inferred green - only the losing side was captured) over "<name> won the Duel!"
-    private static void hypixelVerdict(Game game, Player viewer, boolean won, Player winner) {
+    private static Title hypixelVerdict(Game game, boolean won, Player winner) {
         Mode mode = Matches.modeOf(game);
         Title.Times times = Match.times(game, 0, 40, 10);
         if (mode != null && mode.teamScore() != null) {
@@ -334,25 +337,24 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 score = score.append(Component.text(game.state().get(Scope.team(t.id()), mode.teamScore()),
                         t.color(), TextDecoration.BOLD));
             }
-            viewer.showTitle(Title.title(
+            return Title.title(
                     Component.text(Palette.name(team) + " WINS!", team.color(), TextDecoration.BOLD),
-                    score, times));
-            return;
+                    score, times);
         }
         NamedTextColor tone = won ? NamedTextColor.GREEN : NamedTextColor.RED;
-        viewer.showTitle(Title.title(
+        return Title.title(
                 Component.text(won ? "VICTORY!" : "DEFEAT!", tone, TextDecoration.BOLD),
                 Component.text(winner.getUsername(), NamedTextColor.AQUA)
                         .append(Component.text(" won the Duel!", NamedTextColor.WHITE)),
-                times));
+                times);
     }
 
     // scrims: winners "Victory!" gold, losers "Defeat" light red - plain, no subtitle
-    private static void scrimsVerdict(Game game, Player viewer, boolean won, Player winner) {
-        viewer.showTitle(Title.title(
+    private static Title scrimsVerdict(Game game, boolean won, Player winner) {
+        return Title.title(
                 won ? Component.text("Victory!", NamedTextColor.GOLD) : Component.text("Defeat", NamedTextColor.RED),
                 Component.empty(),
-                Match.times(game, 0, 40, 10)));
+                Match.times(game, 0, 40, 10));
     }
 
     // captured: [red]"Dogln "[gray]"fell into the void." - team-colored names, gray prose, a period

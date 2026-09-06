@@ -21,4 +21,15 @@ public interface Maps extends Supplier<Arena> {
     default @NotNull String label() {
         return "Random";
     }
+
+    /** The name {@code arena} goes by here - that instance, or a reload of the same map; null = not this pool's. */
+    default @Nullable String nameOf(@NotNull Arena arena) {
+        String sameMap = null;
+        for (String name : names()) {
+            Arena candidate = named(name);
+            if (candidate == arena) return name;
+            if (candidate != null && candidate.meta().id().equals(arena.meta().id())) sameMap = name;
+        }
+        return sameMap;
+    }
 }

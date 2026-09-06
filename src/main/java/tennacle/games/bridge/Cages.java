@@ -224,21 +224,16 @@ public final class Cages implements GameModule {
         if (!introShown) {
             introShown = true;
             if (hypixel) { // captured: the instruction block lands right before the first cage beat
-                Match.each(game, p -> {
-                    Component started = Matches.lookOf(game).count().started().apply(game, p);
-                    if (started != null) p.sendMessage(started);
-                });
+                Match.say(game, p -> Matches.lookOf(game).count().started().apply(game, p));
             }
         }
         if (n > 0) {
             Title beat = Title.title(held != null ? held : Component.empty(),
                     Banners.cageCount(game, n), Match.times(game, 0, 40, 0));
             Component chat = "scrims".equals(look) ? Banners.cageCount(game, n) : null;
-            Match.each(game, p -> {
-                p.showTitle(beat);
-                if (chat != null) p.sendMessage(chat); // captured: scrims mirrors the count into chat
-                p.playSound(hypixel ? HAT : TICK);
-            });
+            Match.title(game, beat);
+            if (chat != null) Match.say(game, chat); // captured: scrims mirrors the count into chat
+            Match.each(game, p -> p.playSound(hypixel ? HAT : TICK));
             if (held != null) Matches.cue(game, SoundSet.SCORED_BEAT); // captured: hypixel's firework rides every beat
             nextBeat = st.tick() + game.rules().resolve(Scope.GAME, Countdown.INTERVAL);
             st.alarms().arm(COUNT_ALARM, nextBeat, CompoundBinaryTag.builder().putInt("n", n - 1).build());
@@ -250,10 +245,8 @@ public final class Cages implements GameModule {
         phases.advance(); // LIVE; a seat nobody filled aborts the game right here
         if (game.decided() != null) return;
         Title fight = Title.title(Component.empty(), Banners.fight(game), Match.times(game, 0, 20, 10));
-        Match.each(game, p -> {
-            p.showTitle(fight);
-            p.playSound(hypixel ? HARP : GO);
-        });
+        Match.title(game, fight);
+        Match.each(game, p -> p.playSound(hypixel ? HARP : GO));
     }
 
     private void recage(Game game, CompoundBinaryTag payload) {
