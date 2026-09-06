@@ -45,6 +45,43 @@ class RulesListingTest extends HeadlessServerTest {
         return p.sent(TabCompletePacket.class).stream().flatMap(t -> t.matches().stream()).map(m -> m.match()).toList();
     }
 
+    private static String row(List<String> lines, String id) {
+        return lines.stream().filter(l -> l.contains(id + " =")).findFirst().orElse("");
+    }
+
+    /** A seat reads the same whether it is pinned or following its side; the listing says which. */
+    @Test
+    void theListingNamesTheSource() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(680.5, 65, 680.5), "SourceA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(682.5, 65, 682.5), "SourceB");
+        Game game = null;
+        try {
+            game = start(a, b);
+            String team = game.roster().slotOf(a.player).team();
+            lines(a, "rules #" + team + " space.build.outside true");
+            String following = row(lines(a, "rules @SourceA space.build.outside"), "space.build.outside");
+            assertTrue(following.contains("true"), following);
+            assertTrue(following.contains("from #" + team), "the seat follows its side: " + following);
+
+            lines(a, "rules @SourceA space.build.outside true"); // the same value, but its own now
+            String pinned = row(lines(a, "rules @SourceA space.build.outside"), "space.build.outside");
+            assertTrue(pinned.contains("set here"), "pinned to what the side happens to say: " + pinned);
+
+            lines(a, "rules @SourceA space.build.outside unset");
+            String again = row(lines(a, "rules @SourceA space.build.outside"), "space.build.outside");
+            assertTrue(again.contains("from #" + team), "and following again: " + again);
+
+            String side = row(lines(a, "rules #" + team + " space.build.outside"), "space.build.outside");
+            assertTrue(side.contains("set here"), "the side holds it: " + side);
+            String other = row(lines(a, "rules #" + team + " space.build.height"), "space.build.height");
+            assertTrue(other.contains("from the game"), "what the side never touched: " + other);
+        } finally {
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
     private static Game start(FakePlayer a, FakePlayer b) throws InterruptedException {
         Mode bridge = Matches.mode("bridge");
         assertNotNull(bridge);

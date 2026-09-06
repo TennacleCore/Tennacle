@@ -38,6 +38,7 @@ public final class RulesCommands {
                 .usage("/rules <id|path> <value>", "set one for the game")
                 .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
                 .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through")
+                .usage("/rules <@player|#team>", "that seat or side, each rule marked with where its value comes from")
                 .usage("/rules paths [path]", "the mechanics tree a path can reach")
                 .featured();
         var key = ArgumentType.Word("key");
@@ -139,8 +140,9 @@ public final class RulesCommands {
         String where = scope == Scope.GAME ? game.type().id() : scopeName(game, scope);
         Msg.say(p, where + (prefix.isEmpty() ? "" : " " + prefix) + ": " + ids.size() + (ids.size() == 1 ? " rule" : " rules"));
         for (String id : ids) {
+            StateKey<?> key = supported.get(id);
             List<String> words = RulesCompletions.words(id);
-            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, supported.get(id))),
+            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, key)), from(game, scope, key),
                     words.isEmpty() ? "" : "  any of " + String.join(", ", words));
         }
         String lead = scope == Scope.GAME ? "" : scopeName(game, scope) + " ";
@@ -157,6 +159,23 @@ public final class RulesCommands {
             Msg.say(p, "Mechanics paths take a value too: ", Msg.run("/rules paths"), ".");
             Msg.say(p, "One seat or side only: ", Msg.run("/rules <@player|#team> <id|path> <value>"), ".");
         }
+    }
+
+    /**
+     * Which level hands {@code scope} the value it reads. A seat set to what its side already says stops
+     * following the side, and reads the same until the side moves without it - the one thing the value alone
+     * cannot show.
+     */
+    private static Component from(Game game, Scope scope, StateKey<?> key) {
+        if (scope == Scope.GAME) return Component.empty(); // the fold seeds every rule here: "set here" for all of them
+        if (game.state().lookup(scope, key) != null) return Msg.THEME.dim("  set here");
+        if (scope instanceof Scope.Slot s) {
+            Slot seat = game.roster().slot(s.index());
+            if (seat != null && !seat.team().isEmpty() && game.state().lookup(Scope.team(seat.team()), key) != null) {
+                return Msg.THEME.dim("  from #" + seat.team());
+            }
+        }
+        return Msg.THEME.dim("  from the game");
     }
 
     /** A dotted id under {@code prefix}: whole segments, so {@code flow} takes flow.time.limit and {@code flo} nothing. */
