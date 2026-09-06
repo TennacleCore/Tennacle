@@ -40,6 +40,22 @@ public final class Msg {
         THEME.tag(to, "replay", parts);
     }
 
+    /** A prose line, no tag: what a player reads from a command. */
+    public static void say(CommandSender to, Object... parts) {
+        THEME.say(to, parts);
+    }
+
+    /** A confirmation, in green. */
+    public static void ok(CommandSender to, Object... parts) {
+        THEME.ok(to, parts);
+    }
+
+    /** A refusal or a failure, in red. */
+    public static void fail(CommandSender to, Object... parts) {
+        THEME.fail(to, parts);
+    }
+
+    /** {@code tag » parts}: a dev tool's output, the tool named. */
     public static void tag(CommandSender to, String tag, Object... parts) {
         THEME.tag(to, tag, parts);
     }
@@ -71,6 +87,10 @@ public final class Msg {
 
     public static void usage(CommandSender to, String title, String[][] rows) {
         THEME.usage(to, title, rows);
+    }
+
+    public static void usage(CommandSender to, String title, String subtitle, String[][] rows) {
+        THEME.usage(to, title, subtitle, rows);
     }
 
     public static Component gradient(String text) {

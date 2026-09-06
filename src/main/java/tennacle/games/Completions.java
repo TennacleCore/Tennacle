@@ -26,7 +26,7 @@ public final class Completions {
     }
 
     /** Entries read at each request, so a registry that fills after the command exists still completes. */
-    static SuggestionCallback of(Supplier<? extends Collection<String>> entries) {
+    public static SuggestionCallback of(Supplier<? extends Collection<String>> entries) {
         return (sender, context, suggestion) -> offer(suggestion, entries.get());
     }
 }

@@ -7,6 +7,8 @@ import io.github.term4.canvas.theme.Role;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.bloom.edit.Teams;
 import tennacle.games.Presets;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
@@ -56,9 +58,7 @@ import io.github.term4.polyp.mechanics.consumable.ConsumableBehavior;
 import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.EquipmentSlot;
@@ -221,13 +221,14 @@ public final class Bridge {
                         Rules::new, Presentation::new,
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
-        Command cageCmd = new Command("cage");
+        AppCommand cageCmd = Commands.player("cage", "The cage you start a bridge round in.")
+                .usage("/cage [variant]", "list them, or pick one");
         cageCmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             var names = Cages.variants().stream().map(v -> v.isEmpty() ? "default" : v).sorted().toList();
             String mine = Cages.choiceOf(p);
-            Msg.tag(p, "cage", "cages: " + (names.isEmpty() ? "none authored yet" : String.join(", ", names))
-                    + " - yours: " + (mine.isEmpty() ? "default" : mine));
+            Msg.say(p, "Cages: ", Msg.v(names.isEmpty() ? "none authored yet" : String.join(", ", names)),
+                    ". Yours: ", Msg.v(mine.isEmpty() ? "default" : mine), ".");
         });
         var variantArg = ArgumentType.Word("variant");
         cageCmd.addSyntax((sender, ctx) -> {
@@ -235,13 +236,13 @@ public final class Bridge {
             String pick = ctx.get(variantArg);
             String variant = pick.equals("default") ? "" : pick;
             if (!Cages.variants().contains(variant)) {
-                Msg.err(p, "cage", "no cage named '" + pick + "' (/cage lists them)");
+                Msg.fail(p, "No cage named ", Msg.v(pick), ". ", Msg.run("/cage"), " lists them.");
                 return;
             }
             Cages.choose(p, variant);
-            Msg.tag(p, "cage", "cage set to " + pick);
+            Msg.ok(p, "Cage set to ", Msg.v(pick), ".");
         }, variantArg);
-        MinecraftServer.getCommandManager().register(cageCmd);
+        Commands.register(cageCmd);
         KitLayouts.editable("bridge", KIT);
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
         Mode bridge = new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(),

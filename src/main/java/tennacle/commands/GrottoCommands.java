@@ -17,7 +17,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -32,7 +31,10 @@ public final class GrottoCommands {
     private GrottoCommands() {}
 
     public static void register(ShardManager shards) {
-        Command grotto = new Command("grotto");
+        AppCommand grotto = Commands.dev("grotto", "The live map: instances, games, players.")
+                .usage("/grotto list", "every game and where it runs")
+                .usage("/grotto spectate <player>", "follow them into their game")
+                .usage("/grotto id <code> [date]", "derive a game id from a board code");
         grotto.setDefaultExecutor((sender, ctx) -> list(sender, shards));
         grotto.addSyntax((sender, ctx) -> list(sender, shards), ArgumentType.Literal("list"));
         var target = ArgumentType.Word("player");
@@ -43,7 +45,7 @@ public final class GrottoCommands {
         grotto.addSyntax((sender, ctx) -> gameId(sender, ctx.get(code), null), ArgumentType.Literal("id"), code);
         grotto.addSyntax((sender, ctx) -> gameId(sender, ctx.get(code), ctx.get(date)),
                 ArgumentType.Literal("id"), code, date);
-        MinecraftServer.getCommandManager().register(grotto);
+        Commands.register(grotto);
     }
 
     /** {@link GameIds#derive} over chat, for testing: board code + printed date (today when omitted). */

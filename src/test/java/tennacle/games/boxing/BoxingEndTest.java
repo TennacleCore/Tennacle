@@ -52,7 +52,7 @@ class BoxingEndTest extends HeadlessServerTest {
         Game game = null;
         try {
             MinecraftServer.getCommandManager().execute(a.player, "duel BoxLose boxing");
-            MinecraftServer.getCommandManager().execute(b.player, "duel BoxWin");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept BoxWin");
             game = awaitGame(a);
             assertNotNull(game, "the duel launched");
             // a long linger keeps the game open past the ghosting, so the teardown cannot race the assertions

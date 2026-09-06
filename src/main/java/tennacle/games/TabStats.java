@@ -1,14 +1,14 @@
 package tennacle.games;
 
 import tennacle.Msg;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 import tennacle.PlayerPrefs;
 
 import io.github.term4.canvas.tab.TabList;
 import io.github.term4.grotto.vault.VaultKey;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.command.CommandSender;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -57,26 +57,29 @@ public final class TabStats {
     }
 
     public static void register() {
-        Command tabstats = new Command("tabstats");
+        AppCommand tabstats = Commands.player("tabstats", "Which of your stats the tab menu lists.")
+                .usage("/tabstats", "your pick, and what each mode offers")
+                .usage("/tabstats <stat> [stat ...]", "list these, in this order")
+                .usage("/tabstats all", "everything a mode offers");
         var stats = ArgumentType.StringArray("stats");
         stats.setSuggestionCallback(Completions.of(TabStats::labels));
         tabstats.setDefaultExecutor((sender, ctx) -> show(sender));
         tabstats.addSyntax((sender, ctx) -> pick(sender, List.of(ctx.get(stats))), stats);
-        MinecraftServer.getCommandManager().register(tabstats);
+        Commands.register(tabstats);
     }
 
     private static void show(CommandSender sender) {
         if (!(sender instanceof Player p)) return;
         List<String> pick = PICK.of(p.getUuid());
-        Msg.tag(p, "tabstats", "your tab lists ",
-                Msg.v(pick == null || pick.isEmpty() ? "everything a mode offers" : String.join(", ", pick)));
+        Msg.say(p, "Your tab lists ",
+                Msg.v(pick == null || pick.isEmpty() ? "everything a mode offers" : String.join(", ", pick)), ".");
         for (String name : Matches.modes()) {
             Mode mode = Matches.mode(name);
             if (mode == null || mode.tabStats().isEmpty()) continue;
-            Msg.tag(p, "tabstats", "  " + name + ": ",
+            Msg.say(p, "  " + name + ": ",
                     Msg.v(String.join(", ", mode.tabStats().stream().map(Mode.SeatStat::label).toList())));
         }
-        Msg.tag(p, "tabstats", "pick with ", Msg.run("/tabstats <stat> [stat ...]"), ", or ", Msg.run("/tabstats all"));
+        Msg.say(p, "Pick with ", Msg.run("/tabstats <stat> [stat ...]"), ", or ", Msg.run("/tabstats all"), ".");
     }
 
     private static void pick(CommandSender sender, List<String> words) {
@@ -87,14 +90,14 @@ public final class TabStats {
             for (String word : words) {
                 String label = known.stream().filter(l -> l.equalsIgnoreCase(word)).findFirst().orElse(null);
                 if (label == null) {
-                    Msg.err(p, "tabstats", "no stat named ", Msg.v(word), " (" + String.join(", ", known) + ")");
+                    Msg.fail(p, "No stat named ", Msg.v(word), ". Stats: ", Msg.v(String.join(", ", known)), ".");
                     return;
                 }
                 if (!chosen.contains(label)) chosen.add(label);
             }
         }
         PICK.set(p, chosen);
-        Msg.tag(p, "tabstats", "your tab lists ", Msg.v(chosen.isEmpty() ? "everything a mode offers" : String.join(", ", chosen)));
+        Msg.ok(p, "Your tab lists ", Msg.v(chosen.isEmpty() ? "everything a mode offers" : String.join(", ", chosen)), ".");
         TabList.refresh(p);
     }
 }

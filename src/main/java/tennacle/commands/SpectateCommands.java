@@ -10,7 +10,6 @@ import tennacle.games.Spectators;
 
 import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 
@@ -23,46 +22,52 @@ public final class SpectateCommands {
     private SpectateCommands() {}
 
     public static void register() {
-        Command spectate = new Command("spectate", "spec");
+        AppCommand spectate = Commands.player("spectate", "Watch a running game.", "spec")
+                .usage("/spectate <player>", "their game, from their side")
+                .usage("/spectate mode true|ghost", "the client's spectator mode, or the ghost body")
+                .featured();
         var name = ArgumentType.Word("player");
         name.setSuggestionCallback(PlayerNames.suggest());
         var body = ArgumentType.Word("body").from("true", "ghost");
         spectate.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
             if (!Spectators.mode(me, "true".equals(ctx.get(body)) ? SpectatorMode.Mode.TRUE : SpectatorMode.Mode.GHOST)) {
-                Msg.err(me, "spectate", "you're not spectating");
+                Msg.fail(me, "You're not spectating.");
             }
         }, ArgumentType.Literal("mode"), body);
         spectate.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
             if (Matches.grotto().engaged(me)) {
-                Msg.err(me, "spectate", "you're in a game - ", Msg.run("/l"), " first");
+                Msg.fail(me, "You're in a game. ", Msg.run("/l"), " first.");
                 return;
             }
             List<Game> open = Matches.grotto().games().stream().filter(g -> g.status() == Game.Status.OPEN).toList();
+            if (open.isEmpty()) {
+                Msg.fail(me, "No game is running.");
+                return;
+            }
             if (open.size() != 1) {
-                Msg.tag(me, "spectate", "usage: ", Msg.run("/spectate <player>"),
-                        open.isEmpty() ? " - no game is running" : " - " + open.size() + " games are running");
+                Msg.say(me, open.size() + " games are running. ", Msg.run("/spectate <player>"), " picks one.");
                 return;
             }
             Spectators.exit(me);
-            if (!Spectating.allowed(open.getFirst())) { Msg.err(me, "spectate", "that game doesn't allow spectators"); return; }
+            if (!Spectating.allowed(open.getFirst())) { Msg.fail(me, "That game doesn't allow spectators."); return; }
             Spectators.enter(open.getFirst(), me, null);
-            Msg.tag(me, "spectate", "watching the " + open.getFirst().type().id() + " - ", Msg.run("/l"), " to leave");
+            Msg.ok(me, "Watching the ", Msg.v(open.getFirst().type().id()), ". ", Msg.run("/l"), " to leave.");
         });
         spectate.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
             if (Matches.grotto().engaged(me)) {
-                Msg.err(me, "spectate", "you're in a game - ", Msg.run("/l"), " first");
+                Msg.fail(me, "You're in a game. ", Msg.run("/l"), " first.");
                 return;
             }
             Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(ctx.get(name));
             if (target == null && ctx.get(name).equals("mode")) {
-                Msg.tag(me, "spectate", "usage: ", Msg.run("/spectate mode true"), " or ", Msg.run("/spectate mode ghost"));
+                Commands.usage(me, "spectate");
                 return;
             }
             if (target == null) {
-                Msg.err(me, "spectate", "no player named ", Msg.v(ctx.get(name)));
+                Msg.fail(me, "No player named ", Msg.v(ctx.get(name)), ".");
                 return;
             }
             Game game = Game.of(target);
@@ -76,15 +81,14 @@ public final class SpectateCommands {
                 }
             }
             if (game == null || game.status() != Game.Status.OPEN) {
-                Msg.err(me, "spectate", Msg.v(target.getUsername()), " is not in a game");
+                Msg.fail(me, Msg.v(target.getUsername()), " is not in a game.");
                 return;
             }
             Spectators.exit(me); // a view elsewhere ends first
-            if (!Spectating.allowed(game)) { Msg.err(me, "spectate", "that game doesn't allow spectators"); return; }
+            if (!Spectating.allowed(game)) { Msg.fail(me, "That game doesn't allow spectators."); return; }
             Spectators.enter(game, me, target);
-            Msg.tag(me, "spectate", "watching ", Msg.v(target.getUsername()), "'s " + game.type().id() + " - ",
-                    Msg.run("/l"), " to leave");
+            Msg.ok(me, "Watching ", Msg.v(target.getUsername()), "'s ", Msg.v(game.type().id()), ". ", Msg.run("/l"), " to leave.");
         }, name);
-        MinecraftServer.getCommandManager().register(spectate);
+        Commands.register(spectate);
     }
 }

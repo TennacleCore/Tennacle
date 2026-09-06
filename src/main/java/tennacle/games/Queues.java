@@ -1,10 +1,10 @@
 package tennacle.games;
 
 import tennacle.Msg;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 
-import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
@@ -38,14 +38,14 @@ public final class Queues {
                 waiting.remove(e.getPlayer().getUuid());
             }
         });
-        Command queue = new Command("queue");
+        AppCommand queue = Commands.player("queue", "Wait for the next side that wants the same game.")
+                .usage("/queue <mode> [platform]", "join the line")
+                .usage("/queue leave", "step out of it")
+                .featured();
         var mode = ArgumentType.Word("mode");
         mode.setSuggestionCallback(Completions.of(Matches::modes));
         var platform = ArgumentType.Word("platform");
         platform.setSuggestionCallback(Completions.of(Matches::platforms));
-        queue.setDefaultExecutor((sender, ctx) ->
-                Msg.tag(sender, "queue", "usage: ", Msg.run("/queue <" + String.join("|", Matches.modes())
-                        + "> [" + String.join("|", Matches.platforms()) + "] | /queue leave")));
         queue.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             if (ctx.get(mode).equals("leave")) {
@@ -57,7 +57,7 @@ public final class Queues {
         queue.addSyntax((sender, ctx) -> {
             if (sender instanceof Player p) enqueue(p, ctx.get(mode), ctx.get(platform));
         }, mode, platform);
-        MinecraftServer.getCommandManager().register(queue);
+        Commands.register(queue);
     }
 
     /** {@code true} when {@code player} was waiting. */
@@ -79,7 +79,7 @@ public final class Queues {
             gone = waiting.remove(player.getUuid());
         }
         if (gone == null) return false;
-        Msg.tag(player, "queue", "left the " + gone.mode() + " queue");
+        Msg.say(player, "Left the ", Msg.v(gone.mode()), " queue.");
         return true;
     }
 
@@ -92,21 +92,21 @@ public final class Queues {
     private static void enqueue(Player me, String modeName, @Nullable String platformName) {
         Mode mode = Matches.mode(modeName);
         if (mode == null) {
-            Msg.err(me, "queue", "modes: ", Msg.v(String.join(", ", Matches.modes())));
+            Msg.fail(me, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", Matches.modes())), ".");
             return;
         }
         if (platformName != null && Matches.platform(platformName) == null) {
-            Msg.err(me, "queue", "platforms: ", Msg.v(String.join(", ", Matches.platforms())));
+            Msg.fail(me, "No platform named ", Msg.v(platformName), ". Platforms: ", Msg.v(String.join(", ", Matches.platforms())), ".");
             return;
         }
         if (!Parties.leads(me)) {
-            Msg.err(me, "queue", "your party leader queues for you");
+            Msg.fail(me, "Your party leader queues for you.");
             return;
         }
         List<Player> side = Parties.of(me);
         for (Player member : side) {
             if (Matches.grotto().engaged(member)) {
-                Msg.err(me, "queue", Msg.v(member.getUsername()), " is in a game");
+                Msg.fail(me, Msg.v(member.getUsername()), " is in a game.");
                 return;
             }
         }
@@ -115,11 +115,11 @@ public final class Queues {
         try {
             seats = Matches.seatsPerSide(mode);
         } catch (IllegalStateException e) { // the map may not be authored yet
-            Msg.err(me, "queue", e.getMessage());
+            Msg.fail(me, e.getMessage());
             return;
         }
         if (side.size() > seats) {
-            Msg.err(me, "queue", mode.name() + " seats " + seats + " a side; your party is " + side.size());
+            Msg.fail(me, mode.title() + " seats " + seats + " a side; your party is " + side.size() + ".");
             return;
         }
         Entry mine = new Entry(me.getUuid(), mode.name(), platform.name(), side.size());
@@ -136,7 +136,7 @@ public final class Queues {
             else waiting.put(me.getUuid(), mine);
         }
         if (match == null) {
-            Msg.tag(me, "queue", "queued for " + mode.name() + " (" + platform.name() + ") - ", Msg.run("/queue leave"));
+            Msg.ok(me, "Queued for ", Msg.v(label(mode, platform)), ". ", Msg.run("/queue leave"), " to step out.");
             return;
         }
         Player them = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(match.leader());
@@ -164,13 +164,18 @@ public final class Queues {
         try {
             Matches.start(mode, platform, List.of(a, b));
         } catch (RuntimeException e) {
-            for (Player p : a) Msg.err(p, "queue", "could not start: " + e.getMessage());
-            for (Player p : b) Msg.err(p, "queue", "could not start: " + e.getMessage());
+            for (Player p : a) Msg.fail(p, "The match could not start: " + e.getMessage());
+            for (Player p : b) Msg.fail(p, "The match could not start: " + e.getMessage());
             return;
         }
-        String tag = mode.name() + " (" + platform.name() + ")";
-        for (Player p : a) Msg.tag(p, "queue", tag + " vs ", Msg.v(names(b)));
-        for (Player p : b) Msg.tag(p, "queue", tag + " vs ", Msg.v(names(a)));
+        String what = label(mode, platform);
+        for (Player p : a) Msg.say(p, what + " vs ", Msg.v(names(b)), ".");
+        for (Player p : b) Msg.say(p, what + " vs ", Msg.v(names(a)), ".");
+    }
+
+    // the platform only when one was asked for
+    private static String label(Mode mode, Platform platform) {
+        return mode.title() + (platform.name().equals(Platform.DEFAULT.name()) ? "" : " (" + platform.name() + ")");
     }
 
     private static String names(List<Player> side) {

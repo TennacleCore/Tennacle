@@ -19,7 +19,6 @@ import io.github.term4.grotto.Outcome;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.instance.InstanceContainer;
@@ -27,6 +26,8 @@ import net.minestom.server.timer.TaskSchedule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tennacle.commands.DevCommands;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 import tennacle.commands.GrottoCommands;
 import tennacle.commands.LobbyCommands;
 import tennacle.commands.ReplayCommands;
@@ -35,6 +36,7 @@ import tennacle.commands.TeamCommands;
 import tennacle.commands.ShardCommands;
 import tennacle.commands.SimTpsCommands;
 import tennacle.commands.SpectateCommands;
+import tennacle.lobby.Welcome;
 import tennacle.games.Duels;
 import tennacle.games.GameSounds;
 import tennacle.games.TabStats;
@@ -184,7 +186,9 @@ public final class TestServer {
         Mechanics.install();
         boolean devCommands = Config.flag("tennacle.dev-commands", loopback);
         InstanceContainer world = Playground.createWorld(devCommands); // the test pads ride the dev flag
-        Playground.installListeners(world, devCommands);
+        Playground.installListeners(world);
+        Commands.help(); // /help reads the registry every command below lands in
+        Welcome.install(); // the first lines an arrival reads
         // members build into their shard's overlay, never the map (the bridge already decorated the
         // placement listener - order-independent)
         MinecraftServer.getGlobalEventHandler().addChild(Shard.blockRouting());
@@ -237,14 +241,17 @@ public final class TestServer {
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(arenaDir(), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
         Bloom.registerDefaultCommands();
+        Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
+        Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
+        Commands.describe(AppCommand.Audience.DEV, "give", "An item by material, for the editor.");
         tennacle.games.SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
         Sessions.register(p -> { // /l leaves the editor OPEN - the idle watchdog below owns closing
             var editing = Bloom.session();
             if (editing == null || p.getInstance() != editing.instance()) return null;
             return () -> {
                 Matches.toLobby(p);
-                Msg.tag(p, "arena", editing.id() + " stays open - /arena edit steps back in; it closes after "
-                        + EDITOR_IDLE_MINUTES + "m empty (autosave kept)");
+                Msg.say(p, Msg.v(editing.id()), " stays open. ", Msg.run("/arena edit"), " steps back in; it closes after "
+                        + EDITOR_IDLE_MINUTES + "m empty (autosave kept).");
             };
         });
         MinecraftServer.getSchedulerManager().buildTask(TestServer::editorWatchdog)

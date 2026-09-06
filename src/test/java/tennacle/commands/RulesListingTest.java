@@ -76,7 +76,7 @@ class RulesListingTest extends HeadlessServerTest {
                     "a deeper package narrows again");
             assertTrue(lines(a, "rules view.health.display").stream().anyMatch(l -> l.contains("view.health.display =")),
                     "a whole id with no value reads it back");
-            assertTrue(lines(a, "rules nosuchpackage").stream().anyMatch(l -> l.contains("no rule, team or player")),
+            assertTrue(lines(a, "rules nosuchpackage").stream().anyMatch(l -> l.contains("No rule, team or player")),
                     "and a name that is none of the three says so");
         } finally {
             if (game != null) game.end(Outcome.draw());

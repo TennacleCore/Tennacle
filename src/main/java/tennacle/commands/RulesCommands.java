@@ -9,8 +9,6 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
-import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import io.github.term4.polyp.config.PathEdits;
 import net.kyori.adventure.text.Component;
@@ -35,7 +33,12 @@ public final class RulesCommands {
     private RulesCommands() {}
 
     public static void register() {
-        Command rules = new Command("rules");
+        AppCommand rules = Commands.player("rules", "The running game's rules, live.")
+                .usage("/rules [package|id]", "read them, or one part")
+                .usage("/rules <id|path> <value>", "set one for the game")
+                .usage("/rules @<team|player> <id|path> <value>", "for one side or seat only")
+                .usage("/rules paths [path]", "the mechanics tree a path can reach")
+                .featured();
         var key = ArgumentType.Word("key");
         var value = ArgumentType.StringArray("value");
         key.setSuggestionCallback(RulesCompletions.key());
@@ -44,7 +47,7 @@ public final class RulesCommands {
             if (!(sender instanceof Player p)) return;
             Game game = Game.of(p);
             if (game == null) {
-                Msg.err(p, "rules", "you're not in a game");
+                Msg.fail(p, "You're not in a game.");
                 return;
             }
             list(p, game, Scope.GAME, "");
@@ -53,7 +56,7 @@ public final class RulesCommands {
             if (!(sender instanceof Player p)) return;
             Game game = Game.of(p);
             if (game == null) {
-                Msg.err(p, "rules", "you're not in a game");
+                Msg.fail(p, "You're not in a game.");
                 return;
             }
             String word = ctx.get(key);
@@ -67,11 +70,11 @@ public final class RulesCommands {
                 return;
             }
             if (word.startsWith("@")) {
-                Msg.err(p, "rules", "no team or player named ", Msg.v(word.substring(1)));
+                Msg.fail(p, "No team or player named ", Msg.v(word.substring(1)), ".");
                 return;
             }
             if (game.type().supportedRules().keySet().stream().noneMatch(id -> under(word, id))) {
-                Msg.err(p, "rules", "no rule, team or player named ", Msg.v(word));
+                Msg.fail(p, "No rule, team or player named ", Msg.v(word), ".");
                 return;
             }
             list(p, game, Scope.GAME, word);
@@ -80,7 +83,7 @@ public final class RulesCommands {
             if (!(sender instanceof Player p)) return;
             Game game = Game.of(p);
             if (game == null) {
-                Msg.err(p, "rules", "you're not in a game");
+                Msg.fail(p, "You're not in a game.");
                 return;
             }
             List<String> words = new ArrayList<>(List.of(ctx.get(value)));
@@ -93,7 +96,7 @@ public final class RulesCommands {
             if (id.startsWith("@")) { // the whole game unless a side or a seat leads
                 scope = scopeOf(game, id);
                 if (scope == null) {
-                    Msg.err(p, "rules", "no team or player named ", Msg.v(id.substring(1)));
+                    Msg.fail(p, "No team or player named ", Msg.v(id.substring(1)), ".");
                     return;
                 }
                 if (words.isEmpty()) {
@@ -113,12 +116,12 @@ public final class RulesCommands {
             try {
                 Matches.modify(game, live);
             } catch (RuntimeException e) {
-                Msg.err(p, "rules", e.getMessage());
+                Msg.fail(p, e.getMessage());
                 return;
             }
-            Msg.tag(p, "rules", (scope == Scope.GAME ? "" : scopeName(game, scope) + " ") + id + " = ", Msg.v(raw));
+            Msg.ok(p, (scope == Scope.GAME ? "" : scopeName(game, scope) + " ") + id + " = ", Msg.v(raw));
         }, key, value);
-        MinecraftServer.getCommandManager().register(rules);
+        Commands.register(rules);
     }
 
     /** The rules under {@code prefix} ({@code ""} = all of them) with their live values at {@code scope}. */
@@ -127,9 +130,9 @@ public final class RulesCommands {
         // sorted: ids lead with their package, so the listing groups itself
         List<String> ids = new java.util.TreeSet<>(supported.keySet()).stream().filter(id -> under(prefix, id)).toList();
         String where = scope == Scope.GAME ? game.type().id() : scopeName(game, scope);
-        Msg.tag(p, "rules", where + (prefix.isEmpty() ? "" : " " + prefix) + ": " + ids.size() + " rule(s)");
+        Msg.say(p, where + (prefix.isEmpty() ? "" : " " + prefix) + ": " + ids.size() + (ids.size() == 1 ? " rule" : " rules"));
         for (String id : ids) {
-            Msg.tag(p, "rules", "  " + id + " = ", Msg.v(game.rules().resolve(scope, supported.get(id))));
+            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, supported.get(id))));
         }
         String lead = scope == Scope.GAME ? "" : scopeName(game, scope) + " ";
         List<String> packages = packagesUnder(ids, prefix);
@@ -139,11 +142,11 @@ public final class RulesCommands {
                 if (i > 0) line = line.append(Component.text(", "));
                 line = line.append(Msg.link(packages.get(i), "/rules " + lead + packages.get(i), "the " + packages.get(i) + " rules"));
             }
-            Msg.tag(p, "rules", line);
+            Msg.say(p, line);
         }
         if (prefix.isEmpty()) {
-            Msg.tag(p, "rules", "mechanics paths take a value too - ", Msg.run("/rules paths"));
-            Msg.tag(p, "rules", "one side or seat only: ", Msg.run("/rules @<team|player> <id|path> <value>"));
+            Msg.say(p, "Mechanics paths take a value too: ", Msg.run("/rules paths"), ".");
+            Msg.say(p, "One side or seat only: ", Msg.run("/rules @<team|player> <id|path> <value>"), ".");
         }
     }
 
@@ -169,24 +172,24 @@ public final class RulesCommands {
         try {
             steps = PathEdits.browse(path, k -> Mechanics.polyp.profiles().resolveWorld(game.shard(), k));
         } catch (RuntimeException e) {
-            Msg.err(p, "rules", e.getMessage());
+            Msg.fail(p, e.getMessage());
             return;
         }
-        Msg.tag(p, "rules", (path.isEmpty() ? "mechanics" : path) + ": " + steps.size() + " step(s)");
+        Msg.say(p, (path.isEmpty() ? "mechanics" : path) + ": " + steps.size() + (steps.size() == 1 ? " step" : " steps"));
         List<String> unset = new ArrayList<>();
         for (PathEdits.Step step : steps) {
             String under = path.isEmpty() ? step.name() : path + "/" + step.name();
             if (step.more() || step.type() == null) {
-                Msg.tag(p, "rules", "  ", Msg.link(step.name(), "/rules paths " + under, "browse " + under),
+                Msg.say(p, "  ", Msg.link(step.name(), "/rules paths " + under, "browse " + under),
                         step.type() == null ? "" : "  " + step.type());
             } else if (step.value() != null) {
-                Msg.tag(p, "rules", "  " + step.name() + " = ", Msg.v(step.value()), "  " + step.type());
+                Msg.say(p, "  " + step.name() + " = ", Msg.v(step.value()), "  " + step.type());
             } else {
                 unset.add(step.name()); // a line each would bury the ones this profile actually sets
             }
         }
-        if (!unset.isEmpty()) Msg.tag(p, "rules", "  inherited: ", Msg.v(String.join(", ", unset)));
-        if (!path.isEmpty()) Msg.tag(p, "rules", "one knob: ", Msg.run("/rules paths " + path + "/<knob>"));
+        if (!unset.isEmpty()) Msg.say(p, "  inherited: ", Msg.v(String.join(", ", unset)));
+        if (!path.isEmpty()) Msg.say(p, "One knob: ", Msg.run("/rules paths " + path + "/<knob>"), ".");
     }
 
     /** {@code @1} a side, {@code @Term4} that member's seat; anything else is nobody. */

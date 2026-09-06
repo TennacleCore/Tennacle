@@ -56,7 +56,7 @@ class DuelOptionsTest extends HeadlessServerTest {
     }
 
     private static Game accept(FakePlayer requester, FakePlayer target) throws InterruptedException {
-        MinecraftServer.getCommandManager().execute(target.player, "duel " + requester.player.getUsername());
+        MinecraftServer.getCommandManager().execute(target.player, "duel accept " + requester.player.getUsername());
         long deadline = System.currentTimeMillis() + 4000;
         while (Game.of(requester.player) == null && System.currentTimeMillis() < deadline) {
             MinecraftServer.getSchedulerManager().processTick();
@@ -113,14 +113,14 @@ class DuelOptionsTest extends HeadlessServerTest {
         FakePlayer a = FakePlayer.connect(instance, new Pos(504.5, 65, 504.5), "OptC");
         FakePlayer b = FakePlayer.connect(instance, new Pos(506.5, 65, 506.5), "OptD");
         try {
-            assertTrue(chat(a, "duel OptD sumo -nope").stream().anyMatch(l -> l.contains("not a flag of sumo; sumo offers -preset")));
-            assertTrue(chat(a, "duel OptD sumo nosuchmap").stream().anyMatch(l -> l.contains("no map named")));
-            assertTrue(chat(a, "duel OptD bridge -preset=nosuch").stream().anyMatch(l -> l.contains("no preset named nosuch")));
-            assertTrue(chat(a, "duel OptD bridge -flow.round.reopen=false").stream().anyMatch(l -> l.contains("not a flag of bridge")),
+            assertTrue(chat(a, "duel OptD sumo -nope").stream().anyMatch(l -> l.contains("not a flag of Sumo. Sumo takes -preset")));
+            assertTrue(chat(a, "duel OptD sumo nosuchmap").stream().anyMatch(l -> l.contains("No map named")));
+            assertTrue(chat(a, "duel OptD bridge -preset=nosuch").stream().anyMatch(l -> l.contains("No preset named nosuch")));
+            assertTrue(chat(a, "duel OptD bridge -flow.round.reopen=false").stream().anyMatch(l -> l.contains("not a flag of Bridge")),
                     "a rule is no flag");
-            assertTrue(chat(a, "duel OptD sumo -cage=off").stream().anyMatch(l -> l.contains("not a flag of sumo")),
+            assertTrue(chat(a, "duel OptD sumo -cage=off").stream().anyMatch(l -> l.contains("not a flag of Sumo")),
                     "a flag another mode offers");
-            MinecraftServer.getCommandManager().execute(b.player, "duel OptC");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept OptC");
             for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
             assertNull(Game.of(a.player), "none of those became a request to accept");
         } finally {

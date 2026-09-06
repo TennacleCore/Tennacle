@@ -85,9 +85,26 @@ class DuelRequestTest extends HeadlessServerTest {
             assertTrue(plain(a).stream().anyMatch(l -> l.contains("menu is not made yet")), "no default mode: " + plain(a));
             b.sent.clear();
             MinecraftServer.getCommandManager().execute(b.player, "duel accept ReqC");
-            assertTrue(plain(b).stream().anyMatch(l -> l.contains("no duel request from ReqC")), "nothing was requested: " + plain(b));
+            assertTrue(plain(b).stream().anyMatch(l -> l.contains("No duel request from ReqC")), "nothing was requested: " + plain(b));
             for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
             assertNull(Game.of(a.player));
+        } finally {
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void duelingBackIsARequest() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(612.5, 65, 612.5), "ReqG");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(614.5, 65, 614.5), "ReqH");
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "duel ReqH sumo");
+            a.sent.clear();
+            MinecraftServer.getCommandManager().execute(b.player, "duel ReqG sumo");
+            for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertNull(Game.of(a.player), "a request back is not an accept");
+            assertTrue(plain(a).stream().anyMatch(l -> l.contains("Sumo duel request from ReqH")), "it is another request: " + plain(a));
         } finally {
             a.player.remove();
             b.player.remove();

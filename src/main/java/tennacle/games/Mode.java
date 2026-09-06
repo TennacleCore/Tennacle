@@ -37,6 +37,11 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         tabStats = List.copyOf(tabStats);
     }
 
+    /** {@code Bridge} for {@code bridge}: the name as copy reads it. */
+    public @NotNull String title() {
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
     /** The ruleset a platform names, or the base when this mode has no variant of that name. */
     public @NotNull Ruleset ruleset(@NotNull String name) {
         return variants.getOrDefault(name, base);

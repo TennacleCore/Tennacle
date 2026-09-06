@@ -1,10 +1,11 @@
 package tennacle.games;
 
 import tennacle.Msg;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 import io.github.term4.polyp.platform.player.PlayerNames;
 
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
@@ -65,12 +66,15 @@ public final class Parties {
 
     public static void install() {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> leave(e.getPlayer(), true));
-        Command party = new Command("party");
+        AppCommand party = Commands.player("party", "Play as one side with friends.")
+                .usage("/party invite <player>", "ask them along")
+                .usage("/party accept", "join the party that invited you")
+                .usage("/party leave", "leave it; the leader leaving disbands it")
+                .usage("/party list", "who is in yours")
+                .featured();
         var name = ArgumentType.Word("player");
         name.setSuggestionCallback(PlayerNames.suggest());
         var sub = ArgumentType.Word("sub").from("accept", "leave", "list");
-        party.setDefaultExecutor((sender, ctx) ->
-                Msg.tag(sender, "party", "usage: ", Msg.run("/party invite <player> | accept | leave | list")));
         party.addSyntax((sender, ctx) -> {
             if (sender instanceof Player p) invite(p, ctx.get(name));
         }, ArgumentType.Literal("invite"), name);
@@ -79,48 +83,52 @@ public final class Parties {
             switch (ctx.get(sub)) {
                 case "accept" -> accept(p);
                 case "leave" -> {
-                    if (!leave(p, false)) Msg.err(p, "party", "you're not in a party");
+                    if (!leave(p, false)) Msg.fail(p, "You're not in a party.");
                 }
                 default -> list(p);
             }
         }, sub);
-        MinecraftServer.getCommandManager().register(party);
+        Commands.register(party);
     }
 
     private static void invite(Player leader, String targetName) {
         if (!leads(leader)) {
-            Msg.err(leader, "party", "only the leader invites");
+            Msg.fail(leader, "Only the party leader invites.");
             return;
         }
         Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(targetName);
-        if (target == null || target == leader) {
-            Msg.err(leader, "party", "no player named ", Msg.v(targetName));
+        if (target == null) {
+            Msg.fail(leader, "No player named ", Msg.v(targetName), ".");
+            return;
+        }
+        if (target == leader) {
+            Msg.fail(leader, "You can't invite yourself.");
             return;
         }
         if (byMember.containsKey(target.getUuid())) {
-            Msg.err(leader, "party", Msg.v(target.getUsername()), " is already in a party");
+            Msg.fail(leader, Msg.v(target.getUsername()), " is already in a party.");
             return;
         }
         invites.put(target.getUuid(), new Invite(leader.getUuid(), System.currentTimeMillis()));
-        Msg.tag(leader, "party", "invited ", Msg.v(target.getUsername()));
-        Msg.tag(target, "party", Msg.v(leader.getUsername()), " invited you - ", Msg.run("/party accept"));
+        Msg.ok(leader, "Invited ", Msg.v(target.getUsername()), " to your party.");
+        Msg.say(target, Msg.v(leader.getUsername()), " invited you to their party. ", Msg.run("/party accept"), " to join.");
     }
 
     private static void accept(Player player) {
         Invite invite = invites.remove(player.getUuid());
         if (invite == null || invite.expired()) {
-            Msg.err(player, "party", "no invite is waiting");
+            Msg.fail(player, "No party invite is waiting for you.");
             return;
         }
         Player leader = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(invite.leader());
         if (leader == null) {
-            Msg.err(player, "party", "the leader left");
+            Msg.fail(player, "The party leader left.");
             return;
         }
         Party theirs = byMember.get(leader.getUuid());
         if (theirs != null && !theirs.leader.equals(leader.getUuid())) {
             // they joined someone else's party between the invite and the accept
-            Msg.err(player, "party", Msg.v(leader.getUsername()), " no longer leads a party");
+            Msg.fail(player, Msg.v(leader.getUsername()), " no longer leads a party.");
             return;
         }
         leave(player, false);
@@ -129,7 +137,7 @@ public final class Parties {
         byMember.put(player.getUuid(), party);
         for (UUID uuid : party.members) {
             Player member = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
-            if (member != null) Msg.tag(member, "party", Msg.v(player.getUsername()), " joined the party");
+            if (member != null) Msg.ok(member, Msg.v(player.getUsername()), " joined the party.");
         }
     }
 
@@ -142,26 +150,26 @@ public final class Parties {
             for (UUID uuid : party.members) {
                 byMember.remove(uuid);
                 Player member = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
-                if (member != null && member != player) Msg.tag(member, "party", "the party disbanded");
+                if (member != null && member != player) Msg.say(member, "The party disbanded.");
             }
-            if (!quiet) Msg.tag(player, "party", "party disbanded");
+            if (!quiet) Msg.say(player, "Party disbanded.");
             return true;
         }
         party.members.remove(player.getUuid());
         for (UUID uuid : party.members) {
             Player member = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
-            if (member != null) Msg.tag(member, "party", Msg.v(player.getUsername()), " left the party");
+            if (member != null) Msg.say(member, Msg.v(player.getUsername()), " left the party.");
         }
-        if (!quiet) Msg.tag(player, "party", "left the party");
+        if (!quiet) Msg.say(player, "You left the party.");
         return true;
     }
 
     private static void list(Player player) {
         List<Player> side = of(player);
         if (side.size() == 1) {
-            Msg.tag(player, "party", "you're not in a party");
+            Msg.say(player, "You're not in a party.");
             return;
         }
-        Msg.tag(player, "party", "party: ", Msg.v(String.join(", ", side.stream().map(Player::getUsername).toList())));
+        Msg.say(player, "Party: ", Msg.v(String.join(", ", side.stream().map(Player::getUsername).toList())), ".");
     }
 }

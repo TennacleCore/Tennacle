@@ -2,7 +2,6 @@ package tennacle.lobby;
 
 import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.Mechanics;
-import tennacle.Msg;
 
 import io.github.term4.polyp.tracking.ClientVersion;
 import net.minestom.server.MinecraftServer;
@@ -11,7 +10,6 @@ import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
-import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.LightingChunk;
 import net.minestom.server.instance.block.Block;
@@ -20,8 +18,6 @@ import net.minestom.server.timer.TaskSchedule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The lobby world and what an arrival wears there. The mechanics test pads (damage types, water-flow lanes) are
@@ -93,7 +89,7 @@ public final class Playground {
         inst.setBlock(sx, baseY + 2, sz, marker); // flow points AWAY from this marker
     }
 
-    public static void installListeners(InstanceContainer world, boolean devCommands) {
+    public static void installListeners(InstanceContainer world) {
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
         events.addListener(AsyncPlayerConfigurationEvent.class, e -> {
             e.setSpawningInstance(world);
@@ -105,23 +101,6 @@ public final class Playground {
         // modifiers (ARMOR...) only for the inventory's viewers
         Wardrobe.install();
         Wardrobe.outfit(world, Playground::outfit);
-        events.addListener(PlayerSpawnEvent.class, e -> {
-            if (!e.isFirstSpawn()) return;
-            Player p = e.getPlayer();
-            // deferred: at spawn the Via handshake may not have revealed the protocol yet, and the welcome
-            // format (gradient vs flat) depends on it
-            Msg.onceProtocolKnown(p, 60, () -> {
-                List<String[]> rows = new ArrayList<>(List.of(
-                        new String[]{"/duel <player> [mode] [map] [-flags]", "a 1v1; -look -time -cages ... tab lists them"},
-                        new String[]{"/queue <mode>", "the next two sides start"},
-                        new String[]{"/party", "a side that duels and queues together"},
-                        new String[]{"/spectate <player>", "watch their game"},
-                        new String[]{"/rules", "the running game's rules, live"},
-                        new String[]{"/stats", "boxing careers"}));
-                if (devCommands) rows.add(new String[]{"/arsenal /shard /replay /boom /lag", "dev tools"});
-                Msg.usage(p, "Tennacle", rows.toArray(String[][]::new));
-            });
-        });
     }
 
     /** The lobby body: adventure, nothing worn, nothing carried - a game outfits its own. */

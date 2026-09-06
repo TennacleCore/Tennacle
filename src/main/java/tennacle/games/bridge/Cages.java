@@ -297,7 +297,7 @@ public final class Cages implements GameModule {
                     for (int z = part.min().blockZ(); z <= part.max().blockZ(); z++) {
                         for (int y = part.min().blockY(); y <= part.max().blockY(); y++) {
                             Block block = source.getBlock(x, y, z);
-                            if (block.isAir()) continue;
+                            if (block.air()) continue;
                             cells.add(new Cell(
                                     new BlockVec(x - anchor.blockX(), y - anchor.blockY(), z - anchor.blockZ()),
                                     block, accented(block, new BlockVec(x, y, z), accents)));

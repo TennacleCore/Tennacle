@@ -60,7 +60,22 @@ public final class ShardCommands {
     }
 
     public static void register(ShardManager shards, InstanceContainer world) {
-        Command shard = new Command("shard");
+        AppCommand shard = Commands.dev("shard", "Isolated game worlds over one map.")
+                .usage("/shard create <name>", "new game on its own clock")
+                .usage("/shard child <parent> <new>", "layer over a game (relative diff)")
+                .usage("/shard join <name>", "play: same map, your own diff")
+                .usage("/shard leave", "back to the base map")
+                .usage("/shard fork <name> <new>", "independent copy (blocks + sky + entities)")
+                .usage("/shard flatten <top> [bottom] <new>", "collapse a chain (or merge two)")
+                .usage("/shard save|load|savetree|loadtree|export|import", "the .shard/.polar round-trips")
+                .usage("/shard commit <name>", "land the diff on the real map")
+                .usage("/shard reset|destroy <name>", "drop the diff / the whole game")
+                .usage("/shard list | tree | tps", "what exists, the layer tree, the clocks")
+                .usage("/shard relight <name> <on|off|disable|custom>", "per-shard lighting demos")
+                .usage("/shard spectate <name|off> [game|+main]", "watch without playing")
+                .usage("/shard sky <name> <day|night|rain|clear>", "per-shard time + weather")
+                .usage("/shard tab <name> <world|tree|instance>", "what members list in tab (names + completion)")
+                .usage("/shard stall|spin <name> <ms>", "hurt one clock, watch siblings play on");
         var create = ArgumentType.Literal("create");
         var join = ArgumentType.Literal("join");
         var leave = ArgumentType.Literal("leave");
@@ -72,23 +87,6 @@ public final class ShardCommands {
         Argument<String> name = ArgumentType.Word("name");
         Argument<String> skyValue = ArgumentType.Word("value").from("day", "night", "rain", "clear");
 
-        shard.setDefaultExecutor((sender, ctx) -> Msg.usage(sender, "/shard - isolated game worlds over one map", new String[][]{
-                {"/shard create <name>", "new game on its own clock"},
-                {"/shard child <parent> <new>", "layer over a game (relative diff)"},
-                {"/shard join <name>", "play: same map, your own diff"},
-                {"/shard leave", "back to the base map"},
-                {"/shard fork <name> <new>", "independent copy (blocks + sky + entities)"},
-                {"/shard flatten <top> [bottom] <new>", "collapse a chain (or merge two)"},
-                {"/shard save|load|savetree|loadtree|export|import", "the .shard/.polar round-trips"},
-                {"/shard commit <name>", "land the diff on the real map"},
-                {"/shard reset|destroy <name>", "drop the diff / the whole game"},
-                {"/shard list | tree | tps", "what exists, the layer tree, the clocks"},
-                {"/shard relight <name> <on|off|disable|custom>", "per-shard lighting demos"},
-                {"/shard spectate <name|off> [game|+main]", "watch without playing"},
-                {"/shard sky <name> <day|night|rain|clear>", "per-shard time + weather"},
-                {"/shard tab <name> <world|tree|instance>", "what members list in tab (names + completion)"},
-                {"/shard stall|spin <name> <ms>", "hurt one clock, watch siblings play on"},
-        }));
 
         shard.addSyntax((sender, ctx) -> {
             String n = ctx.get(name);
@@ -472,7 +470,7 @@ public final class ShardCommands {
             Msg.shard(sender, Msg.v(ctx.get(name)), " tab scope -> ", Msg.v(scope), " (members re-synced)");
         }, tab, name, tabValue);
 
-        MinecraftServer.getCommandManager().register(shard);
+        Commands.register(shard);
 
         // world-scoped command demo: /wave exists ONLY inside a shard - the client's command list and tab
         // completion follow membership (WorldCommands refreshes them on join/leave)

@@ -39,8 +39,8 @@ public record Options(@Nullable String map, @Nullable String platform,
 
         public @NotNull Builder map(@NotNull Mode mode, @NotNull String name) {
             if (mode.arena().named(name) == null) {
-                throw new IllegalArgumentException("no map named " + name + " for " + mode.name()
-                        + " (" + String.join(", ", mode.arena().names()) + ")");
+                throw new IllegalArgumentException("No map named " + name + " for " + mode.title()
+                        + ". Maps: " + String.join(", ", mode.arena().names()) + ".");
             }
             this.map = name;
             return this;
@@ -62,7 +62,7 @@ public record Options(@Nullable String map, @Nullable String platform,
         Builder into = new Builder(mode);
         for (String word : words) {
             if (!word.startsWith("-")) {
-                if (into.map != null) throw new IllegalArgumentException("one map, not " + into.map + " and " + word);
+                if (into.map != null) throw new IllegalArgumentException("One map, not " + into.map + " and " + word + ".");
                 into.map(mode, word);
                 continue;
             }
@@ -70,10 +70,10 @@ public record Options(@Nullable String map, @Nullable String platform,
             int eq = body.indexOf('=');
             String name = eq < 0 ? body : body.substring(0, eq);
             String value = eq < 0 ? "true" : body.substring(eq + 1);
-            if (name.isEmpty()) throw new IllegalArgumentException("a flag needs a name: " + word);
+            if (name.isEmpty()) throw new IllegalArgumentException("A flag needs a name: " + word + ".");
             Flag flag = Flags.get(name);
             if (flag == null || !Flags.offers(mode, flag)) {
-                throw new IllegalArgumentException("-" + name + " is not a flag of " + mode.name() + "; " + menu(mode));
+                throw new IllegalArgumentException("-" + name + " is not a flag of " + mode.title() + ". " + menu(mode));
             }
             flag.apply(mode, value, into);
         }
@@ -82,8 +82,8 @@ public record Options(@Nullable String map, @Nullable String platform,
 
     private static String menu(Mode mode) {
         List<Flag> flags = Flags.of(mode);
-        if (flags.isEmpty()) return mode.name() + " offers no flags";
-        return mode.name() + " offers " + String.join(", ", flags.stream().map(f -> "-" + f.name()).toList());
+        if (flags.isEmpty()) return mode.title() + " takes no flags.";
+        return mode.title() + " takes " + String.join(", ", flags.stream().map(f -> "-" + f.name()).toList()) + ".";
     }
 
     /** What the tail can hold at {@code token}: map names bare, the mode's flags after a dash, a flag's values after its equals sign. */

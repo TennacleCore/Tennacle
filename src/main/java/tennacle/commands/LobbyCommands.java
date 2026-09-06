@@ -6,8 +6,6 @@ import tennacle.games.Matches;
 import tennacle.games.Spectators;
 
 import io.github.term4.grotto.Game;
-import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 
 /** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
@@ -18,29 +16,29 @@ public final class LobbyCommands {
 
     public static void register() {
         Sessions.register(LobbyCommands::gameDeparture);
-        Command cmd = new Command("spawn", "lobby", "l");
+        AppCommand cmd = Commands.player("spawn", "Back to the lobby from anywhere.", "lobby", "l");
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             if (!Sessions.depart(p)) Matches.toLobby(p);
         });
-        MinecraftServer.getCommandManager().register(cmd);
+        Commands.register(cmd);
 
-        Command rejoin = new Command("rejoin");
+        AppCommand rejoin = Commands.player("rejoin", "Reclaim the seat a game is holding for you.");
         rejoin.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             if (Game.of(p) != null) {
-                Msg.err(p, "lobby", "you're already in a game");
+                Msg.fail(p, "You're already in a game.");
                 return;
             }
             Game held = Matches.grotto().reclaimable(p);
             if (held == null) {
-                Msg.err(p, "lobby", "no seat is being held for you");
+                Msg.fail(p, "No seat is being held for you.");
                 return;
             }
             held.join(p);
-            Msg.tag(p, "lobby", "rejoining your " + held.type().id());
+            Msg.ok(p, "Rejoining your ", Msg.v(held.type().id()), ".");
         });
-        MinecraftServer.getCommandManager().register(rejoin);
+        Commands.register(rejoin);
     }
 
     private static Runnable gameDeparture(Player p) {
@@ -61,9 +59,9 @@ public final class LobbyCommands {
             return () -> {
                 Game.Departure departure = game.depart(p);
                 if (departure != null && departure.reserved()) {
-                    Msg.tag(p, "lobby", "left the game - your seat holds, ", Msg.run("/rejoin"));
+                    Msg.say(p, "You left the game. Your seat holds: ", Msg.run("/rejoin"), ".");
                 } else {
-                    Msg.tag(p, "lobby", "left the game");
+                    Msg.say(p, "You left the game.");
                 }
                 Matches.toLobby(p);
             };

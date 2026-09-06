@@ -1,6 +1,8 @@
 package tennacle.games;
 
 import tennacle.Msg;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 import tennacle.PlayerPrefs;
 
 import io.github.term4.canvas.theme.SoundSet;
@@ -8,10 +10,8 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.vault.VaultKey;
 import net.kyori.adventure.sound.Sound;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.command.CommandSender;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -70,13 +70,15 @@ public final class GameSounds {
     }
 
     public static void register() {
-        Command sounds = new Command("sounds");
+        AppCommand sounds = Commands.player("sounds", "Which game sounds you hear.")
+                .usage("/sounds", "each cue, on or off")
+                .usage("/sounds <cue|all> on|off", "mute one, or all of them");
         var cue = ArgumentType.Word("cue");
         cue.setSuggestionCallback(Completions.of(() -> ALL));
         var state = ArgumentType.Word("state").from("on", "off");
         sounds.setDefaultExecutor((sender, ctx) -> show(sender));
         sounds.addSyntax((sender, ctx) -> set(sender, ctx.get(cue), ctx.get(state).equals("on")), cue, state);
-        MinecraftServer.getCommandManager().register(sounds);
+        Commands.register(sounds);
     }
 
     private static void show(CommandSender sender) {
@@ -84,16 +86,16 @@ public final class GameSounds {
         List<String> muted = MUTE.of(p.getUuid());
         for (String name : ALL) {
             boolean on = muted == null || !muted.contains(name);
-            Msg.tag(p, "sounds", "  " + name + ": ", on ? Msg.good("on") : Msg.err0("off"));
+            Msg.say(p, "  " + name + ": ", on ? Msg.good("on") : Msg.err0("off"));
         }
-        Msg.tag(p, "sounds", "toggle one with ", Msg.run("/sounds <cue> on|off"));
+        Msg.say(p, "Toggle one with ", Msg.run("/sounds <cue> on|off"), ".");
     }
 
     private static void set(CommandSender sender, String which, boolean on) {
         if (!(sender instanceof Player p)) return;
         String name = which.toLowerCase(Locale.ROOT);
         if (!name.equals("all") && !ALL.contains(name)) {
-            Msg.err(p, "sounds", "no cue named ", Msg.v(which), " (" + String.join(", ", ALL) + ", all)");
+            Msg.fail(p, "No sound named ", Msg.v(which), ". Sounds: ", Msg.v(String.join(", ", ALL) + ", all"), ".");
             return;
         }
         List<String> muted = new ArrayList<>(MUTE.of(p.getUuid()) == null ? List.of() : MUTE.of(p.getUuid()));
@@ -106,6 +108,6 @@ public final class GameSounds {
             muted.add(name);
         }
         MUTE.set(p, muted);
-        Msg.tag(p, "sounds", name + " ", on ? Msg.good("on") : Msg.err0("off"));
+        Msg.say(p, Msg.v(name), " is now ", on ? Msg.good("on") : Msg.err0("off"), ".");
     }
 }

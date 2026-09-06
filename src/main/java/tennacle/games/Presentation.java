@@ -146,7 +146,7 @@ public final class Presentation implements GameModule {
     public void onDecided(@NotNull Game game, @NotNull Outcome outcome) {
         Look look = Matches.lookOf(game);
         if (outcome.equals(Outcome.aborted())) {
-            Match.each(game, p -> Msg.tag(p, "duel", "duel cancelled - your opponent never showed"));
+            Match.each(game, p -> Msg.say(p, "The duel was cancelled: your opponent never showed."));
             return;
         }
         if (outcome.winner() == null) {

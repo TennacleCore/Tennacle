@@ -69,12 +69,12 @@ public final class Spectators {
     public static boolean mode(@NotNull Player viewer, @NotNull SpectatorMode.Mode mode) {
         if (Matches.grotto().spectating(viewer) == null) return false;
         if (!SpectatorMode.enter(viewer, mode)) {
-            Msg.err(viewer, "spectate", "your client has no spectator mode (1.7)");
+            Msg.fail(viewer, "Your client has no spectator mode (1.7).");
         } else if (mode == SpectatorMode.Mode.TRUE) {
-            Msg.tag(viewer, "spectate", "spectator mode: click a player to ride their camera, sneak to leave it; ",
-                    Msg.run("/spec mode ghost"), " for the ghost body");
+            Msg.say(viewer, "Spectator mode: click a player to ride their camera, sneak to leave it. ",
+                    Msg.run("/spec mode ghost"), " for the ghost body.");
         } else {
-            Msg.tag(viewer, "spectate", "ghost body; ", Msg.run("/spec mode true"), " for spectator mode");
+            Msg.say(viewer, "Ghost body. ", Msg.run("/spec mode true"), " for spectator mode.");
         }
         return true;
     }
@@ -88,8 +88,8 @@ public final class Spectators {
         switch (asked) {
             case SPECTATOR -> mode(viewer, SpectatorMode.Mode.TRUE);
             case ADVENTURE -> mode(viewer, SpectatorMode.Mode.GHOST);
-            default -> Msg.err(viewer, "gm", "you're spectating: ", Msg.run("/spec mode true"), " or ",
-                    Msg.run("/spec mode ghost"), " - or ", Msg.run("/l"), " first");
+            default -> Msg.fail(viewer, "You're spectating: ", Msg.run("/spec mode true"), " or ",
+                    Msg.run("/spec mode ghost"), ", or ", Msg.run("/l"), " first.");
         }
         return true;
     }

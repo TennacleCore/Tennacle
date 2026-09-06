@@ -7,8 +7,6 @@ import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.util.tick.TickScalingConfig;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
-import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.Argument;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
@@ -25,7 +23,12 @@ public final class SimTpsCommands {
     private SimTpsCommands() {}
 
     public static void register(Polyp polyp, ShardManager shards, InstanceContainer world) {
-        Command cmd = new Command("simtps");
+        AppCommand cmd = Commands.dev("simtps", "A simulated tick rate: slow motion or fast.")
+                .usage("/simtps self <1-100|native>", "dilate YOUR player scope")
+                .usage("/simtps shard <name> <1-100|native>", "dilate one shard (its members only)")
+                .usage("/simtps instance <1-100|native>", "dilate the base map")
+                .usage("/simtps global <1-100|native>", "dilate the whole server")
+                .usage("/simtps show", "the rate resolved for you, and why");
         var global = ArgumentType.Literal("global");
         var shard = ArgumentType.Literal("shard");
         var instance = ArgumentType.Literal("instance");
@@ -35,13 +38,6 @@ public final class SimTpsCommands {
         // "native" clears the scope's baseline (back to literal ticks); anything else must parse as a rate
         Argument<String> rate = ArgumentType.Word("rate");
 
-        cmd.setDefaultExecutor((sender, ctx) -> Msg.usage(sender, "/simtps - simulated tick rate (slo-mo / fast motion)", new String[][]{
-                {"/simtps self <1-100|native>", "dilate YOUR player scope"},
-                {"/simtps shard <name> <1-100|native>", "dilate one shard (its members only)"},
-                {"/simtps instance <1-100|native>", "dilate the base map"},
-                {"/simtps global <1-100|native>", "dilate the whole server"},
-                {"/simtps show", "the rate resolved for you, and why"},
-        }));
 
         cmd.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
@@ -87,7 +83,7 @@ public final class SimTpsCommands {
                     " | client wire ", Msg.v(polyp.clientInfo().isLegacy(p) ? "legacy - spectate only" : "modern - can simulate"));
         }, show);
 
-        MinecraftServer.getCommandManager().register(cmd);
+        Commands.register(cmd);
     }
 
     /** Sentinel for "the input was bad and the sender was told" - distinct from a real null (= clear the scope). */

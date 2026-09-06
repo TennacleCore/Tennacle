@@ -48,7 +48,7 @@ class HouseEndCardTest extends HeadlessServerTest {
         Game game = null;
         try {
             MinecraftServer.getCommandManager().execute(a.player, "duel CardLose boxing");
-            MinecraftServer.getCommandManager().execute(b.player, "duel CardWin");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept CardWin");
             awaitTicking("the duel seated both", () -> Game.of(a.player) != null && Game.of(b.player) != null);
             game = Game.of(a.player);
             assertNotNull(game);

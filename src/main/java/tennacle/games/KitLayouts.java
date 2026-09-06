@@ -2,6 +2,8 @@ package tennacle.games;
 
 import org.jetbrains.annotations.NotNull;
 import tennacle.Msg;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 import tennacle.PlayerPrefs;
 
 import io.github.term4.grotto.Game;
@@ -9,7 +11,6 @@ import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.vault.VaultKey;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.inventory.InventoryCloseEvent;
@@ -65,7 +66,8 @@ public final class KitLayouts {
                 net.minestom.server.event.player.PlayerDisconnectEvent.class,
                 e -> EDITING.remove(e.getPlayer().getUuid())); // the lobby flow rebuilds next login
 
-        Command cmd = new Command("kitbeta");
+        AppCommand cmd = Commands.player("kitbeta", "Arrange a kit's slots your way.")
+                .usage("/kitbeta [kit]", "the kit lands in your inventory; close it to save");
         var kitArg = ArgumentType.Word("kit");
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
@@ -75,7 +77,7 @@ public final class KitLayouts {
             if (!(sender instanceof Player p)) return;
             open(p, ctx.get(kitArg));
         }, kitArg);
-        MinecraftServer.getCommandManager().register(cmd);
+        Commands.register(cmd);
     }
 
     /** Drops an open edit and hands the body back, saving nothing - a seat is not the place to be editing. */
@@ -85,21 +87,21 @@ public final class KitLayouts {
         var inv = player.getInventory();
         for (int i = 0; i < edit.stash().length; i++) inv.setItemStack(i, edit.stash()[i]);
         inv.update();
-        Msg.err(player, "kit", "the edit closed unsaved - you joined a game");
+        Msg.fail(player, "The kit edit closed unsaved: you joined a game.");
     }
 
     private static void open(Player p, String kitId) {
         Kit kit = EDITABLE.get(kitId);
         if (kit == null) {
-            Msg.err(p, "kit", "no editable kit '" + kitId + "' (" + String.join(", ", EDITABLE.keySet()) + ")");
+            Msg.fail(p, "No editable kit named ", Msg.v(kitId), ". Kits: ", Msg.v(String.join(", ", EDITABLE.keySet())), ".");
             return;
         }
         if (Game.of(p) != null) {
-            Msg.err(p, "kit", "not mid-game - use the lobby");
+            Msg.fail(p, "Not mid-game. Edit kits from the lobby.");
             return;
         }
         if (EDITING.containsKey(p.getUuid())) {
-            Msg.err(p, "kit", "already editing - close your inventory to save");
+            Msg.fail(p, "You're already editing. Close your inventory to save.");
             return;
         }
         var inv = p.getInventory();
@@ -113,7 +115,7 @@ public final class KitLayouts {
         current.forEach((role, slot) ->
                 inv.setItemStack(slot, displays.getOrDefault(role, ItemStack.AIR).withTag(ROLE, role)));
         EDITING.put(p.getUuid(), new Edit(kitId, kit, stash));
-        Msg.tag(p, "kit", "arrange the " + kitId + " kit, then close your inventory to save");
+        Msg.say(p, "Arrange the ", Msg.v(kitId), " kit, then close your inventory to save.");
     }
 
     private static void finish(Player player, Edit edit) {
@@ -132,7 +134,7 @@ public final class KitLayouts {
                 kits != null ? new ConcurrentHashMap<>(kits) : new ConcurrentHashMap<>();
         next.put(edit.kitId(), layout);
         STORE.set(player, next);
-        Msg.tag(player, "kit", edit.kitId() + " layout saved");
+        Msg.ok(player, "Saved your ", Msg.v(edit.kitId()), " layout.");
     }
 
     private static String serialize(Map<String, Map<String, Integer>> kits) {

@@ -29,7 +29,7 @@ public final class Flags {
             @Override public @NotNull Collection<String> values(@NotNull Mode mode) { return Matches.platforms(); }
             @Override public void apply(@NotNull Mode mode, @NotNull String value, @NotNull Options.Builder into) {
                 if (Matches.platform(value) == null) {
-                    throw new IllegalArgumentException("no preset named " + value + " (" + String.join(", ", Matches.platforms()) + ")");
+                    throw new IllegalArgumentException("No preset named " + value + ". Presets: " + String.join(", ", Matches.platforms()) + ".");
                 }
                 into.platform(value);
             }

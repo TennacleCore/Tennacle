@@ -6,8 +6,6 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.text.Component;
-import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 
 import java.util.ArrayList;
@@ -23,13 +21,13 @@ public final class TeamCommands {
     private TeamCommands() {}
 
     public static void register() {
-        Command team = new Command("team");
+        AppCommand team = Commands.player("team", "Which side is which, and who is on it.");
         team.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             Game game = Game.of(p);
             if (game == null) game = tennacle.games.Matches.grotto().spectating(p);
             if (game == null) {
-                Msg.err(p, "team", "you're not in a game");
+                Msg.fail(p, "You're not in a game.");
                 return;
             }
             Slot mine = game.roster().slotOf(p);
@@ -42,10 +40,10 @@ public final class TeamCommands {
                 }
                 String who = members.isEmpty() ? "empty" : String.join(", ", members);
                 boolean ours = mine != null && mine.team().equals(side.id());
-                Msg.tag(p, "team", Component.text(side.id(), side.color()), " - ",
+                Msg.say(p, Component.text(side.id(), side.color()), ": ",
                         Msg.v(who), ours ? " (yours)" : "");
             }
         });
-        MinecraftServer.getCommandManager().register(team);
+        Commands.register(team);
     }
 }

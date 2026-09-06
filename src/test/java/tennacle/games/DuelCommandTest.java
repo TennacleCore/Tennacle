@@ -96,7 +96,7 @@ class DuelCommandTest extends HeadlessServerTest {
         Game game = null;
         try {
             MinecraftServer.getCommandManager().execute(a.player, "duel GoneB sumo");
-            MinecraftServer.getCommandManager().execute(b.player, "duel GoneA");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept GoneA");
             long deadline = System.currentTimeMillis() + 4000;
             while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();
@@ -197,7 +197,7 @@ class DuelCommandTest extends HeadlessServerTest {
         Game game = null;
         try {
             MinecraftServer.getCommandManager().execute(a.player, "duel CageB bridge");
-            MinecraftServer.getCommandManager().execute(b.player, "duel CageA");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept CageA");
             long deadline = System.currentTimeMillis() + 4000;
             while ((Game.of(a.player) == null || Game.of(b.player) == null) && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();
@@ -228,7 +228,7 @@ class DuelCommandTest extends HeadlessServerTest {
         Game game = null;
         try {
             MinecraftServer.getCommandManager().execute(a.player, "duel BGoneB bridge");
-            MinecraftServer.getCommandManager().execute(b.player, "duel BGoneA");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept BGoneA");
             long deadline = System.currentTimeMillis() + 4000;
             while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();
@@ -260,7 +260,7 @@ class DuelCommandTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(a.player, "queue sumo");
             assertTrue(Queues.waiting(a.player), "queued");
             MinecraftServer.getCommandManager().execute(b.player, "duel DuelQueueA sumo");
-            MinecraftServer.getCommandManager().execute(a.player, "duel DuelQueueB");
+            MinecraftServer.getCommandManager().execute(a.player, "duel accept DuelQueueB");
             long deadline = System.currentTimeMillis() + 4000;
             while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick();
@@ -292,7 +292,7 @@ class DuelCommandTest extends HeadlessServerTest {
                     "the requester always hears back");
 
             java.time.LocalDate boardDate = java.time.LocalDate.now(); // what the board prints at launch
-            MinecraftServer.getCommandManager().execute(b.player, "duel DuelA");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept DuelA");
             long deadline = System.currentTimeMillis() + 4000;
             while (Game.of(a.player) == null && System.currentTimeMillis() < deadline) {
                 MinecraftServer.getSchedulerManager().processTick(); // the join bind lands on the next tick

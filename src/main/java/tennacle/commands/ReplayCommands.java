@@ -14,7 +14,6 @@ import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandExecutor;
 import net.minestom.server.command.builder.arguments.Argument;
 import net.minestom.server.command.builder.arguments.ArgumentType;
@@ -46,23 +45,21 @@ public final class ReplayCommands {
 
     public static void register(ShardManager shards, InstanceContainer world) {
         Path replayDir = Storage.dir("replay-dir", "replays");
-        Command replay = new Command("replay");
+        AppCommand replay = Commands.dev("replay", "Record and replay a shard.")
+                .usage("/replay record <shard> [solo]", "start recording (solo = no child layers)")
+                .usage("/replay stop <name>", "stop + write replays/<name>.shard")
+                .usage("/replay play <name> <newShard> [visual]", "play a file into a fresh theater")
+                .usage("/replay seek <tick> | rate <r>", "jump / speed (negative = reverse)")
+                .usage("/replay reverse | forward | pause | resume", "timeline control")
+                .usage("/replay rewind <ticks>", "hold the live game N ticks in the past")
+                .usage("/replay commit", "land the rewound past on the live game")
+                .usage("/replay bookmark <name> | bookmarks | goto <name>", "mark + jump")
+                .usage("/replay state <actor>", "the folded player state at this tick")
+                .usage("/replay halt", "end the playback");
         Argument<String> name = ArgumentType.Word("name");
         Argument<String> replayName = ArgumentType.Word("replayName");
         Argument<String> newName = ArgumentType.Word("newName");
         Argument<Long> seekTick = ArgumentType.Long("tick");
-        replay.setDefaultExecutor((sender, ctx) -> Msg.usage(sender, "/replay - record and replay a shard", new String[][]{
-                {"/replay record <shard> [solo]", "start recording (solo = no child layers)"},
-                {"/replay stop <name>", "stop + write replays/<name>.shard"},
-                {"/replay play <name> <newShard> [visual]", "play a file into a fresh theater"},
-                {"/replay seek <tick> | rate <r>", "jump / speed (negative = reverse)"},
-                {"/replay reverse | forward | pause | resume", "timeline control"},
-                {"/replay rewind <ticks>", "hold the live game N ticks in the past"},
-                {"/replay commit", "land the rewound past on the live game"},
-                {"/replay bookmark <name> | bookmarks | goto <name>", "mark + jump"},
-                {"/replay state <actor>", "the folded player state at this tick"},
-                {"/replay halt", "end the playback"},
-        }));
         replay.addSyntax((sender, ctx) -> {
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
             playback.reverse(true);
@@ -250,6 +247,6 @@ public final class ReplayCommands {
                 playback = null;
             }
         });
-        MinecraftServer.getCommandManager().register(replay);
+        Commands.register(replay);
     }
 }

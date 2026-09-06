@@ -1,6 +1,8 @@
 package tennacle.games;
 
 import tennacle.Msg;
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 
 import io.github.term4.polyp.platform.player.PlayerNames;
 import net.kyori.adventure.text.Component;
@@ -10,7 +12,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
@@ -24,9 +25,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>}, or
- * dueling back, accepts with the REQUESTER's mode and {@link Options}; {@link Matches#start} seats each party as a
- * side. {@code /duel <player>} alone has no menu to open yet and says so. Modes register at boot.
+ * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>} - the
+ * [Accept] click - is the one way to accept, with the REQUESTER's mode and {@link Options}. Dueling back is
+ * another request, never an accept. {@link Matches#start} seats each party as a side. {@code /duel <player>}
+ * alone has no menu to open yet and says so. Modes register at boot.
  */
 public final class Duels {
 
@@ -50,7 +52,10 @@ public final class Duels {
             requests.remove(gone);
             requests.values().removeIf(request -> request.target().equals(gone));
         });
-        Command duel = new Command("duel");
+        AppCommand duel = Commands.player("duel", "Challenge a player to a 1v1.")
+                .usage("/duel <player> <mode> [map] [-preset=<name>]", "send a request")
+                .usage("/duel accept <player>", "accept theirs")
+                .featured();
         var name = ArgumentType.Word("player");
         name.setSuggestionCallback(PlayerNames.suggest());
         var mode = ArgumentType.Word("mode");
@@ -60,42 +65,32 @@ public final class Duels {
             Mode picked = Matches.mode(ctx.get(mode));
             if (picked != null) Completions.offer(suggestion, Options.completions(picked, Completions.partial(suggestion)));
         });
-        duel.setDefaultExecutor((sender, ctx) -> usage(sender));
         duel.addSyntax((sender, ctx) -> answer(sender, ctx.get(name)), name);
         // "/duel accept <player>" reads as a player named accept and their mode: the word is the accept
         duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), List.of()), name, mode);
         duel.addSyntax((sender, ctx) -> request(sender, ctx.get(name), ctx.get(mode), List.of(ctx.get(options))),
                 name, mode, options);
-        MinecraftServer.getCommandManager().register(duel);
+        Commands.register(duel);
 
-        Command flags = new Command("flags");
+        AppCommand flags = Commands.player("flags", "The flags a mode's duels take.")
+                .usage("/flags [mode]", "one mode's, or every mode's");
         var which = ArgumentType.Word("mode");
         which.setSuggestionCallback(Completions.of(Matches::modes));
         flags.setDefaultExecutor((sender, ctx) -> Matches.modes().forEach(m -> listFlags(sender, m)));
         flags.addSyntax((sender, ctx) -> listFlags(sender, ctx.get(which)), which);
-        MinecraftServer.getCommandManager().register(flags);
+        Commands.register(flags);
     }
 
-    private static void usage(CommandSender to) {
-        Msg.tag(to, "duel", "usage: ", Msg.run("/duel <player> <" + String.join("|", Matches.modes())
-                + "> [map] [-preset=<" + String.join("|", Matches.platforms()) + ">]"));
-    }
-
-    // /duel <player>: dueling back accepts; anything else has no menu to open yet
+    // /duel <player>: no menu to open yet, and a pending request from them changes nothing - only the accept accepts
     private static void answer(CommandSender sender, String targetName) {
         if (!(sender instanceof Player me)) return;
         if (targetName.equalsIgnoreCase("accept")) {
-            usage(me);
+            Commands.usage(me, "duel");
             return;
         }
         Player target = online(me, targetName);
-        if (target == null || !leads(me)) return;
-        Request theirs = pending(target, me);
-        if (theirs != null) {
-            launch(theirs, target, me);
-            return;
-        }
-        Msg.err(me, "duel", "the duel menu is not made yet - name a mode: ",
+        if (target == null) return;
+        Msg.fail(me, "The duel menu is not made yet. Pick a mode: ",
                 Msg.run("/duel " + target.getUsername() + " <" + String.join("|", Matches.modes()) + ">"));
     }
 
@@ -104,10 +99,15 @@ public final class Duels {
         if (from == null || !leads(me)) return;
         Request theirs = pending(from, me);
         if (theirs == null) {
-            Msg.err(me, "duel", "no duel request from ", Msg.v(from.getUsername()));
+            Msg.fail(me, "No duel request from ", Msg.v(from.getUsername()), ".");
             return;
         }
-        launch(theirs, from, me);
+        if (!free(me, me) || !free(me, from)) return;
+        // the request outlives a launch that failed, so the click can be tried again
+        if (start(Matches.mode(theirs.mode()), theirs.options(), from, me)) {
+            requests.remove(from.getUuid());
+            requests.remove(me.getUuid());
+        }
     }
 
     private static void request(CommandSender sender, String targetName, String modeName, List<String> words) {
@@ -118,38 +118,22 @@ public final class Duels {
         }
         Mode mode = Matches.mode(modeName);
         if (mode == null) {
-            Msg.err(me, "duel", "modes: ", Msg.v(String.join(", ", Matches.modes())));
+            Msg.fail(me, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", Matches.modes())), ".");
             return;
         }
         Options options;
         try {
             options = Options.parse(mode, words);
         } catch (IllegalArgumentException e) {
-            Msg.err(me, "duel", e.getMessage());
+            Msg.fail(me, e.getMessage());
             return;
         }
         Player target = online(me, targetName);
         if (target == null || !leads(me)) return;
-        for (Player member : Parties.of(me)) {
-            if (Matches.grotto().engaged(member)) {
-                Msg.err(me, "duel", member == me ? "you're already in a duel" : member.getUsername() + " is already in a duel");
-                return;
-            }
-        }
-        for (Player member : Parties.of(target)) {
-            if (Matches.grotto().engaged(member)) {
-                Msg.err(me, "duel", Msg.v(member.getUsername()), " is already in a duel");
-                return;
-            }
-        }
-        Request theirs = pending(target, me);
-        if (theirs != null) { // dueling back accepts: the requester's mode and options win
-            launch(theirs, target, me);
-            return;
-        }
+        if (!free(me, me) || !free(me, target)) return;
         requests.put(me.getUuid(), new Request(target.getUuid(), mode.name(), options, System.currentTimeMillis()));
         // scrims' lines as captured: a yellow sentence, the name in prose, the map or pool a value
-        String what = title(mode) + " duel request";
+        String what = mode.title() + " duel request";
         me.sendMessage(Component.text("Sent a " + what + " to ", NamedTextColor.YELLOW)
                 .append(Msg.THEME.prose(target.getUsername())).append(on(mode, options)));
         flagsLine(me, options);
@@ -162,11 +146,11 @@ public final class Duels {
     private static @Nullable Player online(Player me, String name) {
         Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
         if (target == null) {
-            Msg.err(me, "duel", "no player named ", Msg.v(name));
+            Msg.fail(me, "No player named ", Msg.v(name), ".");
             return null;
         }
         if (target == me) {
-            Msg.err(me, "duel", "you can't duel yourself");
+            Msg.fail(me, "You can't duel yourself.");
             return null;
         }
         return target;
@@ -174,8 +158,19 @@ public final class Duels {
 
     private static boolean leads(Player me) {
         if (Parties.leads(me)) return true;
-        Msg.err(me, "duel", "your party leader duels for you");
+        Msg.fail(me, "Your party leader duels for you.");
         return false;
+    }
+
+    /** Whether {@code who}'s whole side is out of a game; {@code me} hears who is not. */
+    private static boolean free(Player me, Player who) {
+        for (Player member : Parties.of(who)) {
+            if (!Matches.grotto().engaged(member)) continue;
+            if (member == me) Msg.fail(me, "You're already in a game.");
+            else Msg.fail(me, Msg.v(member.getUsername()), " is already in a game.");
+            return false;
+        }
+        return true;
     }
 
     /** {@code from}'s live request aimed at {@code to}, or null. */
@@ -187,16 +182,6 @@ public final class Duels {
             return null;
         }
         return theirs.target().equals(to.getUuid()) ? theirs : null;
-    }
-
-    private static void launch(Request theirs, Player requester, Player accepter) {
-        requests.remove(requester.getUuid());
-        requests.remove(accepter.getUuid());
-        start(Matches.mode(theirs.mode()), theirs.options(), requester, accepter);
-    }
-
-    private static String title(Mode mode) {
-        return Character.toUpperCase(mode.name().charAt(0)) + mode.name().substring(1);
     }
 
     // the map when one was named, else the pool it will come from
@@ -230,37 +215,39 @@ public final class Duels {
     private static void listFlags(CommandSender to, String modeName) {
         Mode mode = Matches.mode(modeName);
         if (mode == null) {
-            Msg.err(to, "flags", "modes: ", Msg.v(String.join(", ", Matches.modes())));
+            Msg.fail(to, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", Matches.modes())), ".");
             return;
         }
         List<Flag> menu = Flags.of(mode);
         if (menu.isEmpty()) {
-            Msg.tag(to, "flags", mode.name() + " offers no flags");
+            Msg.say(to, mode.title() + " takes no flags.");
             return;
         }
-        Msg.tag(to, "flags", mode.name() + ":");
+        Msg.say(to, mode.title() + " flags:");
         for (Flag flag : menu) {
             Collection<String> values = flag.values(mode);
             String form = "-" + flag.name() + (values.isEmpty() ? "" : "=<" + String.join("|", values) + ">");
-            Msg.tag(to, "flags", "  ", Msg.v(form), "  " + flag.description());
+            Msg.say(to, "  ", Msg.v(form), "  " + flag.description());
         }
     }
 
-    private static void start(Mode mode, Options options, Player a, Player b) {
+    /** {@code true} when the match launched; both players hear why when it did not. */
+    private static boolean start(Mode mode, Options options, Player a, Player b) {
         Platform platform = Matches.platformFor(options.platform());
         try {
             Matches.start(mode, platform, List.of(Parties.of(a), Parties.of(b)), options);
         } catch (IllegalStateException e) { // the map may not be authored yet
-            for (Player p : new Player[]{a, b}) Msg.err(p, "duel", e.getMessage());
-            return;
+            for (Player p : new Player[]{a, b}) Msg.fail(p, e.getMessage());
+            return false;
         } catch (RuntimeException e) {
             // a bad ruleset path fails inside the launch, which tears its own shard down - nothing is orphaned
-            for (Player p : new Player[]{a, b}) Msg.err(p, "duel", "could not start: " + e.getMessage());
-            return;
+            for (Player p : new Player[]{a, b}) Msg.fail(p, "The duel could not start: " + e.getMessage());
+            return false;
         }
         // name what runs: the REQUESTER's mode and options win an accept, which is invisible otherwise
-        String tag = mode.name() + options.describe();
-        Msg.tag(a, "duel", tag + " vs ", Msg.v(b.getUsername()));
-        Msg.tag(b, "duel", tag + " vs ", Msg.v(a.getUsername()));
+        String what = mode.title() + options.describe();
+        Msg.say(a, what + " vs ", Msg.v(b.getUsername()), ".");
+        Msg.say(b, what + " vs ", Msg.v(a.getUsername()), ".");
+        return true;
     }
 }

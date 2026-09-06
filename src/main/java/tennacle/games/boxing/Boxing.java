@@ -4,6 +4,8 @@ import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.bloom.edit.Teams;
 import tennacle.games.Presets;
+import tennacle.commands.Commands;
+import tennacle.commands.AppCommand;
 import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Duels;
@@ -43,7 +45,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
-import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.GameMode;
@@ -159,7 +160,9 @@ public final class Boxing {
 
     /** {@code /stats [player]}: career boxing numbers off the vault - w-tap % derives at display. */
     private static void registerStats() {
-        Command stats = new Command("stats");
+        AppCommand stats = Commands.player("stats", "Career boxing numbers.")
+                .usage("/stats [player]", "yours, or theirs")
+                .featured();
         var name = ArgumentType.Word("player");
         name.setSuggestionCallback(PlayerNames.suggest());
         stats.setDefaultExecutor((sender, ctx) -> {
@@ -168,12 +171,12 @@ public final class Boxing {
         stats.addSyntax((sender, ctx) -> {
             Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(ctx.get(name));
             if (target == null) {
-                Msg.err(sender, "stats", "no player named ", Msg.v(ctx.get(name)));
+                Msg.fail(sender, "No player named ", Msg.v(ctx.get(name)), ".");
                 return;
             }
             show(sender, target.getUsername(), target.getUuid());
         }, name);
-        MinecraftServer.getCommandManager().register(stats);
+        Commands.register(stats);
     }
 
     private static void show(Object to, String username, UUID uuid) {
@@ -182,9 +185,9 @@ public final class Boxing {
                 vault.get(uuid, CAREER_SPRINT).thenAccept(sprint ->
                         vault.get(uuid, CAREER_COMBO).thenAccept(combo -> {
                             String wtap = hits > 0 ? Math.round(sprint * 100.0 / hits) + "%" : "-";
-                            Msg.tag((net.minestom.server.command.CommandSender) to, "stats",
-                                    Msg.v(username), "  hits ", Msg.v(hits),
-                                    "  w-tap ", Msg.v(wtap), "  best combo ", Msg.v(combo));
+                            Msg.say((net.minestom.server.command.CommandSender) to,
+                                    Msg.v(username), ": ", Msg.v(hits), " hits, ", Msg.v(wtap), " w-tap, best combo ",
+                                    Msg.v(combo), ".");
                         })));
     }
 }
