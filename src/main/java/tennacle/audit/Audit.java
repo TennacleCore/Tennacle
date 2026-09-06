@@ -6,6 +6,7 @@ import tennacle.games.Matches;
 import tennacle.games.matchmaking.Parties;
 import tennacle.games.watch.Replays;
 import tennacle.games.watch.Spectators;
+import tennacle.games.Mode;
 
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
@@ -16,6 +17,7 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Grotto;
 import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.grotto.roster.Slot;
+import io.github.term4.barnacle.Arena;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -33,6 +35,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * The server's worlds as an admin reads them: every instance, the games and shard trees over it, and where each
@@ -91,6 +95,14 @@ public final class Audit {
         for (Grotto.InstanceView row : Matches.grotto().instances()) {
             if (row.instance() == instance && row.arena() != null) return "map " + row.arena().meta().id();
         }
+        for (String name : Matches.modes()) { // a map warmed for its next game, before any game names it
+            Mode mode = Matches.mode(name);
+            if (mode == null) continue;
+            for (String map : mode.arena().names()) {
+                Arena arena = mode.arena().named(map);
+                if (arena != null && arena.instantiated() == instance) return "map " + map;
+            }
+        }
         Session editing = Bloom.session();
         if (editing != null && editing.instance() == instance) return "editor " + editing.id();
         return "world " + instance.getDimensionName() + " " + instance.getUuid().toString().substring(0, 6);
@@ -139,9 +151,17 @@ public final class Audit {
                 .sorted(Comparator.comparing(Audit::handle)).toList();
     }
 
-    /** The players in {@code shard}, by name. */
+    /** The players in {@code shard} - its members, then those viewing it from outside - by name. */
     public static @NotNull List<Player> playersIn(@NotNull Shard shard) {
-        return shard.members().stream().sorted(Comparator.comparing(Player::getUsername)).toList();
+        Set<Player> all = new LinkedHashSet<>(shard.members());
+        all.addAll(shard.observers());
+        return all.stream().sorted(Comparator.comparing(Player::getUsername)).toList();
+    }
+
+    /** Those viewing {@code shard} without standing in it: a replay's watchers, staff with a view set. */
+    public static @NotNull List<Player> viewersOf(@NotNull Shard shard) {
+        return shard.observers().stream().filter(p -> !shard.members().contains(p))
+                .sorted(Comparator.comparing(Player::getUsername)).toList();
     }
 
     public static @NotNull String client(@NotNull Player p) {
@@ -397,7 +417,12 @@ public final class Audit {
         String owner = owner(root);
         if (owner != null) parts.add(" · " + owner);
         parts.add(" · ");
-        parts.add(players(playersIn(root), root, Game.of(root)));
+        parts.add(players(new ArrayList<>(root.members()), root, Game.of(root)));
+        List<Player> viewing = viewersOf(root);
+        if (!viewing.isEmpty()) {
+            parts.add(" · ");
+            parts.add(Msg.v(viewing.size() + " viewing").hoverEvent(names(viewing, null)));
+        }
         int under = under(root);
         if (under > 0) parts.add(" · " + under + " under it");
         Msg.tag(to, "audit", parts.toArray());

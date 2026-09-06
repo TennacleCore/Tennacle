@@ -57,8 +57,12 @@ public final class AuditViews {
         }
     }
 
-    /** {@code node} over its children. */
+    /** {@code node} over its children; a lone shard has nothing to expand and opens its players instead. */
     public static void tree(@NotNull Player viewer, @NotNull Shard node) {
+        if (node.children().isEmpty()) {
+            who(viewer, node);
+            return;
+        }
         Page<Shard> page = new Page<>();
         page.all = children(node);
         Screen.Builder screen = Screen.rows(6).title(Component.text("Tree · " + Audit.handle(node))).ownClicks(ClickRule.DENY);
@@ -96,14 +100,20 @@ public final class AuditViews {
         Page<Player> page = new Page<>();
         page.all = Audit.playersIn(shard);
         Screen.Builder screen = Screen.rows(6).title(Component.text("Players · " + Audit.handle(shard))).ownClicks(ClickRule.DENY);
-        screen.button(UP, v -> Items.named(Material.OAK_SAPLING, Component.text("The tree", NamedTextColor.GRAY)),
-                (who, click) -> tree(who, shard));
+        Shard parent = shard.parent();
+        if (parent != null) {
+            screen.button(UP, Items.named(Material.ARROW, Component.text("Up to " + Audit.label(parent), NamedTextColor.GRAY)),
+                    (who, click) -> tree(who, parent));
+        } else if (!shard.children().isEmpty()) {
+            screen.button(UP, v -> Items.named(Material.OAK_SAPLING, Component.text("The tree", NamedTextColor.GRAY)),
+                    (who, click) -> tree(who, shard));
+        }
         screen.item(NODE, v -> shardItem(shard, false));
         for (int i = 0; i < PAGE; i++) {
             int index = i;
             screen.button(9 + i, v -> {
                 Player p = page.shown(index);
-                return p != null ? headItem(p, Game.of(shard)) : ItemStack.AIR;
+                return p != null ? headItem(p, Game.of(shard), shard.members().contains(p)) : ItemStack.AIR;
             }, (who, click) -> {
                 Player p = page.shown(index);
                 if (p == null) return;
@@ -193,6 +203,8 @@ public final class AuditViews {
         if (owner != null) lore.add(Component.text(owner, NamedTextColor.AQUA));
         lore.add(Component.text(Audit.label(shard.instance()), NamedTextColor.GRAY));
         lore.add(Component.text(shard.members().size() + Audit.plural(shard.members().size(), " player"), NamedTextColor.GRAY));
+        int viewing = Audit.viewersOf(shard).size();
+        if (viewing > 0) lore.add(Component.text(viewing + " viewing", NamedTextColor.GRAY));
         long entities = entities(shard);
         lore.add(Component.text(entities + Audit.plural((int) entities, " entity", " entities"), NamedTextColor.GRAY));
         lore.add(Component.text(shard.overlaySize() + Audit.plural(shard.overlaySize(), " block") + " in the diff", NamedTextColor.GRAY));
@@ -205,15 +217,16 @@ public final class AuditViews {
     }
 
     private static ItemStack headsItem(Shard shard) {
-        int n = shard.members().size();
+        int n = shard.members().size(), viewing = Audit.viewersOf(shard).size();
         return Items.lore(Items.named(Material.PLAYER_HEAD, Component.text("Players here", NamedTextColor.WHITE)),
-                List.of(Component.text(n + Audit.plural(n, " player"), NamedTextColor.GRAY),
+                List.of(Component.text(n + Audit.plural(n, " player") + (viewing > 0 ? " · " + viewing + " viewing" : ""), NamedTextColor.GRAY),
                         Component.text("Click: list them", NamedTextColor.YELLOW)));
     }
 
-    /** A player's head in their seat's color, what they are doing under it. */
-    public static @NotNull ItemStack headItem(@NotNull Player p, @Nullable Game game) {
+    /** A player's head in their seat's color, what they are doing under it; {@code member} false = viewing from outside. */
+    public static @NotNull ItemStack headItem(@NotNull Player p, @Nullable Game game, boolean member) {
         List<Component> lore = new ArrayList<>();
+        if (!member) lore.add(Component.text("viewing", NamedTextColor.GRAY));
         if (game != null) {
             Slot slot = game.roster().slotOf(p);
             if (slot != null) lore.add(Component.text("team " + slot.team(), Audit.color(p, game)));

@@ -93,9 +93,13 @@ class AuditTest extends HeadlessServerTest {
             AuditViews.tree(admin.player, game.shard());
             Inventory tree = Screens.inventory(admin.player);
             assertNotNull(tree);
-            Material node = tree.getItemStack(AuditViews.NODE).material();
-            assertTrue(node == Material.OAK_SAPLING || node == Material.STICK, "the node is a sapling or a stick: " + node);
-            assertEquals(Material.PLAYER_HEAD, tree.getItemStack(AuditViews.ACROSS).material(), "the way across to the players");
+            if (game.shard().children().isEmpty()) { // nothing to expand: the players open instead
+                assertEquals(Material.STICK, tree.getItemStack(AuditViews.NODE).material(), "a lone shard is a stick");
+                assertEquals(Material.PLAYER_HEAD, tree.getItemStack(9).material());
+            } else {
+                assertEquals(Material.OAK_SAPLING, tree.getItemStack(AuditViews.NODE).material(), "a tree is a sapling");
+                assertEquals(Material.PLAYER_HEAD, tree.getItemStack(AuditViews.ACROSS).material(), "the way across to the players");
+            }
             for (Shard child : game.shard().children()) {
                 assertEquals(child, Audit.shard(Audit.handle(child)));
             }
