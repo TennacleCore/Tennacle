@@ -94,6 +94,7 @@ class ReplaysTest extends HeadlessServerTest {
         Path filed = replays.resolve("sumo").resolve("leftover.shard");
         assertTrue(Files.exists(filed), "the spool became a file under its mode");
         assertFalse(Files.exists(spool), "and is gone");
+        assertFalse(Files.exists(spool.getParent()), "with the folder from before the mode folders");
         assertEquals("LEFT", ShardFile.userData(Files.readAllBytes(filed)).get(Replays.CODE), "with the header's data");
         assertEquals(filed, Replays.fileOf("leftover"));
         assertTrue(Files.exists(replays.resolve("boxing").resolve("loose.shard")), "the loose file moved under its mode");

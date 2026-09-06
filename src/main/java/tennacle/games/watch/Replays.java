@@ -270,6 +270,11 @@ public final class Replays {
         }
         for (Path spool : spools) salvage(at, spool);
         for (Path file : loose) file(at, file);
+        try {
+            Files.deleteIfExists(at.resolve("spool")); // the folder from before the mode folders, once emptied
+        } catch (IOException ignored) {
+            // still holds something: stays
+        }
     }
 
     private static List<Path> spoolsIn(Path folder) {
