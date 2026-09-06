@@ -239,7 +239,7 @@ public final class Cages implements GameModule {
                 if (chat != null) p.sendMessage(chat); // captured: scrims mirrors the count into chat
                 p.playSound(hypixel ? HAT : TICK);
             });
-            if (held != null) Matches.cue(game, SoundSet.SCORED); // captured: the goal firework rides every beat
+            if (held != null) Matches.cue(game, SoundSet.SCORED_BEAT); // captured: hypixel's firework rides every beat
             nextBeat = st.tick() + game.rules().resolve(Scope.GAME, Countdown.INTERVAL);
             st.alarms().arm(COUNT_ALARM, nextBeat, CompoundBinaryTag.builder().putInt("n", n - 1).build());
             return;

@@ -1,5 +1,7 @@
 package tennacle.games.boxing;
 
+import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
 import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
@@ -133,6 +135,7 @@ public final class Boxing {
                         Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT), Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
+                        Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle),
                         () -> Stats.of()
                                 .counter(HITS, CAREER_HITS)

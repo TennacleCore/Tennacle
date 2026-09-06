@@ -41,6 +41,8 @@ import tennacle.games.Duels;
 import tennacle.games.GameSounds;
 import tennacle.games.TabStats;
 import tennacle.games.Matches;
+import io.github.term4.archipelago.Storage;
+import tennacle.games.Replays;
 import tennacle.games.Parties;
 import tennacle.games.Queues;
 import tennacle.games.Spectators;
@@ -212,6 +214,7 @@ public final class TestServer {
         Matches.grotto().vault(vault);
         MatchLog.install(data.resolve("matches"));
         Matches.grotto().onGameEnd(MatchLog::ended);
+        Replays.install(Storage.dir("replay-dir", "replays")); // every game, spooled as it runs, kept as a file
 
         Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto
         Parties.install(); // /party: a side that duels and queues together

@@ -13,8 +13,6 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Grotto;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.arguments.ArgumentType;
@@ -120,9 +118,6 @@ public final class GrottoCommands {
                 + " (", Msg.run("/grotto spectate off"), ")");
     }
 
-    // marks a .bncl-backed row; foreign instances render bare
-    private static final Component BNCL = Component.text("◆", NamedTextColor.GREEN, TextDecoration.BOLD);
-
     private static void list(CommandSender sender, ShardManager shards) {
         List<Grotto.InstanceView> rows = Matches.grotto().instances();
         if (rows.isEmpty()) {
@@ -132,29 +127,32 @@ public final class GrottoCommands {
         for (Grotto.InstanceView row : rows) {
             boolean idle = row.games().isEmpty() && row.roots().isEmpty();
             long m = row.quietMillis() / 60000;
-            String state = idle ? " - idle " + (m > 0 ? m + "m" : row.quietMillis() / 1000 + "s") : " - active";
-            if (row.arena() != null) {
-                Msg.tag(sender, "grotto", Msg.v(row.arena().meta().id()), " ", BNCL, state);
-            } else {
-                Msg.tag(sender, "grotto", Msg.v(row.instance().getDimensionName()), state);
-            }
+            String state = idle ? "idle " + (m > 0 ? m + "m" : row.quietMillis() / 1000 + "s") : "active";
+            String what = row.arena() != null ? "map " + row.arena().meta().id() : "world " + row.instance().getDimensionName();
+            Msg.tag(sender, "grotto", Msg.v(what), " - " + state
+                    + (row.games().isEmpty() ? "" : ", " + row.games().size() + (row.games().size() == 1 ? " game" : " games")));
+            java.util.Set<Shard> owned = new java.util.HashSet<>();
             for (Game game : row.games()) {
+                owned.add(game.shard());
                 String players = game.members().stream()
                         .map(mem -> game.isGhost(mem) ? mem.getUsername() + " (ghost)" : mem.getUsername())
                         .collect(Collectors.joining(", "));
+                String shard = shards.nameOf(game.shard());
                 Msg.tag(sender, "grotto", "  ", Msg.v(game.type().id() + "#" + game.code())
-                                .hoverEvent(Component.text(game.id()))
+                                .hoverEvent(Component.text("click to copy the game id"))
                                 .clickEvent(ClickEvent.copyToClipboard(game.id())),
-                        " " + game.status().name().toLowerCase() + " t=" + game.tick() + " - ",
-                        Msg.v(players.isEmpty() ? "empty" : players));
+                        ": " + game.status().name().toLowerCase() + " at tick " + game.tick() + ", ",
+                        Msg.v(players.isEmpty() ? "nobody in" : players),
+                        shard != null ? " on shard " + shard : "");
                 String specs = game.spectators().stream().map(Player::getUsername).collect(Collectors.joining(", "));
-                if (!specs.isEmpty()) Msg.tag(sender, "grotto", "    watching: ", Msg.v(specs));
+                if (!specs.isEmpty()) Msg.tag(sender, "grotto", "    watched by ", Msg.v(specs));
             }
             for (Shard root : row.roots()) {
+                if (owned.contains(root)) continue; // a game's shard is on its own line
                 String name = shards.nameOf(root);
                 int under = descendants(shards, root);
-                Msg.tag(sender, "grotto", "  tree ", Msg.v(name != null ? name : "unnamed"),
-                        under > 0 ? " (+" + under + ")" : "");
+                Msg.tag(sender, "grotto", "  shard tree ", Msg.v(name != null ? name : "unnamed"),
+                        under > 0 ? " (+" + under + " under it)" : "", " - no game");
             }
         }
     }

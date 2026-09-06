@@ -1,5 +1,7 @@
 package tennacle.games.sumo;
 
+import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
 import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
@@ -98,6 +100,7 @@ public final class Sumo {
                             if (rules != null) rules.fell(p);
                         }),
                         KillCredit::new, Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
+                        Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         for (Ruleset ruleset : VARIANTS.values()) ruleset.check(Mechanics.polyp.profiles().global(), type);

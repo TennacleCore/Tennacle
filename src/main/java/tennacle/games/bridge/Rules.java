@@ -1,5 +1,8 @@
 package tennacle.games.bridge;
 
+import net.kyori.adventure.text.format.NamedTextColor;
+import tennacle.looks.Fireworks;
+import io.github.term4.canvas.theme.SoundSet;
 import tennacle.games.Deaths;
 import java.util.Set;
 import net.minestom.server.codec.Codec;
@@ -180,6 +183,15 @@ public final class Rules implements GameModule {
             if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
                     || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
+        st.alarms().register(FIREWORK_ALARM, (tick, payload) -> {
+            String team = payload.getString("team");
+            Fireworks.burst(game.instance(), center(game), List.of(NamedTextColor.WHITE, game.roster().team(team).color()));
+            int left = payload.getInt("left") - 1;
+            if (left > 0) {
+                st.alarms().arm(FIREWORK_ALARM, tick + 20, CompoundBinaryTag.builder()
+                        .putInt("left", left).putString("team", team).build());
+            }
+        });
         st.alarms().register(REFIT_ALARM, (tick, payload) -> {
             game.forEachMember(member -> {
                 if (game.roster().slotOf(member) == null) return;
@@ -218,6 +230,21 @@ public final class Rules implements GameModule {
     }
 
     /** The kit back on a fresh body, the quiver reset - after a respawn and after a goal. */
+    private static final String FIREWORK_ALARM = "bridge:fireworks";
+
+    // the middle of the center marker, a few blocks up
+    private static Pos center(Game game) {
+        RegionMarker.Cuboid box = game.arena().markers(Bridge.CENTER).getFirst().boxes().getFirst();
+        return new Pos((box.min().x() + box.max().x() + 1) / 2.0, box.max().y() + 3,
+                (box.min().z() + box.max().z() + 1) / 2.0);
+    }
+
+    /** A seat re-claimed mid-round comes back the way a respawn does: the anchor, full health, protection. */
+    @Override
+    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
+        if (reclaimed && Match.live(game)) respawns.respawn(player);
+    }
+
     private void refit(Game game, Player player) {
         restock.reset(player);
         kits.refit(player); // targeted: only the slots that changed, never a full inventory resend
@@ -314,6 +341,11 @@ public final class Rules implements GameModule {
             default -> Banners.scrims(game, scorer, color);
         };
         if (banner != null) Match.each(game, p -> p.sendMessage(banner));
+        Matches.cue(game, SoundSet.SCORED);
+        if (look.equals("hypixel")) { // uncaptured: five bursts a second apart at the center, white and the team's color
+            st.alarms().arm(FIREWORK_ALARM, st.tick() + 1, CompoundBinaryTag.builder()
+                    .putInt("left", 5).putString("team", seat.team()).build());
+        }
         if (game.decided() != null) return; // the winning goal: no re-cage, no held title
         if (!Rounds.reopens(game)) { // no break between goals: play on
             st.alarms().arm(REFIT_ALARM, st.tick() + 1); // the alarm reads both halves; neither is this call's business

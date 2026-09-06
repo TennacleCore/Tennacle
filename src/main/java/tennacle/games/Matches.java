@@ -170,6 +170,7 @@ public final class Matches {
             g.state().set(Scope.GAME, PLATFORM, platform.name());
             if (!options.rules().isEmpty()) modifiers.put(g.id(), options.rules());
             fold(g);
+            Replays.record(g);
             for (Consumer<Game> hook : options.atLaunch()) hook.accept(g);
         });
     }

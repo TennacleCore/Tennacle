@@ -1,5 +1,7 @@
 package tennacle.games.bridge;
 
+import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.flow.Abandonment;
 import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.combat.Projectiles;
@@ -224,6 +226,7 @@ public final class Bridge {
                         Rules::new, Presentation::new,
                         Projectiles::new, // an arrow off a protected enemy vanishes; off a teammate it passes
                         () -> Refusals.of(Look::refusal),
+                        Abandonment.endWhenDeserted(Outcome::aborted), // everyone gone: flow.abandon.empty, then closed
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         AppCommand cageCmd = Commands.player("cage", "The cage you start a bridge round in.")

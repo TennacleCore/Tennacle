@@ -482,7 +482,7 @@ public final class ShardCommands {
     }
 
     /** Views only render in their own instance - cross-world watching is {@code /grotto spectate}'s job (it transfers). */
-    private static void spectate(Player p, Shard g, ShardView view, Runnable announce) {
+    static void spectate(Player p, Shard g, ShardView view, Runnable announce) {
         if (p.getInstance() != g.instance()) {
             Msg.err(p, "shard", "that shard lives in another world - ", Msg.run("/grotto spectate <player>"), " follows games there");
             return;

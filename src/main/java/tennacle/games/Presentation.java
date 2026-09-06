@@ -78,6 +78,11 @@ public final class Presentation implements GameModule {
     @Override
     public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
         TabList.refresh(player); // the seat line leaves with the seat
+        // a freed seat is a forfeit, and the elimination says so; a held one is only a walk-out
+        if (departure.seat() != null && departure.reserved()) {
+            Component line = Look.departure(game, departure.seat(), player.getUsername(), false);
+            Match.each(game, p -> p.sendMessage(line));
+        }
     }
 
     @Override
@@ -135,6 +140,10 @@ public final class Presentation implements GameModule {
     @Override
     public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
         TabList.refresh(player);
+        if (reclaimed) {
+            Component line = Look.departure(game, slot, player.getUsername(), true);
+            Match.each(game, p -> p.sendMessage(line));
+        }
     }
 
     @Override

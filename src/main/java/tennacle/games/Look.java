@@ -38,6 +38,17 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                    @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth,
                    @NotNull HitReport.Line hit, @NotNull Tiebreak tiebreak) {
 
+    /** A seat walked out on, or one re-claimed: the name as this look names players, then the fact. */
+    public static @NotNull Component departure(Game game, Slot seat, String name, boolean back) {
+        Theme theme = Matches.lookOf(game).theme();
+        Component who = switch (Matches.lookNameOf(game)) {
+            case "scrims", "tennacle" -> Component.text(name, game.roster().team(seat.team()).color());
+            case "hypixel" -> Component.text(name, NamedTextColor.AQUA);
+            default -> theme.value(name);
+        };
+        return who.append(theme.prose(back ? " rejoined!" : " left!"));
+    }
+
     /** The line for an action the game refused, in light red: hypixel's copy, kept for every look. */
     public static @NotNull Component refusal(Game game, Player player, Refusals.Kind kind) {
         return Component.text(switch (kind) {
@@ -91,6 +102,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     // placeholders: neither ding nor block sound is a capture
     private static final Sound DING = Sound.sound(SoundEvent.ENTITY_ARROW_HIT_PLAYER, Sound.Source.MASTER, 1f, 1f);
     private static final Sound BLOCK = Sound.sound(SoundEvent.BLOCK_ANVIL_LAND, Sound.Source.MASTER, 0.3f, 2f);
+    // captured on hypixel: fireworks.launch vol 3; scrims plays the same launch once on the goal
+    private static final Sound FIREWORK = Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f);
 
     private static SoundSet plings() {
         return SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO);
@@ -107,7 +120,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
-            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING), Look::scrimsChat, // the ding on any enemy's fall
+            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING).cue(SoundSet.SCORED, FIREWORK), Look::scrimsChat, // the ding on any enemy's fall
             // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
             new Tab(p -> Component.text("TENNACLE", NamedTextColor.AQUA, TextDecoration.BOLD)
                             .append(Component.text("\nPlaying on " + ADDRESS + "\n", NamedTextColor.YELLOW)),
@@ -118,12 +131,11 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             new Count(Look::hypixelNumber,
                     n -> Component.text(n, n >= 4 ? NamedTextColor.YELLOW : NamedTextColor.RED),
                     Look::hypixelStarted),
-            // captured: note.hat vol 20 each beat, nothing at zero, fireworks.launch vol 3 on a goal
+            // captured: note.hat vol 20 each beat, nothing at zero, the firework launch on each beat after a goal
             SoundSet.of()
                     .cue(SoundSet.COUNTDOWN,
                             Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 20f, 1f))
-                    .cue(SoundSet.SCORED,
-                            Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f))
+                    .cue(SoundSet.SCORED_BEAT, FIREWORK)
                     .cue(SoundSet.KILL, DING), // the ding on kill credit
             // captured: green [GAME], then rank + name (no ranks here: gray name), white message
             (g, speaker, message) -> Component.text("[GAME] ", NamedTextColor.GREEN)
@@ -137,7 +149,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** The house look: the gradient on titles, light gray prose, light blue values, names in their team's tint. */
     public static final Look TENNACLE = new Look(Msg.THEME, Look::scrimsDeath, Look::scrimsVerdict,
-            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING).cue(SoundSet.BLOCKED, BLOCK), Look::scrimsChat,
+            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING).cue(SoundSet.BLOCKED, BLOCK).cue(SoundSet.SCORED, FIREWORK),
+            Look::scrimsChat,
             new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline())
                             .append(Msg.THEME.prose("Playing on ")).append(Msg.THEME.value(ADDRESS)),
                     p -> seatStats(p).append(Component.newline()).append(Msg.THEME.accent(STORE))),
@@ -180,9 +193,11 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     // captured: [RED] Dogln: message - the team tag in the team color, the rest white
     private static Component scrimsChat(Game game, Player speaker, String message) {
-        return Component.text("[" + Match.teamName(game, speaker) + "] ", Match.teamColor(game, speaker))
-                .append(Component.text(speaker.getUsername() + ": ", NamedTextColor.GRAY))
+        Component line = Component.text(speaker.getUsername() + ": ", NamedTextColor.GRAY)
                 .append(Component.text(message, NamedTextColor.WHITE));
+        Mode mode = Matches.modeOf(game);
+        if (mode != null && mode.teamScore() == null) return line; // a plain duel has no side to name
+        return Component.text("[" + Match.teamName(game, speaker) + "] ", Match.teamColor(game, speaker)).append(line);
     }
 
     private static void tiebreak(Game game, Player viewer, Theme theme) {

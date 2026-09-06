@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.modules.combat.Freeze;
@@ -23,6 +24,7 @@ final class Rulesets {
     /** What bridge IS on every server: arrows vanish off blocks, no hunger or natural regen, no tossing. */
     static final Ruleset BASE = Ruleset.named("bridge")
             .rule(Roster.RECLAIM_TICKS, -1L) // a seat waits for the rest of the game
+            .rule(Abandonment.EMPTY_TICKS, 1200L) // a minute with nobody in, then the game closes
             .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
             .path("projectiles/minecraft:arrow/selfHit", "pass_through") // no bow boost unless a platform asks
             // same team + FF off is the client lever that stops a 1.8 client hiding an arrow, so teammates already

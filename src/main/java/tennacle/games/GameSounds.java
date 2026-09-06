@@ -28,8 +28,8 @@ import java.util.Locale;
 public final class GameSounds {
 
     /** Every cue a look can map, by short name; the last two reach a player outside any game. */
-    public static final List<String> ALL = List.of("countdown", "start", "scored", "kill", "died", "ally-down",
-            "enemy-down", "blocked", "party-invite", "duel-request");
+    public static final List<String> ALL = List.of("countdown", "start", "scored", "scored-beat", "kill", "died",
+            "ally-down", "enemy-down", "blocked", "party-invite", "duel-request");
     /** The cues this game plays, by short name; the look's mapping is the ceiling, this the floor. */
     public static final StateKey<List<String>> CUES = StateKey.of("sound.cues", Codec.STRING.list(), ALL);
     public static final VaultKey<String> MUTED = VaultKey.of("sounds:muted", Codec.STRING, "");
