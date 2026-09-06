@@ -180,10 +180,14 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         return tiebreak(game, legacy, Msg.THEME);
     }
 
-    // the network in the house gradient, then the room the viewer is actually in
+    // the network in the house gradient, then the room the viewer is actually in. The title is bold, and a
+    // child inherits it: appended to the title, the line under it would render bold and outgrow the tab panel
     private static Component houseHeader(Player viewer) {
-        return Msg.THEME.boardTitle(viewer, ADDRESS.toUpperCase(Locale.ROOT))
-                .append(Component.newline()).append(houseWhere(viewer));
+        return Component.text()
+                .append(Msg.THEME.boardTitle(viewer, ADDRESS.toUpperCase(Locale.ROOT)))
+                .append(Component.newline())
+                .append(houseWhere(viewer))
+                .build();
     }
 
     private static Component houseWhere(Player viewer) {

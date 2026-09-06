@@ -8,6 +8,7 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,6 +59,9 @@ class HouseTabHeaderTest extends HeadlessServerTest {
             assertTrue(seated.contains(bridge.title()), "the mode: " + seated);
             assertTrue(seated.contains(game.arena().meta().name()), "the map: " + seated);
             assertTrue(seated.contains(game.code()), "and the code that names it: " + seated);
+            assertEquals(TextDecoration.State.NOT_SET,
+                    Look.TENNACLE.tab().header().apply(a.player).decoration(TextDecoration.BOLD),
+                    "the title alone is bold: a bold root carries into the line under it, which then overruns the panel");
         } finally {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
