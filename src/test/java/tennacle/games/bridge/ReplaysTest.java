@@ -177,9 +177,10 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(rows.stream().anyMatch(l -> l.contains("Time:")), "the recorded rows: " + rows);
             assertEquals("REPLAY", PlainTextComponentSerializer.plainText().serialize(board.title()), "the theater's title");
             String today = java.time.LocalDate.now().toString();
-            int dated = rows.indexOf(rows.stream().filter(l -> l.equals(today)).findFirst().orElse(null));
-            assertTrue(dated >= 0 && rows.get(dated + 1).startsWith("Recorded ") && rows.get(dated + 1).contains(game.code()),
-                    "today over the recording's own date and code: " + rows);
+            int dated = rows.indexOf(today);
+            assertTrue(dated >= 0 && dated + 4 <= rows.size(), "today's date on the board: " + rows);
+            assertEquals(List.of(today, "Recorded:", today, game.code()), rows.subList(dated, dated + 4),
+                    "today, then the recording's own date and code, a row each: " + rows);
             assertTrue(viewer.sent(TeamsPacket.class).stream().anyMatch(t -> t.action() instanceof TeamsPacket.CreateTeamAction c
                     && c.entities().contains("ChanRed")), "the lineup colors the ghosts' names");
             assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),

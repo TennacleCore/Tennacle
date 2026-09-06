@@ -124,6 +124,7 @@ final class Dressing {
     void enter(@NotNull Player viewer, boolean controller) {
         if (!dressed.add(viewer)) return;
         remote.enter(viewer, controller);
+        if (controller) viewer.setHeldItemSlot((byte) Remote.PLAY); // the hand starts on play/pause
         viewer.setTag(ShardTabList.SPECTATOR, true); // both eras sink and grey a spectator entry natively
         viewer.setTag(ShardTabList.LIST_ORDER, -1); // a modern client's own row sorts on this
         viewer.setTag(ShardTabList.SORT_NAME, sortName(viewer.getUsername())); // a 1.8 row apart from the ghost's
@@ -212,15 +213,17 @@ final class Dressing {
         }
     }
 
-    // the theater's frame over the recorded rows: today's date as any board writes it, the recorded date and
-    // code under it, labeled as the recording's
+    // the theater's frame over the recorded rows: today's date as any board writes it, then the recording's own
+    // date and code under a label, a row each
     private Replays.Rows adorn(Replays.Rows recorded) {
         List<Component> lines = new ArrayList<>(recorded.lines());
         for (int i = 0; !code.isEmpty() && i < lines.size(); i++) {
-            String plain = PlainTextComponentSerializer.plainText().serialize(lines.get(i));
+            String plain = PlainTextComponentSerializer.plainText().serialize(lines.get(i)).trim();
             if (!plain.contains(code)) continue;
-            lines.set(i, look.theme().dim("Recorded " + plain.trim()));
-            lines.add(i, look.theme().prose(Frames.date(lookName, LocalDate.now())));
+            String date = plain.replace(code, "").trim();
+            lines.remove(i);
+            lines.addAll(i, List.of(look.theme().prose(Frames.date(lookName, LocalDate.now())),
+                    look.theme().dim("Recorded:"), look.theme().dim(date), look.theme().dim(code)));
             break;
         }
         return new Replays.Rows(recorded.title(), lines);
