@@ -98,10 +98,11 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertEquals(Boolean.FALSE, arrow.critDamage.constantOrNull(), "scrims: the crit roll is dropped");
             assertNull(arrow.critParticles, "the crit trail follows the actual crit, never overridden");
 
-            // a TEAM-scoped entry lands in the SAME world profile (stuckInBody proves it - scrims sets it false)
+            // a TEAM-scoped entry lands in the SAME world profile (stuckInBody proves it: off for the game, on for red)
             String redTeam = Bridge.teamOf(game, red.player);
             var reFold = Mechanics.polyp.profiles().world(game.shard()).toBuilder();
             tennacle.games.Ruleset.named("proof")
+                    .path("projectiles/minecraft:arrow/stuckInBody", false)
                     .path(io.github.term4.grotto.state.Scope.team(redTeam), "projectiles/minecraft:arrow/stuckInBody", true)
                     .apply(reFold, Mechanics.polyp.profiles().global(), game);
             Mechanics.polyp.profiles().setWorld(game.shard(), reFold.build());
@@ -110,11 +111,12 @@ class BridgeRoundTest extends HeadlessServerTest {
                         io.github.term4.polyp.mechanics.projectile.types.Arrow.INSTANCE);
                 var ctx = io.github.term4.polyp.mechanics.projectile.ProjectileConfigResolver.ProjectileContext.of(snap,
                         Mechanics.polyp.services());
-                return Mechanics.polyp.profiles().resolve(shooter, io.github.term4.polyp.MechanicsKeys.PROJECTILES)
-                        .typeConfig(io.github.term4.polyp.mechanics.projectile.types.Arrow.KEY).stuckInBody.resolve(ctx);
+                var arrows = Mechanics.polyp.profiles().resolve(shooter, io.github.term4.polyp.MechanicsKeys.PROJECTILES)
+                        .typeConfig(io.github.term4.polyp.mechanics.projectile.types.Arrow.KEY);
+                return io.github.term4.polyp.config.FieldValue.resolve(arrows.stuckInBody, ctx, Boolean.TRUE); // unset = vanilla
             };
             assertEquals(Boolean.TRUE, stuck.apply(red.player), "team-scoped: red arrows stick");
-            assertEquals(Boolean.FALSE, stuck.apply(blue.player), "blue keeps the bridge base");
+            assertEquals(Boolean.FALSE, stuck.apply(blue.player), "blue keeps the game's value");
             assertNull(Mechanics.polyp.profiles().player(red.player), "and nothing was pushed onto a player");
 
             // dropping a scope is a RE-FOLD over the base, never surgery on the built profile
@@ -132,7 +134,7 @@ class BridgeRoundTest extends HeadlessServerTest {
                     () -> typo.apply(io.github.term4.polyp.MechanicsProfile.builder(), null, game),
                     "a team the roster lacks fails the fold, it does not apply to nobody");
             Matches.fold(game); // the launch fold again, without the handicap
-            assertEquals(Boolean.FALSE, stuck.apply(red.player), "re-folded from the base: red is back on the bridge value");
+            assertEquals(Boolean.TRUE, stuck.apply(red.player), "re-folded from the base: red is back on the bridge value");
             assertEquals(Boolean.TRUE, arrow.removeOnBlockHit.constantOrNull(), "bridge default rides along");
             await("kit applied", () -> swordOf(red.player) && swordOf(blue.player));
             // 1.8 leather chest+legs+boots = 3+2+1; if this drops to 0 nothing mitigates and TTK collapses

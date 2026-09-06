@@ -25,6 +25,7 @@ final class Rulesets {
     static final Ruleset BASE = Ruleset.named("bridge")
             .rule(Roster.RECLAIM_TICKS, -1L) // a seat waits for the rest of the game
             .rule(Abandonment.EMPTY_TICKS, 1200L) // a minute with nobody in, then the game closes
+            .rule(Bodies.CLEARS, List.of(Bodies.ARROWS)) // arrows stay in a body until the cages reset it
             .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
             .path("projectiles/minecraft:arrow/selfHit", "pass_through") // no bow boost unless a platform asks
             // same team + FF off is the client lever that stops a 1.8 client hiding an arrow, so teammates already
@@ -47,7 +48,6 @@ final class Rulesets {
             .rule(Cages.BLOCKS, false)                  // captured: no cage at all
             .rule(Freeze.SEAT, Freeze.SEAT_RESPAWN)     // held where they respawn instead
             .rule(Freeze.BOUNDS, 0)                     // captured: pinned there, no room to move at all
-            .rule(Bodies.CLEARS, List.of(Bodies.ARROWS)) // captured: a reset pulls the stuck arrows out
             .rule(TimeLimit.FROM, Match.LIVE);          // captured: the clock starts when the cages open, not on the count
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel")
@@ -57,7 +57,6 @@ final class Rulesets {
             "scrims", Ruleset.named("scrims")
                     .rule(Presets.KEY, "scrims18")
                     .path("projectiles/minecraft:arrow/critDamage", false)
-                    .path("projectiles/minecraft:arrow/stuckInBody", false) // captured: no body arrows on scrims
                     .rule(Countdown.FROM, 5) // captured: five beats on scrims, three elsewhere
                     .over(BASE),
             "minemen", VANILLA_RULES.over(BASE));
