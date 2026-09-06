@@ -77,20 +77,26 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     private static final Sound TICK = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 1f);
     private static final Sound GO = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
 
-    private static final SoundSet PLINGS = SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO);
+    // placeholders: neither ding nor block sound is a capture
+    private static final Sound DING = Sound.sound(SoundEvent.ENTITY_ARROW_HIT_PLAYER, Sound.Source.MASTER, 1f, 1f);
+    private static final Sound BLOCK = Sound.sound(SoundEvent.BLOCK_ANVIL_LAND, Sound.Source.MASTER, 0.3f, 2f);
+
+    private static SoundSet plings() {
+        return SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO);
+    }
     private static final Count SCRIMS_COUNT = new Count(Look::scrimsNumber, null, (g, p) -> null);
 
     /** Yellow names, gray prose, VICTORY!/DEFEATED! - the minemen profile. Chat and tab are server-wide there. */
     public static final Look MINEMEN = new Look(Msg.MINEMEN, Look::minemenDeath, Look::minemenVerdict,
             new Count(n -> Component.text(n + "...", NamedTextColor.YELLOW), null,
                     (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
-            PLINGS,
+            plings().cue(SoundSet.KILL, DING), // the ding on kill credit
             (g, speaker, message) -> Chat.plain(speaker, message),
             new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak);
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
-            SCRIMS_COUNT, PLINGS, Look::scrimsChat,
+            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING), Look::scrimsChat, // the ding on any enemy's fall
             // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
             new Tab(p -> Component.text("TENNACLE", NamedTextColor.AQUA, TextDecoration.BOLD)
                             .append(Component.text("\nPlaying on " + ADDRESS + "\n", NamedTextColor.YELLOW)),
@@ -106,7 +112,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                     .cue(SoundSet.COUNTDOWN,
                             Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 20f, 1f))
                     .cue(SoundSet.SCORED,
-                            Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f)),
+                            Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f))
+                    .cue(SoundSet.KILL, DING), // the ding on kill credit
             // captured: green [GAME], then rank + name (no ranks here: gray name), white message
             (g, speaker, message) -> Component.text("[GAME] ", NamedTextColor.GREEN)
                     .append(Component.text(speaker.getUsername(), NamedTextColor.GRAY))
@@ -119,7 +126,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** The house look: the gradient on titles, light gray prose, light blue values, names in their team's tint. */
     public static final Look TENNACLE = new Look(Msg.THEME, Look::scrimsDeath, Look::scrimsVerdict,
-            SCRIMS_COUNT, PLINGS, Look::scrimsChat,
+            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING).cue(SoundSet.BLOCKED, BLOCK), Look::scrimsChat,
             new Tab(p -> Msg.THEME.boardTitle(p, "TENNACLE").append(Component.newline())
                             .append(Msg.THEME.prose("Playing on ")).append(Msg.THEME.value(ADDRESS)),
                     p -> seatStats(p).append(Component.newline()).append(Msg.THEME.accent(STORE))),

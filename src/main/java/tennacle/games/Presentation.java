@@ -14,6 +14,8 @@ import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.roster.Slot;
+import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.api.event.blocking.BlockingDamageEvent;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -57,12 +59,20 @@ public final class Presentation implements GameModule {
             });
             respawns.onDead((p, seat) -> deadScreen(game, respawns, p));
         }
+        game.on(BlockingDamageEvent.class, BlockingDamageEvent::defender, e -> {
+            if (!e.isCancelled()) GameSounds.play(game, e.defender(), SoundSet.BLOCKED); // cancelled = no block happened
+        });
         Mode mode = Matches.modeOf(game);
         if (mode != null) { // the tab line reads a seat's own counters: a change re-sends it
             for (Mode.SeatStat stat : mode.tabStats()) {
                 game.rules().watch(stat.key(), (scope, value) -> game.forEachMember(TabList::refresh));
             }
         }
+    }
+
+    @Override
+    public @NotNull Set<StateKey<?>> rules() {
+        return Set.of(GameSounds.CUES);
     }
 
     @Override
@@ -167,7 +177,7 @@ public final class Presentation implements GameModule {
                 Match.each(g, p -> {
                     p.sendMessage(line);
                     if (title != null) p.showTitle(title);
-                    look.sounds().play(p, SoundSet.COUNTDOWN);
+                    GameSounds.play(g, p, SoundSet.COUNTDOWN);
                 });
             }
 
@@ -180,7 +190,7 @@ public final class Presentation implements GameModule {
                     Component started = look.count().started().apply(g, p);
                     if (started != null) p.sendMessage(started);
                     if (clear != null) p.showTitle(clear);
-                    look.sounds().play(p, SoundSet.START);
+                    GameSounds.play(g, p, SoundSet.START);
                 });
             }
         };

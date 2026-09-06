@@ -36,6 +36,7 @@ import tennacle.commands.ShardCommands;
 import tennacle.commands.SimTpsCommands;
 import tennacle.commands.SpectateCommands;
 import tennacle.games.Duels;
+import tennacle.games.GameSounds;
 import tennacle.games.TabStats;
 import tennacle.games.Matches;
 import tennacle.games.Parties;
@@ -224,6 +225,7 @@ public final class TestServer {
         TeamCommands.register(); // /team: which ordinal is which color, and who is on it
         PlayerPrefs.install();
         TabStats.register(); // /tabstats: which seat counters the house tab lists
+        GameSounds.register(); // /sounds: which cues a player hears
         // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
         GameIds.install(Matches.grotto(), gameSecret(data));
         GrottoCommands.register(shards); // /grotto: the live map (instances, games, players, shard trees)

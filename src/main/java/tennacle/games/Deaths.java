@@ -11,8 +11,9 @@ import java.util.Objects;
 /**
  * Death cues by relation to the dead: {@link SoundSet#KILL} to the killer, {@link SoundSet#DIED} to the dead,
  * {@link SoundSet#ALLY_DOWN} to their teammates, {@link SoundSet#ENEMY_DOWN} to every other team - each first as
- * its {@code <cue>:<the dead's team>} variant, then plain, so a many-team look can tell whose side fell. An
- * unmapped cue stays silent.
+ * its {@code <cue>:<the dead's team>} variant, then plain, so a many-team look can tell whose side fell. The killer
+ * is one of the dead's enemies too: a look with no credit cue (scrims, the house) still dings them on the fall. The
+ * look maps a cue or leaves it silent; {@link GameSounds} decides whether a mapped one reaches the ear.
  */
 public final class Deaths {
 
@@ -22,14 +23,17 @@ public final class Deaths {
         cue(game, victim, killer, Matches.lookOf(game).sounds());
     }
 
-    public static void cue(@NotNull Game game, @NotNull Player victim, @Nullable Player killer, @NotNull SoundSet sounds) {
+    static void cue(@NotNull Game game, @NotNull Player victim, @Nullable Player killer, @NotNull SoundSet sounds) {
         String team = Match.teamOf(game, victim);
-        sounds.first(victim, SoundSet.DIED + ":" + team, SoundSet.DIED);
-        if (killer != null && killer != victim) sounds.first(killer, SoundSet.KILL + ":" + team, SoundSet.KILL);
+        GameSounds.first(game, sounds, victim, SoundSet.DIED + ":" + team, SoundSet.DIED);
         for (Player member : game.members()) {
-            if (member == victim || member == killer) continue;
-            String cue = Objects.equals(Match.teamOf(game, member), team) ? SoundSet.ALLY_DOWN : SoundSet.ENEMY_DOWN;
-            sounds.first(member, cue + ":" + team, cue);
+            if (member == victim) continue;
+            String fell = Objects.equals(Match.teamOf(game, member), team) ? SoundSet.ALLY_DOWN : SoundSet.ENEMY_DOWN;
+            if (member == killer) {
+                GameSounds.first(game, sounds, member, SoundSet.KILL + ":" + team, SoundSet.KILL, fell + ":" + team, fell);
+            } else {
+                GameSounds.first(game, sounds, member, fell + ":" + team, fell);
+            }
         }
     }
 }

@@ -29,6 +29,7 @@ public final class TestWiring {
         tennacle.Rooms.install();
         tennacle.commands.RulesCommands.register();
         TabStats.register();
+        GameSounds.register();
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");
         Sumo.install();
         tennacle.games.boxing.Boxing.install();

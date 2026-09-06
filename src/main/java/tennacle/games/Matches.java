@@ -150,8 +150,7 @@ public final class Matches {
 
     /** Plays the look's sound for {@code cue} to everyone in the game; a look without one stays silent. */
     public static void cue(@NotNull Game game, @NotNull String cue) {
-        var sound = lookOf(game).sounds().get(cue);
-        if (sound != null) Match.each(game, p -> p.playSound(sound));
+        Match.each(game, p -> GameSounds.play(game, p, cue));
     }
 
     /**
