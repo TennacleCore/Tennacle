@@ -4,6 +4,7 @@ import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
 
+import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -141,6 +142,7 @@ public final class Duels {
                 .append(Msg.THEME.prose(me.getUsername())).append(on(mode, options)));
         target.sendMessage(acceptLine(me));
         flagsLine(target, options);
+        GameSounds.lobby(target, SoundSet.DUEL_REQUEST);
     }
 
     private static @Nullable Player online(Player me, String name) {

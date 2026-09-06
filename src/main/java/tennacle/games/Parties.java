@@ -3,6 +3,7 @@ package tennacle.games;
 import tennacle.Msg;
 import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;
+import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.polyp.platform.player.PlayerNames;
 
 import net.minestom.server.MinecraftServer;
@@ -112,6 +113,7 @@ public final class Parties {
         invites.put(target.getUuid(), new Invite(leader.getUuid(), System.currentTimeMillis()));
         Msg.ok(leader, "Invited ", Msg.v(target.getUsername()), " to your party.");
         Msg.say(target, Msg.v(leader.getUsername()), " invited you to their party. ", Msg.run("/party accept"), " to join.");
+        GameSounds.lobby(target, SoundSet.PARTY_INVITE);
     }
 
     private static void accept(Player player) {

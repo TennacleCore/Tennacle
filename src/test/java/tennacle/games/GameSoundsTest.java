@@ -5,9 +5,11 @@ import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import net.kyori.adventure.sound.Sound;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.network.packet.server.play.SoundEffectPacket;
+import net.minestom.server.sound.SoundEvent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +31,24 @@ class GameSoundsTest extends HeadlessServerTest {
     void theTeamVariantIsTheSameName() {
         assertEquals("enemy-down", GameSounds.name("canvas:enemy-down:1"));
         assertEquals("kill", GameSounds.name(SoundSet.KILL));
+    }
+
+    @Test
+    void aLobbyCueHonorsTheMute() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(644.5, 65, 644.5), "SndC");
+        try {
+            SoundSet cues = SoundSet.of().cue(SoundSet.PARTY_INVITE,
+                    Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 1f));
+            a.sent.clear();
+            GameSounds.lobby(a.player, cues, SoundSet.PARTY_INVITE);
+            assertEquals(1, a.sent(SoundEffectPacket.class).size(), "an invite pings outside any game");
+            MinecraftServer.getCommandManager().execute(a.player, "sounds party-invite off");
+            a.sent.clear();
+            GameSounds.lobby(a.player, cues, SoundSet.PARTY_INVITE);
+            assertTrue(a.sent(SoundEffectPacket.class).isEmpty(), "muted");
+        } finally {
+            a.player.remove();
+        }
     }
 
     @Test

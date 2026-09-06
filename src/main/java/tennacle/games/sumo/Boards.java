@@ -4,7 +4,6 @@ import tennacle.Msg;
 import tennacle.games.Match;
 import tennacle.looks.Frames;
 
-import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.view.Scoreboard;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import net.kyori.adventure.text.Component;
@@ -48,20 +47,9 @@ final class Boards {
         return Frames.tennacle("Sumo", Boards::scrimsRows);
     }
 
+    // no names: a duel's board is the clock
     private static void scrimsRows(Scoreboard b) {
         b.line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Frames.timeLeft(g)))
-                .blank()
-                .line((g, me) -> playerLine(g, 0))
-                .line((g, me) -> playerLine(g, 1));
-    }
-
-    private static Component playerLine(Game game, int index) {
-        int[] left = {index};
-        Player member = game.firstMember(m -> left[0]-- == 0);
-        if (member == null) return Component.empty();
-        var seat = game.roster().slotOf(member);
-        return Component.text(member.getUsername(),
-                game.roster().team(seat != null ? seat.team() : null).color());
+                .append(Frames.timeLeft(g)));
     }
 }

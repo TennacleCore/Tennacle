@@ -1,5 +1,6 @@
 package tennacle.games.sumo;
 
+import io.github.term4.grotto.roster.Roster;
 import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
@@ -54,6 +55,7 @@ public final class Sumo {
 
     /** Only swings hurt - a selection over the damage catalog, as a path. */
     static final Ruleset BASE = Ruleset.named("sumo")
+            .rule(Roster.RECLAIM_TICKS, 0L) // leaving is the loss
             .path("damage/enabledTypes", "only(minecraft:player_attack)")
             // captured: a duel reads health off the body, neither under the name nor in tab - on every network
             .rule(HealthDisplay.SURFACES, List.of());

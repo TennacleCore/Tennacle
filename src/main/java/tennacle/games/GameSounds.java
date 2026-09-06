@@ -27,8 +27,9 @@ import java.util.Locale;
  */
 public final class GameSounds {
 
-    /** Every cue a look can map, by short name. */
-    public static final List<String> ALL = List.of("countdown", "start", "scored", "kill", "died", "ally-down", "enemy-down", "blocked");
+    /** Every cue a look can map, by short name; the last two reach a player outside any game. */
+    public static final List<String> ALL = List.of("countdown", "start", "scored", "kill", "died", "ally-down",
+            "enemy-down", "blocked", "party-invite", "duel-request");
     /** The cues this game plays, by short name; the look's mapping is the ceiling, this the floor. */
     public static final StateKey<List<String>> CUES = StateKey.of("sound.cues", Codec.STRING.list(), ALL);
     public static final VaultKey<String> MUTED = VaultKey.of("sounds:muted", Codec.STRING, "");
@@ -54,6 +55,18 @@ public final class GameSounds {
 
     public static void play(@NotNull Game game, @NotNull Player to, @NotNull String cue) {
         first(game, to, cue);
+    }
+
+    /** A cue outside any game - an invite, a request - in the house look's voice, past the player's mutes alone. */
+    public static void lobby(@NotNull Player to, @NotNull String cue) {
+        lobby(to, Look.TENNACLE.sounds(), cue);
+    }
+
+    static void lobby(@NotNull Player to, @NotNull SoundSet sounds, @NotNull String cue) {
+        Sound sound = sounds.get(cue);
+        if (sound == null) return;
+        List<String> muted = MUTE.of(to.getUuid());
+        if (muted == null || !muted.contains(name(cue))) to.playSound(sound);
     }
 
     /** {@code canvas:kill:red} reads as {@code kill}: the team variant is the same cue to a rule or a mute. */

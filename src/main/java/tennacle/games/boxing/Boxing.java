@@ -1,5 +1,6 @@
 package tennacle.games.boxing;
 
+import io.github.term4.grotto.roster.Roster;
 import tennacle.games.Look;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
@@ -78,6 +79,7 @@ public final class Boxing {
 
     /** No hunger drain and only swings hurt: what boxing IS, over whichever preset the platform names. */
     static final Ruleset BASE = Ruleset.named("boxing")
+            .rule(Roster.RECLAIM_TICKS, 0L) // leaving is the loss
             .path("hunger/exhaustionScale", 0)
             .path("damage/enabledTypes", "only(minecraft:player_attack)")
             // captured: a duel reads health off the body, neither under the name nor in tab - on every network
