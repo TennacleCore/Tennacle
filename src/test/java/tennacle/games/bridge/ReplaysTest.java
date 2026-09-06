@@ -158,6 +158,7 @@ class ReplaysTest extends HeadlessServerTest {
             assertEquals(Material.PLAYER_HEAD, viewer.player.getInventory().getItemStack(Remote.FASTER).material());
             assertEquals(Material.COMPASS, viewer.player.getInventory().getItemStack(Remote.PLAYERS).material());
             assertEquals(Material.NETHER_STAR, viewer.player.getInventory().getItemStack(Remote.MENU).material());
+            assertEquals(Material.LEVER, viewer.player.getInventory().getItemStack(Remote.DIRECTION).material());
             Remote remote = Remote.of(viewer.player);
             assertNotNull(remote);
             remote.players(viewer.player);
@@ -188,6 +189,8 @@ class ReplaysTest extends HeadlessServerTest {
             viewer.sent.clear();
             playback.reverse(true);
             tickUntil(theater, "the cage beats cross backward", () -> subtitled(viewer, "Cages open in"));
+            assertTrue(PlainTextComponentSerializer.plainText().serialize(viewer.player.getInventory().getItemStack(Remote.DIRECTION)
+                    .get(net.minestom.server.component.DataComponents.CUSTOM_NAME)).contains("reverse"), "the lever follows the direction");
             tickUntil(theater, "the board walks back", () -> !late.equals(Boards.rendered(viewer.player)));
             playback.reverse(false);
             tickUntil(theater, "the replay runs out and sends the watcher home", () -> Replays.watching(viewer.player) == null);

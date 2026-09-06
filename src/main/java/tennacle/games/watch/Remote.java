@@ -40,14 +40,15 @@ import java.util.function.Supplier;
  * The replay's remote: the hotbar whoever leads the theater holds, and the timeline every watcher reads off the
  * experience bar and the line above the hotbar. The players' compass, slower and faster on arrow heads that walk
  * the {@link #LADDER} a rung at a time, a seek head each way sharing one step (left click picks it, right click
- * takes it), the play/pause dye, and the star that opens the replay menu (share, bookmarks, play from here).
+ * takes it), the play/pause dye, the lever that flips the direction, and the star that opens the replay menu
+ * (share, bookmarks, play from here).
  * {@code /rate} sets any speed between {@link #MIN_RATE} and {@link #MAX_RATE}; the heads then snap back onto the
  * ladder. The hotbar is theirs to press and nothing more: no drop, no move, no swap.
  */
 public final class Remote {
 
     /** The hotbar slots, left to right. */
-    public static final int PLAYERS = 0, SLOWER = 2, BACK = 3, PLAY = 4, FORWARD = 5, FASTER = 6, MENU = 8;
+    public static final int PLAYERS = 0, SLOWER = 2, BACK = 3, PLAY = 4, FORWARD = 5, FASTER = 6, DIRECTION = 7, MENU = 8;
     /** What {@code /rate} allows. */
     public static final double MIN_RATE = 0.01, MAX_RATE = 10;
     /** The speeds the heads walk. */
@@ -77,6 +78,7 @@ public final class Remote {
     private final Map<Player, Controls> controllers = new ConcurrentHashMap<>();
     private final Map<Player, Long> pressed = new ConcurrentHashMap<>(); // a right click's tick: the swing after it is the same press
     private volatile boolean shownPaused;
+    private volatile boolean shownReversed;
 
     /** {@code marks} renders a bookmark as the mode reads it; {@link #plainMark} for a mode with no say. */
     Remote(@NotNull Playback playback, @NotNull String gameId, @NotNull Supplier<List<Lineup.Entry>> alive,
@@ -174,7 +176,7 @@ public final class Remote {
         for (Player viewer : List.copyOf(watchers)) exit(viewer);
     }
 
-    /** Every watcher's bar and line, and the dye once the playing state moved. */
+    /** Every watcher's bar and line, and the dye and lever once the playing state or direction moved. */
     void tick() {
         for (Player viewer : watchers) timeline(viewer);
         boolean paused = playback.paused();
@@ -182,15 +184,20 @@ public final class Remote {
             shownPaused = paused;
             for (Player viewer : controllers.keySet()) viewer.getInventory().setItemStack(PLAY, playItem());
         }
+        boolean reversed = playback.reversed();
+        if (reversed != shownReversed) {
+            shownReversed = reversed;
+            for (Player viewer : controllers.keySet()) viewer.getInventory().setItemStack(DIRECTION, directionItem());
+        }
     }
 
     private void timeline(Player viewer) {
         long length = Math.max(1, playback.length());
         long at = Math.max(0, Math.min(length, playback.tick()));
         viewer.setExp((float) at / length);
+        String state = playback.paused() ? "‣ Paused" : playback.reversed() ? "◂ Rewinding" : "‣ Playing";
         viewer.sendActionBar(Component.text()
-                .append(Component.text(playback.paused() ? "‣ Paused" : "‣ Playing",
-                        playback.paused() ? NamedTextColor.RED : NamedTextColor.GREEN))
+                .append(Component.text(state, playback.paused() ? NamedTextColor.RED : NamedTextColor.GREEN))
                 .append(Component.text("   " + stamp(at) + " / " + stamp(length), NamedTextColor.YELLOW))
                 .append(Component.text("   " + rateText(playback.rate()) + "x", NamedTextColor.GOLD))
                 .build());
@@ -206,7 +213,14 @@ public final class Remote {
         inv.setItemStack(PLAY, playItem());
         inv.setItemStack(FORWARD, Items.head(WHITE_RIGHT, Component.text("Forward " + seek, NamedTextColor.WHITE)));
         inv.setItemStack(FASTER, Items.head(BLUE_UP, Component.text("Faster ×2", NamedTextColor.AQUA)));
+        inv.setItemStack(DIRECTION, directionItem());
         inv.setItemStack(MENU, Items.named(Material.NETHER_STAR, Component.text("Replay menu", NamedTextColor.LIGHT_PURPLE)));
+    }
+
+    private ItemStack directionItem() {
+        return playback.reversed()
+                ? Items.named(Material.LEVER, Component.text("Direction: reverse", NamedTextColor.RED))
+                : Items.named(Material.LEVER, Component.text("Direction: forward", NamedTextColor.GREEN));
     }
 
     private ItemStack playItem() {
@@ -233,6 +247,7 @@ public final class Remote {
                 deal(viewer);
             }
             case PLAY -> playback.pause(!playback.paused());
+            case DIRECTION -> playback.reverse(!playback.reversed());
             case MENU -> { if (right) menu(viewer); }
             default -> { }
         }
