@@ -4,7 +4,6 @@ import tennacle.games.Deaths;
 import java.util.Set;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
-import tennacle.Msg;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 
@@ -23,7 +22,6 @@ import io.github.term4.grotto.modules.gear.Restock;
 import io.github.term4.grotto.modules.outcome.Score;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
-import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.GameState;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
@@ -144,8 +142,7 @@ public final class Rules implements GameModule {
             boolean allowed = buildable(build, pos)
                     || (game.rules().resolve(Scope.GAME, OUTSIDE) && inBand(pos)); // off the slices, still in the band
             if (!allowed || onASpawn(game, pos)) {
-                e.setCancelled(true);
-                Msg.err(player, "bridge", "you can't build there");
+                e.setCancelled(true); // Refusals says so
                 return;
             }
             placed.add(packed(pos));
@@ -158,7 +155,6 @@ public final class Rules implements GameModule {
             boolean own = placed.contains(packed(pos));
             if (!inBridge(game, pos) && !game.rules().resolve(player, BREAKABLE_OUTSIDE).contains(own ? PLACED : MAP)) {
                 e.setCancelled(true);
-                Msg.err(player, "bridge", "you can't break that");
                 return;
             }
             placed.remove(packed(pos)); // after the refusal: a block that stays is still the one who placed it

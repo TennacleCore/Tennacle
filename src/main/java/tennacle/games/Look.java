@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import io.github.term4.grotto.modules.view.Refusals;
 import java.util.function.Function;
 import io.github.term4.canvas.chat.Chat;
 import tennacle.Msg;
@@ -36,6 +37,16 @@ import java.util.function.IntFunction;
 public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verdict verdict, @NotNull Count count,
                    @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth,
                    @NotNull HitReport.Line hit, @NotNull Tiebreak tiebreak) {
+
+    /** The line for an action the game refused, in light red: hypixel's copy, kept for every look. */
+    public static @NotNull Component refusal(Game game, Player player, Refusals.Kind kind) {
+        return Component.text(switch (kind) {
+            case PROTECTED -> "This player has spawn protection!";
+            case PLACE -> "You can't place blocks here!";
+            case BREAK -> "You can't break this block!";
+            case HIT -> "You can't do that here!";
+        }, NamedTextColor.RED);
+    }
 
     /** The call when a drawn clock plays on as a tiebreaker. */
     @FunctionalInterface

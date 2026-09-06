@@ -1,5 +1,7 @@
 package tennacle.games.boxing;
 
+import tennacle.games.Look;
+import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.bloom.edit.Teams;
@@ -128,7 +130,7 @@ public final class Boxing {
                         Spectating::new, Sight::new, Presets::new,
                         Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
-                        () -> Kits.of(KIT), Rules::new, Presentation::new,
+                        () -> Kits.of(KIT), Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle),
                         () -> Stats.of()
                                 .counter(HITS, CAREER_HITS)

@@ -51,7 +51,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     }
 
     /** Deck along x, 1 west / 2 east, goals at the far ends - every expected marker aboard. */
-    private static Arena fixture() {
+    static Arena fixture() {
         Session s = Session.create("bridge-fixture", new ShardManager(), p -> {});
         try {
             for (int x = -8; x <= 8; x++) s.instance().setBlock(x, 64, 0, Block.WHITE_TERRACOTTA);
@@ -265,7 +265,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     }
 
     /** The harness has no server tick loop - drive the game's instance (monotonic millis) ourselves. */
-    private static void tickUntil(Game game, String what, java.util.function.Supplier<Boolean> done) {
+    static void tickUntil(Game game, String what, java.util.function.Supplier<Boolean> done) {
         long deadline = System.currentTimeMillis() + 8000;
         while (!done.get() && System.currentTimeMillis() < deadline) {
             game.instance().tick(java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));

@@ -1,5 +1,7 @@
 package tennacle.games.sumo;
 
+import tennacle.games.Look;
+import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.bloom.edit.Teams;
 import tennacle.games.Presets;
@@ -93,7 +95,7 @@ public final class Sumo {
                             Rules rules = game != null ? game.module(Rules.class) : null;
                             if (rules != null) rules.fell(p);
                         }),
-                        KillCredit::new, Rules::new, Presentation::new,
+                        KillCredit::new, Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         for (Ruleset ruleset : VARIANTS.values()) ruleset.check(Mechanics.polyp.profiles().global(), type);

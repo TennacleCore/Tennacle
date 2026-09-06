@@ -1,5 +1,8 @@
 package tennacle.games.bridge;
 
+import tennacle.games.Look;
+import io.github.term4.grotto.modules.view.Refusals;
+import io.github.term4.grotto.modules.combat.Projectiles;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.grotto.modules.flow.Countdown;
 import java.util.ArrayList;
@@ -219,6 +222,8 @@ public final class Bridge {
                         () -> Kits.of(KIT),
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
                         Rules::new, Presentation::new,
+                        Projectiles::new, // an arrow off a protected enemy vanishes; off a teammate it passes
+                        () -> Refusals.of(Look::refusal),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         AppCommand cageCmd = Commands.player("cage", "The cage you start a bridge round in.")
