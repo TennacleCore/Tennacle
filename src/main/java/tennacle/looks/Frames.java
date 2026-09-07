@@ -12,6 +12,7 @@ import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.codec.Codec;
 import java.util.List;
+import java.util.Locale;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.modules.view.Scoreboard;
 import net.kyori.adventure.text.Component;
@@ -43,10 +44,15 @@ public final class Frames {
 
     private Frames() {}
 
+    /** Every board shouts its game, hypixel's captured titles included - one house rule, not a per-mode string. */
+    private static String shout(String title) {
+        return title.toUpperCase(Locale.ROOT);
+    }
+
     /** Minemen: purple bold title, gray 19-hyphen rules, your/their ping, purple footer. */
     public static Scoreboard minemen(String title, Consumer<Scoreboard> content) {
         Component rule = Msg.MINEMEN.rule(19, NamedTextColor.GRAY);
-        Scoreboard board = Scoreboard.of(Component.text(title, NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
+        Scoreboard board = Scoreboard.of(Component.text(shout(title), NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
                 .line(rule)
                 .gameId(g -> Msg.MINEMEN);
         content.accept(board);
@@ -65,7 +71,7 @@ public final class Frames {
     /** Hypixel duels: shined title, date, Time Left, Mode + winstreak filler (until the vault tracks them). */
     public static Scoreboard hypixel(String shineName, String mode,
                                      @Nullable ToLongFunction<Game> ticksLeft, Consumer<Scoreboard> content) {
-        Scoreboard board = Scoreboard.of((g, me) -> Shine.HYPIXEL.frame(shineName, (int) (g.tick() / 2)))
+        Scoreboard board = Scoreboard.of((g, me) -> Shine.HYPIXEL.frame(shout(shineName), (int) (g.tick() / 2)))
                 .titleEvery(2)
                 // date + gray game code, the captured hypixel layout - a screenshot names the game
                 .line((g, me) -> Msg.HYPIXEL.prose(LocalDate.now().format(US_DATE))
@@ -88,7 +94,7 @@ public final class Frames {
     /** Scrims: dark-aqua 16-hyphen rules, date, the captured 100px width. */
     public static Scoreboard scrims(String title, Consumer<Scoreboard> content) {
         Component rule = Msg.SCRIMS.rule(16, NamedTextColor.DARK_AQUA);
-        Scoreboard board = Scoreboard.of(me -> Msg.SCRIMS.boardTitle(me, title))
+        Scoreboard board = Scoreboard.of(me -> Msg.SCRIMS.boardTitle(me, shout(title)))
                 .width(100) // captured scrims board: the widest row runs 99px, just past its 16-hyphen rule
                 .line(rule)
                 // date + gray game code, the captured scrims layout - a screenshot names the game
@@ -103,7 +109,7 @@ public final class Frames {
 
     /** Tennacle: the scrims frame on the house theme - the gradient title, the address as the footer. */
     public static Scoreboard tennacle(String title, Consumer<Scoreboard> content) {
-        Scoreboard board = Scoreboard.of(me -> Msg.THEME.boardTitle(me, title))
+        Scoreboard board = Scoreboard.of(me -> Msg.THEME.boardTitle(me, shout(title)))
                 .width(100)
                 .line(houseRule())
                 .line((g, me) -> Msg.THEME.prose(LocalDate.now().toString()).append(Msg.THEME.dim(" " + g.code())))
