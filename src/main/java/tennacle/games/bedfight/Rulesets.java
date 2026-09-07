@@ -4,7 +4,6 @@ import tennacle.games.Ruleset;
 import tennacle.games.Presets;
 
 import io.github.term4.grotto.modules.flow.Abandonment;
-import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.roster.Roster;
 
 import java.util.Map;
@@ -26,11 +25,11 @@ final class Rulesets {
             // only swings hurt: no bows in this kit, and a fall is the void plane's business
             .path("damage/enabledTypes", "only(minecraft:player_attack)");
 
+    // uncaptured: a platform brings its MECHANICS to bed fight and nothing else, so nobody reads a countdown or
+    // a board as "how hypixel does it" when nobody has watched hypixel do it
     private static final Map<String, Ruleset> RULESETS = Map.of(
             "hypixel", Ruleset.named("hypixel").rule(Presets.KEY, "hypixel").over(BASE),
-            "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18")
-                    .rule(Countdown.FROM, 5) // captured: five beats on scrims, three elsewhere
-                    .over(BASE),
+            "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18").over(BASE),
             "minemen", Ruleset.named("minemen").rule(Presets.KEY, "mmc18").over(BASE));
 
     /** The platform rulesets, each over {@link #BASE}; a platform naming none of them plays the base. */

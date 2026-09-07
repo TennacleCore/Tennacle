@@ -209,7 +209,9 @@ public final class Matches {
     public static @NotNull Game launch(@NotNull Mode mode, @NotNull Platform platform, @NotNull Arena arena,
                                        @NotNull Options options) {
         return grotto.launch(mode.type(), arena, null, g -> {
-            g.state().set(Scope.GAME, LOOK, platform.look());
+            // a mode that names its own look keeps it under every preset: without captures there is nothing
+            // for a platform's look to be faithful TO, and only its mechanics are worth copying
+            g.state().set(Scope.GAME, LOOK, mode.look() != null ? mode.look() : platform.look());
             g.state().set(Scope.GAME, PLATFORM, platform.name());
             if (!options.rules().isEmpty()) modifiers.put(g.id(), options.rules());
             fold(g);

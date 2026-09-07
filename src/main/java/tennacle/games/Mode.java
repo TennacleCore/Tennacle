@@ -27,12 +27,23 @@ import java.util.function.Supplier;
  * @param teamScore  the per-team score key of a SCORING mode (hypixel's "TEAM WINS!" verdict); null = a plain duel
  * @param tabStats   the seat counters the house tab menu lists, in order; empty = no line
  * @param marks      how a replay's bookmarks read on the bookmark screen; null = the name on paper
+ * @param look       the look every match of this mode wears whatever preset it runs; null = the preset's own,
+ *                   which is what a mode with captures behind its platforms wants
  */
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
                    @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants,
                    @NotNull List<Component> intro, boolean ghostLoser, @Nullable StateKey<Integer> teamScore,
-                   @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
+                   @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look) {
+
+    /** A mode whose looks are its platforms' - every mode with captures behind them. */
+    public Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
+                @NotNull Supplier<MechanicsProfile.Builder> profile,
+                @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants,
+                @NotNull List<Component> intro, boolean ghostLoser, @Nullable StateKey<Integer> teamScore,
+                @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
+        this(name, type, arena, profile, base, variants, intro, ghostLoser, teamScore, tabStats, marks, null);
+    }
 
     /** A seat's own counter under a label ({@code Kills: 3}) - the viewer's, never the team's. */
     public record SeatStat(@NotNull String label, @NotNull StateKey<Integer> key) {}

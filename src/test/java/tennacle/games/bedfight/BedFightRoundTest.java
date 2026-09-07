@@ -240,6 +240,27 @@ class BedFightRoundTest extends HeadlessServerTest {
         return event.isCancelled();
     }
 
+    /** Bed fight has no captures yet: a preset brings its mechanics and leaves the look and the rules alone. */
+    @Test
+    void aPresetBringsMechanicsAlone() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game house = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        Game hypixel = Matches.launch(bedfight, Matches.platformFor("hypixel"), fixture());
+        try {
+            assertEquals("hypixel", hypixel.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
+                    tennacle.games.Presets.KEY), "the mechanics are the platform's");
+            assertEquals(Matches.lookNameOf(house), Matches.lookNameOf(hypixel), "the look is the house's either way");
+            assertEquals(house.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
+                            io.github.term4.grotto.modules.flow.Countdown.FROM),
+                    hypixel.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
+                            io.github.term4.grotto.modules.flow.Countdown.FROM),
+                    "and the opener is the mode's own, not a platform's");
+        } finally {
+            house.end(Outcome.aborted());
+            hypixel.end(Outcome.aborted());
+        }
+    }
+
     // the countdown holds every break until GO
     private static void live(Game game) {
         tickUntil(game, "the countdown ran out", () -> Match.live(game));
