@@ -269,6 +269,45 @@ class BridgeRoundTest extends HeadlessServerTest {
     }
 
     /** The harness has no server tick loop - drive the game's instance (monotonic millis) ourselves. */
+    /** roster.sides = rotate: a goal trades the bases, the score follows the side, and the re-cage opens everyone at the cage of the base they now hold. */
+    @Test
+    void sidesSwapAfterAGoal() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor("scrims"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "SwapRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "SwapBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            tickUntil(game, "GO", () -> Match.live(game));
+            game.state().set(Scope.GAME, io.github.term4.grotto.modules.roster.Sides.SIDES, io.github.term4.grotto.modules.roster.Sides.ROTATE);
+
+            Player scorer = "2".equals(Bridge.teamOf(game, blue.player)) ? blue.player : red.player;
+            Player other = scorer == red.player ? blue.player : red.player;
+            String was = Bridge.teamOf(game, scorer);
+            String theirs = Bridge.teamOf(game, other);
+            Pos goal = "2".equals(was) ? new Pos(-7.5, 65, 0.5) : new Pos(7.5, 65, 0.5);
+            EventDispatcher.call(new PlayerMoveEvent(scorer, goal, true));
+            tickUntil(game, "the goal counted on the side that moved", () -> game.state().get(Scope.team(theirs), Bridge.GOALS) == 1);
+            assertEquals(theirs, Bridge.teamOf(game, scorer), "the scorer's side took the other base");
+            assertEquals(was, Bridge.teamOf(game, other));
+            assertEquals(0, game.state().get(Scope.team(was), Bridge.GOALS), "the base they left keeps none of their score");
+            tickUntil(game, "a goal re-cages", () -> Match.opening(game));
+            for (Player p : java.util.List.of(scorer, other)) {
+                Pos cage = game.arena().marker(Bridge.CAGE, Bridge.teamOf(game, p)).pos();
+                assertEquals(cage.x(), p.getPosition().x(), 0.01, p.getUsername() + " opens at the cage of the base they now hold");
+            }
+            tickUntil(game, "GO again", () -> Match.live(game));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
     static void tickUntil(Game game, String what, java.util.function.Supplier<Boolean> done) {
         long deadline = System.currentTimeMillis() + 8000;
         while (!done.get() && System.currentTimeMillis() < deadline) {
