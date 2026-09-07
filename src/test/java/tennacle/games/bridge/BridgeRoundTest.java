@@ -269,9 +269,9 @@ class BridgeRoundTest extends HeadlessServerTest {
     }
 
     /** The harness has no server tick loop - drive the game's instance (monotonic millis) ourselves. */
-    /** roster.sides = rotate: a goal trades the bases, the score follows the side, and the re-cage opens everyone at the cage of the base they now hold. */
+    /** A live swap of sides mid-round: the next goal counts for the scorer's new side, and the re-cage opens everyone at the cage of the base they now hold. */
     @Test
-    void sidesSwapAfterAGoal() {
+    void sidesSwapLive() {
         Mode bridge = Matches.mode("bridge");
         Game game = Matches.launch(bridge, Matches.platformFor("scrims"), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "SwapRed");
@@ -283,18 +283,18 @@ class BridgeRoundTest extends HeadlessServerTest {
             assertTrue(game.join(blue.player));
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
             tickUntil(game, "GO", () -> Match.live(game));
-            game.state().set(Scope.GAME, io.github.term4.grotto.modules.roster.Sides.SIDES, io.github.term4.grotto.modules.roster.Sides.ROTATE);
+            String redSide = Bridge.teamOf(game, red.player);
+            String blueSide = Bridge.teamOf(game, blue.player);
+            game.reseat(java.util.Map.of(red.player, blueSide, blue.player, redSide));
+            assertEquals(blueSide, Bridge.teamOf(game, red.player), "traded");
+            assertEquals(redSide, Bridge.teamOf(game, blue.player));
 
             Player scorer = "2".equals(Bridge.teamOf(game, blue.player)) ? blue.player : red.player;
             Player other = scorer == red.player ? blue.player : red.player;
-            String was = Bridge.teamOf(game, scorer);
-            String theirs = Bridge.teamOf(game, other);
-            Pos goal = "2".equals(was) ? new Pos(-7.5, 65, 0.5) : new Pos(7.5, 65, 0.5);
+            String side = Bridge.teamOf(game, scorer);
+            Pos goal = "2".equals(side) ? new Pos(-7.5, 65, 0.5) : new Pos(7.5, 65, 0.5);
             EventDispatcher.call(new PlayerMoveEvent(scorer, goal, true));
-            tickUntil(game, "the goal counted on the side that moved", () -> game.state().get(Scope.team(theirs), Bridge.GOALS) == 1);
-            assertEquals(theirs, Bridge.teamOf(game, scorer), "the scorer's side took the other base");
-            assertEquals(was, Bridge.teamOf(game, other));
-            assertEquals(0, game.state().get(Scope.team(was), Bridge.GOALS), "the base they left keeps none of their score");
+            tickUntil(game, "the goal counted for the new side", () -> game.state().get(Scope.team(side), Bridge.GOALS) == 1);
             tickUntil(game, "a goal re-cages", () -> Match.opening(game));
             for (Player p : java.util.List.of(scorer, other)) {
                 Pos cage = game.arena().marker(Bridge.CAGE, Bridge.teamOf(game, p)).pos();

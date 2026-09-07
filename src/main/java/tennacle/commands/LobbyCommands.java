@@ -13,6 +13,7 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
@@ -57,10 +58,10 @@ public final class LobbyCommands {
             return;
         }
         if (code == null && held.size() > 1) {
-            Msg.say(p, held.size() + " games hold a seat for you; this is the latest. The others:");
+            Msg.say(p, held.size() + " games hold a seat for you. This is the latest, ", Msg.v(describe(pick, p)), "; the others:");
             for (Game game : held) {
                 if (game == pick) continue;
-                Msg.say(p, "  ", Msg.link(game.type().id() + " #" + game.code(), "/rejoin " + game.code(), "rejoin this one"));
+                Msg.say(p, "  ", Msg.link(describe(game, p), "/rejoin " + game.code(), "rejoin this one"));
             }
         }
         Queues.dequeue(p);
@@ -68,6 +69,14 @@ public final class LobbyCommands {
         KitLayouts.cancel(p);
         pick.join(p);
         Msg.ok(p, "Rejoining your ", Msg.v(pick.type().id()), " ", Msg.v("#" + pick.code()), ".");
+    }
+
+    // the game by its mode and board code, then who else is in it or holds a seat: what a player picks by
+    private static String describe(Game game, Player me) {
+        List<String> others = new ArrayList<>();
+        for (Player member : game.members()) if (member != me) others.add(member.getUsername());
+        for (String held : game.roster().reserved()) if (!held.equals(me.getUsername())) others.add(held);
+        return game.type().id() + " #" + game.code() + (others.isEmpty() ? "" : " with " + String.join(", ", others));
     }
 
     private static Runnable gameDeparture(Player p) {
@@ -88,7 +97,8 @@ public final class LobbyCommands {
             return () -> {
                 Game.Departure departure = game.depart(p);
                 if (departure != null && departure.reserved()) {
-                    Msg.say(p, "You left the game. Your seat holds: ", Msg.run("/rejoin"), ".");
+                    Msg.say(p, "You left ", Msg.v(describe(game, p)), ". Your seat holds: ",
+                            Msg.link("/rejoin", "/rejoin " + game.code(), "rejoin " + game.type().id() + " #" + game.code()), ".");
                 } else {
                     Msg.say(p, "You left the game.");
                 }
