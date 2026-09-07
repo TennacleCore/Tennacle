@@ -40,6 +40,13 @@ public final class LobbyCommands {
         });
         Commands.register(cmd);
 
+        // the results card's (REMATCH) already points here; re-queueing the pair is still to be built
+        AppCommand rematch = Commands.player("rematch", "Play the last match again.");
+        rematch.setDefaultExecutor((sender, ctx) -> {
+            if (sender instanceof Player p) Msg.fail(p, "Rematches aren't in yet.");
+        });
+        Commands.register(rematch);
+
         AppCommand games = Commands.player("games", "Your games: the one you are in, and the ones holding a seat for you.");
         games.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;

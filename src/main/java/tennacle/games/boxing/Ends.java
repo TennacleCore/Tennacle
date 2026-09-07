@@ -28,14 +28,16 @@ final class Ends {
 
     private Ends() {}
 
-    static Summary hypixel() {
-        return Matches.summary().hypixel("Boxing Duel")
-                .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
-                .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
-                .row("W-Taps", (g, side, th, c) ->
-                        th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))))
-                .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " boxing -preset=hypixel"));
+    static GameModule hypixel() {
+        Results records = Results.of().quiet().item(Ends::sword); // the name opens the frozen record, as the house card does
+        return Bundle.of(records, Matches.summary().hypixel("Boxing Duel")
+                        .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
+                        .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
+                        .row("W-Taps", (g, side, th, c) ->
+                                th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))))
+                        .after((g, me) -> HypixelCard.playAgain(
+                                Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " boxing -preset=hypixel"))
+                .click((g, name) -> records.viewCommand(name)));
     }
 
     // the scrims card on the house palette, and a name click opens the frozen record with the sword in it

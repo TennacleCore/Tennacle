@@ -340,7 +340,7 @@ public final class Rules implements GameModule {
         Match.addSeat(game, scorer, Bridge.SCORED);
         var color = game.roster().team(seat.team()).color();
         Component banner = switch (look) {
-            case "minemen" -> null; // captured: minemen announces goals on the board and title only
+            case "minemen" -> Banners.minemen(game, scorer, color);
             case "hypixel" -> Banners.hypixel(game, scorer, color, goals);
             default -> Banners.scrims(game, scorer, color);
         };

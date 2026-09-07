@@ -49,14 +49,16 @@ final class Ends {
     }
 
     // captured: the BedWars Duel card - damage, melee accuracy, blocks placed, health regenerated
-    static Summary hypixel() {
-        return Matches.summary().hypixel("BedWars Duel")
-                .row("Damage Dealt", (g, side, th, c) -> th.hearts(0))
-                .row("Melee Accuracy", (g, side, th, c) -> th.value("0%"))
-                .row("Blocks Placed", (g, side, th, c) -> th.value(0))
-                .row("Health Regenerated", (g, side, th, c) -> th.hearts(0))
-                .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bedfight -preset=hypixel"));
+    static GameModule hypixel() {
+        Results records = Results.of().quiet(); // the name opens the frozen record, as the house card does
+        return Bundle.of(records, Matches.summary().hypixel("BedWars Duel")
+                        .row("Damage Dealt", (g, side, th, c) -> th.hearts(0))
+                        .row("Melee Accuracy", (g, side, th, c) -> th.value("0%"))
+                        .row("Blocks Placed", (g, side, th, c) -> th.value(0))
+                        .row("Health Regenerated", (g, side, th, c) -> th.hearts(0))
+                        .after((g, me) -> HypixelCard.playAgain(
+                                Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bedfight -preset=hypixel"))
+                .click((g, name) -> records.viewCommand(name)));
     }
 
     static Results minemen() {

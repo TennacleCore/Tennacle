@@ -53,17 +53,19 @@ final class Ends {
     }
 
     // captured rows: Goals, Damage Dealt, accuracies, gapples, blocks - fillers until their mechanics land
-    static Summary hypixel() {
-        return Matches.summary().hypixel("Bridge Duel")
-                .row("Goals", (g, side, th, c) -> th.value(
-                        g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS)))
-                .row("Damage Dealt", (g, side, th, c) -> th.hearts(0))
-                .row("Melee Accuracy", (g, side, th, c) -> th.value("0%"))
-                .row("Bow Accuracy", (g, side, th, c) -> th.value("0%"))
-                .row("Golden Apples Eaten", (g, side, th, c) -> th.value(0))
-                .row("Blocks Placed", (g, side, th, c) -> th.value(0))
-                .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bridge -preset=hypixel"));
+    static GameModule hypixel() {
+        Results records = Results.of().quiet(); // the name opens the frozen record, as the house card does
+        return Bundle.of(records, Matches.summary().hypixel("Bridge Duel")
+                        .row("Goals", (g, side, th, c) -> th.value(
+                                g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS)))
+                        .row("Damage Dealt", (g, side, th, c) -> th.hearts(0))
+                        .row("Melee Accuracy", (g, side, th, c) -> th.value("0%"))
+                        .row("Bow Accuracy", (g, side, th, c) -> th.value("0%"))
+                        .row("Golden Apples Eaten", (g, side, th, c) -> th.value(0))
+                        .row("Blocks Placed", (g, side, th, c) -> th.value(0))
+                        .after((g, me) -> HypixelCard.playAgain(
+                                Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bridge -preset=hypixel"))
+                .click((g, name) -> records.viewCommand(name)));
     }
 
     static Results minemen() {

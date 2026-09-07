@@ -39,6 +39,18 @@ final class Banners {
 
     private Banners() {}
 
+    /** Captured minemen: a blank line, the whole call in bold, the score under it, another blank. */
+    static Component minemen(Game game, Player scorer, TextColor color) {
+        return Component.empty()
+                .append(Component.newline())
+                .append(Component.text(scorer.getUsername(), color).decorate(TextDecoration.BOLD))
+                .append(Component.text(" scored!", NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+                .append(Component.newline())
+                .append(Component.text(" "))
+                .append(scoreLine(game, MMC_DASH, false, Bridge.teamOf(game, scorer)))
+                .append(Component.newline());
+    }
+
     // captured: "Dogln (20❤) scored!" then "1 - 0" between green rules, both lines centered
     static Component scrims(Game game, Player scorer, TextColor color) {
         var theme = Msg.SCRIMS;
@@ -144,20 +156,28 @@ final class Banners {
                 .append(Component.text(minemen ? "!" : ".", prose));
     }
 
-    // captured: "1 - 0", the SCORER's team first - team-colored scores; scrims plain with white
-    // hyphens, hypixel bold with gray
+    private static final Component MMC_DASH =
+            Component.text("- ", NamedTextColor.GRAY).decorate(TextDecoration.BOLD);
+    private static final Component SCRIMS_DASH = Component.text("- ", NamedTextColor.WHITE);
+    private static final Component HYPIXEL_DASH = Component.text("- ", NamedTextColor.GRAY);
+
     static Component scoreLine(Game game, boolean hypixel, String leadTeam) {
+        return scoreLine(game, hypixel ? HYPIXEL_DASH : SCRIMS_DASH, hypixel, leadTeam);
+    }
+
+    // captured: "1 - 0", the SCORER's team first - team-colored scores; scrims plain with white
+    // hyphens, hypixel bold with gray, minemen bold gray on the dash alone
+    static Component scoreLine(Game game, Component dash, boolean boldScores, String leadTeam) {
         GameState st = game.state();
         Component line = Component.empty();
         List<Team> teams = new ArrayList<>(game.roster().teams());
         teams.sort(Comparator.comparing(t -> t.id().equals(leadTeam) ? 0 : 1));
         for (int i = 0; i < teams.size(); i++) {
             Team team = teams.get(i);
-            if (i > 0) line = line.append(Component.text("- ",
-                    hypixel ? NamedTextColor.GRAY : NamedTextColor.WHITE));
+            if (i > 0) line = line.append(dash);
             Component score = Component.text(st.get(Scope.team(team.id()), Bridge.GOALS)
                     + (i < teams.size() - 1 ? " " : ""), team.color());
-            if (hypixel) score = score.decorate(TextDecoration.BOLD);
+            if (boldScores) score = score.decorate(TextDecoration.BOLD);
             line = line.append(score);
         }
         return line;

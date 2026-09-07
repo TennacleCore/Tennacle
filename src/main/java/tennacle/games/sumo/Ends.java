@@ -20,11 +20,13 @@ final class Ends {
     private Ends() {}
 
     // captured hypixel sumo end block + the play-again line
-    static Summary hypixel() {
-        return Matches.summary().hypixel("Sumo Duel")
-                .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())))
-                .after((g, me) -> HypixelCard.playAgain(
-                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " sumo"));
+    static GameModule hypixel() {
+        Results records = Results.of().quiet(); // the name opens the frozen record, as the house card does
+        return Bundle.of(records, Matches.summary().hypixel("Sumo Duel")
+                        .row("Melee Accuracy", (g, side, th, c) -> th.value(accuracy(g, side.getFirst())))
+                        .after((g, me) -> HypixelCard.playAgain(
+                                Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " sumo"))
+                .click((g, name) -> records.viewCommand(name)));
     }
 
     static Results minemen() {

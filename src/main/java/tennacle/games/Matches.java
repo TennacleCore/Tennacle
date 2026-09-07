@@ -188,7 +188,22 @@ public final class Matches {
     }
 
     public static @NotNull Results results() {
-        return Results.of().theme(g -> lookOf(g).theme());
+        return Results.of().theme(g -> lookOf(g).theme())
+                .tally("Kills", (game, p) -> {
+                    StateKey<Integer> key = seatStat(game, "Kills");
+                    return key == null ? 0 : game.state().get(Scope.slot(p.slot().index()), key);
+                })
+                .rematch("/rematch");
+    }
+
+    // the mode's own kill counter, by the label it shows everywhere else; a mode that counts none has no tally
+    private static @Nullable StateKey<Integer> seatStat(Game game, String label) {
+        Mode mode = modeOf(game);
+        if (mode == null) return null;
+        for (Mode.SeatStat stat : mode.tabStats()) {
+            if (stat.label().equals(label)) return stat.key();
+        }
+        return null;
     }
 
     /** Plays the look's sound for {@code cue} to everyone in the game; a look without one stays silent. */
