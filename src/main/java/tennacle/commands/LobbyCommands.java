@@ -4,10 +4,18 @@ import tennacle.games.watch.Spectators;
 import tennacle.Msg;
 import tennacle.Sessions;
 import tennacle.games.KitLayouts;
+import tennacle.games.Match;
 import tennacle.games.Matches;
+import tennacle.games.Mode;
 import tennacle.games.matchmaking.Queues;
 
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.roster.Slot;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
@@ -17,7 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
- *  departs their game - the seat follows the resolved reclaim rule, and {@code /rejoin} re-claims it. */
+ *  departs their game - the seat follows the resolved reclaim rule, {@code /games} lists what holds one, and
+ *  {@code /rejoin} re-claims it. The lines read as hypixel's party lines do: yellow, names in aqua, no tag. */
 public final class LobbyCommands {
 
     private LobbyCommands() {}
@@ -35,14 +44,16 @@ public final class LobbyCommands {
         games.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             Game in = Game.of(p);
-            if (in != null) Msg.say(p, "You're in ", Msg.v(describe(in, p)), ".");
+            if (in != null) p.sendMessage(yellow("Playing ").append(gameLine(in, p)).append(yellow(".")));
             List<Game> held = Matches.grotto().reclaimables(p);
             if (held.isEmpty()) {
-                if (in == null) Msg.say(p, "No game is holding a seat for you.");
+                if (in == null) p.sendMessage(yellow("You have no games to get back to."));
                 return;
             }
-            Msg.say(p, held.size() == 1 ? "A seat is held for you in:" : held.size() + " games hold a seat for you, the latest first:");
-            for (Game game : held) Msg.say(p, "  ", Msg.link(describe(game, p), "/rejoin " + game.code(), "rejoin this one"));
+            p.sendMessage(yellow("Your games:"));
+            for (Game game : held) {
+                p.sendMessage(gameLine(game, p).append(Component.text(" ")).append(rejoinButton(game)));
+            }
         });
         Commands.register(games);
 
@@ -67,28 +78,70 @@ public final class LobbyCommands {
             return;
         }
         if (code == null && held.size() > 1) {
-            Msg.say(p, held.size() + " games hold a seat for you. ", Msg.run("/games"), " lists them, each a click to rejoin.");
+            p.sendMessage(yellow("Several games are holding a seat for you. Use ").append(command("/games")).append(yellow(" to pick one.")));
             return;
         }
         Game pick = code == null ? held.getFirst()
                 : held.stream().filter(g -> g.code().equalsIgnoreCase(code)).findFirst().orElse(null);
         if (pick == null) {
-            Msg.fail(p, "No seat is held for you in a game ", Msg.v("#" + code), ". ", Msg.run("/games"), " lists yours.");
+            p.sendMessage(yellow("That game isn't holding a seat for you. Use ").append(command("/games")).append(yellow(" to see yours.")));
             return;
         }
         Queues.dequeue(p);
         Spectators.exit(p);
         KitLayouts.cancel(p);
         pick.join(p);
-        Msg.ok(p, "Rejoining your ", Msg.v(pick.type().id()), " ", Msg.v("#" + pick.code()), ".");
+        p.sendMessage(yellow("Rejoining ").append(gameLine(pick, p)).append(yellow("...")));
     }
 
-    // the game by its mode and board code, then who else is in it or holds a seat: what a player picks by
-    private static String describe(Game game, Player me) {
-        List<String> others = new ArrayList<>();
-        for (Player member : game.members()) if (member != me) others.add(member.getUsername());
-        for (String held : game.roster().reserved()) if (!held.equals(me.getUsername())) others.add(held);
-        return game.type().id() + " #" + game.code() + (others.isEmpty() ? "" : " with " + String.join(", ", others));
+    /** The game as a player knows it: its title, their teammates, their opponents - never the code, which rides the click. */
+    static Component gameLine(Game game, Player me) {
+        Mode mode = Matches.modeOf(game);
+        Slot mine = game.roster().slotOf(me);
+        if (mine == null) mine = game.roster().reservedSlotOf(me.getUsername());
+        String team = mine != null ? mine.team() : "";
+        List<String> mates = new ArrayList<>();
+        List<String> foes = new ArrayList<>();
+        for (Player member : game.members()) {
+            if (member != me) (Match.teamOf(game, member).equals(team) ? mates : foes).add(member.getUsername());
+        }
+        for (String held : game.roster().reserved()) {
+            if (held.equals(me.getUsername())) continue;
+            Slot seat = game.roster().reservedSlotOf(held);
+            (seat != null && seat.team().equals(team) ? mates : foes).add(held);
+        }
+        Component line = aqua(mode != null ? mode.title() : game.type().id());
+        if (!mates.isEmpty()) line = line.append(yellow(" with ")).append(names(mates));
+        if (!foes.isEmpty()) line = line.append(yellow(" vs ")).append(names(foes));
+        return line;
+    }
+
+    private static Component names(List<String> names) {
+        Component out = Component.empty();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) out = out.append(yellow(", "));
+            out = out.append(aqua(names.get(i)));
+        }
+        return out;
+    }
+
+    // scrims' [Accept], for a seat: bold green, runs the rejoin
+    private static Component rejoinButton(Game game) {
+        return Msg.THEME.good("[Rejoin]").decorate(TextDecoration.BOLD)
+                .clickEvent(ClickEvent.runCommand("/rejoin " + game.code()))
+                .hoverEvent(HoverEvent.showText(yellow("Click to rejoin!")));
+    }
+
+    private static Component command(String command) {
+        return aqua(command).clickEvent(ClickEvent.runCommand(command)).hoverEvent(HoverEvent.showText(yellow("Click to run")));
+    }
+
+    private static Component yellow(String text) {
+        return Component.text(text, NamedTextColor.YELLOW);
+    }
+
+    private static Component aqua(String text) {
+        return Component.text(text, NamedTextColor.AQUA);
     }
 
     private static Runnable gameDeparture(Player p) {
@@ -109,8 +162,11 @@ public final class LobbyCommands {
             return () -> {
                 Game.Departure departure = game.depart(p);
                 if (departure != null && departure.reserved()) {
-                    Msg.say(p, "You left ", Msg.v(describe(game, p)), ". Your seat holds: ",
-                            Msg.link("/rejoin", "/rejoin " + game.code(), "rejoin " + game.type().id() + " #" + game.code()), ".");
+                    // the click puts the rejoin in the chat box, this game's code already on it
+                    String rejoin = "/rejoin " + game.code();
+                    p.sendMessage(yellow("You left ").append(gameLine(game, p)).append(yellow(". Click to rejoin."))
+                            .clickEvent(ClickEvent.suggestCommand(rejoin))
+                            .hoverEvent(HoverEvent.showText(yellow("Puts ").append(aqua(rejoin)).append(yellow(" in your chat")))));
                 } else {
                     Msg.say(p, "You left the game.");
                 }

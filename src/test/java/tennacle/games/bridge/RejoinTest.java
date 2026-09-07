@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,7 +51,7 @@ class RejoinTest extends HeadlessServerTest {
             first.depart(red.player);
 
             execute(red, "spectate HoldBlue");
-            assertTrue(said(red, "your own game"), "a held seat is no view: " + red.sent.size());
+            assertTrue(said(red, "still part of that game"), "a held seat is no view: " + red.sent.size());
             assertTrue(Matches.grotto().spectating(red.player) == null);
 
             red.player.setInstance(second.instance(), new Pos(-4.5, 65, 0.5)).join();
@@ -63,17 +64,25 @@ class RejoinTest extends HeadlessServerTest {
             execute(red, "rejoin");
             assertTrue(said(red, "/games"), "several holds: no guess, the list");
             execute(red, "games");
-            assertTrue(said(red, "#" + first.code()) && said(red, "#" + second.code()), "both games, by mode and code");
-            assertTrue(said(red, "with HoldBlue"), "and who is in it");
+            assertTrue(said(red, "Bridge vs HoldBlue"), "the game as a player knows it: title and opponent");
+            assertTrue(clicks(red, "/rejoin " + first.code()) && clicks(red, "/rejoin " + second.code()),
+                    "the code rides the click of each [Rejoin]");
+            assertFalse(said(red, first.code()), "and never the text");
 
             execute(red, "rejoin " + first.code());
             BridgeRoundTest.tickUntil(first, "back in the first", () -> Game.of(red.player) == first); // a world hop binds on a tick
-            assertTrue(said(red, "#" + first.code()), "named by its code");
+            assertTrue(said(red, "Rejoining Bridge"), "named as a player knows it");
         } finally {
             for (Game game : java.util.List.of(first, second)) if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
             blue.player.remove();
         }
+    }
+
+    private static boolean clicks(FakePlayer p, String command) {
+        return p.sent(SystemChatPacket.class).stream()
+                .map(c -> net.kyori.adventure.text.serializer.gson.GsonComponentSerializer.gson().serialize(c.message()))
+                .anyMatch(json -> json.contains(command));
     }
 
     private static boolean said(FakePlayer p, String line) {
@@ -99,14 +108,17 @@ class RejoinTest extends HeadlessServerTest {
             double home = game.arena().marker(Bridge.RESPAWN, team).pos().x();
 
             blue.sent.clear();
-            game.depart(red.player);
+            red.sent.clear();
+            net.minestom.server.MinecraftServer.getCommandManager().execute(red.player, "l"); // the lobby route: the leave line
             assertTrue(said(blue, "RejoinRed left!"), "a held seat is a walk-out, not a forfeit");
+            assertTrue(said(red, "You left Bridge vs RejoinBlue. Click to rejoin."), "in a player's words: " + red.sent.size());
+            assertTrue(clicks(red, "/rejoin " + game.code()), "the click carries the code");
             assertSame(game, Matches.grotto().reclaimable(red.player), "and it waits");
             assertEquals(Game.Status.OPEN, game.status());
 
             blue.sent.clear();
             assertTrue(game.join(red.player), "the seat is re-claimed");
-            await("rebound", () -> Game.of(red.player) == game);
+            BridgeRoundTest.tickUntil(game, "rebound", () -> Game.of(red.player) == game); // from the lobby: a world hop binds on a tick
             assertTrue(said(blue, "RejoinRed rejoined!"), "and everyone hears it");
             assertEquals(home, red.player.getPosition().x(), 1e-6, "back at the respawn spot, not the cage");
             Respawns respawns = game.module(Respawns.class);

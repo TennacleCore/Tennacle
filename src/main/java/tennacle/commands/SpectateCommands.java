@@ -98,7 +98,7 @@ public final class SpectateCommands {
     // a seat held for the viewer makes it their own game: the way back in is the seat, never a view of it
     private static boolean holdsMySeat(Player me, Game game) {
         if (game.roster().reservedSlotOf(me.getUsername()) == null) return false;
-        Msg.fail(me, "That's your own game - it's holding your seat. ", Msg.run("/rejoin"), " to get back in.");
+        Msg.fail(me, "You're still part of that game. ", Msg.run("/rejoin"), " gets you back in.");
         return true;
     }
 }
