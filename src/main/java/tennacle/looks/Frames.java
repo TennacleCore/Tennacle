@@ -159,8 +159,12 @@ public final class Frames {
      * turns at 10:00 and again at 5:00, as captured. An unlimited match stays green.
      */
     public static NamedTextColor timeColor(Game game, long ticksLeft) {
+        return timeColor(ticksLeft, TimeLimit.limit(game));
+    }
+
+    /** The same thirds against a clock the mode owns rather than the match limit. */
+    public static NamedTextColor timeColor(long ticksLeft, long limit) {
         long left = Math.max(0, ticksLeft);
-        long limit = TimeLimit.limit(game);
         if (limit <= 0 || left * 3 > limit * 2) return NamedTextColor.GREEN;
         return left * 3 > limit ? NamedTextColor.YELLOW : NamedTextColor.RED;
     }

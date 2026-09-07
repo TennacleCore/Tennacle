@@ -33,7 +33,6 @@ import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.flow.Phases;
-import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.modules.gear.Kits;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.space.Limits;
@@ -67,7 +66,8 @@ import java.util.Map;
  * enemy's and their next death is their last, so the side that outlives the other wins. A side has one
  * {@code grotto:spawn}: the countdown holds it there and every respawn lands there, no cage. Building is gated
  * to the map's build region between its floor and its height, and the void plane below kills. The space rules
- * and the kills are {@link Rules}, the beds {@link Beds}, the board {@link Boards}.
+ * and the kills are {@link Rules}, the beds {@link Beds}, the board {@link Boards}. No match clock: what runs
+ * out is {@link Beds#DESTROY}, and the last side standing wins however long that takes.
  */
 public final class BedFight {
 
@@ -146,14 +146,13 @@ public final class BedFight {
                 .expect(VOID, 1)
                 .body(Body.fresh().gamemode(GameMode.SURVIVAL))
                 .rule(Countdown.FROM, 3)
-                .rule(TimeLimit.LIMIT, 15L * 60 * 20)
+                .rule(Respawns.RESPAWN_TICKS, 60L)
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         Countdown::of,
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
-                        () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.draw()),
                         Respawns::manual,
                         KillCredit::new,
                         FriendlyFire::new,

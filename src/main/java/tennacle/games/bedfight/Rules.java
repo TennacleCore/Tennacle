@@ -24,6 +24,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.inventory.InventoryPreClickEvent;
+import net.minestom.server.inventory.click.Click;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
@@ -143,6 +145,16 @@ public final class Rules implements GameModule {
             if (game.roster().slotOf(e.getPlayer()) == null) return;
             e.setCancelled(true);
             e.getPlayer().getInventory().update(); // 1.8 predicted the toss - resync the slots
+        });
+        game.on(InventoryPreClickEvent.class, e -> {
+            if (game.roster().slotOf(e.getPlayer()) == null) return;
+            // an in-screen toss is a CLICK - Minestom clears the slot on the click result, so the drop event
+            // alone can't keep the item
+            if (e.getClick() instanceof Click.DropSlot || e.getClick() instanceof Click.DropCursor) {
+                e.setCancelled(true);
+                return;
+            }
+            if (isArmor(e.getClickedItem().material())) e.setCancelled(true);
         });
     }
 

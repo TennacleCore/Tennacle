@@ -1,23 +1,32 @@
 package tennacle.games.bedfight;
 
 import tennacle.looks.Frames;
+import tennacle.looks.Palette;
 
 import io.github.term4.grotto.modules.view.Scoreboard;
 import io.github.term4.grotto.Game;
-import io.github.term4.grotto.modules.flow.TimeLimit;
+import io.github.term4.grotto.modules.combat.Respawns;
+import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.entity.Player;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-/** Bed fight's board rows: the clock, each side's bed and how many of it are left, then the players. */
+/**
+ * Bed fight's board rows, the bedwars shape a full implementation will reuse: the clock to bed destruction,
+ * then a line a side - its color's initial, its name, and one glyph for how it stands.
+ */
 final class Boards {
 
     private Boards() {}
+
+    private static final Component BED = Component.text("✔", NamedTextColor.GREEN);
+    private static final Component GONE = Component.text("✖", NamedTextColor.RED);
 
     static Scoreboard scrims() {
         return Frames.scrims("Bed Fight", Boards::rows);
@@ -28,46 +37,52 @@ final class Boards {
     }
 
     private static void rows(Scoreboard b) {
-        b.line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Component.text(clock(TimeLimit.left(g)), Frames.timeColor(g, TimeLimit.left(g)))))
+        b.line((g, me) -> clockLine(g), Beds.FALLS_AT, Beds.STANDS)
                 .blank()
-                .line((g, me) -> sideLine(g, teamAt(g, 0)), Beds.STANDS)
-                .line((g, me) -> sideLine(g, teamAt(g, 1)), Beds.STANDS)
-                .blank()
-                .rows(g -> names(g, teamAt(g, 0)))
-                .rows(g -> names(g, teamAt(g, 1)));
+                .line((g, me) -> sideLine(g, teamAt(g, 0), me), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
+                .line((g, me) -> sideLine(g, teamAt(g, 1), me), Beds.STANDS, LastStanding.OUT, Respawns.DEAD);
     }
 
-    // a standing bed is the side's state in one glyph; without one, what is left of the side is the state
-    private static Component sideLine(Game game, String team) {
+    private static Component clockLine(Game game) {
+        // the clock is only news while a bed stands; players can beat it to every one of them
+        if (Beds.standing(game).isEmpty()) return Component.text("Beds Destroyed", NamedTextColor.RED);
+        long left = Beds.fallsIn(game);
+        if (left < 0) return Component.empty();
+        return Component.text("Bed Destruction in ", NamedTextColor.WHITE)
+                .append(Component.text(clock(left), Frames.timeColor(left, game.rules()
+                        .resolve(io.github.term4.grotto.state.Scope.GAME, Beds.DESTROY))));
+    }
+
+    /**
+     * One side: its color's initial in bold, then the name, then a standing bed, how many of a bedless side are
+     * still in, or the cross that says they are out. The viewer's own side is marked.
+     */
+    private static Component sideLine(Game game, String team, Player viewer) {
         if (team == null) return Component.empty();
         Team side = game.roster().team(team);
-        boolean bed = Beds.stands(game, team);
-        Component head = Component.text(team, side.color()).append(Component.text(": ", NamedTextColor.GRAY));
-        if (bed) return head.append(Component.text("BED", NamedTextColor.GREEN));
-        int alive = alive(game, team);
-        return head.append(Component.text(alive + (alive == 1 ? " left" : " left"), NamedTextColor.RED));
+        Component line = Component.text(Palette.letter(side), side.color(), TextDecoration.BOLD)
+                .append(Component.text(" " + titled(Palette.name(side)) + ": ", NamedTextColor.WHITE))
+                .append(state(game, team));
+        Slot mine = game.roster().slotOf(viewer);
+        return mine != null && mine.team().equals(team)
+                ? line.append(Component.text(" YOU", NamedTextColor.GRAY)) : line;
     }
 
-    private static int alive(Game game, String team) {
-        int n = 0;
-        for (Slot seat : game.roster().slots()) {
-            if (!seat.team().equals(team)) continue;
-            String owner = game.roster().ownerOf(seat);
-            if (owner != null && game.memberNamed(owner) != null) n++;
-        }
-        return n;
+    private static Component state(Game game, String team) {
+        if (Beds.stands(game, team)) return BED;
+        LastStanding standing = game.module(LastStanding.class);
+        int alive = standing != null ? standing.standing(team) : 0;
+        return alive > 0 ? Component.text(alive, NamedTextColor.GREEN) : GONE;
     }
 
-    private static List<Component> names(Game game, String team) {
-        List<Component> out = new ArrayList<>();
-        if (team == null) return out;
-        for (Player member : game.members()) {
-            Slot seat = game.roster().slotOf(member);
-            if (seat == null || !seat.team().equals(team)) continue;
-            out.add(Component.text(member.getUsername(), game.roster().team(team).color()));
+    /** "LIGHT PURPLE" as a board prints it. */
+    private static String titled(String name) {
+        StringBuilder out = new StringBuilder(name.length());
+        for (String word : name.split(" ")) {
+            if (!out.isEmpty()) out.append(' ');
+            out.append(word.charAt(0)).append(word.substring(1).toLowerCase(Locale.ROOT));
         }
-        return out;
+        return out.toString();
     }
 
     private static String teamAt(Game game, int index) {

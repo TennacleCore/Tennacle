@@ -5,6 +5,7 @@ import tennacle.games.Match;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.roster.Team;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.Scope;
@@ -28,13 +29,19 @@ import java.util.Set;
 /**
  * The beds: one a side, a real bed under a {@code bedfight:bed} region over both its blocks, in the owning
  * team's group. While a side's bed stands its seats respawn; breaking it takes that away, and the next death
- * there is the last. Nobody breaks their own. The elimination is {@code LastStanding}'s, which {@link Rules}
- * calls when a bedless seat falls.
+ * there is the last. Nobody breaks their own. {@link #DESTROY} takes every bed left at once, so a match nobody
+ * wins still ends. The elimination is {@code LastStanding}'s, which {@link Rules} calls when a bedless seat falls.
  */
 public final class Beds implements GameModule {
 
     /** Whether the team's bed still stands; team-scoped, so a board reads it a side at a time. */
     public static final StateKey<Boolean> STANDS = StateKey.of("ledger.bedfight.bed", Codec.BOOLEAN, true, true);
+    /** Ticks of live play before every standing bed falls at once; negative = never. */
+    public static final StateKey<Long> DESTROY = StateKey.of("beds.destroy", Codec.LONG, 10L * 60 * 20);
+    /** The tick the beds fall on, {@code -1} before the clock starts. */
+    public static final StateKey<Long> FALLS_AT = StateKey.of("ledger.bedfight.beds-at", Codec.LONG, -1L);
+    private static final StateKey<Long> STARTED = StateKey.of("ledger.bedfight.beds-from", Codec.LONG, -1L);
+    private static final String FALL_ALARM = "bedfight:bed-destruction";
 
     private static final Sound BROKEN = Sound.sound(SoundEvent.ENTITY_ENDER_DRAGON_GROWL, Sound.Source.MASTER, 1f, 1f);
 
@@ -44,7 +51,7 @@ public final class Beds implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of();
+        return Set.of(DESTROY);
     }
 
     @Override
@@ -74,6 +81,54 @@ public final class Beds implements GameModule {
             if (owner.equals(Match.teamOf(game, breaker))) return; // your own bed is not a target
             if (stands(game, owner)) broke(owner, breaker);
         });
+        game.state().alarms().register(FALL_ALARM, (tick, payload) -> fall());
+        game.rules().watch(DESTROY, (scope, value) -> rearm());
+        Phases phases = game.module(Phases.class);
+        if (phases == null || Phases.is(game, Match.LIVE)) start();
+        else phases.onEnter(Match.LIVE, g -> start());
+    }
+
+    /** The tick every remaining bed falls on, {@code -1} where no clock runs. */
+    public static long fallsAt(@NotNull Game game) {
+        return game.state().get(Scope.GAME, FALLS_AT);
+    }
+
+    /** Ticks until the beds fall, {@code 0} once they have; {@code -1} where no clock runs. */
+    public static long fallsIn(@NotNull Game game) {
+        long at = fallsAt(game);
+        return at < 0 ? -1 : Math.max(0, at - game.state().tick());
+    }
+
+    private void start() {
+        game.state().set(Scope.GAME, STARTED, game.state().tick());
+        rearm();
+    }
+
+    private void rearm() {
+        long from = game.state().get(Scope.GAME, STARTED);
+        if (from < 0 || standing(game).isEmpty()) return; // before the clock starts, or nothing left to take
+        long ticks = game.rules().resolve(Scope.GAME, DESTROY);
+        if (ticks < 0) {
+            game.state().set(Scope.GAME, FALLS_AT, -1L);
+            game.state().alarms().cancel(FALL_ALARM);
+            return;
+        }
+        long at = from + ticks;
+        game.state().set(Scope.GAME, FALLS_AT, at);
+        game.state().alarms().arm(FALL_ALARM, at);
+    }
+
+    // every side at once, so nobody is the one who lost their bed to the clock
+    private void fall() {
+        List<String> left = standing(game);
+        if (left.isEmpty()) return;
+        for (String team : left) game.state().set(Scope.team(team), STANDS, false);
+        cells.forEach((cell, team) -> {
+            if (left.contains(team)) game.shard().setBlock(cell, Block.AIR);
+        });
+        game.forEachAudience(viewer -> viewer.playSound(BROKEN));
+        Match.say(game, Component.text("BED DESTRUCTION! ", NamedTextColor.RED)
+                .append(Component.text("Every bed is gone - the next death is final.", NamedTextColor.GRAY)));
     }
 
     /** Whether {@code team} still has a bed to respawn at. */
@@ -97,7 +152,7 @@ public final class Beds implements GameModule {
         Match.say(game, Component.text("BED DESTROYED! ", NamedTextColor.RED)
                 .append(Component.text(Match.teamName(game, breaker), NamedTextColor.GRAY))
                 .append(Component.text(" broke ", NamedTextColor.GRAY))
-                .append(Component.text(owner, broken.color()))
+                .append(Component.text(tennacle.looks.Palette.name(broken), broken.color()))
                 .append(Component.text("'s bed - they no longer respawn.", NamedTextColor.GRAY)));
     }
 }

@@ -171,10 +171,41 @@ class BedFightRoundTest extends HeadlessServerTest {
         return event.isCancelled();
     }
 
+    /** The clock takes every bed at once, and a bedless side's board row counts down to the cross. */
+    @Test
+    void theClockTakesEveryBed() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedClockRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedClockBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            assertTrue(Beds.fallsAt(game) > 0, "the clock starts with the live phase");
+
+            Matches.modify(game, tennacle.games.Ruleset.named("soon").rule(Beds.DESTROY, 0L));
+            tickUntil(game, "the beds fell", () -> Beds.standing(game).isEmpty());
+            assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(-7, 65, 0)), "both sides' blocks go");
+            assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(7, 65, 0)));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
     // the countdown holds every break until GO
     private static void live(Game game) {
+        tickUntil(game, "the countdown ran out", () -> Match.live(game));
+    }
+
+    private static void tickUntil(Game game, String what, java.util.function.Supplier<Boolean> done) {
         long deadline = System.currentTimeMillis() + 8000;
-        while (!Match.live(game) && System.currentTimeMillis() < deadline) {
+        while (!done.get() && System.currentTimeMillis() < deadline) {
             MinecraftServer.getSchedulerManager().processTick();
             MinecraftServer.getSchedulerManager().processTickEnd();
             try {
@@ -184,7 +215,7 @@ class BedFightRoundTest extends HeadlessServerTest {
                 return;
             }
         }
-        assertTrue(Match.live(game), "the countdown ran out");
+        assertTrue(done.get(), what);
     }
 
     private static void break0(net.minestom.server.entity.Player breaker, BlockVec at) {
