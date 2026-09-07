@@ -31,15 +31,30 @@ public final class LobbyCommands {
         });
         Commands.register(cmd);
 
+        AppCommand games = Commands.player("games", "Your games: the one you are in, and the ones holding a seat for you.");
+        games.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            Game in = Game.of(p);
+            if (in != null) Msg.say(p, "You're in ", Msg.v(describe(in, p)), ".");
+            List<Game> held = Matches.grotto().reclaimables(p);
+            if (held.isEmpty()) {
+                if (in == null) Msg.say(p, "No game is holding a seat for you.");
+                return;
+            }
+            Msg.say(p, held.size() == 1 ? "A seat is held for you in:" : held.size() + " games hold a seat for you, the latest first:");
+            for (Game game : held) Msg.say(p, "  ", Msg.link(describe(game, p), "/rejoin " + game.code(), "rejoin this one"));
+        });
+        Commands.register(games);
+
         AppCommand rejoin = Commands.player("rejoin", "Reclaim the seat a game is holding for you.")
-                .usage("/rejoin [code]", "the latest game holding one, or the one with that board code");
+                .usage("/rejoin [code]", "the one game holding one, or the one with that board code (/games lists them)");
         var code = ArgumentType.Word("code");
         rejoin.setDefaultExecutor((sender, ctx) -> rejoin(sender, null));
         rejoin.addSyntax((sender, ctx) -> rejoin(sender, ctx.get(code)), code);
         Commands.register(rejoin);
     }
 
-    // a seat holds through other games, so several may hold at once: the latest game is the default, a code picks
+    // a seat holds through other games, so several may hold at once: a code picks, /games shows them
     private static void rejoin(CommandSender sender, @Nullable String code) {
         if (!(sender instanceof Player p)) return;
         if (Matches.grotto().engaged(p)) {
@@ -51,18 +66,15 @@ public final class LobbyCommands {
             Msg.fail(p, "No seat is being held for you.");
             return;
         }
+        if (code == null && held.size() > 1) {
+            Msg.say(p, held.size() + " games hold a seat for you. ", Msg.run("/games"), " lists them, each a click to rejoin.");
+            return;
+        }
         Game pick = code == null ? held.getFirst()
                 : held.stream().filter(g -> g.code().equalsIgnoreCase(code)).findFirst().orElse(null);
         if (pick == null) {
-            Msg.fail(p, "No seat is held for you in a game ", Msg.v("#" + code), ".");
+            Msg.fail(p, "No seat is held for you in a game ", Msg.v("#" + code), ". ", Msg.run("/games"), " lists yours.");
             return;
-        }
-        if (code == null && held.size() > 1) {
-            Msg.say(p, held.size() + " games hold a seat for you. This is the latest, ", Msg.v(describe(pick, p)), "; the others:");
-            for (Game game : held) {
-                if (game == pick) continue;
-                Msg.say(p, "  ", Msg.link(describe(game, p), "/rejoin " + game.code(), "rejoin this one"));
-            }
         }
         Queues.dequeue(p);
         Spectators.exit(p);

@@ -60,6 +60,12 @@ class RejoinTest extends HeadlessServerTest {
             second.depart(red.player);
             assertEquals(java.util.List.of(second, first), Matches.grotto().reclaimables(red.player), "both hold, the later first");
 
+            execute(red, "rejoin");
+            assertTrue(said(red, "/games"), "several holds: no guess, the list");
+            execute(red, "games");
+            assertTrue(said(red, "#" + first.code()) && said(red, "#" + second.code()), "both games, by mode and code");
+            assertTrue(said(red, "with HoldBlue"), "and who is in it");
+
             execute(red, "rejoin " + first.code());
             BridgeRoundTest.tickUntil(first, "back in the first", () -> Game.of(red.player) == first); // a world hop binds on a tick
             assertTrue(said(red, "#" + first.code()), "named by its code");
