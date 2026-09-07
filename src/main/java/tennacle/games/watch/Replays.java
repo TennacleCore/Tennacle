@@ -603,7 +603,10 @@ public final class Replays {
         Pos landing = landing(theater.arena());
         viewer.setInstance(theater.stage().instance(), landing).thenRun(() -> {
             if (watching.get(viewer) != theater) return;
-            ShardView.set(viewer, ShardView.of(theater.stage()));
+            // the stage's members are the replay's ghosts; a watcher is bound to nothing, so co-watchers are
+            // base entities to each other and invisible until the view says otherwise
+            ShardView.set(viewer, ShardView.of(theater.stage())
+                    .withBaseEntities(other -> watching.get(other) == theater));
             theater.dressing().enter(viewer, controller);
         });
         Msg.ok(viewer, "Watching the replay of game ", Msg.v(theater.game()), ". ", Msg.run("/l"), " to leave.");

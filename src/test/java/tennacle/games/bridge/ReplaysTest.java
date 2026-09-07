@@ -15,6 +15,7 @@ import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.shard.ShardTabList;
+import io.github.term4.archipelago.shard.ShardView;
 import io.github.term4.canvas.board.Boards;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -178,6 +179,48 @@ class ReplaysTest extends HeadlessServerTest {
     }
 
     /** Two people who start the same replay apart each get a theater: separate shards, separate controls. */
+    /** A party watches behind its leader: one theater, and the watchers are not invisible to each other in it. */
+    @Test
+    void aPartyWatchesTogetherAndSeesItself() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PartyRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "PartyBlue");
+        FakePlayer lead = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "WatchLead");
+        FakePlayer mate = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "WatchMate");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
+
+            MinecraftServer.getCommandManager().execute(lead.player, "party WatchMate");
+            MinecraftServer.getCommandManager().execute(mate.player, "party join WatchLead");
+            assertEquals(2, tennacle.games.matchmaking.Parties.of(lead.player).size(), "a party of two");
+
+            Replays.watch(lead.player, game.id(), BridgeRoundTest.fixture());
+            await("both admitted", () -> Replays.playbackOf(mate.player) != null);
+            assertEquals(Replays.playbackOf(lead.player), Replays.playbackOf(mate.player), "one theater between them");
+            assertTrue(ShardView.of(lead.player).seesEntity(mate.player), "the leader sees who came along");
+            assertTrue(ShardView.of(mate.player).seesEntity(lead.player), "and is seen back");
+
+            Replays.leave(lead.player);
+            Matches.toLobby(lead.player);
+            Replays.leave(mate.player);
+            Matches.toLobby(mate.player);
+        } finally {
+            red.player.remove();
+            blue.player.remove();
+            lead.player.remove();
+            mate.player.remove();
+        }
+    }
+
     @Test
     void twoWatchersEachGetATheater() {
         Mode bridge = Matches.mode("bridge");
