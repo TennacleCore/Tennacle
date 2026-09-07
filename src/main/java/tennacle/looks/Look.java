@@ -309,12 +309,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     // the MineMen line shape - themed names, themed prose, an exclamation - on the game look's palette
     private static Component minemenDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
-        Theme theme = Matches.lookOf(game).theme();
-        if (verb == null) return theme.value(loser).append(theme.prose(" forfeited!"));
-        if (winner == null) return theme.value(loser).append(theme.prose(" " + verb + "!"));
-        return theme.value(loser)
-                .append(theme.prose(" " + verb + " ")).append(theme.value(winner.getUsername()))
-                .append(theme.prose("!"));
+        Component name = Component.text(loser, game.roster().team(seat.team()).color());
+        if (verb == null) return name.append(Component.text(" forfeited!", NamedTextColor.YELLOW));
+        if (winner == null) return name.append(Component.text(" " + verb + "!", NamedTextColor.YELLOW));
+        return name.append(Component.text(" " + verb + " ", NamedTextColor.YELLOW))
+                .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
+                .append(Component.text("!", NamedTextColor.YELLOW));
     }
 
     private static Title minemenVerdict(Game game, boolean won, Player winner) {
@@ -329,12 +329,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     // captured: [gold]"IgnasSk"[gray]" was killed by "[aqua]"Dogln"[gray]"." - names are rank-colored on
     // hypixel and always "was killed by", whatever actually happened; aqua names here (no ranks)
     private static Component hypixelDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
-        Component name = Component.text(loser, NamedTextColor.AQUA);
-        if (verb == null) return name.append(Component.text(" forfeited.", NamedTextColor.GRAY));
+        Component name = Component.text(loser + " ", game.roster().team(seat.team()).color());
+        if (verb == null) return name.append(Component.text("forfeited.", NamedTextColor.GRAY));
         // captured: "Dogln fell into the void." - a death nobody is credited for is no forfeit
-        if (winner == null) return name.append(Component.text(" " + verb + ".", NamedTextColor.GRAY));
-        return name.append(Component.text(" was killed by ", NamedTextColor.GRAY))
-                .append(Component.text(winner.getUsername(), NamedTextColor.AQUA))
+        if (winner == null) return name.append(Component.text(verb + ".", NamedTextColor.GRAY));
+        return name.append(Component.text(verb + " ", NamedTextColor.GRAY))
+                .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
                 .append(Component.text(".", NamedTextColor.GRAY));
     }
 

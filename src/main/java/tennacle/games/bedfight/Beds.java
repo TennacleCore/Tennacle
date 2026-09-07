@@ -143,7 +143,7 @@ public final class Beds implements GameModule {
         for (String team : left) erase(team);
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
         told(left::contains);
-        Match.say(game, headline().append(theme().prose("Every bed was destroyed!")));
+        Match.say(game, Banners.bedsFell(game));
     }
 
     // the side that lost it hears it on their screen; the rest read the line
@@ -181,25 +181,7 @@ public final class Beds implements GameModule {
         Team broken = game.roster().team(owner);
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
         told(owner::equals);
-        Match.say(game, broken(broken, breaker));
+        Match.say(game, Banners.bedBroken(game, broken, breaker));
     }
 
-    /** The captured hypixel shape, which every look wears in its own prose: a bold headline, then the side's
-     *  color on its bed and its taker's on their name. */
-    private Component broken(Team side, Player breaker) {
-        return headline()
-                .append(Component.text(tennacle.looks.Palette.titled(side) + " Bed ", side.color()))
-                .append(theme().prose("was destroyed by "))
-                .append(Component.text(breaker.getUsername(), Match.teamColor(game, breaker)))
-                .append(theme().prose("!"));
-    }
-
-    // captured: bold, and no color of its own
-    private static Component headline() {
-        return Component.text("BED DESTRUCTION > ").decorate(net.kyori.adventure.text.format.TextDecoration.BOLD);
-    }
-
-    private io.github.term4.canvas.theme.Theme theme() {
-        return tennacle.games.Matches.lookOf(game).theme();
-    }
 }

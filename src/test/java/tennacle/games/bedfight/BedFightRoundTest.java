@@ -260,6 +260,10 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertEquals(3L, (long) house.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
                             io.github.term4.grotto.modules.flow.Countdown.FROM),
                     "the mode's own everywhere else");
+            assertEquals(100L, hypixel.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
+                    io.github.term4.grotto.modules.combat.Respawns.RESPAWN_TICKS), "hypixel waits five seconds");
+            assertEquals(60L, house.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
+                    io.github.term4.grotto.modules.combat.Respawns.RESPAWN_TICKS), "the mode's own three");
         } finally {
             house.end(Outcome.aborted());
             hypixel.end(Outcome.aborted());
@@ -445,6 +449,9 @@ class BedFightRoundTest extends HeadlessServerTest {
             game.module(Rules.class).fell(red.player);
             List<String> last = said(blue).stream().filter(l -> l.contains("BedLineRed")).toList();
             assertEquals(List.of("BedLineRed fell into the void. FINAL KILL!"), last, "and one on the last: " + said(blue));
+            String side = tennacle.looks.Palette.titled(game.roster().team(mine.team()));
+            assertTrue(said(blue).stream().anyMatch(l -> l.equals("TEAM ELIMINATED > " + side + " Team has been eliminated!")),
+                    "and the side is called out: " + said(blue));
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
@@ -482,6 +489,45 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertEquals(List.of("HouseBedRed fell into the void. FINAL KILL!"),
                     said(blue).stream().filter(l -> l.contains("HouseBedRed")).toList(),
                     "one line, with the note: " + said(blue));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    /** Minemen speaks its own: a guillemet headline, yellow prose, and an elimination that names the player. */
+    @Test
+    void minemenSpeaksItsOwnLines() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor("minemen"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "MmcBedRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "MmcBedBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            assertEquals("minemen", Matches.lookNameOf(game));
+            live(game);
+            Slot mine = game.roster().slotOf(red.player);
+            assertNotNull(mine);
+            String side = tennacle.looks.Palette.titled(game.roster().team(mine.team()));
+
+            blue.sent.clear();
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            assertTrue(said(blue).stream().anyMatch(
+                            l -> l.equals("BED DESTRUCTION » " + side + " Bed was destroyed by MmcBedBlue!")),
+                    "the captured minemen headline: " + said(blue));
+
+            blue.sent.clear();
+            game.module(Rules.class).fell(red.player);
+            assertEquals(List.of("MmcBedRed fell into the void! FINAL KILL"),
+                    said(blue).stream().filter(l -> l.contains("MmcBedRed fell")).toList(),
+                    "minemen shouts no exclamation on the note: " + said(blue));
+            assertTrue(said(blue).stream().anyMatch(l -> l.equals("ELIMINATION! ⚔ MmcBedRed")),
+                    "and names the player, not the side: " + said(blue));
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();

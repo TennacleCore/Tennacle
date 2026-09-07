@@ -57,8 +57,7 @@ public final class Rules implements GameModule {
     /** What may be broken outside one - the rest of the map. */
     public static final StateKey<List<String>> BREAK_OUTSIDE =
             StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
-    /** Captured hypixel: the line's period, then this in bold aqua. */
-    private static final String FINAL = "FINAL KILL!";
+
 
     static {
         RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
@@ -106,7 +105,8 @@ public final class Rules implements GameModule {
         game.on(FatalDamageEvent.class, FatalDamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim) || game.roster().slotOf(victim) == null) return;
             e.cancel(); // the module decides between a respawn and the last death
-            killed(victim, e.source() instanceof Player by && by != victim ? by : null, "died");
+            Player by = e.source() instanceof Player p && p != victim ? p : null;
+            killed(victim, by, by != null ? "was killed by" : "died");
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
@@ -145,19 +145,22 @@ public final class Rules implements GameModule {
     /** A member dropped under the void plane ({@code Limits}): the same end a killing blow gets. */
     void fell(@NotNull Player player) {
         if (game.roster().slotOf(player) == null) return;
-        killed(player, credit.creditFor(player), "fell into the void");
+        Player by = credit.creditFor(player);
+        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void");
     }
 
     // the one decision this mode turns on: a side with a bed respawns, a side without loses the seat
-    private void killed(Player victim, @Nullable Player by, String alone) {
+    private void killed(Player victim, @Nullable Player by, String verb) {
         Slot seat = game.roster().slotOf(victim);
         if (seat == null) return;
         Match.addSeat(game, victim, BedFight.DEATHS);
         if (by != null) Match.addSeat(game, by, BedFight.KILLS);
-        String verb = by != null ? "was killed by" : alone;
         if (!Beds.stands(game, seat.team())) {
             // the elimination says the line, in the look's own voice, and cues its own fall
-            standing.out(victim, LastStanding.Cause.eliminated(by, verb, FINAL));
+            standing.out(victim, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game)));
+            if (minemen() || standing.standing(seat.team()) == 0) { // minemen names the player, the rest the side
+                Match.say(game, Banners.eliminated(game, game.roster().team(seat.team()), victim));
+            }
             return;
         }
         Match.say(game, tennacle.games.Matches.lookOf(game).death()
@@ -170,6 +173,10 @@ public final class Rules implements GameModule {
         Double y = game.arena().markers(key).getFirst().y();
         if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
         return y;
+    }
+
+    private boolean minemen() {
+        return "minemen".equals(tennacle.games.Matches.lookNameOf(game));
     }
 
     private boolean defended(Point pos) {
