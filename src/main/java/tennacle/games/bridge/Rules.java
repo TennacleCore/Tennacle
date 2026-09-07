@@ -306,9 +306,9 @@ public final class Rules implements GameModule {
         return pos.blockY() >= minBuildY && pos.blockY() <= ceiling(placer);
     }
 
+    // the respawn landings are Respawns.BUILD_OVER's; a cage is bridge's own
     private static boolean onASpawn(Game game, Point pos) {
         for (PosMarker at : game.arena().markers(Bridge.CAGE)) if (spawnBlock(at, pos)) return true;
-        for (PosMarker at : game.arena().markers(Bridge.RESPAWN)) if (spawnBlock(at, pos)) return true;
         return false;
     }
 

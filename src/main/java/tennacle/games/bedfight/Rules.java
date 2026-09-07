@@ -5,11 +5,9 @@ import tennacle.games.Match;
 import tennacle.games.watch.Spectators;
 
 import io.github.term4.barnacle.marker.LimitMarker;
-import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Markers;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
@@ -119,7 +117,7 @@ public final class Rules implements GameModule {
             Point pos = e.getBlockPosition();
             boolean allowed = game.rules().resolve(player, BUILD) && (buildable(player, pos)
                     || (game.rules().resolve(player, OUTSIDE) && inBand(player, pos))); // off the slices, still in the band
-            if (!allowed || onASpawn(pos)) {
+            if (!allowed) {
                 e.setCancelled(true); // Refusals says so
                 return;
             }
@@ -204,16 +202,6 @@ public final class Rules implements GameModule {
         int low = game.rules().resolve(placer, FLOOR);
         int high = game.rules().resolve(placer, HEIGHT);
         return pos.blockY() >= (low >= 0 ? low : floorY) && pos.blockY() <= (high >= 0 ? high : ceilingY);
-    }
-
-    private boolean onASpawn(Point pos) {
-        for (PosMarker at : game.arena().markers(Markers.SPAWN)) if (spawnBlock(at, pos)) return true;
-        return false;
-    }
-
-    private static boolean spawnBlock(PosMarker at, Point pos) {
-        return pos.blockX() == at.pos().blockX() && pos.blockZ() == at.pos().blockZ()
-                && (pos.blockY() == at.pos().blockY() || pos.blockY() == at.pos().blockY() + 1);
     }
 
 }

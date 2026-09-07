@@ -204,6 +204,8 @@ public final class Bridge {
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
                 .rule(TimeLimit.TIEBREAKER, false) // ranked turns this on: a drawn clock plays on
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing or a block touch forfeits it
+                .rule(Respawns.BUILD_OVER, false)   // a bridge spawn is never walled in
+                .rule(Respawns.WAIT, Respawns.WAIT_LANDING) // the dead watch from over the middle, not from where they fell
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
                 .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims, Ends::tennacle), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
