@@ -43,6 +43,7 @@ public final class TestWiring {
         Sumo.install();
         tennacle.games.boxing.Boxing.install();
         tennacle.games.bridge.Bridge.install();
+        tennacle.games.bedfight.BedFight.install();
         tennacle.commands.LobbyCommands.register();
     }
 }

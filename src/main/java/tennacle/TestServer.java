@@ -249,6 +249,7 @@ public final class TestServer {
         Sumo.install();   // ring-out over a void plane; the platform picks the knockback
         Boxing.install(); // speed 2, first to 10 hits; /stats for career numbers
         Bridge.install(); // blue vs red, first to five goals
+        tennacle.games.bedfight.BedFight.install(); // break the bed, then eliminate
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(arenaDir(), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
