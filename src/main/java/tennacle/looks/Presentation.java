@@ -79,7 +79,7 @@ public final class Presentation implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(GameSounds.CUES, Frames.CLOCK);
+        return Set.of(GameSounds.CUES, Frames.CLOCK, tennacle.games.watch.Replays.RECORD);
     }
 
     @Override

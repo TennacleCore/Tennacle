@@ -31,6 +31,7 @@ import io.github.term4.canvas.board.Boards;
 import io.github.term4.canvas.presets.Versus;
 import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.view.HealthDisplay;
 import io.github.term4.grotto.roster.Roster;
@@ -101,6 +102,9 @@ public final class Replays {
     public static final DataKey<String> CODE = new DataKey<>("tennacle:code", Codec.STRING);
     /** The day the game was launched, as its boards printed it: a code names a game only beside its date. */
     public static final DataKey<String> PLAYED = new DataKey<>("tennacle:played", Codec.STRING);
+    /** Whether the game is recorded at all, read once at launch: a ruleset turns replays off for a whole
+     *  platform, and {@code /rules} before a launch turns them off for the next one. */
+    public static final StateKey<Boolean> RECORD = StateKey.of("replay.record", Codec.BOOLEAN, true);
     /** The look the game played under: the theater's tab chrome and health column follow it. */
     public static final DataKey<String> LOOK = new DataKey<>("tennacle:look", Codec.STRING);
     /** Everyone who held a seat, as {@code name|team|color}: names and nameplates keep the side's color. */
@@ -231,7 +235,7 @@ public final class Replays {
     /** Called at launch; a no-op until {@link #install}. */
     public static void record(@NotNull Game game) {
         Path at = dir;
-        if (at == null) return;
+        if (at == null || !game.rules().resolve(Scope.GAME, RECORD)) return;
         Mode mode = Matches.modeOf(game);
         Path spool = at.resolve(folderOf(mode != null ? mode.name() : null)).resolve("spool").resolve(game.id() + ".spool");
         try {

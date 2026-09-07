@@ -125,6 +125,22 @@ class ReplaysTest extends HeadlessServerTest {
         }
     }
 
+    /** A game the rule says not to record keeps nothing, not even a spool. */
+    @Test
+    void aRuleTurnsRecordingOff() {
+        Mode bridge = Matches.mode("bridge");
+        tennacle.games.Options off = new tennacle.games.Options(null, null,
+                tennacle.games.Ruleset.named("norec").rule(Replays.RECORD, false), List.of(), List.of());
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture(), off);
+        try {
+            assertFalse(Replays.recording(game), "nothing is recording");
+            assertFalse(Files.exists(replays.resolve("bridge").resolve("spool").resolve(game.id() + ".spool")),
+                    "and no spool was opened");
+        } finally {
+            game.end(Outcome.aborted());
+        }
+    }
+
     @Test
     void aGameLandsAsAFileAndSaysSo() {
         Mode bridge = Matches.mode("bridge");
