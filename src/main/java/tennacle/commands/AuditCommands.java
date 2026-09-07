@@ -43,7 +43,7 @@ public final class AuditCommands {
         audit.addSyntax((sender, ctx) -> Audit.maps(sender), ArgumentType.Literal("maps"));
         audit.addSyntax((sender, ctx) -> Audit.players(sender), ArgumentType.Literal("players"));
         var name = ArgumentType.Word("name");
-        name.setSuggestionCallback(PlayerNames.suggest());
+        name.setSuggestionCallback(PlayerNames.suggestAll());
         audit.addSyntax((sender, ctx) -> {
             Player p = online(sender, ctx.get(name));
             if (p != null) Audit.player(sender, p);

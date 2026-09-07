@@ -91,6 +91,19 @@ public final class Spectators {
         else if (target != null) Lineup.aim(viewer, () -> target.isOnline() && Game.of(target) == game ? target.getPosition() : null);
     }
 
+    /** Whom {@code /spectate} can name: the seats, ghosts and viewers of every running game that takes them -
+     *  none of whom a lobby tab lists, so the completion cannot come off the viewer's own scope. */
+    public static @NotNull List<String> watchable() {
+        List<String> names = new ArrayList<>();
+        for (Game game : Matches.grotto().games()) {
+            if (game.status() != Game.Status.OPEN || !Spectating.allowed(game)) continue;
+            for (Player p : game.members()) names.add(p.getUsername());
+            for (Player p : game.spectators()) names.add(p.getUsername());
+        }
+        names.sort(String.CASE_INSENSITIVE_ORDER);
+        return names;
+    }
+
     /** Drops the view and gives the body back; {@code false} = was not spectating. */
     public static boolean exit(@NotNull Player viewer) {
         Game watched = Matches.grotto().spectating(viewer);

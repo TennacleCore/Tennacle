@@ -60,9 +60,9 @@ public final class TeamCommands {
                 .usage("/side <player> <team>", "onto a free seat of that side; the id, or its color")
                 .usage("/side swap <player> <player>", "the two trade sides");
         var who = ArgumentType.Word("player");
-        who.setSuggestionCallback(PlayerNames.suggest());
+        who.setSuggestionCallback(PlayerNames.suggestAll());
         var other = ArgumentType.Word("other");
-        other.setSuggestionCallback(PlayerNames.suggest());
+        other.setSuggestionCallback(PlayerNames.suggestAll());
         var which = ArgumentType.Word("team");
         side.addSyntax((sender, ctx) -> swap(sender, ctx.get(who), ctx.get(other)), ArgumentType.Literal("swap"), who, other);
         side.addSyntax((sender, ctx) -> put(sender, ctx.get(who), ctx.get(which)), who, which);

@@ -3,7 +3,6 @@ package tennacle.commands;
 import tennacle.games.watch.Spectators;
 import tennacle.games.Mode;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
-import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.grotto.modules.view.Spectating;
 import java.util.List;
 import tennacle.Msg;
@@ -28,7 +27,7 @@ public final class SpectateCommands {
                 .usage("/spectate mode true|ghost", "the client's spectator mode, or the ghost body")
                 .featured();
         var name = ArgumentType.Word("player");
-        name.setSuggestionCallback(PlayerNames.suggest());
+        name.setSuggestionCallback(Completions.of(Spectators::watchable)); // nobody here is in the sender's tab
         var body = ArgumentType.Word("body").from("true", "ghost");
         spectate.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;

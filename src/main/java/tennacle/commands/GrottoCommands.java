@@ -28,7 +28,7 @@ public final class GrottoCommands {
                 .usage("/grotto spectate <player>", "follow them into their game")
                 .usage("/grotto id <code> [date]", "derive a game id from a board code");
         var target = ArgumentType.Word("player");
-        target.setSuggestionCallback(PlayerNames.suggest());
+        target.setSuggestionCallback(PlayerNames.suggestAll());
         grotto.addSyntax((sender, ctx) -> spectate(sender, ctx.get(target)), ArgumentType.Literal("spectate"), target);
         var code = ArgumentType.Word("code");
         var date = ArgumentType.Word("date");

@@ -163,7 +163,7 @@ public final class Parties {
                 .usage("/chat <party|all>", "choose the chat to speak in")
                 .featured();
         var name = ArgumentType.Word("player");
-        name.setSuggestionCallback(PlayerNames.suggest());
+        name.setSuggestionCallback(PlayerNames.suggestAll()); // a party reaches into games and lobbies alike
         var sub = ArgumentType.Word("sub").from("invite", "join", "accept", "kick", "transfer", "list", "leave",
                 "kickoffline", "disband", "allinvite", "help");
         party.addSyntax((sender, ctx) -> {
