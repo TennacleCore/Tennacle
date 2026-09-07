@@ -11,7 +11,6 @@ import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 
-import java.util.List;
 import java.util.Locale;
 
 /** Bed fight's end screens. The captures for hypixel and minemen are still to come; they read the house card. */
@@ -19,24 +18,36 @@ final class Ends {
 
     private Ends() {}
 
+    // bridge's layout over bed fight's own; damage/pressure/blocks are filler until their mechanics land
     static Summary scrims() {
         return Matches.summary()
-                .row("Beds Broken", (g, side, th, color) -> th.value(total(g, side, BedFight.BEDS)))
-                .row("Kills", (g, side, th, color) -> th.value(total(g, side, BedFight.KILLS)))
-                .row("Deaths", (g, side, th, color) -> th.value(total(g, side, BedFight.DEATHS)))
-                .row("Bed", "Whether the side still had one when the game ended", (g, side, th, color) ->
-                        Beds.stands(g, side.getFirst().team()) ? th.value("Standing") : th.dim("Broken"))
+                .row("Bed", "Whether the side still had one when the game ended",
+                        (g, side, th, color) -> th.value(bed(g, side.getFirst())))
+                .row("Damage", (g, side, th, color) -> th.hearts(0))
+                .row("Pressure", "Time spent with the majority of players on the enemy's side",
+                        (g, side, th, color) -> th.value("0%"))
+                .row("Blocks Placed", (g, side, th, color) -> th.value(0))
+                .row("Blocks Broken", (g, side, th, color) -> th.value(0))
                 .cardSection(
-                        (g, seat, th, side) -> th.prose("Beds Broken: ").append(th.value(stat(g, seat, BedFight.BEDS))),
+                        (g, seat, th, side) -> th.prose("Bed: ").append(th.value(bed(g, seat))),
+                        (g, seat, th, side) -> th.prose("Damage: ").append(th.hearts(0)),
                         (g, seat, th, side) -> th.prose("KDR: ").append(th.value(stat(g, seat, BedFight.KILLS)))
                                 .append(th.dim(" | ")).append(th.value(stat(g, seat, BedFight.DEATHS)))
-                                .append(th.dim(" (" + kdr(g, seat) + ")")));
+                                .append(th.dim(" (" + kdr(g, seat) + ")")))
+                .cardSection(
+                        (g, seat, th, side) -> th.prose("Beds Broken: ").append(th.value(stat(g, seat, BedFight.BEDS))),
+                        (g, seat, th, side) -> th.prose("Blocks Placed: ").append(th.value(0)),
+                        (g, seat, th, side) -> th.prose("Blocks Broken: ").append(th.value(0)));
     }
 
     // the scrims card on the house palette, and a name click opens the frozen record (minemen's screen)
     static GameModule tennacle() {
         Results records = Results.of().quiet(); // first: the snapshot precedes the card, and cleanup
         return Bundle.of(records, scrims().click((g, name) -> records.viewCommand(name)));
+    }
+
+    private static String bed(Game game, Slot seat) {
+        return Beds.stands(game, seat.team()) ? "Yes" : "No";
     }
 
     private static String kdr(Game game, Slot seat) {
@@ -46,12 +57,5 @@ final class Ends {
 
     private static int stat(Game game, Slot seat, StateKey<Integer> key) {
         return game.state().get(Scope.slot(seat.index()), key);
-    }
-
-    /** A side's own: bed fight seats a whole party, so a row is the sum of it. */
-    private static int total(Game game, List<Slot> side, StateKey<Integer> key) {
-        int sum = 0;
-        for (Slot seat : side) sum += stat(game, seat, key);
-        return sum;
     }
 }
