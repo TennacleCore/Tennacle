@@ -26,9 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Per-player kit slot arrangements: one vault value for all kits, prefetched through {@link PlayerPrefs},
- * kit-default fallback on anything missing or malformed. {@code /kitbeta [kit]} is the bare editor - the
- * kit lands in your inventory, arrange it, close to save. (A Canvas screen replaces the command later;
- * the data layer stays.)
+ * kit-default fallback on anything missing or malformed. {@code /kit [mode]} is the bare editor - the kit
+ * lands in your inventory, arrange it, close to save. A mode whose kit names no roles has nothing to
+ * arrange and registers none. (A Canvas screen replaces the command later; the data layer stays.)
  */
 public final class KitLayouts {
 
@@ -66,12 +66,14 @@ public final class KitLayouts {
                 net.minestom.server.event.player.PlayerDisconnectEvent.class,
                 e -> EDITING.remove(e.getPlayer().getUuid())); // the lobby flow rebuilds next login
 
-        AppCommand cmd = Commands.player("kitbeta", "Arrange a kit's slots your way.")
-                .usage("/kitbeta [kit]", "the kit lands in your inventory; close it to save");
-        var kitArg = ArgumentType.Word("kit");
+        AppCommand cmd = Commands.player("kit", "Arrange a mode's kit your way.")
+                .usage("/kit <mode>", "the kit lands in your inventory; close it to save");
+        var kitArg = ArgumentType.Word("mode");
+        kitArg.setSuggestionCallback(tennacle.commands.Completions.of(EDITABLE::keySet));
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            open(p, EDITABLE.keySet().iterator().next());
+            Msg.say(p, "Kits you can arrange: ", Msg.v(String.join(", ", EDITABLE.keySet())),
+                    ". Try ", Msg.v("/kit " + EDITABLE.keySet().iterator().next()), ".");
         });
         cmd.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
@@ -93,7 +95,7 @@ public final class KitLayouts {
     private static void open(Player p, String kitId) {
         Kit kit = EDITABLE.get(kitId);
         if (kit == null) {
-            Msg.fail(p, "No editable kit named ", Msg.v(kitId), ". Kits: ", Msg.v(String.join(", ", EDITABLE.keySet())), ".");
+            Msg.fail(p, "No kit to arrange for ", Msg.v(kitId), ". Modes: ", Msg.v(String.join(", ", EDITABLE.keySet())), ".");
             return;
         }
         if (Game.of(p) != null) {

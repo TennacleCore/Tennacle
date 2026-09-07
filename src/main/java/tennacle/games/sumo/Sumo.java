@@ -86,6 +86,7 @@ public final class Sumo {
                 .expect(Markers.VOID, 1)
                 .body(Body.fresh().gamemode(GameMode.ADVENTURE))
                 .rule(TimeLimit.LIMIT, 2L * 60 * 20) // captured: hypixel sumo counts down from 2:00
+                .rule(tennacle.looks.Frames.CLOCK, java.util.List.of("green", "1:20 yellow", "0:40 red"))
                 .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims, Ends::tennacle), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),

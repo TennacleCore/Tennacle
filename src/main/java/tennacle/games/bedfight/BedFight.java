@@ -76,6 +76,9 @@ public final class BedFight {
     public static final MarkerKey<RegionMarker> BED = MarkerKey.region("bedfight:bed");
     /** Where building is allowed at all: a flat box is an X/Z slice under the band, multi-box for odd shapes. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bedfight:build");
+    /** The map's own blocks a seat may take apart - the wool around a bed. Everywhere else only what a seat
+     *  placed itself comes back up. Optional: a map with none has no breakable map blocks at all. */
+    public static final MarkerKey<RegionMarker> DEFENSE = MarkerKey.region("bedfight:defense");
     /** Highest placeable Y. */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bedfight:height");
     /** Lowest placeable Y. */
@@ -147,6 +150,7 @@ public final class BedFight {
                 .expect(VOID, 1)
                 .body(Body.fresh().gamemode(GameMode.SURVIVAL))
                 .rule(Countdown.FROM, 3)
+                .rule(tennacle.looks.Frames.CLOCK, List.of("green", "5:00 yellow", "2:00 red")) // the bed clock's own
                 .rule(Loadout.DROP, false)   // the kit is the whole economy: it never leaves the body
                 .rule(Loadout.UNEQUIP, false)
                 .rule(Respawns.RESPAWN_TICKS, 60L)

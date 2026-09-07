@@ -36,8 +36,9 @@ import java.util.Set;
 /**
  * The buildable space, protection, kills and falls. Where a seat may build is the {@code bedfight:build}
  * region: a flat box is an X/Z slice between the floor and the height, a taller one its own volume. What it
- * may break is the same vocabulary bridge uses, and the beds are {@link Beds}' own. A death respawns while
- * the side's bed stands and eliminates once it does not.
+ * may break is the same vocabulary bridge uses, over the {@code bedfight:defense} regions: a seat takes its
+ * own blocks back up anywhere, the map's own only where a bed is defended. The beds are {@link Beds}' own. A
+ * death respawns while the side's bed stands and eliminates once it does not.
  */
 public final class Rules implements GameModule {
 
@@ -53,9 +54,9 @@ public final class Rules implements GameModule {
     public static final String PLACED = "placed";
     /** The map's own. */
     public static final String MAP = "map";
-    /** What may be broken inside the build region; a kind nobody names stays standing. */
+    /** What may be broken inside a {@code bedfight:defense} region; a kind nobody names stays standing. */
     public static final StateKey<List<String>> BREAK = StateKey.of("space.break", Codec.STRING.list(), List.of(PLACED, MAP));
-    /** What may be broken outside it. */
+    /** What may be broken outside one - the rest of the map. */
     public static final StateKey<List<String>> BREAK_OUTSIDE =
             StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
 
@@ -70,6 +71,7 @@ public final class Rules implements GameModule {
     private KillCredit credit;
     private LastStanding standing;
     private RegionMarker build;
+    private List<RegionMarker> defenses;
     private int floorY;
     private int ceilingY;
 
@@ -89,6 +91,7 @@ public final class Rules implements GameModule {
             throw new IllegalStateException("bedfight Rules needs Respawns, KillCredit, LastStanding and Kits installed before it");
         }
         build = game.arena().markers(BedFight.BUILD).getFirst();
+        defenses = game.arena().markers(BedFight.DEFENSE);
         floorY = (int) Math.ceil(plane(BedFight.FLOOR));
         ceilingY = (int) Math.floor(plane(BedFight.HEIGHT));
         respawns.onRespawn((player, seat) -> kits.refit(player)); // the kit comes back whole on every spawn
@@ -129,7 +132,7 @@ public final class Rules implements GameModule {
             Point pos = e.getBlockPosition();
             Point key = new net.minestom.server.coordinate.BlockVec(pos.blockX(), pos.blockY(), pos.blockZ());
             boolean own = placed.contains(key);
-            List<String> may = game.rules().resolve(player, buildable(player, pos) ? BREAK : BREAK_OUTSIDE);
+            List<String> may = game.rules().resolve(player, defended(pos) ? BREAK : BREAK_OUTSIDE);
             if (!game.rules().resolve(player, BUILD) || !may.contains(own ? PLACED : MAP)) {
                 e.setCancelled(true);
                 return;
@@ -171,6 +174,13 @@ public final class Rules implements GameModule {
         Double y = game.arena().markers(key).getFirst().y();
         if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
         return y;
+    }
+
+    private boolean defended(Point pos) {
+        for (RegionMarker defense : defenses) {
+            if (defense.contains(pos)) return true;
+        }
+        return false;
     }
 
     // a flat (1-tall) box is an X/Z slice under the band, which is what the editor's wand draws over a deck; a

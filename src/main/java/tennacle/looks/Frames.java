@@ -8,6 +8,10 @@ import tennacle.games.Match;
 import io.github.term4.canvas.board.Board;
 import io.github.term4.canvas.board.Shine;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.state.Scope;
+import io.github.term4.grotto.state.StateKey;
+import net.minestom.server.codec.Codec;
+import java.util.List;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.modules.view.Scoreboard;
 import net.kyori.adventure.text.Component;
@@ -32,6 +36,10 @@ public final class Frames {
     public static @NotNull String date(@NotNull String look, @NotNull LocalDate day) {
         return "hypixel".equals(look) ? day.format(US_DATE) : day.toString();
     }
+
+    /** A clock's color stops: {@code "green", "10:00 yellow", "5:00 red"} - see {@link #timeColor(List, long)}. */
+    public static final StateKey<List<String>> CLOCK = StateKey.of("clock.colors", Codec.STRING.list(),
+            List.of("green", "10:00 yellow", "5:00 red"));
 
     private Frames() {}
 
@@ -154,19 +162,41 @@ public final class Frames {
         return Component.text(clock(Math.max(0, ticksLeft)), timeColor(game, ticksLeft));
     }
 
-    /**
-     * Green through the first third of the clock, yellow through the second, red through the last - a 15:00 match
-     * turns at 10:00 and again at 5:00, as captured. An unlimited match stays green.
-     */
+    /** What a running clock is shaded, as the mode's {@link #CLOCK} stops say. */
     public static NamedTextColor timeColor(Game game, long ticksLeft) {
-        return timeColor(ticksLeft, TimeLimit.limit(game));
+        return timeColor(game.rules().resolve(Scope.GAME, CLOCK), ticksLeft);
     }
 
-    /** The same thirds against a clock the mode owns rather than the match limit. */
-    public static NamedTextColor timeColor(long ticksLeft, long limit) {
+    /**
+     * The first stop with no mark is the color above every other; each {@code "<mark> <color>"} takes over as the
+     * time remaining falls past it. A mark is {@code M:SS} or plain seconds. One color alone never changes.
+     */
+    public static NamedTextColor timeColor(List<String> stops, long ticksLeft) {
         long left = Math.max(0, ticksLeft);
-        if (limit <= 0 || left * 3 > limit * 2) return NamedTextColor.GREEN;
-        return left * 3 > limit ? NamedTextColor.YELLOW : NamedTextColor.RED;
+        NamedTextColor picked = NamedTextColor.GREEN;
+        for (String stop : stops) {
+            int mark = stop.indexOf(' ');
+            if (mark < 0) picked = named(stop, picked);
+            else if (left <= ticks(stop.substring(0, mark))) picked = named(stop.substring(mark + 1), picked);
+        }
+        return picked;
+    }
+
+    // a stop nobody can read leaves the color it found: a board is no place to throw
+    private static NamedTextColor named(String name, NamedTextColor fallback) {
+        NamedTextColor color = NamedTextColor.NAMES.value(name.trim().toLowerCase(java.util.Locale.ROOT));
+        return color != null ? color : fallback;
+    }
+
+    private static long ticks(String mark) {
+        try {
+            int colon = mark.indexOf(':');
+            return colon < 0 ? Long.parseLong(mark.trim()) * 20
+                    : (Long.parseLong(mark.substring(0, colon).trim()) * 60
+                            + Long.parseLong(mark.substring(colon + 1).trim())) * 20;
+        } catch (NumberFormatException unreadable) {
+            return -1;
+        }
     }
 
     /** Captured hypixel clock, both halves padded: {@code 01:59}. */

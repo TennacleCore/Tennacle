@@ -46,14 +46,15 @@ final class Boards {
 
     // no clock, or nothing left for one to take: the match's own stopwatch, counting up
     private static Component clockLine(Game game) {
-        long left = Beds.fallsIn(game);
-        if (left < 0 || Beds.standing(game).isEmpty()) {
+        long full = game.rules().resolve(Scope.GAME, Beds.DESTROY);
+        if (full < 0 || Beds.standing(game).isEmpty()) {
             return Component.text("Time: ", NamedTextColor.WHITE)
                     .append(Component.text(clock(Match.playTime(game)), NamedTextColor.GREEN));
         }
+        long left = Beds.fallsIn(game);
+        if (left < 0) left = full; // the opener: the clock arms with the live phase and reads full until it does
         return Component.text("Bed gone in ", NamedTextColor.WHITE)
-                .append(Component.text(clock(left),
-                        Frames.timeColor(left, game.rules().resolve(Scope.GAME, Beds.DESTROY))));
+                .append(Component.text(clock(left), Frames.timeColor(game, left)));
     }
 
     /**

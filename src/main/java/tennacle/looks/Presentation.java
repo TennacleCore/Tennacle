@@ -76,7 +76,7 @@ public final class Presentation implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(GameSounds.CUES);
+        return Set.of(GameSounds.CUES, Frames.CLOCK);
     }
 
     @Override

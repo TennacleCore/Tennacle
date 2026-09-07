@@ -56,6 +56,7 @@ class BedFightRoundTest extends HeadlessServerTest {
             s.addMarker(new PosMarker("grotto:spawn", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
             s.addMarker(new PosMarker("grotto:spawn", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
             s.addMarker(new RegionMarker("bedfight:build", "", "", new BlockVec(-8, 65, -2), new BlockVec(8, 65, 2)));
+            s.addMarker(new RegionMarker("bedfight:defense", "1", "", new BlockVec(-8, 64, -1), new BlockVec(-5, 65, 1)));
             s.addMarker(new LimitMarker("bedfight:height", "pinned", "", null, 72.0, null));
             s.addMarker(new LimitMarker("bedfight:floor", "pinned", "", null, 60.0, null));
             s.addMarker(new LimitMarker("bedfight:void", "", "", null, 54.0, null));
@@ -196,6 +197,46 @@ class BedFightRoundTest extends HeadlessServerTest {
             red.player.remove();
             blue.player.remove();
         }
+    }
+
+    /** Only a bed's defenses come apart: the map stands everywhere else, a seat's own blocks come back up. */
+    @Test
+    void onlyDefensesComeApart() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedDefenseRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedDefenseBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            tennacle.Mechanics.polyp.clientInfo().setProtocol(red.player, 47);
+            live(game);
+
+            assertFalse(refusedBreak(red, game, -6, 64, 0), "the wool defending a bed comes off");
+            assertTrue(refusedBreak(red, game, 0, 64, 0), "the deck between them does not");
+
+            // a block the seat placed itself is theirs to take back, defended or not
+            var placed = new net.minestom.server.event.player.PlayerBlockPlaceEvent(red.player, game.instance(),
+                    Block.WHITE_WOOL, net.minestom.server.instance.block.BlockFace.TOP, new BlockVec(0, 66, 1),
+                    new Pos(0.5, 1, 0.5), net.minestom.server.entity.PlayerHand.MAIN);
+            net.minestom.server.event.EventDispatcher.call(placed);
+            assertFalse(placed.isCancelled(), "the placement landed");
+            assertFalse(refusedBreak(red, game, 0, 66, 1), "and comes back up");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    private static boolean refusedBreak(FakePlayer p, Game game, int x, int y, int z) {
+        var event = new PlayerBlockBreakEvent(p.player, game.instance(), Block.WHITE_WOOL, Block.AIR,
+                new BlockVec(x, y, z), net.minestom.server.instance.block.BlockFace.TOP);
+        net.minestom.server.event.EventDispatcher.call(event);
+        return event.isCancelled();
     }
 
     // the countdown holds every break until GO
