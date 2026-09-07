@@ -158,7 +158,8 @@ public final class BedFight {
                 .rule(Respawns.CLEAR, 2) // a spawn is buildable over; landing there takes the roof back down
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
-                .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
+                .modules(() -> Matches.byLook(Ends::scrims, Ends::scrims, Ends::scrims, Ends::tennacle), // first: the snapshot precedes cleanup
+                        () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
