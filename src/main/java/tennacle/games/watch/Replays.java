@@ -64,6 +64,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -97,6 +99,8 @@ public final class Replays {
     public static final DataKey<String> MODE = new DataKey<>("tennacle:mode", Codec.STRING);
     public static final DataKey<String> MAP = new DataKey<>("tennacle:map", Codec.STRING);
     public static final DataKey<String> CODE = new DataKey<>("tennacle:code", Codec.STRING);
+    /** The day the game was launched, as its boards printed it: a code names a game only beside its date. */
+    public static final DataKey<String> PLAYED = new DataKey<>("tennacle:played", Codec.STRING);
     /** The look the game played under: the theater's tab chrome and health column follow it. */
     public static final DataKey<String> LOOK = new DataKey<>("tennacle:look", Codec.STRING);
     /** Everyone who held a seat, as {@code name|team|color}: names and nameplates keep the side's color. */
@@ -263,9 +267,15 @@ public final class Replays {
         if (mode != null) data.put(MODE, mode.name());
         if (map != null) data.put(MAP, map);
         data.put(CODE, game.code());
+        data.put(PLAYED, launchedOn(game).toString());
         data.put(LOOK, Matches.lookNameOf(game));
         data.put(LINEUP, lineup(game));
         data.put(HEALTH, health(game));
+    }
+
+    // the board's date at the launch, not at the end: a game across midnight is filed under the day it began
+    private static LocalDate launchedOn(Game game) {
+        return Instant.now().minusSeconds(game.tick() / 20).atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
     // what an earlier run left behind: the spool of a game a crash cut short becomes its file, and a file from
@@ -378,14 +388,16 @@ public final class Replays {
         return theater != null ? theater.game() : null;
     }
 
-    /** A replay as a viewer knows it: the game's mode, map and board code, never the file's id. */
-    public record Watched(@NotNull String game, @Nullable Mode mode, @NotNull Arena arena, @NotNull String code) {}
+    /** A replay as a viewer knows it: the game's mode, map, and the date and board code its boards printed, never the file's id. */
+    public record Watched(@NotNull String game, @Nullable Mode mode, @NotNull Arena arena, @NotNull String look,
+                          @NotNull LocalDate played, @NotNull String code) {}
 
     /** What {@code viewer} is watching, or null. */
     public static @Nullable Watched watched(@NotNull Player viewer) {
         Theater theater = watching.get(viewer);
         if (theater == null) return null;
-        return new Watched(theater.game(), theater.dressing().mode(), theater.arena(), theater.dressing().code());
+        Dressing dressing = theater.dressing();
+        return new Watched(theater.game(), dressing.mode(), theater.arena(), dressing.lookName(), dressing.played(), dressing.code());
     }
 
     /** The game whose replay plays on {@code stage} (a theater's root), or null. */
@@ -544,7 +556,7 @@ public final class Replays {
         String code = data.get(CODE);
         List<String> lineup = data.get(LINEUP);
         List<String> health = data.get(HEALTH);
-        Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", mode,
+        Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", playedOn(data, file), mode,
                 lookName != null ? lookName : "tennacle", lineup != null ? lineup : List.of(),
                 health != null ? health : List.of());
         Theater theater = new Theater(id, stage, playback, arena, dressing, ConcurrentHashMap.newKeySet());
@@ -557,6 +569,22 @@ public final class Replays {
             admit(member, theater, member == viewer);
         }
         if (theater.watchers().isEmpty() && theaters.remove(theater)) close(theater); // nobody made it in
+    }
+
+    // the stamped day; a file from before the stamp is dated by the day it was written, which ended the game
+    private static LocalDate playedOn(UserData.View data, Path file) {
+        String stamped = data.get(PLAYED);
+        if (stamped != null) {
+            try {
+                return LocalDate.parse(stamped);
+            } catch (java.time.format.DateTimeParseException ignored) {
+            }
+        }
+        try {
+            return Files.getLastModifiedTime(file).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        } catch (IOException e) {
+            return LocalDate.now();
+        }
     }
 
     private static void admit(Player viewer, Theater theater, boolean controller) {

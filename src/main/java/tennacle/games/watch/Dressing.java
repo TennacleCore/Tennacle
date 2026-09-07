@@ -55,6 +55,7 @@ final class Dressing {
 
     private final Playback playback;
     private final String code;
+    private final LocalDate played;
     private final @Nullable Mode mode;
     private final String lookName;
     private final Look look;
@@ -72,9 +73,11 @@ final class Dressing {
     private volatile @Nullable Board board;
 
     Dressing(@NotNull Shard stage, @NotNull Playback playback, @NotNull String gameId, @NotNull String code,
-             @Nullable Mode mode, @NotNull String lookName, @NotNull List<String> lineup, @NotNull List<String> health) {
+             @NotNull LocalDate played, @Nullable Mode mode, @NotNull String lookName, @NotNull List<String> lineup,
+             @NotNull List<String> health) {
         this.playback = playback;
         this.code = code;
+        this.played = played;
         this.mode = mode;
         this.lookName = lookName;
         this.look = Matches.look(lookName);
@@ -129,6 +132,15 @@ final class Dressing {
 
     @Nullable Mode mode() {
         return mode;
+    }
+
+    /** The day the recorded game was launched. */
+    @NotNull LocalDate played() {
+        return played;
+    }
+
+    @NotNull String lookName() {
+        return lookName;
     }
 
     /** {@code controller}: the watcher who holds the remote - the one who started the watch, a party's leader. */

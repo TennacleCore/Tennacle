@@ -194,10 +194,11 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     // shape. The accent is the gradient's middle, which fights the title rather than sitting under it
     private static Component houseWhere(Player viewer) {
         Replays.Watched replay = Replays.watched(viewer);
-        if (replay != null) { // the game's own line, marked as a replay: the board code is what a player saw and kept
+        if (replay != null) { // the game's own line, marked as a replay, dated: a code names a game only beside its date
             Component where = white((replay.mode() != null ? replay.mode().title() : replay.game()) + " replay")
                     .append(Msg.THEME.prose(" on ")).append(Msg.THEME.value(replay.arena().meta().name()));
-            return replay.code().isEmpty() ? where : where.append(Msg.THEME.dim(" · " + replay.code()));
+            String when = Frames.date(replay.look(), replay.played());
+            return where.append(Msg.THEME.dim(" · " + (replay.code().isEmpty() ? when : when + " " + replay.code())));
         }
         Game game = Game.of(viewer);
         if (game == null) game = Matches.grotto().spectating(viewer); // a ghost holds no seat to read
