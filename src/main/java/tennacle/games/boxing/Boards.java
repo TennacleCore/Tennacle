@@ -20,24 +20,24 @@ final class Boards {
     static Scoreboard minemen() {
         return Frames.minemen("Boxing", b -> b
                 .line((g, me) -> Component.text("Hits: ", NamedTextColor.WHITE)
-                        .append(Component.text("(" + signed(Boxing.hits(g, me) - Boxing.hits(g, Match.opponent(g, me))) + ")",
+                        .append(Component.text("(" + signed(Boxing.hits(g, Match.viewed(g, me)) - Boxing.hits(g, Match.opponent(g, Match.viewed(g, me)))) + ")",
                                 NamedTextColor.GREEN)), Boxing.HITS)
                 .line((g, me) -> Component.text("  You: ", NamedTextColor.WHITE)
-                        .append(Component.text(Boxing.hits(g, me), NamedTextColor.LIGHT_PURPLE)), Boxing.HITS)
+                        .append(Component.text(Boxing.hits(g, Match.viewed(g, me)), NamedTextColor.LIGHT_PURPLE)), Boxing.HITS)
                 .line((g, me) -> Component.text("  Them: ", NamedTextColor.WHITE)
-                        .append(Component.text(Boxing.hits(g, Match.opponent(g, me)), NamedTextColor.LIGHT_PURPLE)), Boxing.HITS)
+                        .append(Component.text(Boxing.hits(g, Match.opponent(g, Match.viewed(g, me))), NamedTextColor.LIGHT_PURPLE)), Boxing.HITS)
                 .line((g, me) -> Component.text("  1st to " + g.rules().resolve(Scope.GAME, Score.TARGET) + "!",
                         NamedTextColor.GRAY))
                 .blank()
-                .line((g, me) -> Frames.minemenRow("Combo: ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO));
+                .line((g, me) -> Frames.minemenRow("Combo: ", Boxing.seatStat(g, Match.viewed(g, me), Boxing.COMBO)), Boxing.COMBO));
     }
 
     // the hypixel duels frame with boxing content
     static Scoreboard hypixel() {
         return Frames.hypixel("BOXING", "Boxing Duel",
                 g -> TimeLimit.left(g), b -> b
-                .line((g, me) -> Frames.hypixelRow("Hits: ", Boxing.hits(g, me)), Boxing.HITS)
-                .line((g, me) -> Frames.hypixelRow("Combo: ", Boxing.seatStat(g, me, Boxing.COMBO)), Boxing.COMBO));
+                .line((g, me) -> Frames.hypixelRow("Hits: ", Boxing.hits(g, Match.viewed(g, me))), Boxing.HITS)
+                .line((g, me) -> Frames.hypixelRow("Combo: ", Boxing.seatStat(g, Match.viewed(g, me), Boxing.COMBO)), Boxing.COMBO));
     }
 
     // the scrims frame with boxing content
@@ -52,11 +52,11 @@ final class Boards {
 
     private static void scrimsRows(Scoreboard b) {
         b.line((g, me) -> Component.text("Hits: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.value(Boxing.hits(g, me)))
+                        .append(Msg.SCRIMS.value(Boxing.hits(g, Match.viewed(g, me))))
                         .append(Msg.SCRIMS.prose(" | "))
-                        .append(Msg.SCRIMS.value(Boxing.hits(g, Match.opponent(g, me)))), Boxing.HITS)
+                        .append(Msg.SCRIMS.value(Boxing.hits(g, Match.opponent(g, Match.viewed(g, me))))), Boxing.HITS)
                 .line((g, me) -> Component.text("Combo: ", NamedTextColor.WHITE)
-                        .append(Msg.SCRIMS.value(Boxing.seatStat(g, me, Boxing.COMBO))), Boxing.COMBO);
+                        .append(Msg.SCRIMS.value(Boxing.seatStat(g, Match.viewed(g, me), Boxing.COMBO))), Boxing.COMBO);
     }
 
     private static String signed(int diff) {

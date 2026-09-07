@@ -54,7 +54,9 @@ public final class Frames {
         Component rule = Msg.MINEMEN.rule(19, NamedTextColor.GRAY);
         Scoreboard board = Scoreboard.of(Component.text(shout(title), NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
                 .line(rule)
-                .gameId(g -> Msg.MINEMEN);
+                // the capture showed the code alone; a board nobody can date is no use in a screenshot
+                .line((g, me) -> Msg.MINEMEN.prose(LocalDate.now().toString())
+                        .append(Msg.MINEMEN.dim(" " + g.code())));
         content.accept(board);
         return board
                 .blank()

@@ -2,6 +2,7 @@ package tennacle.games.bridge;
 
 import tennacle.looks.Palette;
 import tennacle.Msg;
+import tennacle.games.Match;
 import tennacle.looks.Frames;
 
 import io.github.term4.canvas.theme.Theme;
@@ -64,7 +65,7 @@ final class Boards {
                 .line((g, me) -> circles(g, teamAt(g, 1), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> circles(g, teamAt(g, 0), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
                 .blank()
-                .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
+                .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, Match.viewed(g, me), Bridge.KILLS)), Bridge.KILLS)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Time Left: ", Frames.timeLeft(g))));
     }

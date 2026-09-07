@@ -69,6 +69,12 @@ public final class Match {
         return game.firstMember(p -> game.roster().slotOf(p) != null);
     }
 
+    /** Whose numbers a per-viewer line shows: the viewer's own seat, else the game's reference seat. A watcher
+     *  holds none, and a board of zeroes tells them nothing about the game they came to watch. */
+    public static @Nullable Player viewed(@NotNull Game game, @Nullable Player viewer) {
+        return viewer != null && game.roster().slotOf(viewer) != null ? viewer : reference(game);
+    }
+
     /** Ticks of play: from the match clock's start where a time limit runs one, else from the live phase, else all. */
     public static long playTime(@NotNull Game game) {
         long started = TimeLimit.started(game);
