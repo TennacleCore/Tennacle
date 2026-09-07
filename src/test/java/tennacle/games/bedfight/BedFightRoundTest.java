@@ -34,6 +34,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -541,6 +542,52 @@ class BedFightRoundTest extends HeadlessServerTest {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
             blue.player.remove();
+        }
+    }
+
+    /** A tint region retints like a section and counts for nothing: any number, any shape, no geometry. */
+    @Test
+    void aTintRegionPaintsWithoutCounting() {
+        Session s = Session.create("bedfight-tinted", new ShardManager(), p -> {});
+        Arena arena;
+        try {
+            for (int x = -8; x <= 8; x++) s.instance().setBlock(x, 64, 0, Block.WHITE_WOOL);
+            s.instance().setBlock(-7, 65, 0, Block.RED_BED.withProperty("facing", "east").withProperty("part", "foot"));
+            s.instance().setBlock(-6, 65, 0, Block.RED_BED.withProperty("facing", "east").withProperty("part", "head"));
+            s.instance().setBlock(7, 65, 0, Block.BLUE_BED.withProperty("facing", "west").withProperty("part", "foot"));
+            s.instance().setBlock(6, 65, 0, Block.BLUE_BED.withProperty("facing", "west").withProperty("part", "head"));
+            s.instance().setBlock(0, 70, 5, Block.WHITE_WOOL); // a banner far off the deck, dyed but not territory
+            s.addMarker(new RegionMarker("bedfight:bed", "1", "", new BlockVec(-7, 65, 0), new BlockVec(-6, 65, 0)));
+            s.addMarker(new RegionMarker("bedfight:bed", "2", "", new BlockVec(6, 65, 0), new BlockVec(7, 65, 0)));
+            s.addMarker(new PosMarker("grotto:spawn", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
+            s.addMarker(new PosMarker("grotto:spawn", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
+            s.addMarker(new RegionMarker("bedfight:build", "", "", new BlockVec(-8, 65, -2), new BlockVec(8, 65, 2)));
+            s.addMarker(new RegionMarker("bedfight:defense", "1", "", new BlockVec(-8, 64, -1), new BlockVec(-5, 65, 1)));
+            s.addMarker(new RegionMarker("bedfight:defense", "2", "", new BlockVec(5, 64, -1), new BlockVec(8, 65, 1)));
+            // three of them, where a mode expecting a count would already have thrown
+            s.addMarker(new RegionMarker("tint", "1", "", new BlockVec(0, 70, 5), new BlockVec(0, 70, 5)));
+            s.addMarker(new RegionMarker("tint", "1", "", new BlockVec(0, 71, 5), new BlockVec(0, 71, 5)));
+            s.addMarker(new RegionMarker("tint", "2", "", new BlockVec(0, 72, 5), new BlockVec(0, 72, 5)));
+            s.addMarker(new LimitMarker("bedfight:height", "pinned", "", null, 72.0, null));
+            s.addMarker(new LimitMarker("bedfight:floor", "pinned", "", null, 60.0, null));
+            s.addMarker(new LimitMarker("bedfight:void", "", "", null, 54.0, null));
+            arena = Arena.read(s.save());
+        } finally {
+            s.close();
+        }
+
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), arena); // no throw: nothing counts tint
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "TintRed");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            await("seated", () -> Game.of(red.player) == game);
+            tickUntil(game, "the stamp lands", () -> game.shard().getBlock(0, 70, 5) != Block.WHITE_WOOL);
+            assertNotEquals(Block.WHITE_WOOL, game.shard().getBlock(0, 70, 5), "the tint region repainted its cell");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
         }
     }
 
