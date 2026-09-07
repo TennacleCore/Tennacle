@@ -54,12 +54,12 @@ final class Boards {
     // uncaptured (the minemen bed fight capture is empty): the minemen frame around the scrims rows
     static Scoreboard minemen() {
         return Frames.minemen("Bed Fight", b -> b
+                .line((g, me) -> clockLine(g, "Bed gone in "))
+                .blank()
                 .line((g, me) -> sideLine(g, teamAt(g, 0), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .line((g, me) -> sideLine(g, teamAt(g, 1), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .blank()
-                .line((g, me) -> Frames.minemenRow("Kills: ", kills(g, Match.viewed(g, me))), BedFight.KILLS)
-                .blank()
-                .line((g, me) -> clockLine(g, "Bed gone in ")));
+                .line((g, me) -> Frames.minemenRow("Kills: ", kills(g, Match.viewed(g, me))), BedFight.KILLS));
     }
 
     private static void rows(Scoreboard b) {
