@@ -76,8 +76,8 @@ public final class BedFight {
     public static final MarkerKey<RegionMarker> BED = MarkerKey.region("bedfight:bed");
     /** Where building is allowed at all: a flat box is an X/Z slice under the band, multi-box for odd shapes. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bedfight:build");
-    /** The map's own blocks a seat may take apart - the wool around a bed. Everywhere else only what a seat
-     *  placed itself comes back up. Optional: a map with none has no breakable map blocks at all. */
+    /** The map's own blocks a seat may take apart, in the OWNING team's group - the wool around a bed, multi-box
+     *  for odd shapes. Everywhere else only what a seat placed itself comes back up. */
     public static final MarkerKey<RegionMarker> DEFENSE = MarkerKey.region("bedfight:defense");
     /** Highest placeable Y. */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bedfight:height");
@@ -144,6 +144,7 @@ public final class BedFight {
                 .teams(a -> Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
                 .expect(BED, 2)
+                .expect(DEFENSE, 2)
                 .expect(BUILD, 1)
                 .expect(HEIGHT, 1)
                 .expect(FLOOR, 1)

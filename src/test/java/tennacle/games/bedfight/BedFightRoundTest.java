@@ -57,6 +57,7 @@ class BedFightRoundTest extends HeadlessServerTest {
             s.addMarker(new PosMarker("grotto:spawn", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
             s.addMarker(new RegionMarker("bedfight:build", "", "", new BlockVec(-8, 65, -2), new BlockVec(8, 65, 2)));
             s.addMarker(new RegionMarker("bedfight:defense", "1", "", new BlockVec(-8, 64, -1), new BlockVec(-5, 65, 1)));
+            s.addMarker(new RegionMarker("bedfight:defense", "2", "", new BlockVec(5, 64, -1), new BlockVec(8, 65, 1)));
             s.addMarker(new LimitMarker("bedfight:height", "pinned", "", null, 72.0, null));
             s.addMarker(new LimitMarker("bedfight:floor", "pinned", "", null, 60.0, null));
             s.addMarker(new LimitMarker("bedfight:void", "", "", null, 54.0, null));
