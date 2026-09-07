@@ -36,6 +36,7 @@ public final class RulesCommands {
     public static void register() {
         AppCommand rules = Commands.player("rules", "The running game's rules, live.")
                 .usage("/rules [package|id]", "read them, or one part - each marked with where its value comes from")
+                .usage("/rules <code>", "another live game's, by the code its board prints")
                 .usage("/rules <id|path> <value>", "set one for the game")
                 .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
                 .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through")
@@ -48,21 +49,26 @@ public final class RulesCommands {
         value.setSuggestionCallback(RulesCompletions.tail(key, value));
         rules.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            Game game = Game.of(p);
+            Game game = watched(p);
             if (game == null) {
-                Msg.fail(p, "You're not in a game.");
+                Msg.fail(p, "You're not in a game or watching one. ", Msg.v("/rules <code>"), " reads another.");
                 return;
             }
             list(p, game, Scope.GAME, "");
         });
         rules.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            Game game = Game.of(p);
+            Game game = watched(p);
             if (game == null) {
-                Msg.fail(p, "You're not in a game.");
+                Msg.fail(p, "You're not in a game or watching one. ", Msg.v("/rules <code>"), " reads another.");
                 return;
             }
             String word = ctx.get(key);
+            Game named = byCode(word);
+            if (named != null) { // a board code names the game to read, wherever the reader is standing
+                list(p, named, Scope.GAME, "");
+                return;
+            }
             if (word.equals("paths")) {
                 paths(p, game, "");
                 return;
@@ -84,9 +90,9 @@ public final class RulesCommands {
         }, key);
         rules.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            Game game = Game.of(p);
+            Game game = watched(p);
             if (game == null) {
-                Msg.fail(p, "You're not in a game.");
+                Msg.fail(p, "You're not in a game or watching one. ", Msg.v("/rules <code>"), " reads another.");
                 return;
             }
             List<String> words = new ArrayList<>(List.of(ctx.get(value)));
@@ -134,6 +140,20 @@ public final class RulesCommands {
     }
 
     /** The rules under {@code prefix} ({@code ""} = all of them) with their live values at {@code scope}. */
+    /** The game a reader means: the one they play, else the one they watch. A watcher reads rules too. */
+    private static @Nullable Game watched(Player p) {
+        Game playing = Game.of(p);
+        return playing != null ? playing : Matches.grotto().spectating(p);
+    }
+
+    /** A live game by the code its board prints - never a rule id, so the two never read as each other. */
+    private static @Nullable Game byCode(String word) {
+        for (Game game : Matches.grotto().games()) {
+            if (game.code().equalsIgnoreCase(word)) return game;
+        }
+        return null;
+    }
+
     private static void list(Player p, Game game, Scope scope, String prefix) {
         Map<String, StateKey<?>> supported = game.type().supportedRules();
         // sorted: ids lead with their package, so the listing groups itself
