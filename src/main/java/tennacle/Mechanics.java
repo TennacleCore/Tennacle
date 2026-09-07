@@ -78,6 +78,9 @@ public final class Mechanics {
         // vanilla placement rules (stairs, slabs, fences, doors, ...): registered on the BlockManager, so
         // both plain instances and shard-routed placements resolve them
         org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations.registerDefault();
+        // a bed click is a use unless sneaking (vanilla, both eras); the shard routing resolves it by key
+        org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations.register(
+                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getBEDS());
 
         ShardBridge.install();
         // save/load glue for mechanics entities: the codec reads archipelago's ENTITY_SAVE natively; mechanics stamps

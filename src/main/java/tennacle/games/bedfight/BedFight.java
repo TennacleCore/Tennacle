@@ -17,12 +17,12 @@ import io.github.term4.bloom.edit.Teams;
 
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
-import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
+import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.modules.combat.FriendlyFire;
@@ -42,7 +42,6 @@ import io.github.term4.grotto.modules.view.Nametags;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.grotto.modules.view.Spectating;
-import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.SlotLayout;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
@@ -50,7 +49,6 @@ import io.github.term4.polyp.MechanicsProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.component.DataComponents;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
@@ -66,18 +64,15 @@ import java.util.Map;
 
 /**
  * Bed fight: a bed a side, and a wool bridge between them. While your bed stands you come back; break the
- * enemy's and their next death is their last, so the side that outlives the other wins. Building is gated to
- * the map's build region between its floor and its height, and the void plane below kills. The space rules and
- * the kills are {@link Rules}, the beds {@link Beds}, the board {@link Boards}.
+ * enemy's and their next death is their last, so the side that outlives the other wins. A side has one
+ * {@code grotto:spawn}: the countdown holds it there and every respawn lands there, no cage. Building is gated
+ * to the map's build region between its floor and its height, and the void plane below kills. The space rules
+ * and the kills are {@link Rules}, the beds {@link Beds}, the board {@link Boards}.
  */
 public final class BedFight {
 
-    /** The side's bed, in the OWNING team's group - the block under it is the one that breaks. */
-    public static final MarkerKey<PosMarker> BED = MarkerKey.pos("bedfight:bed");
-    /** The held round-start spot per team; slots seat off it. */
-    public static final MarkerKey<PosMarker> CAGE = MarkerKey.pos("bedfight:cage");
-    /** Post-death spawn per team. */
-    public static final MarkerKey<PosMarker> RESPAWN = MarkerKey.pos("bedfight:respawn");
+    /** The side's bed, both blocks, in the OWNING team's group. */
+    public static final MarkerKey<RegionMarker> BED = MarkerKey.region("bedfight:bed");
     /** Where building is allowed at all (multi-box for non-square shapes). */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bedfight:build");
     /** Highest placeable Y. */
@@ -141,11 +136,10 @@ public final class BedFight {
         MapPool arena = MapPool.of("bedfight");
         Teams.register(DEFAULTS);
         TYPE = GameType.builder("bedfight")
-                .slots(SlotLayout.groups(CAGE, Parties.MAX)) // a party shares its start
-                .teams(a -> Palette.teams(a, CAGE, DEFAULTS))
+                .slots(SlotLayout.groups(Markers.SPAWN, Parties.MAX)) // a party shares its marker
+                .teams(a -> Palette.teams(a, Markers.SPAWN, DEFAULTS))
+                .expect(Markers.SPAWN, 2)
                 .expect(BED, 2)
-                .expect(CAGE, 2)
-                .expect(RESPAWN, 2)
                 .expect(BUILD, 1)
                 .expect(HEIGHT, 1)
                 .expect(FLOOR, 1)
@@ -157,10 +151,10 @@ public final class BedFight {
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         Countdown::of,
-                        () -> Freeze.during(Match.OPENING).after(Match.OVER).at(BedFight::start),
+                        () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         () -> TimeLimit.of().from(Match.OPENING).holding(Countdown.GRACE).onExpire(TimeLimit.draw()),
-                        () -> Respawns.manual().anchor(RESPAWN),
+                        Respawns::manual,
                         KillCredit::new,
                         FriendlyFire::new,
                         Beds::new,
@@ -192,11 +186,5 @@ public final class BedFight {
                 null);
         Duels.mode(bedfight);
         Flags.offer(bedfight, "preset");
-    }
-
-    /** Where the countdown holds a seat: its own start spot. */
-    private static Pos start(Game game, Slot seat) {
-        PosMarker at = game.arena().marker(CAGE, seat.team());
-        return at != null ? at.pos() : seat.spawn();
     }
 }

@@ -2,7 +2,7 @@ package tennacle.games.bedfight;
 
 import tennacle.games.Match;
 
-import io.github.term4.barnacle.marker.PosMarker;
+import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.roster.Team;
@@ -17,10 +17,8 @@ import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.instance.block.Block;
-import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +26,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The beds: one a side, authored as a real bed under a {@code bedfight:bed} pos marker in the owning team's
- * group. While a side's bed stands its seats respawn; breaking it takes that away, and the next death there is
- * the last. Nobody breaks their own. The elimination is {@code LastStanding}'s, which {@link Rules} calls when
- * a bedless seat falls.
+ * The beds: one a side, a real bed under a {@code bedfight:bed} region over both its blocks, in the owning
+ * team's group. While a side's bed stands its seats respawn; breaking it takes that away, and the next death
+ * there is the last. Nobody breaks their own. The elimination is {@code LastStanding}'s, which {@link Rules}
+ * calls when a bedless seat falls.
  */
 public final class Beds implements GameModule {
 
@@ -54,12 +52,17 @@ public final class Beds implements GameModule {
         this.game = game;
         for (Team team : game.roster().teams()) {
             game.state().set(Scope.team(team.id()), STANDS, true);
-            PosMarker at = game.arena().marker(BedFight.BED, team.id());
-            if (at == null) continue;
-            BlockVec head = new BlockVec(at.pos().blockX(), at.pos().blockY(), at.pos().blockZ());
-            cells.put(head, team.id());
-            BlockVec other = otherHalf(game, head);
-            if (other != null) cells.put(other, team.id());
+            RegionMarker bed = game.arena().marker(BedFight.BED, team.id());
+            if (bed == null) continue;
+            for (RegionMarker.Cuboid box : bed.boxes()) {
+                for (int x = box.min().blockX(); x <= box.max().blockX(); x++) {
+                    for (int y = box.min().blockY(); y <= box.max().blockY(); y++) {
+                        for (int z = box.min().blockZ(); z <= box.max().blockZ(); z++) {
+                            cells.put(new BlockVec(x, y, z), team.id());
+                        }
+                    }
+                }
+            }
         }
         game.on(PlayerBlockBreakEvent.class, e -> {
             Point pos = e.getBlockPosition();
@@ -96,21 +99,5 @@ public final class Beds implements GameModule {
                 .append(Component.text(" broke ", NamedTextColor.GRAY))
                 .append(Component.text(owner, broken.color()))
                 .append(Component.text("'s bed - they no longer respawn.", NamedTextColor.GRAY)));
-    }
-
-    // a bed is two blocks: the marker names one, its own facing names the other
-    private static @Nullable BlockVec otherHalf(Game game, BlockVec at) {
-        Block block = game.shard().getBlock(at);
-        String facing = block.getProperty("facing");
-        String part = block.getProperty("part");
-        if (facing == null || part == null) return null;
-        BlockFace face = switch (facing) {
-            case "north" -> BlockFace.NORTH;
-            case "south" -> BlockFace.SOUTH;
-            case "east" -> BlockFace.EAST;
-            default -> BlockFace.WEST;
-        };
-        Point other = at.relative("head".equals(part) ? face.getOppositeFace() : face);
-        return new BlockVec(other.blockX(), other.blockY(), other.blockZ());
     }
 }

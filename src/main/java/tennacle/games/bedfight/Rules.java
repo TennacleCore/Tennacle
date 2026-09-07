@@ -9,6 +9,7 @@ import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.Markers;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
@@ -186,8 +187,7 @@ public final class Rules implements GameModule {
     }
 
     private boolean onASpawn(Point pos) {
-        for (PosMarker at : game.arena().markers(BedFight.RESPAWN)) if (spawnBlock(at, pos)) return true;
-        for (PosMarker at : game.arena().markers(BedFight.CAGE)) if (spawnBlock(at, pos)) return true;
+        for (PosMarker at : game.arena().markers(Markers.SPAWN)) if (spawnBlock(at, pos)) return true;
         return false;
     }
 

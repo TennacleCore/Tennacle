@@ -51,12 +51,10 @@ class BedFightRoundTest extends HeadlessServerTest {
             s.instance().setBlock(-6, 65, 0, Block.RED_BED.withProperty("facing", "east").withProperty("part", "head"));
             s.instance().setBlock(7, 65, 0, Block.BLUE_BED.withProperty("facing", "west").withProperty("part", "foot"));
             s.instance().setBlock(6, 65, 0, Block.BLUE_BED.withProperty("facing", "west").withProperty("part", "head"));
-            s.addMarker(new PosMarker("bedfight:bed", "1", "", new Pos(-6.5, 65, 0.5))); // the centre of block -7
-            s.addMarker(new PosMarker("bedfight:bed", "2", "", new Pos(7.5, 65, 0.5)));
-            s.addMarker(new PosMarker("bedfight:cage", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
-            s.addMarker(new PosMarker("bedfight:cage", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
-            s.addMarker(new PosMarker("bedfight:respawn", "1", "", new Pos(-5.5, 65, 0.5, -90, 0)));
-            s.addMarker(new PosMarker("bedfight:respawn", "2", "", new Pos(6.5, 65, 0.5, 90, 0)));
+            s.addMarker(new RegionMarker("bedfight:bed", "1", "", new BlockVec(-7, 65, 0), new BlockVec(-6, 65, 0)));
+            s.addMarker(new RegionMarker("bedfight:bed", "2", "", new BlockVec(6, 65, 0), new BlockVec(7, 65, 0)));
+            s.addMarker(new PosMarker("grotto:spawn", "1", "", new Pos(-4.5, 65, 0.5, -90, 0)));
+            s.addMarker(new PosMarker("grotto:spawn", "2", "", new Pos(5.5, 65, 0.5, 90, 0)));
             s.addMarker(new RegionMarker("bedfight:build", "", "", new BlockVec(-8, 65, -2), new BlockVec(8, 65, 2)));
             s.addMarker(new LimitMarker("bedfight:height", "pinned", "", null, 72.0, null));
             s.addMarker(new LimitMarker("bedfight:floor", "pinned", "", null, 60.0, null));
