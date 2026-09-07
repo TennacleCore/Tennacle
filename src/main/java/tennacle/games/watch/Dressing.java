@@ -55,6 +55,7 @@ final class Dressing {
 
     private final Playback playback;
     private final String code;
+    private final @Nullable Mode mode;
     private final String lookName;
     private final Look look;
     private final List<Seat> lineup;
@@ -74,6 +75,7 @@ final class Dressing {
              @Nullable Mode mode, @NotNull String lookName, @NotNull List<String> lineup, @NotNull List<String> health) {
         this.playback = playback;
         this.code = code;
+        this.mode = mode;
         this.lookName = lookName;
         this.look = Matches.look(lookName);
         this.lineup = lineup.stream().map(Dressing::seat).toList();
@@ -118,6 +120,15 @@ final class Dressing {
 
     @NotNull Look look() {
         return look;
+    }
+
+    /** The recorded game's board code ({@code ""} for a file from before codes). */
+    @NotNull String code() {
+        return code;
+    }
+
+    @Nullable Mode mode() {
+        return mode;
     }
 
     /** {@code controller}: the watcher who holds the remote - the one who started the watch, a party's leader. */

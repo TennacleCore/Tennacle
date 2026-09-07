@@ -378,6 +378,16 @@ public final class Replays {
         return theater != null ? theater.game() : null;
     }
 
+    /** A replay as a viewer knows it: the game's mode, map and board code, never the file's id. */
+    public record Watched(@NotNull String game, @Nullable Mode mode, @NotNull Arena arena, @NotNull String code) {}
+
+    /** What {@code viewer} is watching, or null. */
+    public static @Nullable Watched watched(@NotNull Player viewer) {
+        Theater theater = watching.get(viewer);
+        if (theater == null) return null;
+        return new Watched(theater.game(), theater.dressing().mode(), theater.arena(), theater.dressing().code());
+    }
+
     /** The game whose replay plays on {@code stage} (a theater's root), or null. */
     public static @Nullable String replayOf(@NotNull Shard stage) {
         for (Theater theater : theaters) {
