@@ -38,6 +38,13 @@ if (file("../Bloom").exists()) {
         }
     }
 }
+if (file("../schem").exists()) {
+    includeBuild("../schem") {
+        dependencySubstitution {
+            substitute(module("dev.hollowcube:schem")).using(project(":"))
+        }
+    }
+}
 if (file("../Canvas").exists()) {
     includeBuild("../Canvas") {
         dependencySubstitution {
