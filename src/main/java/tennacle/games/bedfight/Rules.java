@@ -156,8 +156,12 @@ public final class Rules implements GameModule {
         if (by != null) Match.addSeat(game, by, BedFight.KILLS);
         boolean last = !Beds.stands(game, seat.team());
         Match.say(game, line(victim, by, last));
-        if (last) standing.out(victim, LastStanding.Cause.eliminated(by, by != null ? "was killed by" : null));
-        else respawns.queue(victim);
+        if (last) {
+            standing.out(victim, LastStanding.Cause.eliminated(by, by != null ? "was killed by" : null));
+            return; // the elimination cues its own fall
+        }
+        tennacle.looks.Deaths.cue(game, victim, by);
+        respawns.queue(victim);
     }
 
     private Component line(Player victim, @Nullable Player by, boolean last) {
