@@ -382,6 +382,12 @@ public final class Replays {
         if (recording != null) recording.bookmark(name, data);
     }
 
+    /** What the running recording has bookmarked so far; empty where nothing is recording it. */
+    public static @NotNull java.util.List<io.github.term4.archipelago.replay.Replay.Bookmark> marksOf(@NotNull Game game) {
+        Recording recording = live.get(game.id());
+        return recording == null ? java.util.List.of() : recording.bookmarks();
+    }
+
     private static int paced(int ticks, double rate) {
         return (int) Math.max(ticks > 0 ? 1 : 0, Math.round(ticks / rate));
     }

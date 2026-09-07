@@ -191,6 +191,7 @@ public final class Rules implements GameModule {
         Match.addSeat(game, victim, BedFight.DEATHS);
         if (by != null) Match.addSeat(game, by, BedFight.KILLS);
         if (!Beds.stands(game, seat.team())) {
+            mark(victim, seat, by, verb);
             // the elimination says the line, in the look's own voice, and cues its own fall
             standing.out(victim, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game)));
             if (standing.standing(seat.team()) == 0) { // the side is gone, not just this seat
@@ -209,6 +210,25 @@ public final class Rules implements GameModule {
         Double y = game.arena().markers(key).getFirst().y();
         if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
         return y;
+    }
+
+    // the death nobody comes back from: both sides of it, and the face to put on the bookmark
+    private void mark(Player victim, Slot seat, @Nullable Player by, String verb) {
+        io.github.term4.grotto.roster.Team side = game.roster().team(seat.team());
+        io.github.term4.grotto.roster.Team theirs = by != null
+                ? game.roster().team(Match.teamOf(game, by)) : null;
+        var data = net.kyori.adventure.nbt.CompoundBinaryTag.builder()
+                .putString("victim", victim.getUsername())
+                .putString("victimTeam", seat.team())
+                .putInt("victimColor", side != null ? side.color().value() : 0)
+                .putString("verb", verb)
+                .putString("killer", by != null ? by.getUsername() : "")
+                .putString("killerTeam", theirs != null ? theirs.id() : "")
+                .putInt("killerColor", theirs != null ? theirs.color().value() : 0);
+        var skin = victim.getSkin();
+        if (skin != null) data.putString("skin", skin.textures()).putString("skinSig",
+                skin.signature() == null ? "" : skin.signature());
+        tennacle.games.watch.Replays.mark(game, "final", data.build());
     }
 
     private boolean defended(Point pos) {

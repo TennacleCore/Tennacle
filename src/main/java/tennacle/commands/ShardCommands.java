@@ -103,6 +103,14 @@ public final class ShardCommands {
             if (!(sender instanceof Player p)) return;
             Shard g = shards.byName(ctx.get(name));
             if (g == null) { Msg.err(p, "shard", "no shard named ", Msg.v(ctx.get(name))); return; }
+            // a shard's blocks live in its instance: bound from another one, they read the world they are not in
+            if (p.getInstance() != g.instance()) {
+                p.setInstance(g.instance(), p.getPosition()).thenRun(() -> {
+                    g.join(p);
+                    Msg.shard(p, "joined ", Msg.v(ctx.get(name)), " - its world first, then its diff");
+                });
+                return;
+            }
             g.join(p);
             Msg.shard(p, "joined ", Msg.v(ctx.get(name)), " - same map, your own diff");
         }, join, name);

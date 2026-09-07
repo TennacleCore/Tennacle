@@ -44,9 +44,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** The kit a bed fight seat gets, and the one rule the mode turns on: a bed gone makes the next death the last. */
 class BedFightRoundTest extends HeadlessServerTest {
 
+    @org.junit.jupiter.api.io.TempDir
+    static java.nio.file.Path replays;
+
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
+        tennacle.bridge.ReplayBridge.install(); // the bookmarks ride a running recording
+        tennacle.games.watch.Replays.install(replays, new ShardManager());
     }
 
     /** A deck along x, a bed behind each side, every expected marker aboard. */
@@ -697,6 +702,47 @@ class BedFightRoundTest extends HeadlessServerTest {
 
             break0(blue.player, new BlockVec(-7, 65, 0));
             assertTrue(game.state().get(mine, LastStanding.OUT), "the bed went while they were away: that was the last");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    /** The replay keeps the bed that went and the death nobody came back from, both sides of each named. */
+    @Test
+    void theReplayKeepsBedsAndFinalKills() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "MarkRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "MarkBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot seat = game.roster().slotOf(red.player);
+            assertNotNull(seat);
+
+            List<String> marked = new java.util.ArrayList<>();
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            game.module(Rules.class).fell(red.player);
+            for (var mark : tennacle.games.watch.Replays.marksOf(game)) {
+                marked.add(mark.name());
+                if (mark.name().equals("bed")) {
+                    assertEquals(seat.team(), mark.data().getString("bedTeam"), "whose bed it was");
+                    assertEquals("MarkBlue", mark.data().getString("breaker"), "and who took it");
+                    assertFalse(mark.data().getString("breakerTeam").isEmpty(), "with the side they play for");
+                }
+                if (mark.name().equals("final")) {
+                    assertEquals("MarkRed", mark.data().getString("victim"), "who went out");
+                    assertEquals(seat.team(), mark.data().getString("victimTeam"), "and their side");
+                }
+            }
+            assertTrue(marked.contains("bed"), "the bed is bookmarked: " + marked);
+            assertTrue(marked.contains("final"), "and so is the last death: " + marked);
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();

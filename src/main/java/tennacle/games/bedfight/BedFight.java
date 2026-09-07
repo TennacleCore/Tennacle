@@ -196,7 +196,7 @@ public final class BedFight {
                 null, // no team score: the last side standing wins
                 List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
                         new Mode.SeatStat("Beds", BEDS)),
-                null);
+                Marks::render);
         Duels.mode(bedfight);
         Flags.offer(bedfight, "preset");
     }

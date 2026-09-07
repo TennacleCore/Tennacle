@@ -190,6 +190,15 @@ public final class Beds implements GameModule {
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
         told(owner::equals);
         Match.say(game, Banners.bedBroken(game, broken, breaker));
+        Team by = game.roster().team(Match.teamOf(game, breaker));
+        tennacle.games.watch.Replays.mark(game, "bed", net.kyori.adventure.nbt.CompoundBinaryTag.builder()
+                .putString("bed", tennacle.looks.Palette.titled(broken))
+                .putString("bedTeam", broken.id())
+                .putInt("bedColor", broken.color().value())
+                .putString("breaker", breaker.getUsername())
+                .putString("breakerTeam", by != null ? by.id() : "")
+                .putInt("breakerColor", (by != null ? by.color() : broken.color()).value())
+                .build());
     }
 
 }
