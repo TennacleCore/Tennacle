@@ -46,6 +46,8 @@ public final class Presentation implements GameModule {
     private static final String DEAD_ALARM = "match:dead-count";
     // the per-network death screen is UNCAPTURED: one plain screen for every look until the captures land
     private static final Component DIED = Component.text("You died!", NamedTextColor.RED);
+    // captured hypixel: the line's own period, a space, then the note in bold aqua
+    private static final Component NOTE_GAP = Component.text(" ");
 
     private final Set<UUID> fallen = new HashSet<>();
     private final Set<UUID> counting = new HashSet<>();
@@ -122,7 +124,10 @@ public final class Presentation implements GameModule {
         Look look = Matches.lookOf(game);
         String name = player != null ? player.getUsername() : lastOwner(game, seat);
         if (name == null) return;
-        Match.say(game, look.death().render(game, seat, name, cause.by(), cause.verb()));
+        Component line = look.death().render(game, seat, name, cause.by(), cause.verb());
+        if (cause.note() != null) line = line.append(NOTE_GAP).append(Component.text(cause.note(), NamedTextColor.AQUA)
+                .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, true));
+        Match.say(game, line);
         if (player != null) {
             Deaths.cue(game, player, cause.by());
             fall(game, player);

@@ -57,6 +57,8 @@ public final class Rules implements GameModule {
     /** What may be broken outside one - the rest of the map. */
     public static final StateKey<List<String>> BREAK_OUTSIDE =
             StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
+    /** Captured hypixel: the line's period, then this in bold aqua. */
+    private static final String FINAL = "FINAL KILL!";
 
     static {
         RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
@@ -104,7 +106,7 @@ public final class Rules implements GameModule {
         game.on(FatalDamageEvent.class, FatalDamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim) || game.roster().slotOf(victim) == null) return;
             e.cancel(); // the module decides between a respawn and the last death
-            killed(victim, e.source() instanceof Player by && by != victim ? by : null);
+            killed(victim, e.source() instanceof Player by && by != victim ? by : null, "died");
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
@@ -143,33 +145,25 @@ public final class Rules implements GameModule {
     /** A member dropped under the void plane ({@code Limits}): the same end a killing blow gets. */
     void fell(@NotNull Player player) {
         if (game.roster().slotOf(player) == null) return;
-        killed(player, credit.creditFor(player));
+        killed(player, credit.creditFor(player), "fell into the void");
     }
 
     // the one decision this mode turns on: a side with a bed respawns, a side without loses the seat
-    private void killed(Player victim, @Nullable Player by) {
+    private void killed(Player victim, @Nullable Player by, String alone) {
         Slot seat = game.roster().slotOf(victim);
         if (seat == null) return;
         Match.addSeat(game, victim, BedFight.DEATHS);
         if (by != null) Match.addSeat(game, by, BedFight.KILLS);
-        boolean last = !Beds.stands(game, seat.team());
-        Match.say(game, line(victim, by, last));
-        if (last) {
-            standing.out(victim, LastStanding.Cause.eliminated(by, by != null ? "was killed by" : null));
-            return; // the elimination cues its own fall
+        String verb = by != null ? "was killed by" : alone;
+        if (!Beds.stands(game, seat.team())) {
+            // the elimination says the line, in the look's own voice, and cues its own fall
+            standing.out(victim, LastStanding.Cause.eliminated(by, verb, FINAL));
+            return;
         }
+        Match.say(game, tennacle.games.Matches.lookOf(game).death()
+                .render(game, seat, victim.getUsername(), by, verb));
         tennacle.looks.Deaths.cue(game, victim, by);
         respawns.queue(victim);
-    }
-
-    private Component line(Player victim, @Nullable Player by, boolean last) {
-        Component out = Component.text(victim.getUsername(), Match.teamColor(game, victim));
-        out = by != null
-                ? out.append(Component.text(" was killed by ", NamedTextColor.GRAY))
-                        .append(Component.text(by.getUsername(), Match.teamColor(game, by)))
-                : out.append(Component.text(" died", NamedTextColor.GRAY));
-        return last ? out.append(Component.text(" - FINAL KILL!", NamedTextColor.RED))
-                : out.append(Component.text(".", NamedTextColor.GRAY));
     }
 
     private double plane(io.github.term4.barnacle.marker.MarkerKey<LimitMarker> key) {

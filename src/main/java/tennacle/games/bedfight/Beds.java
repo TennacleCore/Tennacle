@@ -6,6 +6,7 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.flow.Phases;
+import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.roster.Team;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.Scope;
@@ -31,8 +32,9 @@ import java.util.Set;
 /**
  * The beds: one a side, a real bed under a {@code bedfight:bed} region over both its blocks, in the owning
  * team's group. While a side's bed stands its seats respawn; breaking it takes that away, and the next death
- * there is the last. Nobody breaks their own. {@link #DESTROY} takes every bed left at once, so a match nobody
- * wins still ends. The elimination is {@code LastStanding}'s, which {@link Rules} calls when a bedless seat falls.
+ * there is the last. {@link #BREAK} says whose bed a seat may take. {@link #DESTROY} takes every bed left at
+ * once, so a match nobody wins still ends. The elimination is {@code LastStanding}'s, which {@link Rules} calls
+ * when a bedless seat falls.
  */
 public final class Beds implements GameModule {
 
@@ -40,6 +42,17 @@ public final class Beds implements GameModule {
     public static final StateKey<Boolean> STANDS = StateKey.of("ledger.bedfight.bed", Codec.BOOLEAN, true, true);
     /** Ticks of live play before every standing bed falls at once; negative = never. */
     public static final StateKey<Long> DESTROY = StateKey.of("beds.destroy", Codec.LONG, 10L * 60 * 20);
+    /** The breaker's own side's bed. */
+    public static final String OWN = "own";
+    /** Any other side's. */
+    public static final String ENEMY = "enemy";
+    /** Whose bed a seat may break; a side nobody names sleeps safe. */
+    public static final StateKey<List<String>> BREAK =
+            StateKey.of("beds.break", Codec.STRING.list(), List.of(ENEMY));
+
+    static {
+        tennacle.commands.RulesCompletions.words(BREAK.id(), List.of(OWN, ENEMY));
+    }
     private static final StateKey<Long> FALLS_AT = StateKey.of("ledger.bedfight.beds-at", Codec.LONG, -1L);
     private static final StateKey<Long> STARTED = StateKey.of("ledger.bedfight.beds-from", Codec.LONG, -1L);
     private static final String FALL_ALARM = "bedfight:bed-destruction";
@@ -54,7 +67,7 @@ public final class Beds implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(DESTROY);
+        return Set.of(DESTROY, BREAK);
     }
 
     @Override
@@ -77,11 +90,13 @@ public final class Beds implements GameModule {
         game.on(PlayerBlockBreakEvent.class, e -> {
             Point pos = e.getBlockPosition();
             String owner = cells.get(new BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
-            if (owner == null) return;
+            if (owner == null) return; // a bed already taken leaves ordinary ground behind
             Player breaker = e.getPlayer();
             if (game.roster().slotOf(breaker) == null) return;
+            boolean mine = owner.equals(Match.teamOf(game, breaker));
             e.setCancelled(true); // both halves go together, so a half is never left standing
-            if (owner.equals(Match.teamOf(game, breaker))) return; // your own bed is not a target
+            if (!game.rules().resolve(breaker, BREAK).contains(mine ? OWN : ENEMY)) return; // Refusals says so
+            Refusals.handled(e); // cancelled to take the whole bed at once, not to turn them away
             if (stands(game, owner)) broke(owner, breaker);
         });
         game.state().alarms().register(FALL_ALARM, (tick, payload) -> fall());
@@ -125,10 +140,7 @@ public final class Beds implements GameModule {
     private void fall() {
         List<String> left = standing(game);
         if (left.isEmpty()) return;
-        for (String team : left) game.state().set(Scope.team(team), STANDS, false);
-        cells.forEach((cell, team) -> {
-            if (left.contains(team)) game.shard().setBlock(cell, Block.AIR);
-        });
+        for (String team : left) erase(team);
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
         told(left::contains);
         Match.say(game, hypixel() ? headline("BED DESTRUCTION > ")
@@ -156,11 +168,18 @@ public final class Beds implements GameModule {
         return game.roster().teams().stream().map(Team::id).filter(id -> stands(game, id)).toList();
     }
 
-    private void broke(String owner, Player breaker) {
-        game.state().set(Scope.team(owner), STANDS, false);
-        cells.forEach((cell, team) -> {
-            if (team.equals(owner)) game.shard().setBlock(cell, Block.AIR);
+    // the cells go with the bed: what stands there next is a placed block, nobody's objective
+    private void erase(String team) {
+        game.state().set(Scope.team(team), STANDS, false);
+        cells.entrySet().removeIf(cell -> {
+            if (!cell.getValue().equals(team)) return false;
+            game.shard().setBlock(cell.getKey(), Block.AIR);
+            return true;
         });
+    }
+
+    private void broke(String owner, Player breaker) {
+        erase(owner);
         Match.addSeat(game, breaker, BedFight.BEDS);
         Team broken = game.roster().team(owner);
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));

@@ -379,6 +379,93 @@ class BedFightRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** Taking the enemy bed is no refusal, the footprint it leaves is ordinary ground, and your own is safe. */
+    @Test
+    void breakingABedIsNotRefused() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedFreeRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedFreeBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            BlockVec bed = new BlockVec(-7, 65, 0);
+
+            red.sent.clear();
+            assertTrue(breakAt(red.player, game, Block.RED_BED, bed).isCancelled(), "your own bed stands");
+            assertTrue(turnedAway(red), "and being turned away says so");
+
+            blue.sent.clear();
+            assertTrue(breakAt(blue.player, game, Block.RED_BED, bed).isCancelled(),
+                    "the whole bed goes at once, so the event does not");
+            assertFalse(turnedAway(blue), "but taking it is no refusal");
+            assertEquals(Block.AIR, game.shard().getBlock(bed), "the bed is gone");
+
+            blue.player.teleport(new Pos(-5.5, 65, 0.5)).join(); // within reach of the footprint
+            assertFalse(refused(blue, game, bed.blockX(), bed.blockY(), bed.blockZ()),
+                    "the footprint builds like any other ground");
+            game.shard().setBlock(bed, Block.WHITE_WOOL);
+            assertFalse(breakAt(blue.player, game, Block.WHITE_WOOL, bed).isCancelled(), "and comes back up");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    /** One line a death, the look's own, with the captured note on the last. */
+    @Test
+    void aFinalKillReadsOnce() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor("hypixel"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedLineRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedLineBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot mine = game.roster().slotOf(red.player);
+            assertNotNull(mine);
+
+            blue.sent.clear();
+            game.module(Rules.class).fell(red.player);
+            List<String> ordinary = said(blue).stream().filter(l -> l.contains("BedLineRed")).toList();
+            assertEquals(List.of("BedLineRed fell into the void."), ordinary, "one line, the look's: " + said(blue));
+
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            assertFalse(Beds.stands(game, mine.team()), "their bed is gone");
+            blue.sent.clear();
+            game.module(Rules.class).fell(red.player);
+            List<String> last = said(blue).stream().filter(l -> l.contains("BedLineRed")).toList();
+            assertEquals(List.of("BedLineRed fell into the void. FINAL KILL!"), last, "and one on the last: " + said(blue));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    // Refusals speaks at the end of the tick, whoever cancelled - unless the canceller claimed the action
+    private static boolean turnedAway(FakePlayer p) {
+        MinecraftServer.getSchedulerManager().processTick();
+        MinecraftServer.getSchedulerManager().processTickEnd();
+        return said(p).stream().anyMatch(l -> l.contains("can't break this block"));
+    }
+
+    private static PlayerBlockBreakEvent breakAt(net.minestom.server.entity.Player who, Game game, Block block, BlockVec at) {
+        var event = new PlayerBlockBreakEvent(who, game.instance(), block, Block.AIR, at,
+                net.minestom.server.instance.block.BlockFace.TOP);
+        net.minestom.server.event.EventDispatcher.call(event);
+        return event;
+    }
+
     private static List<String> said(FakePlayer p) {
         return p.sent(net.minestom.server.network.packet.server.play.SystemChatPacket.class).stream()
                 .map(c -> plain(c.message())).toList();
