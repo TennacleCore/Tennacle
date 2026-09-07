@@ -12,6 +12,7 @@ import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import io.github.term4.polyp.config.PathEdits;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -139,10 +140,14 @@ public final class RulesCommands {
         List<String> ids = new java.util.TreeSet<>(supported.keySet()).stream().filter(id -> under(prefix, id)).toList();
         String where = scope == Scope.GAME ? game.type().id() : scopeName(game, scope);
         Msg.say(p, where + (prefix.isEmpty() ? "" : " " + prefix) + ": " + ids.size() + (ids.size() == 1 ? " rule" : " rules"));
+        if (prefix.isEmpty()) {
+            Msg.say(p, "  preset ", Msg.v(Matches.platformNameOf(game)), ": rules ", Msg.v(Matches.rulesNameOf(game)),
+                    ", mechanics ", Msg.v(Matches.mechanicsNameOf(game)), ", look ", Msg.v(Matches.lookNameOf(game)));
+        }
         for (String id : ids) {
             StateKey<?> key = supported.get(id);
             List<String> words = RulesCompletions.words(id);
-            Msg.say(p, "  " + id + " = ", Msg.v(game.rules().resolve(scope, key)), from(game, scope, key, id),
+            Msg.say(p, "  " + id + " = ", valued(game, scope, key, id),
                     words.isEmpty() ? "" : "  any of " + String.join(", ", words));
         }
         String lead = scope == Scope.GAME ? "" : scopeName(game, scope) + " ";
@@ -161,22 +166,33 @@ public final class RulesCommands {
         }
     }
 
+    // the default reads dim; anything chosen reads as a value with a star, its hover naming the level that chose it
+    private static Component valued(Game game, Scope scope, StateKey<?> key, String id) {
+        Object value = game.rules().resolve(scope, key);
+        String from = from(game, scope, key, id);
+        if (from == null) return Msg.THEME.dim(value).hoverEvent(HoverEvent.showText(Msg.THEME.prose("the default")));
+        return Msg.v(value).append(Msg.THEME.accent(" *").hoverEvent(HoverEvent.showText(Msg.THEME.prose(from))));
+    }
+
     /**
-     * Which level hands {@code scope} the value it reads, and whether it is yours to drop. A seat set to what
-     * its side already says stops following the side, and reads the same until the side moves without it - the
-     * one thing the value alone cannot show. The fold seeds the launch ruleset as cells too, so a live entry
-     * is what tells a change made in this game from the one it started with.
+     * Which level hands {@code scope} the value it reads, and whether it is yours to drop; {@code null} = the
+     * key's own default. A seat set to what its side already says stops following the side, and reads the same
+     * until the side moves without it - the one thing the value alone cannot show. The fold seeds the launch
+     * ruleset as cells too, so a live entry is what tells a change made in this game from the one it started with.
      */
-    private static Component from(Game game, Scope scope, StateKey<?> key, String id) {
-        if (Matches.overrides(game, scope, id)) return Msg.THEME.dim("  set here");
-        if (game.state().lookup(scope, key) != null) return Msg.THEME.dim("  as launched");
+    private static @Nullable String from(Game game, Scope scope, StateKey<?> key, String id) {
+        if (Matches.overrides(game, scope, id)) return "set here, in this game";
+        if (game.state().lookup(scope, key) != null) return "as launched: the ruleset, or a flag";
         if (scope instanceof Scope.Slot s) {
             Slot seat = game.roster().slot(s.index());
             if (seat != null && !seat.team().isEmpty() && game.state().lookup(Scope.team(seat.team()), key) != null) {
-                return Msg.THEME.dim("  from #" + seat.team());
+                return "from #" + seat.team();
             }
         }
-        return Msg.THEME.dim(scope == Scope.GAME ? "  the default" : "  from the game");
+        if (scope == Scope.GAME) return null;
+        if (Matches.overrides(game, Scope.GAME, id)) return "from the game, set here";
+        if (game.state().lookup(Scope.GAME, key) != null) return "from the game, as launched";
+        return null;
     }
 
     /** A dotted id under {@code prefix}: whole segments, so {@code flow} takes flow.time.limit and {@code flo} nothing. */

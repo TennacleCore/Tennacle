@@ -23,6 +23,7 @@ import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;
 import tennacle.Mechanics;
 import tennacle.Msg;
+import tennacle.games.Flag;
 import tennacle.games.Flags;
 import tennacle.games.KitLayouts;
 import tennacle.games.Match;
@@ -45,6 +46,7 @@ import io.github.term4.grotto.modules.space.Daylight;
 import io.github.term4.grotto.modules.view.Spectating;
 import io.github.term4.grotto.modules.combat.FriendlyFire;
 import io.github.term4.grotto.modules.outcome.Goals;
+import io.github.term4.grotto.modules.roster.Rotation;
 import io.github.term4.grotto.modules.combat.KillCredit;
 import io.github.term4.grotto.modules.gear.Kits;
 import io.github.term4.grotto.modules.outcome.LastStanding;
@@ -216,6 +218,7 @@ public final class Bridge {
                         KillCredit::new,
                         FriendlyFire::new,
                         () -> Goals.of(GOAL).counter(GOALS).during(Match.LIVE),
+                        () -> Rotation.after(GOALS), // bridge swap: roster.rotate, the sides trade bases after each goal
                         () -> Limits.of().below(VOID, (p, plane) -> {
                             Game game = Game.of(p);
                             Rules rules = game != null ? game.module(Rules.class) : null;
@@ -268,7 +271,8 @@ public final class Bridge {
                 List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS), new Mode.SeatStat("Goals", SCORED)),
                 Banners::mark);
         Duels.mode(bridge);
-        Flags.offer(bridge, "preset");
+        Flags.register(Flag.onOff("swap", Rotation.ROTATE));
+        Flags.offer(bridge, "preset", "swap");
         // what a bridge request can ask for by name; the rule ids stay reachable as the raw form
     }
 

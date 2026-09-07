@@ -60,6 +60,7 @@ public final class Parties {
     private record Invite(Party party, String from, String to, Task expiry) {}
 
     private static final class Party {
+        final UUID id = UUID.randomUUID(); // stable across a transfer, unlike the leader
         volatile UUID leader;
         final List<UUID> members = new CopyOnWriteArrayList<>(); // leader first
         final Map<UUID, String> names = new ConcurrentHashMap<>();
@@ -113,6 +114,12 @@ public final class Parties {
     public static @NotNull UUID leaderOf(@NotNull Player player) {
         Party party = byMember.get(player.getUuid());
         return party != null ? party.leader : player.getUuid();
+    }
+
+    /** What a request to a party is filed against: the party's own id, the same after a transfer; alone, the player's. */
+    public static @NotNull UUID partyOf(@NotNull Player player) {
+        Party party = byMember.get(player.getUuid());
+        return party != null ? party.id : player.getUuid();
     }
 
     /** Whether the two share a party. */

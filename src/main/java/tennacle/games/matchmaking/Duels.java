@@ -38,15 +38,18 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>} - the
  * [Accept] click - is the one way to accept, with the REQUESTER's mode and {@link Options}. A request is party
- * to party: only a leader sends one out, everyone in the party it reaches reads it and any of them may accept,
- * and the accept seats both parties as the sides. Two players of one party duel each other 1v1 without leaving
- * it. Dueling back is another request, never an accept. {@code /duel <player>} alone has no menu yet. Modes
- * register at boot.
+ * to party: only a leader sends one out, everyone in the party it reaches reads it and any of them may accept
+ * while the party stands, and the accept seats both parties as the sides. Broken up - a member kicked, the party
+ * disbanded - the one who led it when it arrived may still accept, alone; nobody else may. Two players of one
+ * party duel each other 1v1 without leaving it. Dueling back is another request, never an accept.
+ * {@code /duel <player>} alone has no menu yet. Modes register at boot.
  */
 public final class Duels {
 
-    /** {@code within}: a 1v1 between party mates, which only the one named accepts. */
-    private record Request(UUID from, UUID target, UUID targetParty, boolean within, String mode, Options options, long at) {
+    /** {@code within}: a 1v1 between party mates, which only the one named accepts. {@code targetParty} is the
+     *  party it reached ({@link Parties#partyOf}), {@code targetLeader} who led it then. */
+    private record Request(UUID from, UUID target, UUID targetParty, UUID targetLeader, boolean within, String mode,
+                           Options options, long at) {
         boolean expired() {
             return System.currentTimeMillis() - at > 60_000;
         }
@@ -64,7 +67,7 @@ public final class Duels {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> {
             UUID gone = e.getPlayer().getUuid();
             requests.remove(gone);
-            requests.values().removeIf(request -> request.targetParty().equals(gone) || request.within() && request.target().equals(gone));
+            requests.values().removeIf(request -> request.targetLeader().equals(gone) || request.within() && request.target().equals(gone));
         });
         AppCommand duel = Commands.player("duel", "Challenge a player, and their party, to a match.")
                 .usage("/duel <player> <mode> [map] [-preset=<name>]", "send a request")
@@ -151,8 +154,8 @@ public final class Duels {
         List<Player> mine = within ? List.of(me) : Parties.of(me);
         List<Player> theirs = within ? List.of(target) : Parties.of(target);
         if (!free(me, mine) || !free(me, theirs)) return;
-        requests.put(me.getUuid(), new Request(me.getUuid(), target.getUuid(), Parties.leaderOf(target), within,
-                mode.name(), options, System.currentTimeMillis()));
+        requests.put(me.getUuid(), new Request(me.getUuid(), target.getUuid(), Parties.partyOf(target),
+                Parties.leaderOf(target), within, mode.name(), options, System.currentTimeMillis()));
         // scrims' lines as captured: a yellow sentence, the name in prose, the map or pool a value
         String what = mode.title() + " duel request";
         Component warning = mine.size() == theirs.size() ? null
@@ -199,7 +202,8 @@ public final class Duels {
         return true;
     }
 
-    /** {@code from}'s live request that {@code to} may accept: the one named for a 1v1, anyone in the party otherwise. */
+    /** {@code from}'s live request that {@code to} may accept: the one named for a 1v1; anyone in the party it
+     *  reached while that party stands, else the one who led it, if they still speak for themselves. */
     private static @Nullable Request pending(Player from, Player to) {
         Request theirs = requests.get(from.getUuid());
         if (theirs == null) return null;
@@ -207,7 +211,9 @@ public final class Duels {
             requests.remove(from.getUuid());
             return null;
         }
-        boolean mine = theirs.within() ? theirs.target().equals(to.getUuid()) : Parties.leaderOf(to).equals(theirs.targetParty());
+        boolean mine = theirs.within() ? theirs.target().equals(to.getUuid())
+                : Parties.partyOf(to).equals(theirs.targetParty())
+                || theirs.targetLeader().equals(to.getUuid()) && Parties.leads(to);
         return mine ? theirs : null;
     }
 

@@ -3,10 +3,17 @@ package tennacle.commands;
 import tennacle.games.watch.Spectators;
 import tennacle.Msg;
 import tennacle.Sessions;
+import tennacle.games.KitLayouts;
 import tennacle.games.Matches;
+import tennacle.games.matchmaking.Queues;
 
 import io.github.term4.grotto.Game;
+import net.minestom.server.command.CommandSender;
+import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
  *  departs their game - the seat follows the resolved reclaim rule, and {@code /rejoin} re-claims it. */
@@ -23,22 +30,44 @@ public final class LobbyCommands {
         });
         Commands.register(cmd);
 
-        AppCommand rejoin = Commands.player("rejoin", "Reclaim the seat a game is holding for you.");
-        rejoin.setDefaultExecutor((sender, ctx) -> {
-            if (!(sender instanceof Player p)) return;
-            if (Game.of(p) != null) {
-                Msg.fail(p, "You're already in a game.");
-                return;
-            }
-            Game held = Matches.grotto().reclaimable(p);
-            if (held == null) {
-                Msg.fail(p, "No seat is being held for you.");
-                return;
-            }
-            held.join(p);
-            Msg.ok(p, "Rejoining your ", Msg.v(held.type().id()), ".");
-        });
+        AppCommand rejoin = Commands.player("rejoin", "Reclaim the seat a game is holding for you.")
+                .usage("/rejoin [code]", "the latest game holding one, or the one with that board code");
+        var code = ArgumentType.Word("code");
+        rejoin.setDefaultExecutor((sender, ctx) -> rejoin(sender, null));
+        rejoin.addSyntax((sender, ctx) -> rejoin(sender, ctx.get(code)), code);
         Commands.register(rejoin);
+    }
+
+    // a seat holds through other games, so several may hold at once: the latest game is the default, a code picks
+    private static void rejoin(CommandSender sender, @Nullable String code) {
+        if (!(sender instanceof Player p)) return;
+        if (Matches.grotto().engaged(p)) {
+            Msg.fail(p, "You're already in a game.");
+            return;
+        }
+        List<Game> held = Matches.grotto().reclaimables(p);
+        if (held.isEmpty()) {
+            Msg.fail(p, "No seat is being held for you.");
+            return;
+        }
+        Game pick = code == null ? held.getFirst()
+                : held.stream().filter(g -> g.code().equalsIgnoreCase(code)).findFirst().orElse(null);
+        if (pick == null) {
+            Msg.fail(p, "No seat is held for you in a game ", Msg.v("#" + code), ".");
+            return;
+        }
+        if (code == null && held.size() > 1) {
+            Msg.say(p, held.size() + " games hold a seat for you; this is the latest. The others:");
+            for (Game game : held) {
+                if (game == pick) continue;
+                Msg.say(p, "  ", Msg.link(game.type().id() + " #" + game.code(), "/rejoin " + game.code(), "rejoin this one"));
+            }
+        }
+        Queues.dequeue(p);
+        Spectators.exit(p);
+        KitLayouts.cancel(p);
+        pick.join(p);
+        Msg.ok(p, "Rejoining your ", Msg.v(pick.type().id()), " ", Msg.v("#" + pick.code()), ".");
     }
 
     private static Runnable gameDeparture(Player p) {

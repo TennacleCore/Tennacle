@@ -26,7 +26,6 @@ import io.github.term4.polyp.entity.PrimedTnt;
 import io.github.term4.polyp.entity.DroppedItemEntity;
 import io.github.term4.polyp.entity.FallingBlockEntity;
 import io.github.term4.polyp.vri.Vri;
-import io.github.term4.polyp.vri.VriConfig;
 import io.github.term4.polyp.world.MechanicsWorld;
 import net.minestom.server.entity.Player;
 
@@ -51,14 +50,10 @@ public final class Mechanics {
     /** 1.8 mechanics + the full compat/fixes layer over shards: the two bridges are the whole integration. */
     public static void install() {
         polyp = Polyp.getInstance();
-        polyp.viaProxyDetails = true;
+        polyp.viaConnectionDetails = true; // the Via on the Velocity proxies reports each client's protocol
         polyp.installViaBridge = true; // the proxies run the ViaBridge plugin
         polyp.init();
-        // in the profile as well as handed to the system: a ruleset's vri/... path edit then layers over the whole
-        // config, where over nothing it builds a sparse one - and VRI reads an unset knob as off
-        VriConfig vri = VriConfig.all();
         polyp.profiles().setGlobal(PRESET.profile().toBuilder()
-                .set(MechanicsKeys.VRI, vri)
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
                 .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder()
                         .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
@@ -76,7 +71,7 @@ public final class Mechanics {
         BlockingSystem.install(polyp);
         HungerSystem.install(polyp);
         FixesSystem.install(polyp); // legacy-client fix set (targeted placement rollback, self-place, equipment, ...)
-        Vri.install(polyp, vri); // crack overlay, break FX, drops, pickup - all shard-aware
+        Vri.install(polyp); // crack overlay, break FX, drops, pickup - the preset's VriConfig, a ruleset's edits over it
         explosions = ExplosionSystem.install(polyp);
         ItemDamageSystem.install(polyp); // ground loot: explosions, fire, lava, cactus, void
 

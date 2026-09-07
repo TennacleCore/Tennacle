@@ -21,6 +21,7 @@ import io.github.term4.archipelago.replay.channel.Recordable;
 import io.github.term4.archipelago.replay.channel.Recorded;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
+import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.archipelago.shard.ShardView;
 import io.github.term4.archipelago.storage.DataKey;
 import io.github.term4.archipelago.storage.ShardFile;
@@ -193,6 +194,12 @@ public final class Replays {
             Matches.toLobby(viewer);
         } : null);
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> leave(e.getPlayer()));
+        // watchers are observers of the stage, members of nothing: the tab lists a theater's watchers to each other
+        ShardTabList.rule((viewer, subject) -> {
+            Theater theirs = watching.get(subject);
+            if (theirs == null) return null;
+            return watching.get(viewer) == theirs;
+        });
         // the stop fires inside the theater's own tick: the teardown waits for the next
         MinecraftServer.getGlobalEventHandler().addListener(PlaybackStopEvent.class,
                 e -> MinecraftServer.getSchedulerManager().scheduleNextTick(() -> over(e.playback())));

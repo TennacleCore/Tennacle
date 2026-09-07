@@ -195,6 +195,57 @@ class DuelRequestTest extends HeadlessServerTest {
         }
     }
 
+    /** Kicked, a member can no longer accept for a party they are not in; disbanded, the leader still can, alone. */
+    @Test
+    void theLeaderAloneAcceptsAfterTheBreakup() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(640.5, 65, 640.5), "BrkA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(642.5, 65, 642.5), "BrkB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(644.5, 65, 644.5), "BrkC");
+        Game game = null;
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "party invite BrkB");
+            MinecraftServer.getCommandManager().execute(b.player, "party accept");
+            MinecraftServer.getCommandManager().execute(c.player, "duel BrkB sumo");
+            MinecraftServer.getCommandManager().execute(a.player, "party kick BrkB");
+            b.sent.clear();
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept BrkC");
+            assertTrue(plain(b).stream().anyMatch(l -> l.contains("No duel request from BrkC")), "kicked: not theirs to accept: " + plain(b));
+            for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
+            assertNull(Game.of(b.player));
+
+            MinecraftServer.getCommandManager().execute(a.player, "party disband");
+            MinecraftServer.getCommandManager().execute(a.player, "duel accept BrkC");
+            game = awaitAll(a, c);
+            assertNotNull(game, "the leader it reached accepts, alone");
+            assertNull(Game.of(b.player), "the kicked member stays out");
+        } finally {
+            if (game != null) game.end(Outcome.draw());
+            for (FakePlayer p : List.of(a, b, c)) p.player.remove();
+        }
+    }
+
+    /** A transfer keeps the request with the party: the new leader accepts it. */
+    @Test
+    void theNewLeaderAcceptsAfterATransfer() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(650.5, 65, 650.5), "TrfA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(652.5, 65, 652.5), "TrfB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(654.5, 65, 654.5), "TrfC");
+        Game game = null;
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "party invite TrfB");
+            MinecraftServer.getCommandManager().execute(b.player, "party accept");
+            MinecraftServer.getCommandManager().execute(c.player, "duel TrfA sumo");
+            MinecraftServer.getCommandManager().execute(a.player, "party transfer TrfB");
+            MinecraftServer.getCommandManager().execute(b.player, "duel accept TrfC");
+            game = awaitAll(a, b, c);
+            assertNotNull(game, "the party the request reached still stands, under its new leader");
+            assertEquals(Match.teamOf(game, a.player), Match.teamOf(game, b.player), "both of them, as one side");
+        } finally {
+            if (game != null) game.end(Outcome.draw());
+            for (FakePlayer p : List.of(a, b, c)) p.player.remove();
+        }
+    }
+
     @Test
     void noFlagsNoFlagLine() {
         FakePlayer a = FakePlayer.connect(instance, new Pos(608.5, 65, 608.5), "ReqE");

@@ -115,7 +115,7 @@ public final class Playground {
 
     // polls until the Via/proxy handshake reveals the protocol (-1 until then), a few tries only
     private static void logProtocol(Player player) {
-        if (!Mechanics.polyp.viaProxyDetails) return;
+        if (!Mechanics.polyp.viaConnectionDetails) return;
         final int[] runs = {0};
         MinecraftServer.getSchedulerManager().scheduleTask(() -> {
             if (!player.isOnline()) return TaskSchedule.stop();

@@ -256,7 +256,7 @@ class StuckArrowWireTest extends HeadlessServerTest {
         FakePlayer viewer = FakePlayer.connect(instance, new Pos(8.5, 70, 38.5), "ReverseViewer");
         FakePlayer legacy = FakePlayer.connect(instance, new Pos(6.5, 70, 38.5), "ReverseLegacy");
         io.github.term4.polyp.Polyp.getInstance().clientInfo()
-                .setProxyDetails(legacy.player, "{\"version\":47}");
+                .setConnectionDetails(legacy.player, "{\"version\":47}");
         theater.join(viewer.player);
         theater.join(legacy.player);
         Playback pb = Replay.play(theater, file);

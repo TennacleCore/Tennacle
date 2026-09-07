@@ -9,6 +9,7 @@ import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,11 +34,12 @@ class RulesListingTest extends HeadlessServerTest {
         TestWiring.ensure(instance);
     }
 
+    // as JSON: where a value comes from is on the hover of its star, not in the text
     private static List<String> lines(FakePlayer p, String command) {
         p.sent.clear();
         MinecraftServer.getCommandManager().execute(p.player, command);
         return p.sent(SystemChatPacket.class).stream()
-                .<String>map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
+                .<String>map(c -> GsonComponentSerializer.gson().serialize(c.message())).toList();
     }
 
     private static List<String> complete(FakePlayer p, String text) {
@@ -74,13 +77,18 @@ class RulesListingTest extends HeadlessServerTest {
             String side = row(lines(a, "rules #" + team + " space.build.outside"), "space.build.outside");
             assertTrue(side.contains("set here"), "the side holds it: " + side);
             String other = row(lines(a, "rules #" + team + " space.build.height"), "space.build.height");
-            assertTrue(other.contains("from the game"), "what the side never touched: " + other);
+            assertTrue(other.contains("the default"), "what nobody touched at any level: " + other);
+            String inherited = row(lines(a, "rules #" + team + " match.mechanics"), "match.mechanics");
+            assertTrue(inherited.contains("from the game"), "what the side never touched but the launch chose: " + inherited);
 
             // the game's own: the fold seeds the launch ruleset as cells, so only a live entry reads as set here
             List<String> all = lines(a, "rules");
             assertTrue(all.stream().anyMatch(l -> l.contains("as launched")), "what the launch ruleset chose: " + all);
             String launched = row(all, "space.build.outside");
             assertTrue(launched.contains("the default"), "what nobody chose: " + launched);
+            assertFalse(launched.contains(" *"), "no star on a default: " + launched);
+            assertTrue(all.stream().anyMatch(l -> l.contains("preset ") && l.contains("rules ") && l.contains("mechanics ") && l.contains("look ")),
+                    "the four names the match runs under: " + all);
             lines(a, "rules space.build.outside false");
             String changed = row(lines(a, "rules space.build.outside"), "space.build.outside");
             assertTrue(changed.contains("set here"), "changed in this game: " + changed);

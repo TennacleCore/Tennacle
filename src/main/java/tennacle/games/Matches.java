@@ -61,6 +61,8 @@ public final class Matches {
     public static final StateKey<String> LOOK = StateKey.of("ledger.match.look", Codec.STRING, "");
     /** The platform's name, stamped at launch - what a re-fold resolves the ruleset from. */
     public static final StateKey<String> PLATFORM = StateKey.of("ledger.match.platform", Codec.STRING, "");
+    /** The ruleset the platform picked, stamped by the fold: the mode's base when the platform names none of its variants. */
+    public static final StateKey<String> RULES = StateKey.of("ledger.match.rules", Codec.STRING, "");
 
     private static final Map<String, Mode> modes = new LinkedHashMap<>();
     private static final Map<String, Look> looks = new LinkedHashMap<>(Map.of(
@@ -146,6 +148,23 @@ public final class Matches {
         return looks.getOrDefault(name, Look.TENNACLE);
     }
 
+    /** The preset the match was asked for, else {@code default}. */
+    public static @NotNull String platformNameOf(@NotNull Game game) {
+        String name = game.state().get(Scope.GAME, PLATFORM);
+        return name.isEmpty() ? Platform.DEFAULT.name() : name;
+    }
+
+    /** The ruleset the fold picked for the match. */
+    public static @NotNull String rulesNameOf(@NotNull Game game) {
+        return game.state().get(Scope.GAME, RULES);
+    }
+
+    /** The Polyp preset the match's mechanics start from, else the mode's own profile. */
+    public static @NotNull String mechanicsNameOf(@NotNull Game game) {
+        String name = game.rules().resolve(Scope.GAME, Presets.KEY);
+        return name.isEmpty() ? "the mode's own" : name;
+    }
+
     /** {@link #lookOf} as its registry name - what a per-look module pick switches on. */
     public static @NotNull String lookNameOf(@NotNull Game game) {
         String name = game.state().get(Scope.GAME, LOOK);
@@ -205,6 +224,7 @@ public final class Matches {
         if (mode == null) throw new IllegalStateException("not a registered mode: " + game.type().id());
         Platform platform = platformFor(game.state().get(Scope.GAME, PLATFORM));
         Ruleset rules = mode.ruleset(platform.ruleset());
+        game.state().set(Scope.GAME, RULES, rules.name());
         if (platform.mechanics() != null) rules = Ruleset.named(platform.name()).rule(Presets.KEY, platform.mechanics()).over(rules);
         Ruleset live = modifiers.get(game.id());
         if (live != null) rules = live.over(rules);
@@ -347,8 +367,7 @@ public final class Matches {
         try {
             for (int i = 0; i < sides.size(); i++) {
                 for (Player player : sides.get(i)) {
-                    Game held = grotto.reclaimable(player);
-                    if (held != null) held.forfeitHeld(player); // a seat held elsewhere: this seat is the answer, not two games
+                    // a seat held elsewhere keeps holding: this game over, /rejoin takes them back to it
                     Queues.dequeue(player); // a seat here ends every wait, whichever door they came through
                     Spectators.exit(player); // a watcher who queued: their body and HUD come back before the seat
                     KitLayouts.cancel(player); // an open kit edit would write its stash over the match inventory

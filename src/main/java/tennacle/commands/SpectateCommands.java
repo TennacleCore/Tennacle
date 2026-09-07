@@ -51,6 +51,7 @@ public final class SpectateCommands {
                 Msg.say(me, open.size() + " games are running. ", Msg.run("/spectate <player>"), " picks one.");
                 return;
             }
+            if (holdsMySeat(me, open.getFirst())) return;
             Spectators.exit(me);
             if (!Spectating.allowed(open.getFirst())) { Msg.fail(me, "That game doesn't allow spectators."); return; }
             Spectators.enter(open.getFirst(), me, null);
@@ -85,11 +86,19 @@ public final class SpectateCommands {
                 Msg.fail(me, Msg.v(target.getUsername()), " is not in a game.");
                 return;
             }
+            if (holdsMySeat(me, game)) return;
             Spectators.exit(me); // a view elsewhere ends first
             if (!Spectating.allowed(game)) { Msg.fail(me, "That game doesn't allow spectators."); return; }
             Spectators.enter(game, me, target);
             Msg.ok(me, "Watching ", Msg.v(target.getUsername()), "'s ", Msg.v(game.type().id()), ". ", Msg.run("/l"), " to leave.");
         }, name);
         Commands.register(spectate);
+    }
+
+    // a seat held for the viewer makes it their own game: the way back in is the seat, never a view of it
+    private static boolean holdsMySeat(Player me, Game game) {
+        if (game.roster().reservedSlotOf(me.getUsername()) == null) return false;
+        Msg.fail(me, "That's your own game - it's holding your seat. ", Msg.run("/rejoin"), " to get back in.");
+        return true;
     }
 }

@@ -28,6 +28,48 @@ class RejoinTest extends HeadlessServerTest {
         TestWiring.ensure(instance);
     }
 
+    private static void execute(FakePlayer p, String command) {
+        p.sent.clear();
+        net.minestom.server.MinecraftServer.getCommandManager().execute(p.player, command);
+    }
+
+    /** A held seat holds through another game: the first game waits, and a code picks it back over the later one. */
+    @Test
+    void heldThroughAnotherGame() {
+        Mode bridge = Matches.mode("bridge");
+        Game first = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        Game second = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HoldRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "HoldBlue");
+        try {
+            red.player.setInstance(first.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(first.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(first.join(red.player));
+            assertTrue(first.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == first && Game.of(blue.player) == first);
+            first.depart(red.player);
+
+            execute(red, "spectate HoldBlue");
+            assertTrue(said(red, "your own game"), "a held seat is no view: " + red.sent.size());
+            assertTrue(Matches.grotto().spectating(red.player) == null);
+
+            red.player.setInstance(second.instance(), new Pos(-4.5, 65, 0.5)).join();
+            assertTrue(second.join(red.player), "free to play elsewhere");
+            await("seated in the second", () -> Game.of(red.player) == second);
+            assertSame(first, Matches.grotto().reclaimable(red.player), "the first still holds");
+            second.depart(red.player);
+            assertEquals(java.util.List.of(second, first), Matches.grotto().reclaimables(red.player), "both hold, the later first");
+
+            execute(red, "rejoin " + first.code());
+            BridgeRoundTest.tickUntil(first, "back in the first", () -> Game.of(red.player) == first); // a world hop binds on a tick
+            assertTrue(said(red, "#" + first.code()), "named by its code");
+        } finally {
+            for (Game game : java.util.List.of(first, second)) if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
     private static boolean said(FakePlayer p, String line) {
         return p.sent(SystemChatPacket.class).stream()
                 .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message()))

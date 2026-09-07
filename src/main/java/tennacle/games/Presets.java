@@ -15,13 +15,15 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * {@code mechanics:preset}: the Polyp preset a match's fold starts from ({@code mmc18}, {@code hypixel}, ...), so
+ * {@code match.mechanics}: the Polyp preset a match's fold starts from ({@code mmc18}, {@code hypixel}, ...), so
  * knockback and the rest follow the platform's ruleset instead of the server global. Empty keeps the mode's own
- * profile. Read by {@link Matches#fold}; this module exists so the rule is declared.
+ * profile. Read by {@link Matches#fold}; this module exists so the rule is declared. One of the four names a
+ * match runs under: the preset a player asks for ({@link Matches#PLATFORM}), the ruleset it picks
+ * ({@link Matches#RULES}), these mechanics, and the look ({@link Matches#LOOK}).
  */
 public final class Presets implements GameModule {
 
-    public static final StateKey<String> KEY = StateKey.of("match.preset", Codec.STRING, "");
+    public static final StateKey<String> KEY = StateKey.of("match.mechanics", Codec.STRING, "");
 
     /** The builder the fold starts from: the named preset, else the mode's profile. */
     public static @NotNull MechanicsProfile.Builder builderFor(@NotNull Game game, @NotNull Mode mode) {
@@ -33,7 +35,7 @@ public final class Presets implements GameModule {
                 return preset.profile().toBuilder().set(MechanicsKeys.COMPAT, preset.compat());
             }
         }
-        throw new IllegalStateException("match.preset '" + name + "' is not a preset - one of "
+        throw new IllegalStateException("match.mechanics '" + name + "' is not a preset - one of "
                 + Arrays.stream(Preset.values()).map(p -> p.name().toLowerCase(Locale.ROOT)).toList());
     }
 

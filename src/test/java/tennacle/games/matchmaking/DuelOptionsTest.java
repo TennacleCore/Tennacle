@@ -143,7 +143,7 @@ class DuelOptionsTest extends HeadlessServerTest {
         try {
             assertEquals(List.of("bridge"), complete(a, "/duel OptE br"), "the mode, read at the request");
             List<String> flags = complete(a, "/duel OptE bridge -");
-            assertEquals(Set.of("-preset", "-cage"), Set.copyOf(flags), "what bridge listed, nothing else: " + flags);
+            assertEquals(Set.of("-preset", "-cage", "-swap"), Set.copyOf(flags), "what bridge listed, nothing else: " + flags);
             assertEquals(Set.of("-preset=minemen", "-preset=scrims", "-preset=hypixel"), Set.copyOf(complete(a, "/duel OptE bridge -preset=")));
             assertTrue(complete(a, "/duel OptE bridge -flow.").isEmpty(), "a rule is no flag, so nothing");
             assertFalse(complete(a, "/duel OptE bridge ").isEmpty(), "the pool's map names, bare");
