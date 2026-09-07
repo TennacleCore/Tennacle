@@ -22,27 +22,28 @@ final class Banners {
         Component who = Component.text(breaker.getUsername(), tennacle.games.Match.teamColor(game, breaker));
         // minemen's guillemet takes no trailing space, so its bed carries the leading one
         String bed = minemen(game) ? " " + Palette.titled(side) + " Bed" : Palette.titled(side) + " Bed ";
-        return headline(game).append(Component.text(bed, side.color()))
+        return framed(headline(game).append(Component.text(bed, side.color()))
                 .append(prose(game, minemen(game) ? " was destroyed by " : "was destroyed by "))
-                .append(who).append(prose(game, "!"));
+                .append(who).append(prose(game, "!")));
     }
 
     /** Every bed at once, on the destruction clock - uncaptured, the headline over the mode's own words. */
     static @NotNull Component bedsFell(Game game) {
-        return headline(game).append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!"));
+        return framed(headline(game)
+                .append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!")));
     }
 
     /** Captured: hypixel names the side, minemen names the player. */
     static @NotNull Component eliminated(Game game, Team side, Player player) {
         if (minemen(game)) {
-            return Component.text("ELIMINATION! ", NamedTextColor.RED).decorate(TextDecoration.BOLD)
+            return framed(Component.text("ELIMINATION! ", NamedTextColor.RED).decorate(TextDecoration.BOLD)
                     .append(Component.text("\u2694", NamedTextColor.GRAY).decorate(TextDecoration.BOLD))
                     .append(prose(game, " "))
-                    .append(Component.text(player.getUsername(), side.color()));
+                    .append(Component.text(player.getUsername(), side.color())));
         }
-        return Component.text("TEAM ELIMINATED > ").decorate(TextDecoration.BOLD)
+        return framed(Component.text("TEAM ELIMINATED > ").decorate(TextDecoration.BOLD)
                 .append(Component.text(Palette.titled(side) + " Team ", side.color()))
-                .append(Component.text("has been eliminated!", NamedTextColor.RED));
+                .append(Component.text("has been eliminated!", NamedTextColor.RED)));
     }
 
     /** How this network says a void death someone is credited for. */
@@ -53,6 +54,11 @@ final class Banners {
     /** Captured: hypixel shouts it, minemen does not. */
     static @NotNull String finalNote(Game game) {
         return minemen(game) ? "FINAL KILL" : "FINAL KILL!";
+    }
+
+    // captured minemen: a banner arrives with a blank line over and under it, so it reads apart from the chat
+    private static Component framed(Component line) {
+        return Component.text("\n").append(line).append(Component.text("\n"));
     }
 
     // minemen: light purple bold over a gray guillemet; everywhere else the captured hypixel plain bold

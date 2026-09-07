@@ -24,14 +24,14 @@ final class Ends {
     static Summary scrims() {
         return Matches.summary()
                 .row("Bed", "Whether the side still had one when the game ended",
-                        (g, side, th, color) -> th.value(bed(g, side.getFirst())))
+                        (g, side, th, color) -> bed(g, side.getFirst()))
                 .row("Damage", (g, side, th, color) -> th.hearts(0))
                 .row("Pressure", "Time spent with the majority of players on the enemy's side",
                         (g, side, th, color) -> th.value("0%"))
                 .row("Blocks Placed", (g, side, th, color) -> th.value(0))
                 .row("Blocks Broken", (g, side, th, color) -> th.value(0))
                 .cardSection(
-                        (g, seat, th, side) -> th.prose("Bed: ").append(th.value(bed(g, seat))),
+                        (g, seat, th, side) -> th.prose("Bed: ").append(bed(g, seat)),
                         (g, seat, th, side) -> th.prose("Damage: ").append(th.hearts(0)),
                         (g, seat, th, side) -> th.prose("KDR: ").append(th.value(stat(g, seat, BedFight.KILLS)))
                                 .append(th.dim(" | ")).append(th.value(stat(g, seat, BedFight.DEATHS)))
@@ -63,8 +63,9 @@ final class Ends {
         return Matches.results();
     }
 
-    private static String bed(Game game, Slot seat) {
-        return Beds.stands(game, seat.team()) ? "Yes" : "No";
+    // the board's own glyphs: a card reading Yes/No beside a scoreboard of checks read as two answers
+    private static net.kyori.adventure.text.Component bed(Game game, Slot seat) {
+        return Beds.stands(game, seat.team()) ? Boards.BED : Boards.GONE;
     }
 
     private static String kdr(Game game, Slot seat) {

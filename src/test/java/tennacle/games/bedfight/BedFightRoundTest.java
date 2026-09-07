@@ -483,6 +483,9 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertTrue(said(blue).stream().anyMatch(
                             l -> l.equals("BED DESTRUCTION > " + side + " Bed was destroyed by HouseBedBlue!")),
                     "the headline shape, not the old sentence: " + said(blue));
+            assertTrue(raw(blue).stream().anyMatch(l -> l.contains("BED DESTRUCTION")
+                            && l.startsWith("\n") && l.endsWith("\n")),
+                    "and it sits on its own, a blank line either side");
 
             blue.sent.clear();
             game.module(Rules.class).fell(red.player);
@@ -549,9 +552,15 @@ class BedFightRoundTest extends HeadlessServerTest {
         return event;
     }
 
-    private static List<String> said(FakePlayer p) {
+    private static List<String> raw(FakePlayer p) {
         return p.sent(net.minestom.server.network.packet.server.play.SystemChatPacket.class).stream()
                 .map(c -> plain(c.message())).toList();
+    }
+
+    private static List<String> said(FakePlayer p) {
+        return p.sent(net.minestom.server.network.packet.server.play.SystemChatPacket.class).stream()
+                .map(c -> plain(c.message()).strip()) // a banner rides a blank line either side
+                .toList();
     }
 
     private static List<String> titles(FakePlayer p) {

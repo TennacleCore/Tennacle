@@ -26,8 +26,8 @@ final class Boards {
 
     private Boards() {}
 
-    private static final Component BED = Component.text("✔", NamedTextColor.GREEN);
-    private static final Component GONE = Component.text("✖", NamedTextColor.RED);
+    static final Component BED = Component.text("✔", NamedTextColor.GREEN);
+    static final Component GONE = Component.text("✖", NamedTextColor.RED);
     // captured hypixel: the lighter glyphs, and bold
     private static final Component BED_LOUD = Component.text("✓", NamedTextColor.GREEN).decorate(TextDecoration.BOLD);
     private static final Component GONE_LOUD = Component.text("✗", NamedTextColor.RED).decorate(TextDecoration.BOLD);

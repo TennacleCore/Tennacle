@@ -15,12 +15,13 @@ final class Rulesets {
 
     private Rulesets() {}
 
-    /** No hunger or natural regen, and a seat waits for whoever left it. */
+    /** Food never drains but a hurt seat heals back, and a seat waits for whoever left it. */
     static final Ruleset BASE = Ruleset.named("bedfight")
             .rule(Roster.RECLAIM_TICKS, -1L) // a seat waits for the rest of the game
             .rule(Abandonment.EMPTY_TICKS, 1200L) // a minute with nobody in, then the game closes
-            .path("hunger/enabled", false)
-            .path("hunger/naturalRegen", false)
+            // hunger itself is inert (scale 0 = it never depletes), which is what leaves the regen running
+            .path("hunger/exhaustionScale", 0)
+            .path("hunger/naturalRegen", true)
             .path("vri/itemDrop", false)
             // only swings hurt: no bows in this kit, and a fall is the void plane's business
             .path("damage/enabledTypes", "only(minecraft:player_attack)");
