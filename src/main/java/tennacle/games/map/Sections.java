@@ -9,7 +9,9 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.instance.block.Block;
+import io.github.term4.grotto.roster.Team;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -22,7 +24,10 @@ import java.util.List;
  *
  * <p>{@code tint} regions stamp the same way and mean nothing else: no mode counts them, so a map may carry any
  * number of any shape. A {@code section} is a side's TERRITORY - bridge reads its floor and its footprint - and
- * a map wanting decoration alone wants these.
+ * a map wanting decoration alone wants these. Their group is {@code <team>} for the side's own
+ * {@code section} fill, or {@code <team>:<role>} for any other block role its look paints - so one map can
+ * carry as many differently-tinted areas as its palette names. A role no look names still paints - {@code base}
+ * is every role's last fallback - so an area always wears its side rather than nothing.
  */
 public final class Sections implements GameModule {
 
@@ -37,6 +42,17 @@ public final class Sections implements GameModule {
         game.state().alarms().arm(STAMP_ALARM, game.state().tick() + 1);
     }
 
+    /** The block role of that name, registering it where no code declared one; null where a look calls it a color. */
+    @SuppressWarnings("unchecked")
+    private static @Nullable Role<Role.Fill> fillRole(String name) {
+        for (Role<?> known : Role.all()) {
+            if (known.name().equals(name)) {
+                return "block".equals(known.kind()) ? (Role<Role.Fill>) known : null;
+            }
+        }
+        return Role.block(name);
+    }
+
     private static void stamp(Game game) {
         for (MarkerKey<RegionMarker> key : List.of(SECTION, TINT)) {
             for (RegionMarker section : game.arena().markers(key)) paint(game, section);
@@ -44,7 +60,13 @@ public final class Sections implements GameModule {
     }
 
     private static void paint(Game game, RegionMarker section) {
-        Role.Fill fill = game.roster().team(section.group()).livery().get(Teams.SECTION);
+        String group = section.group();
+        int cut = group.indexOf(':');
+        Role<Role.Fill> role = cut < 0 ? Teams.SECTION : fillRole(group.substring(cut + 1));
+        if (role == null) return; // the look calls that name a color, not a fill: nothing to paint with
+        Team side = game.roster().team(cut < 0 ? group : group.substring(0, cut));
+        if (side == null) return;
+        Role.Fill fill = side.livery().get(role);
         for (RegionMarker.Cuboid box : section.boxes()) {
             Chunks.load(game.instance(), box.min().blockX() >> 4, box.max().blockX() >> 4,
                     box.min().blockZ() >> 4, box.max().blockZ() >> 4);
