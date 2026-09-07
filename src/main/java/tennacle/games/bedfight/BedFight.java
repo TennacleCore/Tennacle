@@ -78,6 +78,9 @@ public final class BedFight {
     /** The map's own blocks a seat may take apart, in the OWNING team's group - the wool around a bed, multi-box
      *  for odd shapes. Everywhere else only what a seat placed itself comes back up. */
     public static final MarkerKey<RegionMarker> DEFENSE = MarkerKey.region("bedfight:defense");
+    /** The line the map is symmetric about, for what asks which half a seat is standing in; a map naming none
+     *  is read from the origin. Bloom's shared {@code center}, the same one bridge's arms sit either side of. */
+    public static final MarkerKey<RegionMarker> CENTER = tennacle.games.map.Center.MARKER;
     /** Highest placeable Y. */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bedfight:height");
     /** Lowest placeable Y. */
@@ -161,6 +164,7 @@ public final class BedFight {
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
+                        tennacle.games.map.Sections::new, // a base's dyed cells wear the side's palette, per match
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         Respawns::manual,
                         KillCredit::new,
