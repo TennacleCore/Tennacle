@@ -46,6 +46,7 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    maxHeapSize = "2g" // one shared headless server across 50+ classes; gradle's 512m default runs out near the end
     // synchronous player spawns + relaxed thread asserts (like Minestom's Env); must be set before ServerFlag loads
     systemProperty("minestom.inside-test", "true")
     jvmArgs("--enable-native-access=ALL-UNNAMED")
