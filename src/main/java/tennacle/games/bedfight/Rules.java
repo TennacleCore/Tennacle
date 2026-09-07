@@ -24,12 +24,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.inventory.InventoryPreClickEvent;
-import net.minestom.server.inventory.click.Click;
-import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
-import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -141,21 +137,6 @@ public final class Rules implements GameModule {
             placed.remove(key); // after the refusal: a block that stays is still the one who placed it
             respawns.unprotect(player);
         });
-        game.on(ItemDropEvent.class, e -> {
-            if (game.roster().slotOf(e.getPlayer()) == null) return;
-            e.setCancelled(true);
-            e.getPlayer().getInventory().update(); // 1.8 predicted the toss - resync the slots
-        });
-        game.on(InventoryPreClickEvent.class, e -> {
-            if (game.roster().slotOf(e.getPlayer()) == null) return;
-            // an in-screen toss is a CLICK - Minestom clears the slot on the click result, so the drop event
-            // alone can't keep the item
-            if (e.getClick() instanceof Click.DropSlot || e.getClick() instanceof Click.DropCursor) {
-                e.setCancelled(true);
-                return;
-            }
-            if (isArmor(e.getClickedItem().material())) e.setCancelled(true);
-        });
     }
 
     /** A member dropped under the void plane ({@code Limits}): the same end a killing blow gets. */
@@ -221,9 +202,4 @@ public final class Rules implements GameModule {
                 && (pos.blockY() == at.pos().blockY() || pos.blockY() == at.pos().blockY() + 1);
     }
 
-    /** Armor never leaves the body: a click that grabs a leather piece is an unequip. */
-    static boolean isArmor(@NotNull Material material) {
-        return material == Material.LEATHER_HELMET || material == Material.LEATHER_CHESTPLATE
-                || material == Material.LEATHER_LEGGINGS || material == Material.LEATHER_BOOTS;
-    }
 }

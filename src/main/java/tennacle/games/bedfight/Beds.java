@@ -21,6 +21,8 @@ import net.minestom.server.instance.block.Block;
 import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 
+import net.kyori.adventure.title.Title;
+import java.util.function.Predicate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +46,8 @@ public final class Beds implements GameModule {
     private static final String FALL_ALARM = "bedfight:bed-destruction";
 
     private static final Sound BROKEN = Sound.sound(SoundEvent.ENTITY_ENDER_DRAGON_GROWL, Sound.Source.MASTER, 1f, 1f);
+    private static final Component LOST = Component.text("BED DESTROYED!", NamedTextColor.RED);
+    private static final Component NO_RESPAWN = Component.text("You will no longer respawn!", NamedTextColor.WHITE);
 
     private Game game;
     /** Every block of every bed, to the side that sleeps in it. */
@@ -127,8 +131,18 @@ public final class Beds implements GameModule {
             if (left.contains(team)) game.shard().setBlock(cell, Block.AIR);
         });
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
+        told(left::contains);
         Match.say(game, Component.text("BED DESTRUCTION! ", NamedTextColor.RED)
                 .append(Component.text("Every bed is gone - the next death is final.", NamedTextColor.GRAY)));
+    }
+
+    // the side that lost it hears it on their screen; the rest read the line
+    private void told(Predicate<String> teams) {
+        Title title = Title.title(LOST, NO_RESPAWN, Match.times(game, 0, 40, 20));
+        Match.each(game, p -> {
+            String team = Match.teamOf(game, p);
+            if (!team.isEmpty() && teams.test(team)) p.showTitle(title);
+        });
     }
 
     /** Whether {@code team} still has a bed to respawn at. */
@@ -149,6 +163,7 @@ public final class Beds implements GameModule {
         Match.addSeat(game, breaker, BedFight.BEDS);
         Team broken = game.roster().team(owner);
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
+        told(owner::equals);
         Match.say(game, Component.text("BED DESTROYED! ", NamedTextColor.RED)
                 .append(Component.text(Match.teamName(game, breaker), NamedTextColor.GRAY))
                 .append(Component.text(" broke ", NamedTextColor.GRAY))

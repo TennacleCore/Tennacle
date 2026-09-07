@@ -47,6 +47,7 @@ import io.github.term4.grotto.modules.combat.FriendlyFire;
 import io.github.term4.grotto.modules.outcome.Goals;
 import io.github.term4.grotto.modules.combat.KillCredit;
 import io.github.term4.grotto.modules.gear.Kits;
+import io.github.term4.grotto.modules.gear.Loadout;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.space.Limits;
 import io.github.term4.grotto.modules.flow.Phases;
@@ -197,6 +198,8 @@ public final class Bridge {
                 .expect(CENTER, 1)
                 .body(Body.fresh().gamemode(GameMode.SURVIVAL)) // bridge digs and builds
                 .rule(Countdown.FROM, 3) // captured: three beats, five on scrims
+                .rule(Loadout.DROP, false)   // the kit is the whole economy: it never leaves the body
+                .rule(Loadout.UNEQUIP, false)
                 .rule(Score.TARGET, 5)
                 .rule(TimeLimit.LIMIT, 15L * 60 * 20)
                 .rule(TimeLimit.TIEBREAKER, false) // ranked turns this on: a drawn clock plays on
@@ -227,6 +230,7 @@ public final class Bridge {
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> HitReport.of().types(ProjectileDamage.KEY).line(g -> Matches.lookOf(g).hit()), // arrows are thrown-typed
                         () -> Kits.of(KIT),
+                        Loadout::new,
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
                         Rules::new, Presentation::new,
                         Projectiles::new, // an arrow off a protected enemy vanishes; off a teammate it passes

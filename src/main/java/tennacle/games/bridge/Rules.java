@@ -48,7 +48,6 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
-import net.minestom.server.item.Material;
 import net.minestom.server.sound.SoundEvent;
 import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.nbt.BinaryTagTypes;
@@ -181,26 +180,6 @@ public final class Rules implements GameModule {
             }
             placed.remove(packed(pos)); // after the refusal: a block that stays is still the one who placed it
             respawns.unprotect(player);
-        });
-        game.on(net.minestom.server.event.item.ItemDropEvent.class, e -> {
-            if (game.roster().slotOf(e.getPlayer()) == null) return;
-            e.setCancelled(true);
-            e.getPlayer().getInventory().update(); // 1.8 predicted the toss - resync the slots
-        });
-        game.on(net.minestom.server.event.inventory.InventoryPreClickEvent.class, e -> {
-            if (game.roster().slotOf(e.getPlayer()) == null) return;
-            var click = e.getClick();
-            // an in-screen toss is a CLICK - Minestom clears the slot on the click result, so the drop
-            // event alone can't keep the item
-            if (click instanceof net.minestom.server.inventory.click.Click.DropSlot
-                    || click instanceof net.minestom.server.inventory.click.Click.DropCursor) {
-                e.setCancelled(true);
-                return;
-            }
-            Material picked = e.getClickedItem().material();
-            // armor only ever exists worn here - a click that grabs a leather piece is an unequip
-            if (picked == Material.LEATHER_CHESTPLATE || picked == Material.LEATHER_LEGGINGS
-                    || picked == Material.LEATHER_BOOTS) e.setCancelled(true);
         });
         st.alarms().register(FIREWORK_ALARM, (tick, payload) -> {
             String team = payload.getString("team");

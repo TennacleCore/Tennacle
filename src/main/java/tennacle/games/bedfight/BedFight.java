@@ -34,6 +34,7 @@ import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.modules.gear.Kits;
+import io.github.term4.grotto.modules.gear.Loadout;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.space.Limits;
 import io.github.term4.grotto.modules.view.HealthDisplay;
@@ -146,11 +147,13 @@ public final class BedFight {
                 .expect(VOID, 1)
                 .body(Body.fresh().gamemode(GameMode.SURVIVAL))
                 .rule(Countdown.FROM, 3)
+                .rule(Loadout.DROP, false)   // the kit is the whole economy: it never leaves the body
+                .rule(Loadout.UNEQUIP, false)
                 .rule(Respawns.RESPAWN_TICKS, 60L)
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
-                        Countdown::of,
+                        () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
                         () -> LastStanding.decides().requireAllSeatedAt(Match.LIVE),
                         Respawns::manual,
@@ -166,6 +169,7 @@ public final class BedFight {
                         Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT),
+                        Loadout::new,
                         Rules::new, Presentation::new,
                         () -> Refusals.of(Look::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),

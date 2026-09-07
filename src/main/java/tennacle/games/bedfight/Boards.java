@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.Match;
 import tennacle.looks.Frames;
 import tennacle.looks.Palette;
 
@@ -9,9 +10,9 @@ import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
+import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.entity.Player;
 
 import java.util.List;
@@ -37,20 +38,22 @@ final class Boards {
     }
 
     private static void rows(Scoreboard b) {
-        b.line((g, me) -> clockLine(g), Beds.FALLS_AT, Beds.STANDS)
+        b.line((g, me) -> clockLine(g)) // no watched key: a clock is the board's own timer to refresh
                 .blank()
                 .line((g, me) -> sideLine(g, teamAt(g, 0), me), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .line((g, me) -> sideLine(g, teamAt(g, 1), me), Beds.STANDS, LastStanding.OUT, Respawns.DEAD);
     }
 
+    // no clock, or nothing left for one to take: the match's own stopwatch, counting up
     private static Component clockLine(Game game) {
-        // the clock is only news while a bed stands; players can beat it to every one of them
-        if (Beds.standing(game).isEmpty()) return Component.text("Beds Destroyed", NamedTextColor.RED);
         long left = Beds.fallsIn(game);
-        if (left < 0) return Component.empty();
-        return Component.text("Bed Destruction in ", NamedTextColor.WHITE)
-                .append(Component.text(clock(left), Frames.timeColor(left, game.rules()
-                        .resolve(io.github.term4.grotto.state.Scope.GAME, Beds.DESTROY))));
+        if (left < 0 || Beds.standing(game).isEmpty()) {
+            return Component.text("Time: ", NamedTextColor.WHITE)
+                    .append(Component.text(clock(Match.playTime(game)), NamedTextColor.GREEN));
+        }
+        return Component.text("Bed gone in ", NamedTextColor.WHITE)
+                .append(Component.text(clock(left),
+                        Frames.timeColor(left, game.rules().resolve(Scope.GAME, Beds.DESTROY))));
     }
 
     /**
@@ -60,7 +63,7 @@ final class Boards {
     private static Component sideLine(Game game, String team, Player viewer) {
         if (team == null) return Component.empty();
         Team side = game.roster().team(team);
-        Component line = Component.text(Palette.letter(side), side.color(), TextDecoration.BOLD)
+        Component line = Component.text(Palette.letter(side), side.color())
                 .append(Component.text(" " + titled(Palette.name(side)) + ": ", NamedTextColor.WHITE))
                 .append(state(game, team));
         Slot mine = game.roster().slotOf(viewer);
