@@ -24,6 +24,9 @@ import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.MetadataDef;
+import net.minestom.server.network.packet.server.play.EntityMetaDataPacket;
+import java.util.Map;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -122,12 +125,23 @@ public final class Presentation implements GameModule {
         if ((mode != null && !mode.ghostLoser()) || !fallen.add(player.getUuid())) return;
         // everyone watching (spectators included) sees a vanilla death: pose now, and the ghosting's destroy
         // packet lands at +20 ticks - right when a real corpse would poof. The loser gets no status 3, only the flight.
+        EntityMetaDataPacket downed = downed(player);
         for (Player watcher : game.shard().watchers()) {
-            if (watcher != player) watcher.sendPacket(new EntityStatusPacket(player.getEntityId(), (byte) 3));
+            if (watcher == player) continue;
+            watcher.sendPacket(new EntityStatusPacket(player.getEntityId(), (byte) 3));
+            watcher.sendPacket(downed);
         }
         player.setFlying(true); // no mayfly: hovering, can't toggle - and a ring-out ghost stops mid-fall
         game.state().alarms().arm(GHOST_ALARM, game.state().tick() + 20,
                 CompoundBinaryTag.builder().putString("uuid", player.getUuid().toString()).build());
+    }
+
+    // a client only advances the death animation while the body reads dead, and a match that cancels the fatal
+    // hit leaves it standing at whatever health it had: the pose would freeze halfway and the corpse stay upright
+    private static EntityMetaDataPacket downed(Player player) {
+        MetadataDef.Entry.Index<Float> health = (MetadataDef.Entry.Index<Float>) MetadataDef.LivingEntity.HEALTH;
+        return new EntityMetaDataPacket(player.getEntityId(),
+                Map.of(health.index(), health.function().apply(0f)));
     }
 
     // the seat's owner is gone by the time a forfeit fires; the of-record lineup still names them
