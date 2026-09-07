@@ -15,6 +15,7 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.bloom.Session;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.roster.Slot;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
@@ -28,6 +29,8 @@ import net.minestom.server.item.Material;
 import net.minestom.server.item.enchant.Enchantment;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -262,6 +265,52 @@ class BedFightRoundTest extends HeadlessServerTest {
     }
 
     // the countdown holds every break until GO
+    /** The count is on screen while they wait, and off it by the time the body is back. */
+    @Test
+    void theDeathScreenGoesFirst() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedDeadRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedDeadBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+
+            Respawns respawns = game.module(Respawns.class);
+            assertNotNull(respawns);
+            red.sent.clear();
+            respawns.queue(red.player);
+            assertTrue(respawns.isDead(red.player), "the wait is on");
+            assertTrue(counts(red).stream().anyMatch(t -> t.contains("Respawning in")), "the count shows: " + counts(red));
+
+            tickUntil(game, "the respawn lands", () -> !respawns.isDead(red.player));
+            List<String> shown = titles(red);
+            assertEquals("", shown.getLast(), "the last word to the client is the wipe: " + shown);
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    private static List<String> titles(FakePlayer p) {
+        return p.sent(net.minestom.server.network.packet.server.play.SetTitleTextPacket.class).stream()
+                .map(t -> plain(t.title())).toList();
+    }
+
+    private static List<String> counts(FakePlayer p) {
+        return p.sent(net.minestom.server.network.packet.server.play.SetTitleSubTitlePacket.class).stream()
+                .map(t -> plain(t.subtitle())).toList();
+    }
+
+    private static String plain(net.kyori.adventure.text.Component c) {
+        return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(c);
+    }
+
     private static void live(Game game) {
         tickUntil(game, "the countdown ran out", () -> Match.live(game));
     }

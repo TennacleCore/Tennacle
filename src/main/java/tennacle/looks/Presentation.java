@@ -48,6 +48,7 @@ public final class Presentation implements GameModule {
     private static final Component DIED = Component.text("You died!", NamedTextColor.RED);
 
     private final Set<UUID> fallen = new HashSet<>();
+    private final Set<UUID> counting = new HashSet<>();
 
     @Override
     public void install(@NotNull Game game) {
@@ -65,6 +66,9 @@ public final class Presentation implements GameModule {
                 if (p != null && respawns.isDead(p)) deadScreen(game, respawns, p);
             });
             respawns.onDead((p, seat) -> deadScreen(game, respawns, p));
+            respawns.onRespawn((p, seat) -> {
+                if (counting.remove(p.getUuid())) wipe(game, p); // the count goes before the world comes back
+            });
         }
         game.on(BlockingDamageEvent.class, BlockingDamageEvent::defender, e -> {
             if (!e.isCancelled()) GameSounds.play(game, e.defender(), SoundSet.BLOCKED); // cancelled = no block happened
@@ -99,13 +103,19 @@ public final class Presentation implements GameModule {
     // "You died!" and the seconds left, refreshed every second until the respawn lands
     private void deadScreen(Game game, Respawns respawns, Player p) {
         long left = respawns.remaining(p);
+        if (left <= 0) return; // the respawn has this tick: a "0..." would flash under it
         int seconds = (int) Math.ceil(left / 20.0);
+        counting.add(p.getUuid());
+        wipe(game, p);
         p.showTitle(Title.title(DIED, Component.text("Respawning in " + seconds + "...", NamedTextColor.YELLOW),
-                Match.times(game, 0, 25, 5)));
-        if (left > 0) {
-            game.state().alarms().arm(DEAD_ALARM, game.state().tick() + Math.min(20, left),
-                    CompoundBinaryTag.builder().putString("name", p.getUsername()).build());
-        }
+                Match.times(game, 0, 30, 0)));
+        game.state().alarms().arm(DEAD_ALARM, game.state().tick() + Math.min(20, left),
+                CompoundBinaryTag.builder().putString("name", p.getUsername()).build());
+    }
+
+    // hypixel's wipe: an empty title on a 1-tick stay, which drops what is up with no fade and no CLEAR packet
+    private static void wipe(Game game, Player p) {
+        p.showTitle(Title.title(Component.empty(), Component.empty(), Match.times(game, 0, 1, 0)));
     }
 
     private void out(Game game, Slot seat, @Nullable Player player, LastStanding.Cause cause) {
