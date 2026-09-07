@@ -17,6 +17,7 @@ import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.roster.Slot;
 import net.minestom.server.codec.Codec;
+import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -65,6 +66,8 @@ public final class Rules implements GameModule {
     }
 
     private final Set<Point> placed = new HashSet<>();
+    /** Seats whose holder walked out owing a respawn: the bed falling while they are away spends it. */
+    private final Set<Integer> away = new HashSet<>();
     private Game game;
     private Respawns respawns;
     private KillCredit credit;
@@ -93,6 +96,17 @@ public final class Rules implements GameModule {
         defenses = game.arena().markers(BedFight.DEFENSE);
         floorY = (int) Math.ceil(plane(BedFight.FLOOR));
         ceilingY = (int) Math.floor(plane(BedFight.HEIGHT));
+        Beds beds = game.module(Beds.class);
+        if (beds != null) {
+            // bedwars: a bed lost while its holder is away spends the respawn they walked out owing
+            beds.onFall(team -> {
+                for (Slot seat : game.roster().slots()) {
+                    if (seat.team().equals(team) && away.remove(seat.index())) {
+                        standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
+                    }
+                }
+            });
+        }
         respawns.onRespawn((player, seat) -> kits.refit(player)); // the kit comes back whole on every spawn
         respawns.onDead((player, seat) -> Spectators.ghostKit(player)); // the wait holds a compass, nothing else
         game.on(DamageEvent.class, DamageEvent::target, e -> {
@@ -140,6 +154,27 @@ public final class Rules implements GameModule {
             placed.remove(key); // after the refusal: a block that stays is still the one who placed it
             respawns.unprotect(player);
         });
+    }
+
+    /**
+     * Walking out is a death like any other: the seat is held, so it owes a respawn - and a bed lost while
+     * nobody is sitting in it makes that the last one. A death taken WHILE connected keeps its respawn even
+     * if the bed falls mid-wait, which is the queue's own doing and bedwars' rule.
+     */
+    @Override
+    public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
+        Slot seat = departure.seat();
+        if (seat == null || !departure.reserved() || !Match.live(game) || game.decided() != null) return;
+        // the seat is the departure's: by now the roster no longer answers for them
+        Scope scope = Scope.slot(seat.index());
+        game.state().set(scope, BedFight.DEATHS, game.state().get(scope, BedFight.DEATHS) + 1);
+        if (Beds.stands(game, seat.team())) away.add(seat.index());
+        else standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
+    }
+
+    @Override
+    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
+        away.remove(slot.index()); // back in the seat, and back in the running
     }
 
     /** A member dropped under the void plane ({@code Limits}): the same end a killing blow gets. */

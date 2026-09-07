@@ -64,6 +64,13 @@ public final class Beds implements GameModule {
     private Game game;
     /** Every block of every bed, to the side that sleeps in it. */
     private final Map<BlockVec, String> cells = new HashMap<>();
+    private final List<java.util.function.Consumer<String>> fell = new java.util.ArrayList<>();
+
+    /** Told the side whose bed just went, however it went - the clock or an enemy pick. */
+    public @NotNull Beds onFall(@NotNull java.util.function.Consumer<String> action) {
+        fell.add(action);
+        return this;
+    }
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
@@ -168,6 +175,7 @@ public final class Beds implements GameModule {
     // the cells go with the bed: what stands there next is a placed block, nobody's objective
     private void erase(String team) {
         game.state().set(Scope.team(team), STANDS, false);
+        for (java.util.function.Consumer<String> action : fell) action.accept(team);
         cells.entrySet().removeIf(cell -> {
             if (!cell.getValue().equals(team)) return false;
             game.shard().setBlock(cell.getKey(), Block.AIR);

@@ -2,6 +2,7 @@ package tennacle.games.bedfight;
 
 import tennacle.games.Match;
 import tennacle.games.Matches;
+import tennacle.games.watch.Spectators;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
 
@@ -16,7 +17,9 @@ import io.github.term4.bloom.Session;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.combat.Respawns;
+import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.roster.Slot;
+import io.github.term4.grotto.state.Scope;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.BlockVec;
@@ -593,6 +596,111 @@ class BedFightRoundTest extends HeadlessServerTest {
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
+        }
+    }
+
+    /** A watcher arriving mid-game reads the health already on the board, not the zero of a score never sent. */
+    @Test
+    void aWatcherSeesTheHealthUnderEveryHead() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HpSeenRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "HpSeenBlue");
+        FakePlayer watcher = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "HpWatcher");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            red.player.setHealth(14f);
+            tickUntil(game, "the board took their health", () -> true);
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+
+            watcher.sent.clear();
+            Spectators.enter(game, watcher.player, red.player);
+            tickUntil(game, "the view lands", () -> io.github.term4.archipelago.shard.ShardView.of(watcher.player)
+                    .blocks() == game.shard());
+
+            List<net.minestom.server.network.packet.server.play.UpdateScorePacket> scores =
+                    watcher.sent(net.minestom.server.network.packet.server.play.UpdateScorePacket.class);
+            assertTrue(scores.stream().anyMatch(p -> p.entityName().equals("HpSeenRed") && p.score() == 14),
+                    "the watcher was told what is over their head: " + scores);
+        } finally {
+            Spectators.exit(watcher.player);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+            watcher.player.remove();
+        }
+    }
+
+    /** Walking out is a death; the bed lost while away spends it, and a death taken here keeps its respawn. */
+    @Test
+    void leavingOwesARespawnTheBedCanSpend() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "AwayRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "AwayBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot seat = game.roster().slotOf(red.player);
+            assertNotNull(seat);
+            Scope mine = Scope.slot(seat.index());
+            LastStanding standing = game.module(LastStanding.class);
+            assertNotNull(standing);
+
+            // a death taken HERE keeps its respawn even when the bed falls mid-wait
+            Respawns respawns = game.module(Respawns.class);
+            respawns.queue(red.player);
+            assertTrue(respawns.isDead(red.player), "waiting on a respawn");
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            assertFalse(Beds.stands(game, seat.team()), "their bed went while they waited");
+            tickUntil(game, "the respawn still lands", () -> !respawns.isDead(red.player));
+            assertFalse(game.state().get(mine, LastStanding.OUT), "the queue keeps what it promised");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    /** With the bed still up, leaving owes a respawn - and losing the bed while away is the end of it. */
+    @Test
+    void aBedLostWhileAwayEndsTheSeat() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GoneRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "GoneBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot seat = game.roster().slotOf(red.player);
+            assertNotNull(seat);
+            Scope mine = Scope.slot(seat.index());
+            int died = game.state().get(mine, BedFight.DEATHS);
+
+            game.depart(red.player); // the seat is held for them, as a disconnect holds it
+            assertEquals(died + 1, game.state().get(mine, BedFight.DEATHS), "walking out is a death");
+            assertFalse(game.state().get(mine, LastStanding.OUT), "but the bed still stands, so they may come back");
+
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            assertTrue(game.state().get(mine, LastStanding.OUT), "the bed went while they were away: that was the last");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
         }
     }
 
