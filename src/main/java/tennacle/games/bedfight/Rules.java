@@ -37,8 +37,9 @@ import java.util.Set;
 
 /**
  * The buildable space, protection, kills and falls. Where a seat may build is the {@code bedfight:build}
- * region between the floor and the height; what it may break is the same vocabulary bridge uses, and the beds
- * are {@link Beds}' own. A death respawns while the side's bed stands and eliminates once it does not.
+ * region: a flat box is an X/Z slice between the floor and the height, a taller one its own volume. What it
+ * may break is the same vocabulary bridge uses, and the beds are {@link Beds}' own. A death respawns while
+ * the side's bed stands and eliminates once it does not.
  */
 public final class Rules implements GameModule {
 
@@ -115,8 +116,8 @@ public final class Rules implements GameModule {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
-            boolean allowed = game.rules().resolve(player, BUILD)
-                    && inBand(player, pos) && (build.contains(pos) || game.rules().resolve(player, OUTSIDE));
+            boolean allowed = game.rules().resolve(player, BUILD) && (buildable(player, pos)
+                    || (game.rules().resolve(player, OUTSIDE) && inBand(player, pos))); // off the slices, still in the band
             if (!allowed || onASpawn(pos)) {
                 e.setCancelled(true); // Refusals says so
                 return;
@@ -130,7 +131,7 @@ public final class Rules implements GameModule {
             Point pos = e.getBlockPosition();
             Point key = new net.minestom.server.coordinate.BlockVec(pos.blockX(), pos.blockY(), pos.blockZ());
             boolean own = placed.contains(key);
-            List<String> may = game.rules().resolve(player, build.contains(pos) ? BREAK : BREAK_OUTSIDE);
+            List<String> may = game.rules().resolve(player, buildable(player, pos) ? BREAK : BREAK_OUTSIDE);
             if (!game.rules().resolve(player, BUILD) || !may.contains(own ? PLACED : MAP)) {
                 e.setCancelled(true);
                 return;
@@ -177,6 +178,18 @@ public final class Rules implements GameModule {
         Double y = game.arena().markers(key).getFirst().y();
         if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
         return y;
+    }
+
+    // a flat (1-tall) box is an X/Z slice under the band, which is what the editor's wand draws over a deck; a
+    // taller box is its own 3D volume, for maps whose buildable ceiling varies
+    private boolean buildable(Player placer, Point pos) {
+        for (RegionMarker.Cuboid box : build.boxes()) {
+            if (pos.blockX() < box.min().blockX() || pos.blockX() > box.max().blockX()
+                    || pos.blockZ() < box.min().blockZ() || pos.blockZ() > box.max().blockZ()) continue;
+            if (box.min().blockY() == box.max().blockY() ? inBand(placer, pos)
+                    : pos.blockY() >= box.min().blockY() && pos.blockY() <= box.max().blockY()) return true;
+        }
+        return false;
     }
 
     // the marker, or the rule when a seat carries its own

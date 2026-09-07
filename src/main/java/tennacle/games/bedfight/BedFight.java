@@ -73,7 +73,7 @@ public final class BedFight {
 
     /** The side's bed, both blocks, in the OWNING team's group. */
     public static final MarkerKey<RegionMarker> BED = MarkerKey.region("bedfight:bed");
-    /** Where building is allowed at all (multi-box for non-square shapes). */
+    /** Where building is allowed at all: a flat box is an X/Z slice under the band, multi-box for odd shapes. */
     public static final MarkerKey<RegionMarker> BUILD = MarkerKey.region("bedfight:build");
     /** Highest placeable Y. */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bedfight:height");

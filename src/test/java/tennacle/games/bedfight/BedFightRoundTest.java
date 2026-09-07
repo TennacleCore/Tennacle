@@ -136,6 +136,41 @@ class BedFightRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** The fixture's build box is flat at y=65 with the band 60..72: the whole column over it builds. */
+    @Test
+    void flatBuildBoxesAreSlices() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedBuilder");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedBuilderFoe"); // the countdown waits for both seats
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            tennacle.Mechanics.polyp.clientInfo().setProtocol(red.player, 47); // the band decides, not a modern reach
+            live(game);
+
+            assertFalse(refused(red, game, 0, 68, 1), "over the slice, inside the band");
+            assertTrue(refused(red, game, 0, 75, 1), "over the height");
+            assertTrue(refused(red, game, 0, 58, 1), "under the floor");
+            assertTrue(refused(red, game, 20, 68, 1), "off the slice's footprint");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    private static boolean refused(FakePlayer p, Game game, int x, int y, int z) {
+        var event = new net.minestom.server.event.player.PlayerBlockPlaceEvent(p.player, game.instance(),
+                Block.WHITE_WOOL, net.minestom.server.instance.block.BlockFace.TOP, new BlockVec(x, y, z),
+                new Pos(0.5, 1, 0.5), net.minestom.server.entity.PlayerHand.MAIN);
+        net.minestom.server.event.EventDispatcher.call(event);
+        return event.isCancelled();
+    }
+
     // the countdown holds every break until GO
     private static void live(Game game) {
         long deadline = System.currentTimeMillis() + 8000;
