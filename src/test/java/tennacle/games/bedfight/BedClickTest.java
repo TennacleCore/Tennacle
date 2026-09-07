@@ -26,12 +26,11 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** A bed consumes a bare click the way vanilla's sleep attempt does; wool lands off it by sneaking alone. */
+/**
+ * A bed consumes a bare click the way vanilla's sleep attempt does; wool lands off it by sneaking alone. Both
+ * ways in: a shard member's routed packet, and the base listener that answers a player in no shard at all.
+ */
 class BedClickTest extends HeadlessServerTest {
-
-    private static final Vec FOOT = new Vec(2400, 64, 2400);
-    private static final Vec HEAD = new Vec(2401, 64, 2400);
-    private static final Vec OFF = new Vec(2400, 64, 2399); // the foot's north face
 
     @BeforeAll
     static void mechanics() {
@@ -41,36 +40,78 @@ class BedClickTest extends HeadlessServerTest {
 
     @Test
     void standingClickPlacesNothing() {
-        click(false, shard -> assertTrue(shard.getBlock(OFF).air(), "a bare click is a use, not a placement"));
+        assertTrue(inAShard(false).air(), "a bare click is a use, not a placement");
     }
 
     @Test
     void sneakingClickPlaces() {
-        click(true, shard -> assertTrue(shard.getBlock(OFF).compare(Block.WHITE_WOOL), "sneaking places off the bed"));
+        assertTrue(inAShard(true).compare(Block.WHITE_WOOL), "sneaking places off the bed");
     }
 
-    private void click(boolean sneaking, java.util.function.Consumer<Shard> check) {
+    @Test
+    void baseLayerClickPlacesNothing() {
+        assertTrue(outsideAnyShard(false).air(), "the base listener consults the registered rule too");
+    }
+
+    @Test
+    void baseLayerSneakPlaces() {
+        assertTrue(outsideAnyShard(true).compare(Block.WHITE_WOOL), "and still places by sneaking");
+    }
+
+    private static Block bed() {
+        return Block.RED_BED.withProperties(Map.of("facing", "east", "part", "foot", "occupied", "false"));
+    }
+
+    private static ClientPlayerBlockPlacementPacket northFaceOf(Vec foot) {
+        return new ClientPlayerBlockPlacementPacket(PlayerHand.MAIN, foot, BlockFace.NORTH, 0.5f, 0.5f, 0f, false, false, 1);
+    }
+
+    private static FakePlayer arm(Pos at, String name, boolean sneaking) {
+        FakePlayer builder = FakePlayer.connect(instance, at, name);
+        Polyp.getInstance().clientInfo().setProtocol(builder.player, 47); // the 1.8 client the report came from
+        builder.player.setItemInMainHand(ItemStack.of(Material.WHITE_WOOL));
+        builder.player.setSneaking(sneaking);
+        return builder;
+    }
+
+    /** What lands north of a shard's bed after a member's click. */
+    private Block inAShard(boolean sneaking) {
+        Vec foot = new Vec(2400, 64, 2400);
+        Vec off = new Vec(2400, 64, 2399);
         EventNode<Event> routing = Shard.blockRouting();
         MinecraftServer.getGlobalEventHandler().addChild(routing);
         instance.loadChunk(2400 >> 4, 2400 >> 4).join();
         Shard shard = new Shard(instance);
-        FakePlayer builder = FakePlayer.connect(instance, new Pos(2400.5, 64, 2402.5), sneaking ? "BedSneaker" : "BedClicker");
+        FakePlayer builder = arm(new Pos(2400.5, 64, 2402.5), sneaking ? "BedSneaker" : "BedClicker", sneaking);
         try {
-            Polyp.getInstance().clientInfo().setProtocol(builder.player, 47); // the 1.8 client the report came from
             shard.join(builder.player);
-            Block bed = Block.RED_BED.withProperties(Map.of("facing", "east", "part", "foot", "occupied", "false"));
-            shard.setBlock(FOOT, bed);
-            shard.setBlock(HEAD, bed.withProperty("part", "head"));
-            builder.player.setItemInMainHand(ItemStack.of(Material.WHITE_WOOL));
-            builder.player.setSneaking(sneaking);
-
-            var click = new ClientPlayerBlockPlacementPacket(PlayerHand.MAIN, FOOT, BlockFace.NORTH, 0.5f, 0.5f, 0f, false, false, 1);
-            MinecraftServer.getGlobalEventHandler().call(new PlayerPacketEvent(builder.player, click));
-            check.accept(shard);
+            shard.setBlock(foot, bed());
+            shard.setBlock(foot.add(1, 0, 0), bed().withProperty("part", "head"));
+            MinecraftServer.getGlobalEventHandler().call(new PlayerPacketEvent(builder.player, northFaceOf(foot)));
+            return shard.getBlock(off);
         } finally {
             builder.player.remove();
             shard.reset();
             MinecraftServer.getGlobalEventHandler().removeChild(routing);
+        }
+    }
+
+    /** The same click from a player in no shard (the lobby, an editor's base layer): the base listener answers. */
+    private Block outsideAnyShard(boolean sneaking) {
+        Vec foot = new Vec(2410, 64, 2400);
+        Vec off = new Vec(2410, 64, 2399);
+        instance.loadChunk(2410 >> 4, 2400 >> 4).join();
+        FakePlayer builder = arm(new Pos(2410.5, 64, 2402.5), sneaking ? "BaseBedSneaker" : "BaseBedClicker", sneaking);
+        try {
+            instance.setBlock(foot, bed());
+            instance.setBlock(foot.add(1, 0, 0), bed().withProperty("part", "head"));
+            Shard.placementListener(northFaceOf(foot), builder.player);
+            return instance.getBlock(off);
+        } finally {
+            instance.setBlock(off, Block.AIR);
+            instance.setBlock(foot, Block.AIR);
+            instance.setBlock(foot.add(1, 0, 0), Block.AIR);
+            builder.player.remove();
         }
     }
 }
