@@ -452,6 +452,43 @@ class BedFightRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** The house look wears what the capture taught: the bed headline, and the note after the last line. */
+    @Test
+    void theHouseWearsTheCapturedShapes() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HouseBedRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "HouseBedBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            assertEquals("tennacle", Matches.lookNameOf(game), "the house look");
+            live(game);
+            Slot mine = game.roster().slotOf(red.player);
+            assertNotNull(mine);
+            String side = tennacle.looks.Palette.titled(game.roster().team(mine.team()));
+
+            blue.sent.clear();
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            assertTrue(said(blue).stream().anyMatch(
+                            l -> l.equals("BED DESTRUCTION > " + side + " Bed was destroyed by HouseBedBlue!")),
+                    "the headline shape, not the old sentence: " + said(blue));
+
+            blue.sent.clear();
+            game.module(Rules.class).fell(red.player);
+            assertEquals(List.of("HouseBedRed fell into the void. FINAL KILL!"),
+                    said(blue).stream().filter(l -> l.contains("HouseBedRed")).toList(),
+                    "one line, with the note: " + said(blue));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
     // Refusals speaks at the end of the tick, whoever cancelled - unless the canceller claimed the action
     private static boolean turnedAway(FakePlayer p) {
         MinecraftServer.getSchedulerManager().processTick();

@@ -402,7 +402,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     private static Component scrimsDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
         Component line = Component.text(loser + " ", game.roster().team(seat.team()).color());
         if (verb == null) return line.append(Msg.SCRIMS.prose("forfeited."));
-        if (winner == null) return line.append(Msg.SCRIMS.prose(verb));
+        if (winner == null) return line.append(Msg.SCRIMS.prose(verb + "."));
         return line.append(Msg.SCRIMS.prose(verb + " "))
                 .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
                 .append(Msg.SCRIMS.prose("."));
