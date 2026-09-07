@@ -208,9 +208,9 @@ public final class Presentation implements GameModule {
             @Override
             public void beat(@NotNull Game g, int n) {
                 Component line = look.count().number().apply(n);
-                // captured beat title: fadeIn 0, stay 20, fadeOut 20
+                Look.Count.Beat beat = look.count().beat();
                 Title title = look.count().title() != null ? Title.title(look.count().title().apply(n),
-                        Component.empty(), Match.times(g, 0, 20, 20)) : null;
+                        Component.empty(), Match.times(g, beat.fadeIn(), beat.stay(), beat.fadeOut())) : null;
                 Match.say(g, line);
                 if (title != null) Match.title(g, title);
                 Match.each(g, p -> GameSounds.play(g, p, SoundSet.COUNTDOWN));

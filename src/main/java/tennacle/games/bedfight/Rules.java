@@ -158,8 +158,9 @@ public final class Rules implements GameModule {
         if (!Beds.stands(game, seat.team())) {
             // the elimination says the line, in the look's own voice, and cues its own fall
             standing.out(victim, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game)));
-            if (minemen() || standing.standing(seat.team()) == 0) { // minemen names the player, the rest the side
-                Match.say(game, Banners.eliminated(game, game.roster().team(seat.team()), victim));
+            if (standing.standing(seat.team()) == 0) { // the side is gone, not just this seat
+                Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
+                if (banner != null) Match.say(game, banner);
             }
             return;
         }
@@ -173,10 +174,6 @@ public final class Rules implements GameModule {
         Double y = game.arena().markers(key).getFirst().y();
         if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
         return y;
-    }
-
-    private boolean minemen() {
-        return "minemen".equals(tennacle.games.Matches.lookNameOf(game));
     }
 
     private boolean defended(Point pos) {

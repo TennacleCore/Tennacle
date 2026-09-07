@@ -101,11 +101,25 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     /** The start countdown's voice: chat line, optional title per beat, and the at-zero line. */
     public record Count(@NotNull IntFunction<Component> number,
                         @Nullable IntFunction<Component> title,
-                        @NotNull BiFunction<Game, Player, @Nullable Component> started) {}
+                        @NotNull Beat beat,
+                        @NotNull BiFunction<Game, Player, @Nullable Component> started) {
 
-    // minemen/scrims cues aren't captured yet - the era-standard pling
+        /** How long a beat's title holds, in client ticks. */
+        public record Beat(int fadeIn, int stay, int fadeOut) {}
+
+        /** The captured hypixel timing, which a look with no beat title never reads. */
+        public Count(@NotNull IntFunction<Component> number, @Nullable IntFunction<Component> title,
+                     @NotNull BiFunction<Game, Player, @Nullable Component> started) {
+            this(number, title, new Beat(0, 20, 20), started);
+        }
+    }
+
+    // scrims cues aren't captured yet - the era-standard pling
     private static final Sound TICK = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 1f);
     private static final Sound GO = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
+    // captured minemen: note.hat on the beat, the firework's blast at zero, both at volume 10
+    private static final Sound MMC_TICK = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 10f, 1f);
+    private static final Sound MMC_GO = Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_BLAST, Sound.Source.MASTER, 10f, 1f);
 
     // placeholders: neither ding nor block sound is a capture
     private static final Sound DING = Sound.sound(SoundEvent.ENTITY_ARROW_HIT_PLAYER, Sound.Source.MASTER, 1f, 1f);
@@ -120,9 +134,13 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** Yellow names, gray prose, VICTORY!/DEFEATED! - the minemen profile. Chat and tab are server-wide there. */
     public static final Look MINEMEN = new Look(Msg.MINEMEN, Look::minemenDeath, Look::minemenVerdict,
-            new Count(n -> Component.text(n + "...", NamedTextColor.YELLOW), null,
+            // captured: "5..." in chat, a bold yellow digit held 40 ticks, "Match started!" at zero
+            new Count(n -> Component.text(n + "...", NamedTextColor.YELLOW),
+                    n -> Component.text(n, NamedTextColor.YELLOW).decorate(TextDecoration.BOLD),
+                    new Count.Beat(0, 40, 0),
                     (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
-            plings().cue(SoundSet.KILL, DING), // the ding on kill credit
+            SoundSet.of().cue(SoundSet.COUNTDOWN, MMC_TICK).cue(SoundSet.START, MMC_GO)
+                    .cue(SoundSet.KILL, DING), // the ding on kill credit
             (g, speaker, message) -> Chat.plain(speaker, message),
             new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak);
 

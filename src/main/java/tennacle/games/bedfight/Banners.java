@@ -11,6 +11,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Bed fight's own lines per network: the bed that went, the side that went with it, and the void's wording. */
 final class Banners {
@@ -34,15 +35,9 @@ final class Banners {
                 .append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!")));
     }
 
-    /** Captured: hypixel names the side, minemen names the player. */
-    static @NotNull Component eliminated(Game game, Team side, Player player) {
-        if (minemen(game)) {
-            return framed(Component.empty()
-                    .append(Component.text("ELIMINATION! ", NamedTextColor.RED).decorate(TextDecoration.BOLD))
-                    .append(Component.text("\u2694", NamedTextColor.GRAY).decorate(TextDecoration.BOLD))
-                    .append(prose(game, " "))
-                    .append(Component.text(player.getUsername(), side.color())));
-        }
+    /** Captured hypixel; minemen names no elimination in bed fight, so it gets none. */
+    static @Nullable Component eliminated(Game game, Team side) {
+        if (minemen(game)) return null;
         return framed(Component.empty()
                 .append(Component.text("TEAM ELIMINATED > ").decorate(TextDecoration.BOLD))
                 .append(Component.text(Palette.titled(side) + " Team ", side.color()))

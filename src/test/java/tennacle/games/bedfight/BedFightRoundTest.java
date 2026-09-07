@@ -535,10 +535,8 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertEquals(List.of("MmcBedRed fell into the void! FINAL KILL"),
                     said(blue).stream().filter(l -> l.contains("MmcBedRed fell")).toList(),
                     "minemen shouts no exclamation on the note: " + said(blue));
-            assertTrue(said(blue).stream().anyMatch(l -> l.equals("ELIMINATION! ⚔ MmcBedRed")),
-                    "and names the player, not the side: " + said(blue));
-            assertEquals("ELIMINATION! ⚔", boldOf(banner(blue, "ELIMINATION!")),
-                    "same for the elimination headline");
+            assertTrue(said(blue).stream().noneMatch(l -> l.contains("ELIMINAT")),
+                    "minemen names no elimination in bed fight: " + said(blue));
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
