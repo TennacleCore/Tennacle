@@ -1,7 +1,9 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.Match;
 import tennacle.games.Matches;
 
+import io.github.term4.canvas.presets.HypixelCard;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.flow.Bundle;
@@ -13,7 +15,7 @@ import io.github.term4.grotto.state.StateKey;
 
 import java.util.Locale;
 
-/** Bed fight's end screens. The captures for hypixel and minemen are still to come; they read the house card. */
+/** Bed fight's end screens, one per network. */
 final class Ends {
 
     private Ends() {}
@@ -44,6 +46,21 @@ final class Ends {
     static GameModule tennacle() {
         Results records = Results.of().quiet(); // first: the snapshot precedes the card, and cleanup
         return Bundle.of(records, scrims().click((g, name) -> records.viewCommand(name)));
+    }
+
+    // captured: the BedWars Duel card - damage, melee accuracy, blocks placed, health regenerated
+    static Summary hypixel() {
+        return Matches.summary().hypixel("BedWars Duel")
+                .row("Damage Dealt", (g, side, th, c) -> th.hearts(0))
+                .row("Melee Accuracy", (g, side, th, c) -> th.value("0%"))
+                .row("Blocks Placed", (g, side, th, c) -> th.value(0))
+                .row("Health Regenerated", (g, side, th, c) -> th.hearts(0))
+                .after((g, me) -> HypixelCard.playAgain(
+                        Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bedfight -preset=hypixel"));
+    }
+
+    static Results minemen() {
+        return Matches.results();
     }
 
     private static String bed(Game game, Slot seat) {

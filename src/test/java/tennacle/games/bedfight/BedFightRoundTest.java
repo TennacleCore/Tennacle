@@ -243,21 +243,23 @@ class BedFightRoundTest extends HeadlessServerTest {
         return event.isCancelled();
     }
 
-    /** Bed fight has no captures yet: a preset brings its mechanics and leaves the look and the rules alone. */
+    /** A preset brings the whole platform: its mechanics, its look, and the rules its capture showed. */
     @Test
-    void aPresetBringsMechanicsAlone() {
+    void aPresetBringsTheWholePlatform() {
         Mode bedfight = Matches.mode("bedfight");
         Game house = Matches.launch(bedfight, Matches.platformFor(null), fixture());
         Game hypixel = Matches.launch(bedfight, Matches.platformFor("hypixel"), fixture());
         try {
             assertEquals("hypixel", hypixel.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
                     tennacle.games.Presets.KEY), "the mechanics are the platform's");
-            assertEquals(Matches.lookNameOf(house), Matches.lookNameOf(hypixel), "the look is the house's either way");
-            assertEquals(house.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
+            assertEquals("tennacle", Matches.lookNameOf(house), "no platform: the house look");
+            assertEquals("hypixel", Matches.lookNameOf(hypixel), "and the platform's own where there is one");
+            assertEquals(5L, (long) hypixel.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
                             io.github.term4.grotto.modules.flow.Countdown.FROM),
-                    hypixel.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
+                    "captured: hypixel opens on five");
+            assertEquals(3L, (long) house.rules().resolve(io.github.term4.grotto.state.Scope.GAME,
                             io.github.term4.grotto.modules.flow.Countdown.FROM),
-                    "and the opener is the mode's own, not a platform's");
+                    "the mode's own everywhere else");
         } finally {
             house.end(Outcome.aborted());
             hypixel.end(Outcome.aborted());
@@ -295,6 +297,91 @@ class BedFightRoundTest extends HeadlessServerTest {
             red.player.remove();
             blue.player.remove();
         }
+    }
+
+    /** The row stays through the wait, greyed for everyone, and comes back in the side's color. */
+    @Test
+    void aDeadRowGreysAndComesBack() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedTagRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedTagBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot seat = game.roster().slotOf(red.player);
+            assertNotNull(seat);
+            net.kyori.adventure.text.format.TextColor side = game.roster().team(seat.team()).color();
+            assertEquals(side, color(red.player), "seated in the side's color");
+
+            Respawns respawns = game.module(Respawns.class);
+            assertNotNull(respawns);
+            respawns.queue(red.player);
+            assertEquals(net.kyori.adventure.text.format.NamedTextColor.GRAY, color(red.player), "greyed while down");
+            assertTrue(io.github.term4.archipelago.shard.ShardTabList.listed(blue.player, red.player),
+                    "and the enemy still lists them");
+
+            tickUntil(game, "the respawn lands", () -> !respawns.isDead(red.player));
+            assertEquals(side, color(red.player), "the side's color is back");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    private static net.kyori.adventure.text.format.TextColor color(net.minestom.server.entity.Player p) {
+        net.kyori.adventure.text.Component name = p.getDisplayName();
+        return name != null ? name.color() : null;
+    }
+
+    /** -preset hypixel dresses the game, not just its mechanics: the captured board and the captured bed line. */
+    @Test
+    void aHypixelPresetWearsItsLook() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor("hypixel"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BedLookRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BedLookBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            assertEquals("hypixel", Matches.lookNameOf(game), "the preset's own look, not the house one");
+            live(game);
+
+            io.github.term4.canvas.board.Boards.Rendered board = io.github.term4.canvas.board.Boards.rendered(red.player);
+            assertNotNull(board, "the board is up");
+            List<String> rows = board.lines().stream().map(BedFightRoundTest::plain).toList();
+            assertEquals("BED WARS", plain(board.title()), "the captured title");
+            assertTrue(rows.stream().anyMatch(l -> l.startsWith("Time Left: ")), "the captured clock row: " + rows);
+            assertTrue(rows.stream().anyMatch(l -> l.contains("R Red: ")), "a line a side: " + rows);
+            assertTrue(rows.stream().anyMatch(l -> l.strip().equals("Kills: 0")), "the viewer's own kills: " + rows);
+            assertTrue(rows.stream().anyMatch(l -> l.strip().equals("Mode: Bed Rush Duel")), "the captured mode row: " + rows);
+
+            Slot mine = game.roster().slotOf(red.player);
+            assertNotNull(mine);
+            String side = tennacle.looks.Palette.titled(game.roster().team(mine.team()));
+            red.sent.clear();
+            break0(blue.player, new BlockVec(-7, 65, 0)); // the fixture's bed for red's own side
+            assertTrue(said(red).stream().anyMatch(
+                            l -> l.equals("BED DESTRUCTION > " + side + " Bed was destroyed by BedLookBlue!")),
+                    "the captured bed line: " + said(red));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    private static List<String> said(FakePlayer p) {
+        return p.sent(net.minestom.server.network.packet.server.play.SystemChatPacket.class).stream()
+                .map(c -> plain(c.message())).toList();
     }
 
     private static List<String> titles(FakePlayer p) {

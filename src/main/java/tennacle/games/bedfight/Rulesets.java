@@ -25,10 +25,12 @@ final class Rulesets {
             // only swings hurt: no bows in this kit, and a fall is the void plane's business
             .path("damage/enabledTypes", "only(minecraft:player_attack)");
 
-    // uncaptured: a platform brings its MECHANICS to bed fight and nothing else, so nobody reads a countdown or
-    // a board as "how hypixel does it" when nobody has watched hypixel do it
+    // minemen is mechanics alone: its bed fight capture is empty, so nothing else here would be more than a guess
     private static final Map<String, Ruleset> RULESETS = Map.of(
-            "hypixel", Ruleset.named("hypixel").rule(Presets.KEY, "hypixel").over(BASE),
+            "hypixel", Ruleset.named("hypixel")
+                    .rule(Presets.KEY, "hypixel")
+                    .rule(io.github.term4.grotto.modules.flow.Countdown.FROM, 5) // captured: "The game starts in 5 seconds!"
+                    .over(BASE),
             "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18").over(BASE),
             "minemen", Ruleset.named("minemen").rule(Presets.KEY, "mmc18").over(BASE));
 

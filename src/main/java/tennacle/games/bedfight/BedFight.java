@@ -160,7 +160,7 @@ public final class BedFight {
                 .rule(Respawns.CLEAR, 2) // a spawn is buildable over; landing there takes the roof back down
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long
-                .modules(() -> Matches.byLook(Ends::scrims, Ends::scrims, Ends::scrims, Ends::tennacle), // first: the snapshot precedes cleanup
+                .modules(() -> Matches.byLook(Ends::hypixel, Ends::minemen, Ends::scrims, Ends::tennacle), // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         () -> Countdown.of().voice(Presentation::voice),
                         () -> Freeze.during(Match.OPENING).after(Match.OVER),
@@ -183,7 +183,7 @@ public final class BedFight {
                         Rules::new, Presentation::new,
                         () -> Refusals.of(Look::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
-                        () -> Matches.byLook(Boards::scrims, Boards::scrims, Boards::scrims, Boards::tennacle))
+                        () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         KitLayouts.editable("bedfight", KIT);
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
@@ -196,8 +196,7 @@ public final class BedFight {
                 null, // no team score: the last side standing wins
                 List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
                         new Mode.SeatStat("Beds", BEDS)),
-                null,
-                "tennacle"); // uncaptured: -preset brings its mechanics, the house look stays
+                null);
         Duels.mode(bedfight);
         Flags.offer(bedfight, "preset");
     }

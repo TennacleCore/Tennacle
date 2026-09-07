@@ -57,6 +57,16 @@ public final class Palette {
         return name(team).substring(0, 1);
     }
 
+    /** {@link #name} as prose reads it: {@code Light Purple}. */
+    public static @NotNull String titled(@NotNull Team team) {
+        StringBuilder out = new StringBuilder();
+        for (String word : name(team).split(" ")) {
+            if (!out.isEmpty()) out.append(' ');
+            out.append(word.charAt(0)).append(word.substring(1).toLowerCase(Locale.ROOT));
+        }
+        return out.toString();
+    }
+
     // a non-ordinal id sorts after every ordinal
     private static int ordinal(String team) {
         try {

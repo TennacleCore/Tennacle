@@ -131,8 +131,10 @@ public final class Beds implements GameModule {
         });
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
         told(left::contains);
-        Match.say(game, Component.text("BED DESTRUCTION! ", NamedTextColor.RED)
-                .append(Component.text("Every bed is gone - the next death is final.", NamedTextColor.GRAY)));
+        Match.say(game, hypixel() ? headline("BED DESTRUCTION > ")
+                        .append(Component.text("Every bed was destroyed!", NamedTextColor.GRAY))
+                : Component.text("BED DESTRUCTION! ", NamedTextColor.RED)
+                        .append(Component.text("Every bed is gone - the next death is final.", NamedTextColor.GRAY)));
     }
 
     // the side that lost it hears it on their screen; the rest read the line
@@ -163,10 +165,32 @@ public final class Beds implements GameModule {
         Team broken = game.roster().team(owner);
         game.forEachAudience(viewer -> viewer.playSound(BROKEN));
         told(owner::equals);
-        Match.say(game, Component.text("BED DESTROYED! ", NamedTextColor.RED)
+        Match.say(game, hypixel() ? broken(broken, breaker) : brokeLine(broken, breaker));
+    }
+
+    // captured: bold headline, the side's own color on its name, the breaker in red
+    private Component broken(Team side, Player breaker) {
+        return headline("BED DESTRUCTION > ")
+                .append(Component.text(tennacle.looks.Palette.titled(side) + " Bed ", side.color()))
+                .append(Component.text("was destroyed by ", NamedTextColor.GRAY))
+                .append(Component.text(breaker.getUsername(), NamedTextColor.RED))
+                .append(Component.text("!", NamedTextColor.GRAY));
+    }
+
+    private Component brokeLine(Team side, Player breaker) {
+        return Component.text("BED DESTROYED! ", NamedTextColor.RED)
                 .append(Component.text(Match.teamName(game, breaker), NamedTextColor.GRAY))
                 .append(Component.text(" broke ", NamedTextColor.GRAY))
-                .append(Component.text(tennacle.looks.Palette.name(broken), broken.color()))
-                .append(Component.text("'s bed - they no longer respawn.", NamedTextColor.GRAY)));
+                .append(Component.text(tennacle.looks.Palette.name(side), side.color()))
+                .append(Component.text("'s bed - they no longer respawn.", NamedTextColor.GRAY));
+    }
+
+    private boolean hypixel() {
+        return "hypixel".equals(tennacle.games.Matches.lookNameOf(game));
+    }
+
+    // captured: white and bold, no color of its own
+    private static Component headline(String text) {
+        return Component.text(text).decorate(net.kyori.adventure.text.format.TextDecoration.BOLD);
     }
 }
