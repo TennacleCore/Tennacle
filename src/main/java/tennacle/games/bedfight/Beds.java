@@ -40,8 +40,7 @@ public final class Beds implements GameModule {
     public static final StateKey<Boolean> STANDS = StateKey.of("ledger.bedfight.bed", Codec.BOOLEAN, true, true);
     /** Ticks of live play before every standing bed falls at once; negative = never. */
     public static final StateKey<Long> DESTROY = StateKey.of("beds.destroy", Codec.LONG, 10L * 60 * 20);
-    /** The tick the beds fall on, {@code -1} before the clock starts. */
-    public static final StateKey<Long> FALLS_AT = StateKey.of("ledger.bedfight.beds-at", Codec.LONG, -1L);
+    private static final StateKey<Long> FALLS_AT = StateKey.of("ledger.bedfight.beds-at", Codec.LONG, -1L);
     private static final StateKey<Long> STARTED = StateKey.of("ledger.bedfight.beds-from", Codec.LONG, -1L);
     private static final String FALL_ALARM = "bedfight:bed-destruction";
 
