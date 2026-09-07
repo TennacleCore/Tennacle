@@ -452,6 +452,8 @@ class BedFightRoundTest extends HeadlessServerTest {
             String side = tennacle.looks.Palette.titled(game.roster().team(mine.team()));
             assertTrue(said(blue).stream().anyMatch(l -> l.equals("TEAM ELIMINATED > " + side + " Team has been eliminated!")),
                     "and the side is called out: " + said(blue));
+            assertEquals("TEAM ELIMINATED > ", boldOf(banner(blue, "TEAM ELIMINATED")),
+                    "the headline alone is bold");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
@@ -486,6 +488,8 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertTrue(raw(blue).stream().anyMatch(l -> l.contains("BED DESTRUCTION")
                             && l.startsWith("\n") && l.endsWith("\n")),
                     "and it sits on its own, a blank line either side");
+            assertEquals("BED DESTRUCTION > ", boldOf(banner(blue, "BED DESTRUCTION")),
+                    "the headline is bold and nothing after it is");
 
             blue.sent.clear();
             game.module(Rules.class).fell(red.player);
@@ -523,6 +527,8 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertTrue(said(blue).stream().anyMatch(
                             l -> l.equals("BED DESTRUCTION » " + side + " Bed was destroyed by MmcBedBlue!")),
                     "the captured minemen headline: " + said(blue));
+            assertEquals("BED DESTRUCTION »", boldOf(banner(blue, "BED DESTRUCTION")),
+                    "the headline and its guillemet are bold, the rest is not");
 
             blue.sent.clear();
             game.module(Rules.class).fell(red.player);
@@ -531,6 +537,8 @@ class BedFightRoundTest extends HeadlessServerTest {
                     "minemen shouts no exclamation on the note: " + said(blue));
             assertTrue(said(blue).stream().anyMatch(l -> l.equals("ELIMINATION! ⚔ MmcBedRed")),
                     "and names the player, not the side: " + said(blue));
+            assertEquals("ELIMINATION! ⚔", boldOf(banner(blue, "ELIMINATION!")),
+                    "same for the elimination headline");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
@@ -550,6 +558,31 @@ class BedFightRoundTest extends HeadlessServerTest {
                 net.minestom.server.instance.block.BlockFace.TOP);
         net.minestom.server.event.EventDispatcher.call(event);
         return event;
+    }
+
+    /** The chat message carrying {@code text}, as the client would read it. */
+    private static net.kyori.adventure.text.Component banner(FakePlayer p, String text) {
+        return p.sent(net.minestom.server.network.packet.server.play.SystemChatPacket.class).stream()
+                .map(net.minestom.server.network.packet.server.play.SystemChatPacket::message)
+                .filter(c -> plain(c).contains(text)).findFirst().orElseThrow();
+    }
+
+    /** Every run the client would draw bold, joined - style inherits, so this walks the tree the way it renders. */
+    private static String boldOf(net.kyori.adventure.text.Component root) {
+        StringBuilder out = new StringBuilder();
+        walkBold(root, net.kyori.adventure.text.format.Style.empty(), out);
+        return out.toString();
+    }
+
+    private static void walkBold(net.kyori.adventure.text.Component c, net.kyori.adventure.text.format.Style from,
+                                 StringBuilder out) {
+        net.kyori.adventure.text.format.Style mine = from.merge(c.style(),
+                net.kyori.adventure.text.format.Style.Merge.Strategy.IF_ABSENT_ON_TARGET);
+        if (mine.hasDecoration(net.kyori.adventure.text.format.TextDecoration.BOLD)
+                && c instanceof net.kyori.adventure.text.TextComponent t) {
+            out.append(t.content());
+        }
+        for (net.kyori.adventure.text.Component child : c.children()) walkBold(child, mine, out);
     }
 
     private static List<String> raw(FakePlayer p) {
