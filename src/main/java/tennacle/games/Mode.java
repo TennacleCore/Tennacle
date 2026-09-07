@@ -55,6 +55,8 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
     }
 
     public Mode {
+        // the pool holds a half-built map out of rotation rather than letting a match die on it
+        if (arena instanceof tennacle.games.map.MapPool pool) pool.serves(type);
         variants = Map.copyOf(variants);
         intro = List.copyOf(intro);
         tabStats = List.copyOf(tabStats);

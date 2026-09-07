@@ -3,6 +3,7 @@ package tennacle.games.map;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import io.github.term4.barnacle.Arena;
+import io.github.term4.grotto.GameType;
 import io.github.term4.bloom.Bloom;
 import net.minestom.server.MinecraftServer;
 
@@ -24,6 +25,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * sorcery), the tag decides which game they serve. Lazy like {@link HotArena}: an empty pool errors at
  * launch, never at boot, and {@code /arena save} adds, retags, or refreshes a map live (the NEXT game;
  * in-flight games finish on the arena they have).
+ *
+ * <p>A map is only in rotation while it MEETS its type's expectations. A half-built one - markers still to
+ * place - is held out with a line saying what it wants, because the alternative is every match that draws it
+ * dying at launch. {@code /arena save} re-checks, so finishing the map puts it back.
  */
 public final class MapPool implements Maps {
 
@@ -31,7 +36,10 @@ public final class MapPool implements Maps {
 
     private final String tag;
     private final Map<Path, Arena> maps = new ConcurrentHashMap<>();
+    /** What each held-out map still wants, by name - what {@link #get} says when the rotation is empty. */
+    private final Map<String, String> unfinished = new ConcurrentHashMap<>();
     private volatile boolean scanned;
+    private volatile GameType type;
 
     private MapPool(String tag) {
         this.tag = tag;
@@ -47,14 +55,22 @@ public final class MapPool implements Maps {
         return pool;
     }
 
+    /** The type a map must satisfy to enter the rotation; unset, every tagged map is taken as it is. */
+    public @NotNull MapPool serves(@NotNull GameType type) {
+        this.type = type;
+        return this;
+    }
+
     @Override
     public Arena get() {
         if (!scanned) scan();
         maps.keySet().removeIf(file -> !Files.exists(file)); // /arena delete drops out of rotation
         List<Arena> live = List.copyOf(maps.values());
         if (live.isEmpty()) {
-            throw new IllegalStateException("no arenas tagged '" + tag
-                    + "' - build one in Bloom, /arena tag " + tag + ", and /arena save");
+            throw new IllegalStateException(unfinished.isEmpty()
+                    ? "no arenas tagged '" + tag + "' - build one in Bloom, /arena tag " + tag + ", and /arena save"
+                    : "no finished arenas tagged '" + tag + "' - " + unfinished.entrySet().stream()
+                            .map(e -> e.getKey() + " wants " + e.getValue()).collect(Collectors.joining("; ")));
         }
         return live.get(ThreadLocalRandom.current().nextInt(live.size()));
     }
@@ -91,6 +107,19 @@ public final class MapPool implements Maps {
         }
     }
 
+    /** What the type expects and the map has not got, or null where it is ready to play. */
+    private @Nullable String wants(Arena arena) {
+        GameType serving = type;
+        if (serving == null) return null;
+        for (Map.Entry<io.github.term4.barnacle.marker.MarkerKey<?>, Integer> expect : serving.expects().entrySet()) {
+            int found = arena.markers(expect.getKey()).size();
+            if (found != expect.getValue()) {
+                return expect.getValue() + " " + expect.getKey().id() + " (it has " + found + ")";
+            }
+        }
+        return null;
+    }
+
     private void refresh(Path file) {
         Arena arena;
         try {
@@ -99,7 +128,21 @@ public final class MapPool implements Maps {
             LOGGER.warn("unreadable map {} for the '{}' pool", file, tag, e);
             return;
         }
-        HotArena.drain(arena.meta().tags().contains(tag) ? maps.put(file, arena) : maps.remove(file));
-        if (maps.containsKey(file)) System.out.println("[maps:" + tag + "] " + file.getFileName() + " in rotation");
+        if (!arena.meta().tags().contains(tag)) {
+            unfinished.remove(stem(file));
+            HotArena.drain(maps.remove(file));
+            return;
+        }
+        String wants = wants(arena);
+        if (wants != null) {
+            // a match that drew this would die at launch, and the whole mode with it while the map is being built
+            unfinished.put(stem(file), wants);
+            HotArena.drain(maps.remove(file));
+            LOGGER.warn("map {} is out of the '{}' rotation until it has {}", file.getFileName(), tag, wants);
+            return;
+        }
+        unfinished.remove(stem(file));
+        HotArena.drain(maps.put(file, arena));
+        System.out.println("[maps:" + tag + "] " + file.getFileName() + " in rotation");
     }
 }
