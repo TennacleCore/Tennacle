@@ -41,7 +41,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -317,6 +319,45 @@ class ReplaysTest extends HeadlessServerTest {
             blue.player.remove();
             one.player.remove();
             two.player.remove();
+        }
+    }
+
+    /** The last word on a side's arm is that side's colour - the teardown's clear used to have it instead. */
+    @Test
+    void aSectionKeepsItsSideToTheEnd() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PaintRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "PaintBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
+
+            Replays.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            Playback playback = Replays.playbackOf(red.player);
+            assertNotNull(playback);
+            Map<Integer, String> last = new java.util.LinkedHashMap<>(); // the fold keeps the latest per cell
+            for (var op : playback.ops(io.github.term4.archipelago.replay.core.Channels.BLOCKS)) {
+                var b = op.op();
+                if (b.y() == 64 && b.z() == 0 && b.x() != 0 && Math.abs(b.x()) <= 8) last.put(b.x(), b.block());
+            }
+            assertEquals(16, last.size(), "both arms were recorded");
+            last.forEach((x, block) -> assertEquals(
+                    x < 0 ? "minecraft:blue_terracotta" : "minecraft:red_terracotta", block,
+                    "x=" + x + " ends on " + block));
+        } finally {
+            Replays.leave(red.player);
+            Matches.toLobby(red.player);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
         }
     }
 

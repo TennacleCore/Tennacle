@@ -196,7 +196,9 @@ public final class Replays {
         Replay.register(ROWS);
         Replay.dispatchers(RowsSampler::new);
         Remote.install();
-        Matches.grotto().onGameEnd(Replays::ended);
+        // ENDING, not end: the teardown that follows clears the game's block overlay, and every cleared cell
+        // would land in the file as one last write - the map's own colors back over the side that wore them
+        Matches.grotto().onGameEnding(Replays::ended);
         Sessions.register(viewer -> watching.containsKey(viewer) ? () -> {
             leave(viewer);
             Matches.toLobby(viewer);
