@@ -6,6 +6,7 @@ import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.modules.combat.Projectiles;
 import io.github.term4.grotto.modules.flow.Countdown;
+import io.github.term4.grotto.modules.outcome.Goals;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import tennacle.games.Match;
 import tennacle.games.Presets;
@@ -49,6 +50,7 @@ final class Rulesets {
             .rule(Freeze.ALLOWS, List.of(Freeze.DAMAGE)) // captured: nothing is thrown or fired from the cage
             .rule(Cages.BLOCKS, false)                  // captured: no cage at all
             .rule(Freeze.SEAT, Freeze.SEAT_RESPAWN)     // held where they respawn instead
+            .rule(Goals.OWN, Goals.OWN_DEATH)           // captured: your own goal takes you, it never scores
             .rule(Freeze.BOUNDS, 0)                     // captured: pinned there, no room to move at all
             .rule(TimeLimit.FROM, Match.LIVE);          // captured: the clock starts when the cages open, not on the count
     private static final Map<String, Ruleset> RULESETS = Map.of(

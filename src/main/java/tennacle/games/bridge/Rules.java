@@ -92,6 +92,7 @@ public final class Rules implements GameModule {
     static {
         RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
         RulesCompletions.words(BREAK_OUTSIDE.id(), List.of(PLACED, MAP));
+        RulesCompletions.words(Goals.OWN.id(), List.of(Goals.OWN_NOTHING, Goals.OWN_DEATH));
     }
 
     private Game game;
@@ -118,6 +119,7 @@ public final class Rules implements GameModule {
             throw new IllegalStateException("bridge Rules needs Respawns, KillCredit, Kits, Restock and Goals installed before it");
         }
         goals.onGoal((scorer, seat, n) -> score(game, scorer, seat, n));
+        goals.onOwn((player, seat) -> fell(player)); // the same fall, credit and all: the hole was just nearer
         restock.onRestock((owner, item) -> owner.playSound(ARROW_BACK));
         RegionMarker build = game.arena().markers(Bridge.BUILD).getFirst();
         int floor = Integer.MAX_VALUE;
