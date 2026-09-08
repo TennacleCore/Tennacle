@@ -31,6 +31,7 @@ import io.github.term4.archipelago.shard.ShardPolicy;
 import io.github.term4.polyp.world.WorldPolicy;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.entity.EntityAttackEvent;
+import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.event.player.PlayerSpectateEntityEvent;
 import net.minestom.server.entity.attribute.Attribute;
 import org.jetbrains.annotations.NotNull;
@@ -74,6 +75,15 @@ public final class Spectators {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpectateEntityEvent.class, e -> ride(e.getPlayer(), e.getTarget()));
         MinecraftServer.getGlobalEventHandler().addListener(EntityAttackEvent.class, e -> {
             if (e.getEntity() instanceof Player viewer) ride(viewer, e.getTarget());
+        });
+        // a watcher who turns up in another world has stopped watching, whatever took them there - a duel
+        // accept, a queue pop, a warp, a plain teleport. The routes that seat or dress them still end the
+        // view FIRST, because the order matters there; this is for the ones that never knew to
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
+            Player who = e.getPlayer();
+            Game watched = Matches.grotto().spectating(who);
+            if (watched != null && who.getInstance() != watched.instance()) exit(who);
+            else if (Replays.strayed(who)) Replays.leave(who);
         });
         // a spectator lists only in the game they watch (to its members and its other spectators), grayed
         ShardTabList.rule((viewer, subject) -> {

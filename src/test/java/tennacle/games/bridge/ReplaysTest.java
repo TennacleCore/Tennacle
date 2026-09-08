@@ -400,6 +400,41 @@ class ReplaysTest extends HeadlessServerTest {
         }
     }
 
+    /** A viewer who turns up in another world has left the theater, whatever took them there. */
+    @Test
+    void aViewerTakenAwayLeavesTheTheater() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "StrayRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "StrayBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
+
+            Replays.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            Playback playback = Replays.playbackOf(red.player);
+            assertNotNull(playback);
+            tickUntil(playback.shard(), "the theater dressed them",
+                    () -> Integer.valueOf(-1).equals(red.player.getTag(ShardTabList.LIST_ORDER)));
+
+            red.player.setInstance(instance, new Pos(0.5, 65, 0.5)).join(); // a bare move, no leave call
+            await("the theater let them go", () -> Replays.watching(red.player) == null);
+        } finally {
+            Replays.leave(red.player);
+            Matches.toLobby(red.player);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
     /** A player watching a game they played in shares a name with their own ghost; a team is keyed by name. */
     @Test
     void aWatcherWhoPlayedStandsPlain() throws Exception {

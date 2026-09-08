@@ -20,6 +20,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A game's players complete for /spectate, which no tab scope would ever offer, and for the viewer once inside. */
@@ -56,6 +58,39 @@ class SpectateNamesTest extends HeadlessServerTest {
                     "and a viewer completes whom they watch: " + PlayerNames.of(out.player));
 
             Spectators.exit(out.player);
+            Matches.toLobby(out.player);
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+        } finally {
+            red.player.remove();
+            blue.player.remove();
+            out.player.remove();
+        }
+    }
+
+    /** Taken somewhere else, a watcher has stopped watching - by a route that never heard of spectating. */
+    @Test
+    void aWatcherTakenAwayStopsWatching() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "StrayRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "StrayBlue");
+        FakePlayer out = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "StrayWatch");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+
+            Spectators.enter(game, out.player, red.player);
+            BridgeRoundTest.tickUntil(game, "the view lands",
+                    () -> ShardView.of(out.player).blocks() == game.shard());
+            assertNotNull(Matches.grotto().spectating(out.player));
+
+            out.player.setInstance(instance, new Pos(0.5, 65, 0.5)).join(); // a bare move, no exit call anywhere
+            await("the view ended itself", () -> Matches.grotto().spectating(out.player) == null);
+
             Matches.toLobby(out.player);
             game.decide(Outcome.draw(), 1);
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);

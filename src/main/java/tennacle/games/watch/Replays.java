@@ -682,6 +682,12 @@ public final class Replays {
         return (at != null ? at : new Pos(0.5, 64, 0.5)).withPitch(0);
     }
 
+    /** Whether {@code viewer} is booked into a theater they are no longer standing in. */
+    static boolean strayed(@NotNull Player viewer) {
+        Theater theater = watching.get(viewer);
+        return theater != null && viewer.getInstance() != theater.stage().instance();
+    }
+
     /**
      * Takes {@code viewer} out of a replay, and the party they lead out behind them, home; the last one out closes
      * the theater. {@code false} = was not watching.
