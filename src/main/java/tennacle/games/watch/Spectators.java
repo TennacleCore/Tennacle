@@ -23,6 +23,10 @@ import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import io.github.term4.polyp.mechanics.projectile.entities.arrow.StuckArrows;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
+import io.github.term4.canvas.screen.Items;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.item.ItemStack;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.player.PlayerSpectateEntityEvent;
@@ -46,9 +50,9 @@ public final class Spectators {
         Lineup.install();
         // the compass: the picker of the players alive; Grotto refuses a spectator's use, so listen past the cancel
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerUseItemEvent.class)
-                .ignoreCancelled(false).handler(e -> compass(e.getPlayer())).build());
+                .ignoreCancelled(false).handler(e -> righted(e.getPlayer())).build());
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerBlockInteractEvent.class)
-                .ignoreCancelled(false).handler(e -> compass(e.getPlayer())).build());
+                .ignoreCancelled(false).handler(e -> righted(e.getPlayer())).build());
         MinecraftServer.getGlobalEventHandler().addListener(InventoryPreClickEvent.class, e -> {
             Player who = e.getPlayer();
             if ((Matches.grotto().spectating(who) != null || ghosting(who) != null) && Screens.screen(who) == null) e.setCancelled(true);
@@ -85,7 +89,8 @@ public final class Spectators {
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true); // landed inside a player: no push, either way
         game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags greys the tab name
         viewer.getInventory().clear();
-        viewer.getInventory().setItemStack(0, Lineup.compass());
+        viewer.getInventory().setItemStack(COMPASS_SLOT, Lineup.compass());
+        viewer.getInventory().setItemStack(FEATHER_SLOT, feather());
         // the compass starts on whom they came to watch; a spectator's own aim carries through to theirs
         Supplier<Pos> inherited = target != null ? Lineup.aimOf(target) : null;
         if (inherited != null) Lineup.aim(viewer, Lineup.following(target), inherited);
@@ -136,11 +141,34 @@ public final class Spectators {
         return true;
     }
 
+    /** The hotbar slots a watcher carries. */
+    public static final int COMPASS_SLOT = 0, FEATHER_SLOT = 1;
+
+    // a right click, whatever it landed on: each tool reads its own slot, and a left click reaches neither
+    private static void righted(Player viewer) {
+        compass(viewer);
+        feather(viewer);
+    }
+
+    /** The feather a watcher carries: a right click swaps their body between the two spectator modes. */
+    public static @NotNull ItemStack feather() {
+        return Items.named(Material.FEATHER, Component.text("Spectator mode", NamedTextColor.AQUA));
+    }
+
+    // only a watcher of a game carries one: a seat ghosting out a respawn has no mode to swap
+    private static void feather(Player viewer) {
+        if (Matches.grotto().spectating(viewer) == null || viewer.getHeldSlot() != FEATHER_SLOT
+                || viewer.getItemInMainHand().material() != Material.FEATHER) return;
+        mode(viewer, SpectatorMode.mode(viewer) == SpectatorMode.Mode.TRUE
+                ? SpectatorMode.Mode.GHOST : SpectatorMode.Mode.TRUE);
+    }
+
     // the compass in hand: the seated, living members of the watched game, a click landing the viewer at one
     private static void compass(Player viewer) {
         Game watched = Matches.grotto().spectating(viewer);
         if (watched == null) watched = ghosting(viewer);
-        if (watched == null || viewer.getHeldSlot() != 0 || viewer.getItemInMainHand().material() != Material.COMPASS) return;
+        if (watched == null || viewer.getHeldSlot() != COMPASS_SLOT
+                || viewer.getItemInMainHand().material() != Material.COMPASS) return;
         Lineup.open(viewer, alive(watched));
     }
 

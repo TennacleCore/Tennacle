@@ -318,6 +318,56 @@ class ReplaysTest extends HeadlessServerTest {
         }
     }
 
+    /** The board and the co-watchers a party sees, on a look whose board holds rows only a seat gets. */
+    @Test
+    void aMinemenTheaterShowsItsBoardAndItsParty() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor("minemen"), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "MmcRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "MmcBlue");
+        FakePlayer viewer = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "MmcViewer");
+        FakePlayer mate = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "MmcMate");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            Boards.Rendered live = Boards.rendered(red.player);
+            assertNotNull(live, "the seat reads a board while they play");
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
+            await("the file lands", () -> Files.exists(file));
+
+            MinecraftServer.getCommandManager().execute(viewer.player, "party MmcMate");
+            MinecraftServer.getCommandManager().execute(mate.player, "party accept");
+            Replays.watch(viewer.player, game.id(), BridgeRoundTest.fixture());
+            Playback playback = Replays.playbackOf(viewer.player);
+            assertNotNull(playback, "the watch raised a theater");
+            assertTrue(playback.counts().getOrDefault("tennacle:rows", 0) > 0,
+                    "the board recorded: " + playback.counts());
+            Shard theater = playback.shard();
+            tickUntil(theater, "the recorded board shows", () -> Boards.rendered(viewer.player) != null);
+            List<String> rows = Boards.rendered(viewer.player).lines().stream()
+                    .map(l -> PlainTextComponentSerializer.plainText().serialize(l)).toList();
+            assertTrue(rows.stream().anyMatch(l -> l.contains("Time Left")), "the recorded rows: " + rows);
+
+            tickUntil(theater, "the party sees itself", () -> mate.player.getViewers().contains(viewer.player));
+            assertTrue(viewer.player.getViewers().contains(mate.player), "and is seen back");
+        } finally {
+            Replays.leave(viewer.player);
+            Matches.toLobby(viewer.player);
+            Replays.leave(mate.player);
+            Matches.toLobby(mate.player);
+            red.player.remove();
+            blue.player.remove();
+            viewer.player.remove();
+            mate.player.remove();
+        }
+    }
+
     @Test
     void theGamesChannelPlaysBack() throws Exception {
         Mode bridge = Matches.mode("bridge");

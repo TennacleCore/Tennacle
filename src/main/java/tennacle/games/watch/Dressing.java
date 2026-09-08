@@ -236,6 +236,21 @@ final class Dressing {
         }
     }
 
+    /**
+     * A sidebar holds {@link Scoreboard#MAX_LINES} rows and refuses the sixteenth, which would throw the whole
+     * board away - a recorded board plus the theater's own three rows runs past that on the taller looks. The
+     * blanks go first, from the bottom, then the last rows.
+     */
+    private static List<Component> fitted(List<Component> lines) {
+        if (lines.size() <= Scoreboard.MAX_LINES) return lines;
+        List<Component> out = new ArrayList<>(lines);
+        for (int i = out.size() - 1; i >= 0 && out.size() > Scoreboard.MAX_LINES; i--) {
+            if (PlainTextComponentSerializer.plainText().serialize(out.get(i)).isBlank()) out.remove(i);
+        }
+        while (out.size() > Scoreboard.MAX_LINES) out.removeLast();
+        return out;
+    }
+
     // the theater's frame over the recorded rows: today's date as any board writes it, then the recording's own
     // date and code under a label, a row each
     private Replays.Rows adorn(Replays.Rows recorded) {
@@ -249,7 +264,7 @@ final class Dressing {
                     look.theme().dim("Recorded:"), under(look.theme().value(date)), under(look.theme().value(code))));
             break;
         }
-        return new Replays.Rows(recorded.title(), lines);
+        return new Replays.Rows(recorded.title(), fitted(lines));
     }
 
     /** A row hung off its label, marked the way a command's tag line marks its own: a dim chevron, then the value. */
