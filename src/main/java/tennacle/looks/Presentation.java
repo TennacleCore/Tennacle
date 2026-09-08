@@ -19,10 +19,10 @@ import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.StateKey;
-import io.github.term4.polyp.api.event.blocking.BlockingDamageEvent;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
+import io.github.term4.polyp.api.event.damage.DamageAppliedEvent;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.MetadataDef;
 import net.minestom.server.network.packet.server.play.EntityMetaDataPacket;
@@ -72,8 +72,13 @@ public final class Presentation implements GameModule {
                 if (counting.remove(p.getUuid())) wipe(game, p); // the count goes before the world comes back
             });
         }
-        game.on(BlockingDamageEvent.class, BlockingDamageEvent::defender, e -> {
-            if (!e.isCancelled()) GameSounds.play(game, e.defender(), SoundSet.BLOCKED); // cancelled = no block happened
+        // the cue is for a block that MATTERED: the applied event only fires for a hit that landed, so a
+        // second swing inside the i-frame window - reduced, then swallowed whole by the stored high-water -
+        // never reaches it. Nothing dealt, nothing halved
+        game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
+            if (e.blocked() && e.dealt() > 0 && e.target() instanceof Player hit) {
+                GameSounds.play(game, hit, SoundSet.BLOCKED);
+            }
         });
         Mode mode = Matches.modeOf(game);
         if (mode != null) { // the tab line reads a seat's own counters: a change re-sends it
