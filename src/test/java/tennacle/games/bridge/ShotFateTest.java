@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Bridge takes a shot down with the one who fired it; off the rule, the arrow outlives them. */
+/** Minemen takes a shot down with the one who fired it; every other bridge leaves it flying. */
 class ShotFateTest extends HeadlessServerTest {
 
     @BeforeAll
@@ -37,7 +37,7 @@ class ShotFateTest extends HeadlessServerTest {
     @Test
     void anArrowDiesWithItsShooter() {
         Mode bridge = Matches.mode("bridge");
-        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        Game game = Matches.launch(bridge, Matches.platformFor("minemen"), BridgeRoundTest.fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ShotRed");
         FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "ShotBlue");
         try {
@@ -47,7 +47,7 @@ class ShotFateTest extends HeadlessServerTest {
             assertTrue(game.join(blue.player));
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
             BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
-            assertTrue(game.rules().resolve(Scope.GAME, Projectiles.DIE_WITH_SHOOTER), "bridge ships it on");
+            assertTrue(game.rules().resolve(Scope.GAME, Projectiles.DIE_WITH_SHOOTER), "minemen ships it on");
 
             game.state().set(Scope.GAME, Projectiles.DIE_WITH_SHOOTER, false);
             ProjectileEntity kept = shoot(red.player);
@@ -65,6 +65,21 @@ class ShotFateTest extends HeadlessServerTest {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
             blue.player.remove();
+        }
+    }
+
+    /** Only minemen: the house, hypixel and scrims all leave a shot in the air where it was. */
+    @Test
+    void everyOtherBridgeLeavesTheShotFlying() {
+        Mode bridge = Matches.mode("bridge");
+        for (String platform : new String[]{null, "hypixel", "scrims"}) {
+            Game game = Matches.launch(bridge, Matches.platformFor(platform), BridgeRoundTest.fixture());
+            try {
+                assertFalse(game.rules().resolve(Scope.GAME, Projectiles.DIE_WITH_SHOOTER),
+                        (platform == null ? "the house" : platform) + " keeps a shot in the air");
+            } finally {
+                game.end(Outcome.aborted());
+            }
         }
     }
 

@@ -28,7 +28,6 @@ final class Rulesets {
             .rule(Roster.RECLAIM_TICKS, -1L) // a seat waits for the rest of the game
             .rule(Abandonment.EMPTY_TICKS, 1200L) // a minute with nobody in, then the game closes
             .rule(Bodies.CLEARS, List.of(Bodies.ARROWS)) // arrows stay in a body until the cages reset it
-            .rule(Projectiles.DIE_WITH_SHOOTER, true) // a shot in the air dies with the one who fired it
             .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
             .path("projectiles/minecraft:arrow/selfHit", "pass_through") // no bow boost unless a platform asks
             // same team + FF off is the client lever that stops a 1.8 client hiding an arrow, so teammates already
@@ -50,6 +49,7 @@ final class Rulesets {
             .rule(Freeze.ALLOWS, List.of(Freeze.DAMAGE)) // captured: nothing is thrown or fired from the cage
             .rule(Cages.BLOCKS, false)                  // captured: no cage at all
             .rule(Freeze.SEAT, Freeze.SEAT_RESPAWN)     // held where they respawn instead
+            .rule(Projectiles.DIE_WITH_SHOOTER, true)   // captured: a shot in the air dies with the one who fired it
             .rule(Goals.OWN, Goals.OWN_DEATH)           // captured: your own goal takes you, it never scores
             .rule(Freeze.BOUNDS, 0)                     // captured: pinned there, no room to move at all
             .rule(TimeLimit.FROM, Match.LIVE);          // captured: the clock starts when the cages open, not on the count
