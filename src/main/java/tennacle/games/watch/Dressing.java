@@ -175,9 +175,21 @@ final class Dressing {
             if (tabHealth) viewer.sendPacket(new DisplayScoreboardPacket((byte) 0, objective));
             if (nameHealth) viewer.sendPacket(new DisplayScoreboardPacket((byte) 2, objective));
             scores.forEach((name, score) -> viewer.sendPacket(new UpdateScorePacket(name, objective, score, null, null)));
+            // a listed row with no score of its own still draws a number: 1.8's tab invents one at zero
+            // (Scoreboard.getValueFromObjective), and a watcher reading the crowd as dead is worse than
+            // reading it as what it is. Both ways - the arrival learns the crowd, the crowd learns them
+            for (Player other : dressed) {
+                viewer.sendPacket(watcherScore(other));
+                if (other != viewer) other.sendPacket(watcherScore(viewer));
+            }
         }
         Board current = board;
         if (current != null) Boards.show(viewer, current, Scoreboard.PRIORITY);
+    }
+
+    private UpdateScorePacket watcherScore(Player watcher) {
+        return new UpdateScorePacket(ShardTabList.listName(watcher), objective,
+                Math.round(watcher.getHealth()), null, null);
     }
 
     void exit(@NotNull Player viewer) {

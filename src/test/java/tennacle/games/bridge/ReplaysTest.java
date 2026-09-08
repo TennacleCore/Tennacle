@@ -336,6 +336,8 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
             Boards.Rendered live = Boards.rendered(red.player);
             assertNotNull(live, "the seat reads a board while they play");
+            assertTrue(io.github.term4.polyp.world.WorldPolicy.canAffect(red.player, blue.player),
+                    "the two in the fight reach each other");
             game.decide(Outcome.draw(), 1);
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
@@ -360,6 +362,11 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(viewer.player.getViewers().contains(mate.player), "and is seen back");
             assertAddBeforeSpawn(viewer, mate.player);
             assertAddBeforeSpawn(mate, viewer.player);
+            assertFalse(io.github.term4.polyp.world.WorldPolicy.canAffect(viewer.player, mate.player),
+                    "seen, not swung at: a watcher is in nobody's fight");
+            assertFalse(io.github.term4.polyp.world.WorldPolicy.canAffect(mate.player, viewer.player));
+            assertEquals(Math.round(mate.player.getHealth()), tabScore(viewer, mate.player),
+                    "a watcher's row reads their own bar, not the zero an unscored one invents");
         } finally {
             Replays.leave(viewer.player);
             Matches.toLobby(viewer.player);
@@ -485,6 +492,14 @@ class ReplaysTest extends HeadlessServerTest {
     }
 
     // a plain shard's clock is the server scheduler
+    /** What {@code viewer}'s client was last told {@code subject} scores in the theater's health objective. */
+    private static int tabScore(FakePlayer viewer, net.minestom.server.entity.Player subject) {
+        String listed = io.github.term4.archipelago.shard.ShardTabList.listName(subject);
+        return viewer.sent(net.minestom.server.network.packet.server.play.UpdateScorePacket.class).stream()
+                .filter(p -> p.entityName().equals(listed))
+                .reduce((a, b) -> b).orElseThrow(() -> new AssertionError("no score for " + listed)).score();
+    }
+
     /** A client drops the spawn of a player it holds no tab entry for: the theater's row goes out first. */
     private static void assertAddBeforeSpawn(FakePlayer viewer, net.minestom.server.entity.Player subject) {
         var list = List.copyOf(viewer.sent);

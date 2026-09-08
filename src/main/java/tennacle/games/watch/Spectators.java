@@ -27,6 +27,8 @@ import io.github.term4.canvas.screen.Items;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.item.ItemStack;
+import io.github.term4.archipelago.shard.ShardPolicy;
+import io.github.term4.polyp.world.WorldPolicy;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.player.PlayerSpectateEntityEvent;
@@ -48,6 +50,16 @@ public final class Spectators {
 
     public static void install() {
         Lineup.install();
+        // a watcher is in nobody's fight: their fists reach no one and no one's reach them. Binding cannot say
+        // it - a watcher is bound to nothing, and so is every other watcher standing beside them. Extends
+        // ShardPolicy, never WorldPolicy: a bare one reverts sight to binding equality and blinds them all
+        WorldPolicy.set(new ShardPolicy() {
+            @Override
+            public boolean affects(@NotNull net.minestom.server.entity.Entity actor,
+                                   @NotNull net.minestom.server.entity.Entity target) {
+                return !watches(actor) && !watches(target) && ShardPolicy.super.affects(actor, target);
+            }
+        });
         // the compass: the picker of the players alive; Grotto refuses a spectator's use, so listen past the cancel
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerUseItemEvent.class)
                 .ignoreCancelled(false).handler(e -> righted(e.getPlayer())).build());
@@ -70,6 +82,11 @@ public final class Spectators {
             if (Game.of(viewer) == watched) return Spectating.listed(watched); // spectate:listed - the members' view
             return Matches.grotto().spectating(viewer) == watched;
         });
+    }
+
+    /** Whether {@code who} is watching rather than playing - a game's crowd, or a replay's. */
+    public static boolean watches(@NotNull net.minestom.server.entity.Entity who) {
+        return who instanceof Player p && (Matches.grotto().spectating(p) != null || Replays.watching(p) != null);
     }
 
     // a true spectator rides the camera of a player in the game they watch; anyone else is not a target
