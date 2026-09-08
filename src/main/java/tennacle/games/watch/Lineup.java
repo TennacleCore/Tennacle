@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import tennacle.Msg;
 
-import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.canvas.screen.ClickRule;
 import io.github.term4.canvas.screen.Items;
 import io.github.term4.canvas.screen.Screen;
@@ -21,8 +20,6 @@ import net.kyori.adventure.text.format.TextColor;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerSkin;
-import net.minestom.server.instance.Instance;
-import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
@@ -50,9 +47,6 @@ public final class Lineup {
     private static final int PREV = 45, PAPER = 49, NEXT = 53;
 
     private record Aim(@Nullable String who, Supplier<@Nullable Pos> at, @Nullable Point sent) {}
-
-    /** How far behind a target a pick lands, and how far above their feet. */
-    private static final double VANTAGE_BACK = 3.5, VANTAGE_LIFT = 1.0;
 
     private static final Map<Player, Aim> AIMS = new ConcurrentHashMap<>();
     private static boolean installed;
@@ -96,33 +90,6 @@ public final class Lineup {
         return aim != null ? aim.who() : null;
     }
 
-    /**
-     * Where a pick lands: behind the target's own view, so the watcher faces their back rather than standing in
-     * it, pulled in until the body fits. Their own spot when nothing behind them is clear.
-     */
-    public static @NotNull Pos vantage(@NotNull Player viewer, @NotNull Pos target) {
-        double yaw = Math.toRadians(target.yaw());
-        double dx = -Math.sin(yaw), dz = Math.cos(yaw); // the way they face
-        for (double back = VANTAGE_BACK; back >= 1; back -= 0.5) {
-            Pos at = target.add(-dx * back, VANTAGE_LIFT, -dz * back).withView(target.yaw(), 15f);
-            if (fits(viewer, at)) return at;
-        }
-        return target;
-    }
-
-    // the two blocks a body stands in, over the shard the watcher reads - a theater's stage, not the base world
-    private static boolean fits(Player viewer, Pos at) {
-        Shard shard = Shard.of(viewer);
-        Instance world = viewer.getInstance();
-        if (shard == null && world == null) return true;
-        for (int up = 0; up <= 1; up++) {
-            BlockVec cell = new BlockVec(at.blockX(), at.blockY() + up, at.blockZ());
-            Block block = shard != null ? shard.getBlock(cell) : world.getBlock(cell);
-            if (!block.collisionShape().relativeEnd().isZero()) return false;
-        }
-        return true;
-    }
-
     /** The compass back on the world's own spawn. */
     public static void unaim(@NotNull Player viewer) {
         if (AIMS.remove(viewer) == null || !viewer.isOnline() || viewer.getInstance() == null) return;
@@ -158,7 +125,7 @@ public final class Lineup {
                             Msg.fail(who, Msg.v(entry.name()), " is gone.");
                             return;
                         }
-                        who.teleport(vantage(who, to));
+                        who.teleport(to);
                         aim(who, entry.name(), entry.at());
                     });
         }

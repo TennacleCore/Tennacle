@@ -249,7 +249,9 @@ class ReplaysTest extends HeadlessServerTest {
             assertEquals(show, Replays.playbackOf(guest.player), "the host's theater, not one of the guest's own");
             tickUntil(show.shard(), "the guest is dressed",
                     () -> Integer.valueOf(-1).equals(guest.player.getTag(ShardTabList.LIST_ORDER)));
-            assertEquals(0, held(guest.player), "and a guest gets no remote");
+            assertEquals(1, held(guest.player), "and a guest carries the compass alone");
+            assertEquals(Material.COMPASS, guest.player.getInventory().getItemStack(Remote.PLAYERS).material());
+            assertTrue(guest.player.getInventory().getItemStack(Remote.PLAY).isAir(), "none of the remote");
 
             Replays.leave(guest.player);
             Matches.toLobby(guest.player);
@@ -315,6 +317,46 @@ class ReplaysTest extends HeadlessServerTest {
             blue.player.remove();
             one.player.remove();
             two.player.remove();
+        }
+    }
+
+    /** A player watching a game they played in shares a name with their own ghost; a team is keyed by name. */
+    @Test
+    void aWatcherWhoPlayedStandsPlain() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PlayedRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "PlayedBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
+            await("the file lands", () -> Files.exists(file));
+
+            red.sent.clear();
+            Replays.watch(red.player, game.id(), BridgeRoundTest.fixture()); // one of the two who played it
+            Playback playback = Replays.playbackOf(red.player);
+            assertNotNull(playback);
+            tickUntil(playback.shard(), "the theater dressed them",
+                    () -> Integer.valueOf(-1).equals(red.player.getTag(ShardTabList.LIST_ORDER)));
+
+            for (var packet : red.sent(TeamsPacket.class)) {
+                if (!(packet.action() instanceof TeamsPacket.CreateTeamAction made)) continue;
+                assertFalse(made.entities().contains("PlayedRed"),
+                        "their own name never joins a recorded side: it would paint their living body");
+            }
+        } finally {
+            Replays.leave(red.player);
+            Matches.toLobby(red.player);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
         }
     }
 
@@ -448,7 +490,7 @@ class ReplaysTest extends HeadlessServerTest {
             assertNotNull(menu, "the star opens the menu");
             assertEquals(Material.BOOK, menu.getItemStack(13).material(), "bookmarks in the middle");
             viewer.player.closeInventory();
-            assertTrue(mate.player.getInventory().getItemStack(Remote.PLAY).isAir(), "a member watches bare-handed");
+            assertTrue(mate.player.getInventory().getItemStack(Remote.PLAY).isAir(), "a member holds no remote");
             assertTrue(viewer.player.getExp() > 0f, "the bar reads the timeline: " + viewer.player.getExp());
             var grab = new InventoryPreClickEvent(viewer.player.getInventory(), viewer.player, new Click.Left(Remote.PLAY));
             EventDispatcher.call(grab);

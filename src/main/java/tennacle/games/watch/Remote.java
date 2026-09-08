@@ -157,6 +157,7 @@ public final class Remote {
         watchers.add(viewer);
         BY_PLAYER.put(viewer, this);
         viewer.getInventory().clear();
+        viewer.getInventory().setItemStack(PLAYERS, Lineup.compass()); // every watcher picks whom to follow
         viewer.setLevel(0);
         viewer.setExp(0f);
         if (controller) {
@@ -242,13 +243,16 @@ public final class Remote {
 
     // a right click and the swing the client sends after it are one press
     private void press(Player viewer, boolean right) {
-        Controls controls = controllers.get(viewer);
-        if (controls == null) return;
         long now = playback.shard().ticks();
         if (right) pressed.put(viewer, now);
         else if (pressed.getOrDefault(viewer, -1L) == now) return;
+        if (viewer.getHeldSlot() == PLAYERS) { // the compass is every watcher's; the rest is the remote
+            if (right) players(viewer);
+            return;
+        }
+        Controls controls = controllers.get(viewer);
+        if (controls == null) return;
         switch (viewer.getHeldSlot()) {
-            case PLAYERS -> { if (right) players(viewer); }
             case SLOWER -> { if (right) rate(slower(playback.rate())); }
             case FASTER -> { if (right) rate(faster(playback.rate())); }
             case BACK, FORWARD -> {

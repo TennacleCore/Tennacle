@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -162,8 +163,14 @@ final class Dressing {
         TeamsPacket joined = new TeamsPacket(spectatorTeam,
                 new TeamsPacket.AddEntitiesToTeamAction(List.of(ShardTabList.listName(viewer))));
         for (Player other : dressed) if (other != viewer && Canvas.isLegacy(other)) other.sendPacket(joined);
+        // a watcher who played in this game shares a name with their own ghost, and a scoreboard team is keyed
+        // by name alone: the recorded side would paint their live body the color they wore in the match. The
+        // living come out of the lineup teams, so a watcher stands plain - their own ghost with them
+        Set<String> living = dressed.stream().map(Player::getUsername).collect(Collectors.toSet());
         teams().forEach((team, names) -> viewer.sendPacket(new TeamsPacket(teamPrefix + team,
-                new TeamsPacket.CreateTeamAction(settings(colorOf(team), TeamsPacket.NameTagVisibility.ALWAYS), names))));
+                new TeamsPacket.CreateTeamAction(settings(colorOf(team), TeamsPacket.NameTagVisibility.ALWAYS),
+                        names.stream().filter(name -> !living.contains(name)).toList()))));
+        unpaint(viewer); // and the clients already here drop the arrival's name from the side it played on
         if (Canvas.isLegacy(viewer)) {
             viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.CreateTeamAction(
                     settings(NamedTextColor.GRAY, TeamsPacket.NameTagVisibility.NEVER),
@@ -185,6 +192,16 @@ final class Dressing {
         }
         Board current = board;
         if (current != null) Boards.show(viewer, current, Scoreboard.PRIORITY);
+    }
+
+    // the arrival's own name off the recorded team, on every client that already holds one
+    private void unpaint(Player arrival) {
+        teams().forEach((team, names) -> {
+            if (!names.contains(arrival.getUsername())) return;
+            TeamsPacket off = new TeamsPacket(teamPrefix + team,
+                    new TeamsPacket.RemoveEntitiesToTeamAction(List.of(arrival.getUsername())));
+            for (Player other : dressed) if (other != arrival) other.sendPacket(off);
+        });
     }
 
     private UpdateScorePacket watcherScore(Player watcher) {
