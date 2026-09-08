@@ -60,6 +60,10 @@ public final class Mechanics {
                 // inventorySync is EXPERIMENTAL in the lib and is being bisected against a 1.8 pick-block fault
                 .set(MechanicsKeys.FIXES, FixesConfig.builder(Fixes18.config())
                         .inventorySync(FixToggleConfig.of(Config.flag("tennacle.inventory-sync", true)))
+                        // OFF here, and it must stay off: the fix takes the placement listener slot the shard
+                        // router owns, and its blanket placer exclusion would sit in front of the body check
+                        // that already scopes self-placement per profile (Shard.placementBodyCheck)
+                        .legacySelfPlacement(FixToggleConfig.of(false))
                         .build())
                 .build());
         AttackSystem.install(polyp);
