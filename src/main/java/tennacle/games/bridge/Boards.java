@@ -2,7 +2,6 @@ package tennacle.games.bridge;
 
 import tennacle.looks.Palette;
 import tennacle.Msg;
-import tennacle.games.Match;
 import tennacle.looks.Frames;
 
 import io.github.term4.canvas.theme.Theme;
@@ -54,9 +53,9 @@ final class Boards {
                 g -> TimeLimit.left(g), b -> b
                 .line((g, me) -> circles(g, teamAt(g, 0), Msg.HYPIXEL, false), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> circles(g, teamAt(g, 1), Msg.HYPIXEL, false), Bridge.GOALS, Score.TARGET)
-                .blank()
-                .line((g, me) -> Frames.hypixelRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
-                .line((g, me) -> Frames.hypixelRow("Goals: ", myTeamGoals(g, me)), Bridge.GOALS));
+                .ownBlank()
+                .own((g, me) -> Frames.hypixelRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
+                .own((g, me) -> Frames.hypixelRow("Goals: ", myTeamGoals(g, me)), Bridge.GOALS));
     }
 
     // captured: bold [B]/[R] circle meters, Kills, Time Left
@@ -64,8 +63,8 @@ final class Boards {
         return Frames.minemen("Bridge", b -> b
                 .line((g, me) -> circles(g, teamAt(g, 1), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> circles(g, teamAt(g, 0), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
-                .blank()
-                .line((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, Match.viewed(g, me), Bridge.KILLS)), Bridge.KILLS)
+                .ownBlank()
+                .own((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Time Left: ", Frames.timeLeft(g))));
     }

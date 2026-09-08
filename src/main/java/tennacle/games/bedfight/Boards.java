@@ -47,8 +47,8 @@ final class Boards {
                 .blank()
                 .line((g, me) -> sideLine(g, teamAt(g, 0), me, BED_LOUD, GONE_LOUD), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .line((g, me) -> sideLine(g, teamAt(g, 1), me, BED_LOUD, GONE_LOUD), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
-                .blank()
-                .line((g, me) -> Frames.hypixelRow("Kills: ", kills(g, Match.viewed(g, me))), BedFight.KILLS));
+                .ownBlank()
+                .own((g, me) -> Frames.hypixelRow("Kills: ", kills(g, me)), BedFight.KILLS));
     }
 
     // uncaptured (the minemen bed fight capture is empty): the minemen frame around the scrims rows
@@ -58,8 +58,8 @@ final class Boards {
                 .blank()
                 .line((g, me) -> sideLine(g, teamAt(g, 0), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .line((g, me) -> sideLine(g, teamAt(g, 1), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
-                .blank()
-                .line((g, me) -> Frames.minemenRow("Kills: ", kills(g, Match.viewed(g, me))), BedFight.KILLS));
+                .ownBlank()
+                .own((g, me) -> Frames.minemenRow("Kills: ", kills(g, me)), BedFight.KILLS));
     }
 
     private static void rows(Scoreboard b) {

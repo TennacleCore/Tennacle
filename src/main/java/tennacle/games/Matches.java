@@ -184,7 +184,7 @@ public final class Matches {
 
     /** End screens carrying the game's look - what every mode's {@code Ends} starts from. */
     public static @NotNull Summary summary() {
-        return Summary.of().theme(g -> lookOf(g).theme()).clock(Match::playTime);
+        return Summary.of().theme(g -> lookOf(g).theme()).clock(Match::playTime).kept(Replays::said);
     }
 
     public static @NotNull Results results() {
@@ -193,7 +193,8 @@ public final class Matches {
                     StateKey<Integer> key = seatStat(game, "Kills");
                     return key == null ? 0 : game.state().get(Scope.slot(p.slot().index()), key);
                 })
-                .rematch("/rematch");
+                .rematch("/rematch")
+                .kept(Replays::said);
     }
 
     // the mode's own kill counter, by the label it shows everywhere else; a mode that counts none has no tally
@@ -375,6 +376,8 @@ public final class Matches {
                 if (grotto.engaged(player)) throw new IllegalStateException(player.getUsername() + " is in a game");
             }
         }
+        // a watcher seated out of a theater leaves it first: its dressing would ride into the game
+        for (Collection<Player> side : sides) for (Player player : side) Replays.leave(player);
         Game game = launch(mode, platform, arena, options);
         List<Team> teams = game.roster().teams();
         if (sides.size() > teams.size()) {
