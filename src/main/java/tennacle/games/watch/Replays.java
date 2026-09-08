@@ -577,8 +577,37 @@ public final class Replays {
                 continue;
             }
             admit(member, theater, member == viewer);
+            Msg.ok(member, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
         }
         if (theater.watchers().isEmpty() && theaters.remove(theater)) close(theater); // nobody made it in
+    }
+
+    /**
+     * Puts {@code viewer} in the theater {@code host} watches, without the remote - the one who opened it keeps
+     * it. A party comes along behind its leader, as {@link #watch} takes one. {@code false} = {@code host}
+     * watches nothing.
+     */
+    public static boolean join(@NotNull Player viewer, @NotNull Player host) {
+        Theater theater = watching.get(host);
+        if (theater == null) return false;
+        if (watching.get(viewer) == theater) {
+            Msg.say(viewer, "You're already watching that replay.");
+            return true;
+        }
+        if (Game.of(viewer) != null) {
+            Msg.fail(viewer, "You're in a game. ", Msg.run("/l"), " first.");
+            return true;
+        }
+        if (!Parties.requireLeader(viewer)) return true;
+        for (Player member : Parties.of(viewer)) {
+            if (member != viewer && Game.of(member) != null) {
+                Msg.say(viewer, Msg.v(member.getUsername()), " is in a game and stays behind.");
+                continue;
+            }
+            admit(member, theater, false);
+            Msg.ok(member, "Watching the replay with ", Msg.v(host.getUsername()), ". ", Msg.run("/l"), " to leave.");
+        }
+        return true;
     }
 
     // the stamped day; a file from before the stamp is dated by the day it was written, which ended the game
@@ -615,7 +644,6 @@ public final class Replays {
                     .withBaseEntities(other -> watching.get(other) == theater));
             theater.dressing().enter(viewer, controller);
         });
-        Msg.ok(viewer, "Watching the replay of game ", Msg.v(theater.game()), ". ", Msg.run("/l"), " to leave.");
     }
 
     // where a dead seat waits, as the game puts it (the dead marker, else the spectator's spot), leveled: a marker

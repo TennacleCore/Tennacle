@@ -468,11 +468,7 @@ public final class Audit {
             Msg.ok(viewer, "Watching ", Msg.v(target.getUsername()), ". ", Msg.run("/l"), " to leave.");
             return;
         }
-        String replay = Replays.watching(target);
-        if (replay != null) {
-            Replays.watch(viewer, replay);
-            return;
-        }
+        if (Replays.join(viewer, target)) return; // their theater, not one of our own
         Instance instance = target.getInstance();
         if (instance == null) {
             Msg.fail(viewer, Msg.v(target.getUsername()), " is nowhere right now.");
@@ -480,6 +476,7 @@ public final class Audit {
         }
         Shard shard = Shard.of(target);
         Pos at = target.getPosition();
+        Spectators.exit(viewer); // a view elsewhere ends first: its body and dressing would ride along
         if (viewer.getInstance() == instance) viewer.teleport(at);
         else viewer.setInstance(instance, at);
         if (shard != null && Shard.of(viewer) != shard) shard.join(viewer);

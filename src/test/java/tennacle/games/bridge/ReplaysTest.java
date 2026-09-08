@@ -222,6 +222,56 @@ class ReplaysTest extends HeadlessServerTest {
     }
 
     @Test
+    void aHopJoinsTheHostsTheater() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HopRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "HopBlue");
+        FakePlayer host = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "HopHost");
+        FakePlayer guest = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "HopGuest");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+            await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
+
+            Replays.watch(host.player, game.id(), BridgeRoundTest.fixture());
+            Playback show = Replays.playbackOf(host.player);
+            assertNotNull(show, "the host opened a theater");
+            tickUntil(show.shard(), "the host is dressed", () -> held(host.player) > 0);
+
+            tennacle.audit.Audit.go(guest.player, host.player);
+            assertEquals(show, Replays.playbackOf(guest.player), "the host's theater, not one of the guest's own");
+            tickUntil(show.shard(), "the guest is dressed",
+                    () -> Boolean.TRUE.equals(guest.player.getTag(ShardTabList.SPECTATOR)));
+            assertEquals(0, held(guest.player), "and a guest gets no remote");
+
+            Replays.leave(guest.player);
+            Matches.toLobby(guest.player);
+            Replays.leave(host.player);
+            Matches.toLobby(host.player);
+        } finally {
+            red.player.remove();
+            blue.player.remove();
+            host.player.remove();
+            guest.player.remove();
+        }
+    }
+
+    private static int held(net.minestom.server.entity.Player p) {
+        int n = 0;
+        for (int slot = 0; slot < p.getInventory().getSize(); slot++) {
+            if (!p.getInventory().getItemStack(slot).isAir()) n++;
+        }
+        return n;
+    }
+
+    @Test
     void twoWatchersEachGetATheater() {
         Mode bridge = Matches.mode("bridge");
         Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());

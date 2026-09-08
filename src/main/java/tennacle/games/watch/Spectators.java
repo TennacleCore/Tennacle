@@ -104,11 +104,14 @@ public final class Spectators {
         return names;
     }
 
-    /** Drops the view and gives the body back; {@code false} = was not spectating. */
+    /** Drops the view - a game's or a replay's - and gives the body back; {@code false} = was watching nothing. */
     public static boolean exit(@NotNull Player viewer) {
+        // every route out calls this first, and a theater's dressing would otherwise ride along to wherever
+        // they land: a tab row still flagged spectator draws them INVISIBLE to every other client
+        boolean theater = Replays.leave(viewer);
         Game watched = Matches.grotto().spectating(viewer);
         boolean wore = SpectatorMode.exit(viewer); // the camera home and the body back before the world changes
-        if (watched == null && !wore) return false;
+        if (watched == null && !wore) return theater;
         if (watched != null) {
             watched.unspectate(viewer);
             viewer.getInventory().clear(); // the lobby dresses the arrival
