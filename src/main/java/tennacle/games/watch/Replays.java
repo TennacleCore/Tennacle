@@ -209,6 +209,7 @@ public final class Replays {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> leave(e.getPlayer()));
         // no game watches the theater's void line, so the replay does: back to where the watcher came in
         MinecraftServer.getGlobalEventHandler().addListener(PlayerMoveEvent.class, e -> {
+            if (watching.isEmpty()) return; // every move packet on the server reaches here, and usually nobody watches
             Theater theater = watching.get(e.getPlayer());
             if (theater == null || e.getNewPosition().y() >= theater.floor()) return;
             e.getPlayer().teleport(landing(theater.arena()));
