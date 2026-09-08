@@ -85,6 +85,39 @@ class SlabMergeTest extends HeadlessServerTest {
         }
     }
 
+    /** The lobby's path: no shard, so the stock listener owns it. Same refusal, same silence. */
+    @Test
+    void theSameHoldsOffAnyShard() {
+        instance.loadChunk(2440 >> 4, 2440 >> 4).join();
+        FakePlayer p = FakePlayer.connect(instance, new Pos(2440.5, 64.5, 2440.5), "SlabLobby");
+        OptimizedPlayer op = (OptimizedPlayer) p.player;
+        try {
+            Polyp.getInstance().clientInfo().setProtocol(p.player, 47);
+            Polyp.getInstance().profiles().setPlayer(op, MechanicsProfile.builder()
+                    .set(MechanicsKeys.COMPAT, Preset.MMC18.compat())
+                    .set(MechanicsKeys.FX, Fx.vanilla18())
+                    .build());
+            p.player.setGameMode(net.minestom.server.entity.GameMode.CREATIVE); // the lobby build mode
+            instance.setBlock(2440, 64, 2440, Block.OAK_SLAB.withProperty("type", "bottom"));
+
+            p.player.setItemInHand(PlayerHand.MAIN, ItemStack.of(Material.OAK_SLAB, 64));
+            p.sent.clear();
+            Shard.placementListener(new ClientPlayerBlockPlacementPacket(PlayerHand.MAIN,
+                    new Vec(2440, 64, 2440), BlockFace.TOP, 0.5f, 0.5f, 0.5f, false, false, 1), p.player);
+            MinecraftServer.getSchedulerManager().processTickEnd();
+
+            assertEquals("bottom", instance.getBlock(2440, 64, 2440).getProperty("type"), "no double under them");
+            assertEquals(Block.AIR, instance.getBlock(2440, 65, 2440), "nothing in their legs");
+            assertEquals(List.of(), sounds(p), "and nothing sounds; sent: " + p.sent.stream()
+                    .map(x -> x.getClass().getSimpleName()).distinct().toList());
+        } finally {
+            Polyp.getInstance().profiles().setPlayer(op, null);
+            instance.setBlock(2440, 64, 2440, Block.AIR);
+            instance.setBlock(2440, 65, 2440, Block.AIR);
+            p.player.remove();
+        }
+    }
+
     private static List<String> sounds(FakePlayer p) {
         return p.sent(SoundEffectPacket.class).stream().map(s -> s.soundEvent().key().asString()).toList();
     }

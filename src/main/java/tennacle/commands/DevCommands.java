@@ -16,6 +16,7 @@ import io.github.term4.polyp.platform.compatibility.Compat18;
 import io.github.term4.polyp.platform.compatibility.CompatConfig;
 import io.github.term4.polyp.platform.player.OptimizedPlayer;
 import io.github.term4.archipelago.shard.ShardTabList;
+import io.github.term4.polyp.api.event.fx.FxEvent;
 import io.github.term4.polyp.world.MechanicsWorld;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.MinecraftServer;
@@ -25,6 +26,7 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.trait.PlayerEvent;
@@ -41,6 +43,12 @@ import net.minestom.server.network.packet.server.play.UpdateHealthPacket;
 import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The polyp example server's dev/test toolset plus the shard-aware {@code /boom}: lag simulation, profile
@@ -49,6 +57,30 @@ import org.jetbrains.annotations.NotNull;
 public final class DevCommands {
 
     private DevCommands() {}
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DevCommands.class);
+    private static final Set<UUID> FX_WATCHERS = ConcurrentHashMap.newKeySet();
+    // added only while someone is watching: Fx.play skips the event entirely when nothing listens
+    private static @NotNull EventNode<Event> fxNode() {
+        EventNode<Event> node = EventNode.all("dev:fxlog");
+        node.addListener(FxEvent.class, e -> {
+            var ctx = e.context();
+            for (UUID id : FX_WATCHERS) {
+                Player watcher = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(id);
+                if (watcher == null || watcher.getInstance() == null) continue;
+                if (ctx.source() != watcher && ctx.position().distanceSquared(watcher.getPosition()) > 64) continue;
+                Object detail = ctx.detail();
+                String line = e.key().asString() + " at " + ctx.position()
+                        + (ctx.source() != null ? " by " + ctx.source().getUuid() : "")
+                        + (detail != null ? " " + detail : "");
+                Msg.say(watcher, Msg.v(line));
+                LOGGER.info("fx {} -> {}", watcher.getUsername(), line);
+            }
+        });
+        return node;
+    }
+    private static @NotNull EventNode<Event> fxLog = fxNode();
+    private static boolean fxLogging;
 
     private static void gamemode(Player p, GameMode mode) {
         if (Spectators.gamemode(p, mode)) return; // a spectator's bodies, or a refusal
@@ -96,6 +128,23 @@ public final class DevCommands {
             for (String line : ShardTabList.history(viewer)) viewer.sendMessage(Msg.v(line));
         });
         Commands.register(tablog);
+        // what the server actually plays near you, in order - the answer to "I heard something that never happened"
+        AppCommand fxlog = Commands.dev("fxlog", "Log every effect the server plays near you.");
+        fxlog.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player viewer)) return;
+            boolean on = !FX_WATCHERS.remove(viewer.getUuid());
+            if (on) FX_WATCHERS.add(viewer.getUuid());
+            synchronized (DevCommands.class) {
+                boolean wanted = !FX_WATCHERS.isEmpty();
+                if (wanted != fxLogging) {
+                    fxLogging = wanted;
+                    if (wanted) MinecraftServer.getGlobalEventHandler().addChild(fxLog);
+                    else MinecraftServer.getGlobalEventHandler().removeChild(fxLog);
+                }
+            }
+            Msg.ok(viewer, "Effect log ", Msg.v(on ? "on" : "off"), ".");
+        });
+        Commands.register(fxlog);
 
         AppCommand gm = Commands.dev("gm", "Your gamemode.")
                 .usage("/gm <mode>", "survival, creative, adventure or spectator");
