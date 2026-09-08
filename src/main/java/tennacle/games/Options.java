@@ -40,8 +40,11 @@ public record Options(@Nullable String map, @Nullable String platform,
 
         public @NotNull Builder map(@NotNull Mode mode, @NotNull String name) {
             if (mode.arena().named(name) == null) {
-                throw new IllegalArgumentException("No map named " + name + " for " + mode.title()
-                        + ". Maps: " + String.join(", ", mode.arena().names()) + ".");
+                String wants = mode.arena().wanting(name); // built, but held out: say so rather than deny it exists
+                throw new IllegalArgumentException(wants != null
+                        ? name + " is out of " + mode.title() + "'s rotation until it has " + wants + "."
+                        : "No map named " + name + " for " + mode.title()
+                                + ". Maps: " + String.join(", ", mode.arena().names()) + ".");
             }
             this.map = name;
             return this;

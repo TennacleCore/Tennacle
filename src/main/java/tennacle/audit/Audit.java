@@ -364,9 +364,13 @@ public final class Audit {
             } catch (RuntimeException e) {
                 names = Set.of();
             }
-            if (names.isEmpty()) continue;
+            java.util.Map<String, String> held = mode.arena().holdouts();
+            if (names.isEmpty() && held.isEmpty()) continue;
             any = true;
             Msg.tag(to, "audit", Msg.v(name));
+            held.forEach((map, wants) -> Msg.tag(to, "audit", step(1), Msg.v(map), " · ",
+                    Msg.v("held").hoverEvent(Component.text("out of rotation until it has " + wants
+                            + " - /arena save re-checks")), " · wants " + wants));
             for (String map : names) {
                 Arena arena = mode.arena().named(map);
                 Instance loaded = arena != null ? arena.instantiated() : null;

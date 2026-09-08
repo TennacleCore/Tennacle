@@ -85,6 +85,12 @@ public final class MapPool implements Maps {
     }
 
     @Override
+    public @NotNull Map<String, String> holdouts() {
+        if (!scanned) scan();
+        return Map.copyOf(unfinished);
+    }
+
+    @Override
     public @NotNull Set<String> names() {
         if (!scanned) scan();
         maps.keySet().removeIf(file -> !Files.exists(file));
