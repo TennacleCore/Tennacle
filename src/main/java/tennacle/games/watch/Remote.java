@@ -17,6 +17,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.inventory.InventoryPreClickEvent;
 import net.minestom.server.event.item.ItemDropEvent;
@@ -99,16 +100,18 @@ public final class Remote {
         installed = true;
         Lineup.install();
         var events = MinecraftServer.getGlobalEventHandler();
-        // cancelled or not: a spectator policy elsewhere may have refused the use already
+        // cancelled or not: a spectator policy elsewhere may have refused the use already. MAIN alone, as
+        // everywhere a right-click drives something: a client that changed nothing retries the click on the
+        // off hand, and a remote that presses on both plays and pauses in the same breath
         events.addListener(EventListener.builder(PlayerUseItemEvent.class).ignoreCancelled(false).handler(e -> {
             Remote remote = BY_PLAYER.get(e.getPlayer());
-            if (remote == null) return;
+            if (remote == null || e.getHand() != PlayerHand.MAIN) return;
             e.setCancelled(true);
             remote.press(e.getPlayer(), true);
         }).build());
         events.addListener(EventListener.builder(PlayerBlockInteractEvent.class).ignoreCancelled(false).handler(e -> {
             Remote remote = BY_PLAYER.get(e.getPlayer());
-            if (remote == null) return;
+            if (remote == null || e.getHand() != PlayerHand.MAIN) return;
             e.setCancelled(true);
             e.setBlockingItemUse(true);
             remote.press(e.getPlayer(), true);
