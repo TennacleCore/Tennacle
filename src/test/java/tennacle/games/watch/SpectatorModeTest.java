@@ -1,6 +1,7 @@
 package tennacle.games.watch;
 
 import tennacle.games.Matches;
+import tennacle.games.watch.Spectators;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
 import net.minestom.server.network.packet.server.play.TeamsPacket;
@@ -37,6 +38,59 @@ class SpectatorModeTest extends HeadlessServerTest {
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
+    }
+
+    /** One click, one swap: a client whose main hand changed nothing retries the whole click on the off hand,
+     *  and a feather that answered both would land back where it started. */
+    @Test
+    void theFeatherSwapsOncePerClick() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(20.5, 65, 20.5), "FeatherA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(22.5, 65, 22.5), "FeatherB");
+        FakePlayer w = FakePlayer.connect(instance, new Pos(24.5, 65, 24.5), "FeatherWatch");
+        Game game = null;
+        try {
+            Polyp.getInstance().clientInfo().setProtocol(w.player, 47); // 1.8, the retry
+            Mode sumo = Matches.mode("sumo");
+            assertNotNull(sumo);
+            game = Matches.start(sumo, Matches.platformFor(null), List.of(List.of(a.player), List.of(b.player)));
+            settle(() -> Game.of(a.player) != null && Game.of(b.player) != null);
+            MinecraftServer.getCommandManager().execute(w.player, "spectate FeatherA");
+            settle(() -> Matches.grotto().spectating(w.player) != null);
+            assertEquals(SpectatorMode.Mode.GHOST, SpectatorMode.mode(w.player), "enters as the ghost");
+
+            w.player.setHeldItemSlot((byte) Spectators.FEATHER_SLOT);
+            clickBoth(w.player);
+            assertEquals(SpectatorMode.Mode.TRUE, SpectatorMode.mode(w.player), "one click, one swap");
+            clickBoth(w.player);
+            assertEquals(SpectatorMode.Mode.GHOST, SpectatorMode.mode(w.player), "and back, not there and back");
+        } finally {
+            Spectators.exit(w.player);
+            if (game != null && game.status() == Game.Status.OPEN) game.end(io.github.term4.grotto.Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+            w.player.remove();
+        }
+    }
+
+    // what a 1.8 client sends for one right-click on a block it could not use: the main hand, then the off
+    private static void clickBoth(net.minestom.server.entity.Player viewer) {
+        for (net.minestom.server.entity.PlayerHand hand : net.minestom.server.entity.PlayerHand.values()) {
+            net.minestom.server.event.EventDispatcher.call(
+                    new net.minestom.server.event.player.PlayerBlockInteractEvent(viewer, hand,
+                            viewer.getInstance(),
+                            net.minestom.server.instance.block.Block.STONE,
+                            new net.minestom.server.coordinate.BlockVec(24, 64, 24),
+                            new net.minestom.server.coordinate.Vec(0.5, 1, 0.5),
+                            net.minestom.server.instance.block.BlockFace.TOP));
+        }
+    }
+
+    private static void settle(java.util.function.BooleanSupplier done) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 4000;
+        while (!done.getAsBoolean() && System.currentTimeMillis() < deadline) {
+            MinecraftServer.getSchedulerManager().processTick();
+            Thread.sleep(10);
+        }
     }
 
     @Test

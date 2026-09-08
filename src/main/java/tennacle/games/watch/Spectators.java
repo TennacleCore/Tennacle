@@ -23,6 +23,7 @@ import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import io.github.term4.polyp.mechanics.projectile.entities.arrow.StuckArrows;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
+import net.minestom.server.entity.PlayerHand;
 import io.github.term4.canvas.screen.Items;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -61,11 +62,15 @@ public final class Spectators {
                 return !watches(actor) && !watches(target) && ShardPolicy.super.affects(actor, target);
             }
         });
-        // the compass: the picker of the players alive; Grotto refuses a spectator's use, so listen past the cancel
+        // the compass: the picker of the players alive; Grotto refuses a spectator's use, so listen past the cancel.
+        // MAIN alone: a client that changed nothing retries the whole click on the off hand, and a feather that
+        // toggles on both is a click that toggles twice
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerUseItemEvent.class)
-                .ignoreCancelled(false).handler(e -> righted(e.getPlayer())).build());
+                .ignoreCancelled(false)
+                .handler(e -> { if (e.getHand() == PlayerHand.MAIN) righted(e.getPlayer()); }).build());
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerBlockInteractEvent.class)
-                .ignoreCancelled(false).handler(e -> righted(e.getPlayer())).build());
+                .ignoreCancelled(false)
+                .handler(e -> { if (e.getHand() == PlayerHand.MAIN) righted(e.getPlayer()); }).build());
         MinecraftServer.getGlobalEventHandler().addListener(InventoryPreClickEvent.class, e -> {
             Player who = e.getPlayer();
             if ((Matches.grotto().spectating(who) != null || ghosting(who) != null) && Screens.screen(who) == null) e.setCancelled(true);
