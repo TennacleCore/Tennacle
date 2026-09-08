@@ -26,8 +26,8 @@ final class Ends {
                 .row("Bed", "Whether the side still had one when the game ended",
                         (g, side, th, color) -> bed(g, side.getFirst()))
                 .row("Damage", (g, side, th, color) -> th.hearts(0))
-                .row("Pressure", "Time spent with the majority of players on the enemy's side",
-                        (g, side, th, color) -> th.value("0%"))
+                .row("Pressure", "The share of the game this side spent away from its own base",
+                        (g, side, th, color) -> th.value(Match.pressure(g, side.getFirst().team())))
                 .row("Blocks Placed", (g, side, th, color) -> th.value(0))
                 .row("Blocks Broken", (g, side, th, color) -> th.value(0))
                 .cardSection(

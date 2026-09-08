@@ -24,8 +24,8 @@ final class Ends {
                         g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS),
                         g.rules().resolve(Scope.GAME, Score.TARGET), color))
                 .row("Damage", (g, side, th, color) -> th.hearts(0))
-                .row("Pressure", "Time spent with the majority of players on the enemy's side",
-                        (g, side, th, color) -> th.value("0%"))
+                .row("Pressure", "The share of the game this side spent away from its own base",
+                        (g, side, th, color) -> th.value(Match.pressure(g, side.getFirst().team())))
                 .row("Blocks Placed", (g, side, th, color) -> th.value(0))
                 .row("Blocks Broken", (g, side, th, color) -> th.value(0))
                 .cardSection(

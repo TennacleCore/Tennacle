@@ -38,6 +38,7 @@ import io.github.term4.grotto.modules.gear.Loadout;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.space.Limits;
 import io.github.term4.grotto.modules.view.HealthDisplay;
+import io.github.term4.grotto.modules.outcome.Pressure;
 import io.github.term4.grotto.modules.view.Nametags;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
@@ -174,6 +175,7 @@ public final class BedFight {
                             Rules rules = g.module(Rules.class);
                             if (rules != null) rules.fell(who);
                         })),
+                        Pressure::of,
                         Nametags::of,
                         Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),

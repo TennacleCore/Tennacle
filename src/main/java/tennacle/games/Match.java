@@ -4,6 +4,7 @@ import tennacle.games.watch.Replays;
 import tennacle.looks.Palette;
 import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.outcome.Pressure;
 import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
@@ -62,6 +63,13 @@ public final class Match {
     public static void title(@NotNull Game game, @NotNull Title title) {
         each(game, p -> p.showTitle(title));
         Replays.shown(game, title);
+    }
+
+    /** {@link Pressure#pressure} as a card prints it; {@code N/A} for a mode that never sampled. */
+    public static @NotNull String pressure(@NotNull Game game, @NotNull String team) {
+        Pressure pressure = game.module(Pressure.class);
+        if (pressure == null || pressure.samples() == 0) return "N/A";
+        return Math.round(pressure.pressure(team) * 100) + "%";
     }
 
     /** The seat whose view a replay keeps when a line reads differently per viewer: the first one filled. */

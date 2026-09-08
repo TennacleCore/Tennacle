@@ -40,6 +40,7 @@ import io.github.term4.grotto.kit.Kit;
 import io.github.term4.grotto.modules.combat.Freeze;
 import io.github.term4.grotto.modules.view.HealthDisplay;
 import io.github.term4.grotto.modules.combat.HitReport;
+import io.github.term4.grotto.modules.outcome.Pressure;
 import io.github.term4.grotto.modules.view.Nametags;
 import io.github.term4.grotto.modules.space.Daylight;
 import io.github.term4.grotto.modules.view.Spectating;
@@ -225,6 +226,7 @@ public final class Bridge {
                             Rules rules = g.module(Rules.class);
                             if (rules != null) rules.fell(who);
                         })),
+                        Pressure::of,
                         Nametags::of,
                         Spectating::new, Sight::new, Presets::new,
                         Daylight::new,
