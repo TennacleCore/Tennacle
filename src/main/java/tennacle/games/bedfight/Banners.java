@@ -3,7 +3,9 @@ package tennacle.games.bedfight;
 import tennacle.games.Matches;
 import tennacle.looks.Palette;
 
+import io.github.term4.canvas.chat.ChatWidth;
 import io.github.term4.canvas.theme.Theme;
+import tennacle.Msg;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.text.Component;
@@ -13,7 +15,11 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/** Bed fight's own lines per network: the bed that went, the side that went with it, and the void's wording. */
+/**
+ * Bed fight's own lines per network: the bed that went, the side that went with it, and the void's wording.
+ * Minemen and hypixel wear their captured headlines; every other look reads the way bridge's banners do -
+ * the line alone, centered between the theme's rules.
+ */
 final class Banners {
 
     private Banners() {}
@@ -21,6 +27,11 @@ final class Banners {
     /** Captured hypixel; minemen carries its own everywhere. */
     static @NotNull Component bedBroken(Game game, Team side, Player breaker) {
         Component who = Component.text(breaker.getUsername(), tennacle.games.Match.teamColor(game, breaker));
+        if (ruled(game)) {
+            return ruled(Component.empty()
+                    .append(Component.text(Palette.titled(side) + " Bed ", side.color()))
+                    .append(prose(game, "was destroyed by ")).append(who).append(prose(game, "!")));
+        }
         // minemen's guillemet takes no trailing space, so its bed carries the leading one
         String bed = minemen(game) ? " " + Palette.titled(side) + " Bed" : Palette.titled(side) + " Bed ";
         return framed(Component.empty().append(headline(game))
@@ -31,6 +42,7 @@ final class Banners {
 
     /** Every bed at once, on the destruction clock - uncaptured, the headline over the mode's own words. */
     static @NotNull Component bedsFell(Game game) {
+        if (ruled(game)) return ruled(prose(game, "Every bed was destroyed!"));
         return framed(Component.empty().append(headline(game))
                 .append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!")));
     }
@@ -38,6 +50,10 @@ final class Banners {
     /** Captured hypixel; minemen names no elimination in bed fight, so it gets none. */
     static @Nullable Component eliminated(Game game, Team side) {
         if (minemen(game)) return null;
+        if (ruled(game)) {
+            return ruled(Component.text(Palette.titled(side) + " Team ", side.color())
+                    .append(prose(game, "has been eliminated!")));
+        }
         return framed(Component.empty()
                 .append(Component.text("TEAM ELIMINATED > ").decorate(TextDecoration.BOLD))
                 .append(Component.text(Palette.titled(side) + " Team ", side.color()))
@@ -52,6 +68,19 @@ final class Banners {
     /** Captured: hypixel shouts it, minemen does not. */
     static @NotNull String finalNote(Game game) {
         return minemen(game) ? "FINAL KILL" : "FINAL KILL!";
+    }
+
+    // the looks bridge writes its own banners for: no captured headline, so they read as bridge's do
+    private static boolean ruled(Game game) {
+        return !minemen(game) && !hypixel(game);
+    }
+
+    // bridge's scored block, one line shorter: the theme's rules, the line centered between them
+    private static Component ruled(Component line) {
+        return Component.empty()
+                .append(Msg.SCRIMS.rule()).append(Component.newline())
+                .append(ChatWidth.center(line))
+                .append(Component.newline()).append(Msg.SCRIMS.rule());
     }
 
     // captured minemen: a banner arrives with a blank line over and under it, so it reads apart from the chat

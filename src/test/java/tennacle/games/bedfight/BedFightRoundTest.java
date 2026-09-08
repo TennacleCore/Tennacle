@@ -472,7 +472,7 @@ class BedFightRoundTest extends HeadlessServerTest {
 
     /** The house look wears what the capture taught: the bed headline, and the note after the last line. */
     @Test
-    void theHouseWearsTheCapturedShapes() {
+    void theHouseWearsTheRuledBanner() {
         Mode bedfight = Matches.mode("bedfight");
         Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HouseBedRed");
@@ -491,14 +491,12 @@ class BedFightRoundTest extends HeadlessServerTest {
 
             blue.sent.clear();
             break0(blue.player, new BlockVec(-7, 65, 0));
-            assertTrue(said(blue).stream().anyMatch(
-                            l -> l.equals("BED DESTRUCTION > " + side + " Bed was destroyed by HouseBedBlue!")),
-                    "the headline shape, not the old sentence: " + said(blue));
-            assertTrue(raw(blue).stream().anyMatch(l -> l.contains("BED DESTRUCTION")
-                            && l.startsWith("\n") && l.endsWith("\n")),
-                    "and it sits on its own, a blank line either side");
-            assertEquals("BED DESTRUCTION > ", boldOf(banner(blue, "BED DESTRUCTION")),
-                    "the headline is bold and nothing after it is");
+            String banner = said(blue).stream().filter(l -> l.contains("was destroyed by"))
+                    .findFirst().orElse("");
+            assertTrue(banner.contains(side + " Bed was destroyed by HouseBedBlue!"),
+                    "the house says it plainly, with no captured headline: " + said(blue));
+            assertTrue(banner.startsWith("-") && banner.endsWith("-"),
+                    "between the theme's rules, the way bridge's banners read: " + banner);
 
             blue.sent.clear();
             game.module(Rules.class).fell(red.player);
