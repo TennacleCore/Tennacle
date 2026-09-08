@@ -170,11 +170,10 @@ public final class BedFight {
                         KillCredit::new,
                         FriendlyFire::new,
                         Beds::new,
-                        () -> Limits.of().below(VOID, (p, plane) -> {
-                            Game game = Game.of(p);
-                            Rules rules = game != null ? game.module(Rules.class) : null;
-                            if (rules != null) rules.fell(p);
-                        }),
+                        () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
+                            Rules rules = g.module(Rules.class);
+                            if (rules != null) rules.fell(who);
+                        })),
                         Nametags::of,
                         Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),

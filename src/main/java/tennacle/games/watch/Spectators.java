@@ -1,6 +1,7 @@
 package tennacle.games.watch;
 
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import java.util.function.Supplier;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.modules.combat.Respawns;
@@ -87,8 +88,22 @@ public final class Spectators {
         viewer.getInventory().setItemStack(0, Lineup.compass());
         // the compass starts on whom they came to watch; a spectator's own aim carries through to theirs
         Supplier<Pos> inherited = target != null ? Lineup.aimOf(target) : null;
-        if (inherited != null) Lineup.aim(viewer, inherited);
-        else if (target != null) Lineup.aim(viewer, () -> target.isOnline() && Game.of(target) == game ? target.getPosition() : null);
+        if (inherited != null) Lineup.aim(viewer, Lineup.following(target), inherited);
+        else if (target != null) Lineup.aim(viewer, target.getUsername(),
+                () -> target.isOnline() && Game.of(target) == game ? target.getPosition() : null);
+    }
+
+    /**
+     * Puts a watcher who left the arena back on it: the spawn of the side they follow, so they come back where
+     * the play is, else the map's own watching spot. A watcher following a watcher inherits the name with the aim.
+     */
+    public static void recall(@NotNull Game game, @NotNull Player viewer) {
+        String following = Lineup.following(viewer);
+        Player target = following != null ? game.memberNamed(following) : null;
+        Slot seat = target != null ? game.roster().slotOf(target) : null;
+        Pos at = seat != null ? seat.spawn() : null;
+        if (at == null) at = game.spectatorLanding();
+        if (at != null) viewer.teleport(at.withPitch(0), Vec.ZERO); // level: a marker authored looking down would tilt it
     }
 
     /** Whom {@code /spectate} can name: the seats, ghosts and viewers of every running game that takes them -

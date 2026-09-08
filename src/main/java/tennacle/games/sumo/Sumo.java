@@ -97,11 +97,10 @@ public final class Sumo {
                         Spectating::new, Sight::new, Presets::new,
                         Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
-                        () -> Limits.of().below(Markers.VOID, (p, plane) -> {
-                            Game game = Game.of(p);
-                            Rules rules = game != null ? game.module(Rules.class) : null;
-                            if (rules != null) rules.fell(p);
-                        }),
+                        () -> Limits.of().below(Markers.VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
+                            Rules rules = g.module(Rules.class);
+                            if (rules != null) rules.fell(who);
+                        })),
                         KillCredit::new, Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))

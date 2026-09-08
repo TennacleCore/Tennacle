@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import tennacle.Msg;
 
+import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.canvas.screen.ClickRule;
 import io.github.term4.canvas.screen.Items;
 import io.github.term4.canvas.screen.Screen;
@@ -20,6 +21,8 @@ import net.kyori.adventure.text.format.TextColor;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerSkin;
+import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +49,10 @@ public final class Lineup {
     private static final int PAGE = 36; // rows two to five; the top row breathes, the bottom row turns the page
     private static final int PREV = 45, PAPER = 49, NEXT = 53;
 
-    private record Aim(Supplier<@Nullable Pos> at, @Nullable Point sent) {}
+    private record Aim(@Nullable String who, Supplier<@Nullable Pos> at, @Nullable Point sent) {}
+
+    /** How far behind a target a pick lands, and how far above their feet. */
+    private static final double VANTAGE_BACK = 3.5, VANTAGE_LIFT = 1.0;
 
     private static final Map<Player, Aim> AIMS = new ConcurrentHashMap<>();
     private static boolean installed;
@@ -63,20 +69,58 @@ public final class Lineup {
             if (at == null) return;
             Point block = new BlockVec(at.blockX(), at.blockY(), at.blockZ());
             if (block.equals(aim.sent())) return;
-            AIMS.put(viewer, new Aim(aim.at(), block));
+            AIMS.put(viewer, new Aim(aim.who(), aim.at(), block));
             viewer.sendPacket(new SpawnPositionPacket(new WorldPos(viewer.getInstance().getDimensionName(), block), 0f, 0f));
         })).repeat(TaskSchedule.tick(1)).schedule();
     }
 
     /** Points {@code viewer}'s compass at whatever {@code at} says, tick by tick, until {@link #unaim}. */
     public static void aim(@NotNull Player viewer, @NotNull Supplier<@Nullable Pos> at) {
-        AIMS.put(viewer, new Aim(at, null));
+        aim(viewer, null, at);
+    }
+
+    /** {@link #aim} naming whom it follows, so a watcher's landings can read their side. */
+    public static void aim(@NotNull Player viewer, @Nullable String who, @NotNull Supplier<@Nullable Pos> at) {
+        AIMS.put(viewer, new Aim(who, at, null));
     }
 
     /** Where {@code viewer}'s compass points, or null - what a spectator of a spectator inherits. */
     public static @Nullable Supplier<@Nullable Pos> aimOf(@NotNull Player viewer) {
         Aim aim = AIMS.get(viewer);
         return aim != null ? aim.at() : null;
+    }
+
+    /** Whom {@code viewer}'s compass follows, or null; a watcher of a watcher inherits the name with the aim. */
+    public static @Nullable String following(@NotNull Player viewer) {
+        Aim aim = AIMS.get(viewer);
+        return aim != null ? aim.who() : null;
+    }
+
+    /**
+     * Where a pick lands: behind the target's own view, so the watcher faces their back rather than standing in
+     * it, pulled in until the body fits. Their own spot when nothing behind them is clear.
+     */
+    public static @NotNull Pos vantage(@NotNull Player viewer, @NotNull Pos target) {
+        double yaw = Math.toRadians(target.yaw());
+        double dx = -Math.sin(yaw), dz = Math.cos(yaw); // the way they face
+        for (double back = VANTAGE_BACK; back >= 1; back -= 0.5) {
+            Pos at = target.add(-dx * back, VANTAGE_LIFT, -dz * back).withView(target.yaw(), 15f);
+            if (fits(viewer, at)) return at;
+        }
+        return target;
+    }
+
+    // the two blocks a body stands in, over the shard the watcher reads - a theater's stage, not the base world
+    private static boolean fits(Player viewer, Pos at) {
+        Shard shard = Shard.of(viewer);
+        Instance world = viewer.getInstance();
+        if (shard == null && world == null) return true;
+        for (int up = 0; up <= 1; up++) {
+            BlockVec cell = new BlockVec(at.blockX(), at.blockY() + up, at.blockZ());
+            Block block = shard != null ? shard.getBlock(cell) : world.getBlock(cell);
+            if (!block.collisionShape().relativeEnd().isZero()) return false;
+        }
+        return true;
     }
 
     /** The compass back on the world's own spawn. */
@@ -114,8 +158,8 @@ public final class Lineup {
                             Msg.fail(who, Msg.v(entry.name()), " is gone.");
                             return;
                         }
-                        who.teleport(to);
-                        aim(who, entry.at());
+                        who.teleport(vantage(who, to));
+                        aim(who, entry.name(), entry.at());
                     });
         }
         if (pages > 1) {

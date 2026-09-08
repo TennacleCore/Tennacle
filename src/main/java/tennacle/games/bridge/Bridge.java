@@ -221,11 +221,10 @@ public final class Bridge {
                         KillCredit::new,
                         FriendlyFire::new,
                         () -> Goals.of(GOAL).counter(GOALS).during(Match.LIVE),
-                        () -> Limits.of().below(VOID, (p, plane) -> {
-                            Game game = Game.of(p);
-                            Rules rules = game != null ? game.module(Rules.class) : null;
-                            if (rules != null) rules.fell(p);
-                        }),
+                        () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
+                            Rules rules = g.module(Rules.class);
+                            if (rules != null) rules.fell(who);
+                        })),
                         Nametags::of,
                         Spectating::new, Sight::new, Presets::new,
                         Daylight::new,

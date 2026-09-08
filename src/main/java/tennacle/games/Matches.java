@@ -104,6 +104,20 @@ public final class Matches {
         return lobby;
     }
 
+    /**
+     * A void plane crossed, for the modes that watch one: a seat is the mode's own to answer for, and a watcher
+     * who flew off the map comes back to the play instead of falling forever.
+     */
+    public static void fell(@NotNull Player p, @NotNull java.util.function.BiConsumer<Game, Player> seated) {
+        Game game = Game.of(p);
+        if (game != null) {
+            seated.accept(game, p);
+            return;
+        }
+        Game watched = grotto.spectating(p);
+        if (watched != null) Spectators.recall(watched, p);
+    }
+
     /** The exit route - for commands that send players home. */
     public static void toLobby(@NotNull Player player) {
         lobbyRoute.accept(player);
