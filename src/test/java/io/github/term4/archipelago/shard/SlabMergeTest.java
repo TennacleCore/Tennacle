@@ -14,7 +14,6 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
-import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
@@ -26,15 +25,17 @@ import org.everbuild.blocksandstuff.blocks.placement.SlabPlacementRule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Standing on a half slab, no slab lands in your own body - neither the same one doubling under you nor a
- * different one 1.8 would offset into your legs. Nothing lands, so nothing sounds.
+ * 1.8 {@code ItemSlab.onItemUse}, both branches. The merge checks the doubled cube with the excludes-NOBODY
+ * {@code checkNoEntityCollision}, so the placer standing on the half they click refuses it - and the branch
+ * {@code return}s either way, so nothing falls through to ItemBlock: no block, no sound, the use spent.
+ * A slab of another kind never reaches that branch and lands through ItemBlock, which DOES exclude the placer:
+ * into their own legs, with the sound, exactly as 1.8 does it.
  */
 class SlabMergeTest extends HeadlessServerTest {
 
@@ -46,13 +47,9 @@ class SlabMergeTest extends HeadlessServerTest {
     }
 
     @Test
-    void noSlabLandsInsideYou() {
+    void theMergeUnderYouIsRefusedAndSilent() {
         EventNode<Event> routing = Shard.blockRouting();
         MinecraftServer.getGlobalEventHandler().addChild(routing);
-        List<Block> placed = new ArrayList<>();
-        EventNode<Event> watch = EventNode.all("test:slab-watch");
-        watch.addListener(PlayerBlockPlaceEvent.class, e -> placed.add(e.getBlock()));
-        MinecraftServer.getGlobalEventHandler().addChild(watch);
         instance.loadChunk(2400 >> 4, 2400 >> 4).join();
         Shard shard = new Shard(instance);
         FakePlayer p = FakePlayer.connect(instance, new Pos(2400.5, 64.5, 2400.5), "SlabStand");
@@ -66,30 +63,30 @@ class SlabMergeTest extends HeadlessServerTest {
                     .build());
             shard.join(p.player);
             assertTrue(op.compat().legacyClient(), "a 1.8 placer");
-            assertEquals(false, op.compat().legacySelfPlace(), "minemen refuses a self-overlapping placement");
+            assertTrue(op.compat().legacySelfPlace(), "1.8 excludes the placer from ItemBlock's check");
             shard.setBlock(new Vec(2400, 64, 2400), Block.OAK_SLAB.withProperty("type", "bottom"));
 
-            // the same slab: the merge that would fill the cell they stand in
             click(p, Material.OAK_SLAB);
             assertEquals("bottom", shard.getBlock(new Vec(2400, 64, 2400)).getProperty("type"),
-                    "the half they stand on never doubles");
-            assertEquals(Block.AIR, shard.getBlock(new Vec(2400, 65, 2400)), "and nothing lands in their legs");
-
-            // a different slab: no merge to make, so 1.8 offsets it one cell up - into the same body
-            click(p, Material.SPRUCE_SLAB);
+                    "the half they stand on never doubles under them");
             assertEquals(Block.AIR, shard.getBlock(new Vec(2400, 65, 2400)),
-                    "nor does the offset 1.8 falls back to");
+                    "and the branch returns: nothing falls through into their legs");
+            assertEquals(List.of(), sounds(p), "a merge that never happened never sounds");
 
-            assertEquals(List.of(), placed, "no placement happened");
-            assertEquals(List.of(), p.sent(SoundEffectPacket.class).stream()
-                    .map(s -> s.soundEvent().key().asString()).toList(), "so nothing sounds");
+            click(p, Material.SPRUCE_SLAB); // another kind: ItemBlock's path, which excludes the placer
+            assertTrue(shard.getBlock(new Vec(2400, 65, 2400)).compare(Block.SPRUCE_SLAB),
+                    "1.8 lands this one in their own legs");
+            assertEquals(1, sounds(p).size(), "and sounds it, like the server that placed it");
         } finally {
             Polyp.getInstance().profiles().setPlayer(op, null);
             p.player.remove();
             shard.reset();
-            MinecraftServer.getGlobalEventHandler().removeChild(watch);
             MinecraftServer.getGlobalEventHandler().removeChild(routing);
         }
+    }
+
+    private static List<String> sounds(FakePlayer p) {
+        return p.sent(SoundEffectPacket.class).stream().map(s -> s.soundEvent().key().asString()).toList();
     }
 
     // standing on the half, clicking its top face
