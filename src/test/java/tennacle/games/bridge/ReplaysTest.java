@@ -5,6 +5,7 @@ import net.minestom.server.event.inventory.InventoryPreClickEvent;
 import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.Material;
 import tennacle.games.watch.Replays;
+import tennacle.games.watch.Spectators;
 import tennacle.bridge.ReplayBridge;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -52,7 +53,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A game records itself, lands as a file when it ends, tells its players where to watch it, and keeps what it said. */
@@ -433,6 +436,151 @@ class ReplaysTest extends HeadlessServerTest {
             red.player.remove();
             blue.player.remove();
         }
+    }
+
+    /** Every hand-off between the two ways of watching just works: no leaving in between. */
+    @Test
+    void watchingHandsOffToWatching() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HandRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "HandBlue");
+        FakePlayer watcher = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "HandWatch");
+        String first = recorded(bridge, red, blue);
+        String second = recorded(bridge, red, blue);
+        Game live = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        try {
+            red.player.setInstance(live.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(live.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(live.join(red.player));
+            assertTrue(live.join(blue.player));
+            await("seated for the live one", () -> Game.of(red.player) == live);
+
+            Replays.watch(watcher.player, first, BridgeRoundTest.fixture());
+            assertEquals(first, Replays.watching(watcher.player), "into the first replay");
+
+            // a second watch from inside the first: straight across, no /l
+            Replays.watch(watcher.player, second, BridgeRoundTest.fixture());
+            assertEquals(second, Replays.watching(watcher.player), "and straight into the second");
+
+            // and out of a replay into a live game's crowd
+            Spectators.enter(live, watcher.player, red.player);
+            assertNull(Replays.watching(watcher.player), "the theater let go");
+            assertSame(live, Matches.grotto().spectating(watcher.player), "watching the live game now");
+
+            // and back the other way
+            Replays.watch(watcher.player, first, BridgeRoundTest.fixture());
+            assertEquals(first, Replays.watching(watcher.player), "back into a replay");
+            assertNull(Matches.grotto().spectating(watcher.player), "and no longer in the crowd");
+        } finally {
+            Replays.leave(watcher.player);
+            Spectators.exit(watcher.player);
+            Matches.toLobby(watcher.player);
+            if (live.status() == Game.Status.OPEN) live.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+            watcher.player.remove();
+        }
+    }
+
+    /** A party watching one replay moves to the next together - nobody is dropped in the lobby on the way. */
+    @Test
+    void aPartyHopsBetweenReplaysTogether() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HopRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "HopBlue");
+        FakePlayer lead = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "HopLead");
+        FakePlayer mate = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "HopMate");
+        String first = recorded(bridge, red, blue);
+        String second = recorded(bridge, red, blue);
+        try {
+            MinecraftServer.getCommandManager().execute(lead.player, "party HopMate");
+            MinecraftServer.getCommandManager().execute(mate.player, "party join HopLead");
+            assertEquals(2, tennacle.games.matchmaking.Parties.of(lead.player).size(), "a party of two");
+
+            Replays.watch(lead.player, first, BridgeRoundTest.fixture());
+            Playback one = Replays.playbackOf(lead.player);
+            assertNotNull(one);
+            tickUntil(one.shard(), "both standing in the first", () -> standing(one, lead, mate));
+
+            Replays.watch(lead.player, second, BridgeRoundTest.fixture());
+            Playback two = Replays.playbackOf(lead.player);
+            assertNotNull(two);
+            assertNotSame(one, two, "a second theater, not the first again");
+            tickUntil(two.shard(), "both standing in the second", () -> standing(two, lead, mate));
+            assertEquals(second, Replays.watching(mate.player), "the party crossed with its leader");
+        } finally {
+            Replays.leave(lead.player);
+            Replays.leave(mate.player);
+            Matches.toLobby(lead.player);
+            Matches.toLobby(mate.player);
+            red.player.remove();
+            blue.player.remove();
+            lead.player.remove();
+            mate.player.remove();
+        }
+    }
+
+    /** A refused hand-off costs nothing: the view they had stands, and watching what they watch is a no-op. */
+    @Test
+    void arefusedHandOffKeepsTheViewTheyHad() throws Exception {
+        Mode bridge = Matches.mode("bridge");
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "KeepRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "KeepBlue");
+        FakePlayer watcher = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "KeepWatch");
+        String replay = recorded(bridge, red, blue);
+        Game live = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        try {
+            red.player.setInstance(live.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(live.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(live.join(red.player));
+            assertTrue(live.join(blue.player));
+            await("seated", () -> Game.of(red.player) == live);
+            live.state().set(io.github.term4.grotto.state.Scope.GAME,
+                    io.github.term4.grotto.modules.view.Spectating.ALLOWED, false);
+
+            Replays.watch(watcher.player, replay, BridgeRoundTest.fixture());
+            Playback stage = Replays.playbackOf(watcher.player);
+            assertNotNull(stage);
+            tickUntil(stage.shard(), "in the theater", () -> standing(stage, watcher));
+
+            // a game that takes no crowd says so - and does not cost them the replay they were in
+            MinecraftServer.getCommandManager().execute(watcher.player, "spectate KeepRed");
+            assertNull(Matches.grotto().spectating(watcher.player), "no crowd to join");
+            assertEquals(replay, Replays.watching(watcher.player), "and the replay they had stands");
+
+            // and asking for the replay they are already in leaves it exactly as it was
+            Replays.watch(watcher.player, replay, BridgeRoundTest.fixture());
+            assertSame(stage, Replays.playbackOf(watcher.player), "the same theater, not a second of it");
+        } finally {
+            Replays.leave(watcher.player);
+            Matches.toLobby(watcher.player);
+            if (live.status() == Game.Status.OPEN) live.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+            watcher.player.remove();
+        }
+    }
+
+    private static boolean standing(Playback stage, FakePlayer... watchers) {
+        for (FakePlayer w : watchers) {
+            if (w.player.getInstance() != stage.shard().instance() || Replays.playbackOf(w.player) != stage) return false;
+        }
+        return true;
+    }
+
+    // one whole game, played and ended, as a replay id on disk
+    private static String recorded(Mode bridge, FakePlayer red, FakePlayer blue) throws Exception {
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+        blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+        assertTrue(game.join(red.player));
+        assertTrue(game.join(blue.player));
+        await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+        BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
+        game.decide(Outcome.draw(), 1);
+        BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+        await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
+        return game.id();
     }
 
     /** A player watching a game they played in shares a name with their own ghost; a team is keyed by name. */

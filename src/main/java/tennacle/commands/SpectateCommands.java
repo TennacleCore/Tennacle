@@ -51,8 +51,9 @@ public final class SpectateCommands {
                 return;
             }
             if (holdsMySeat(me, open.getFirst())) return;
-            Spectators.exit(me);
+            // refuse before the view they already have comes down: a no is no reason to lose the one they had
             if (!Spectating.allowed(open.getFirst())) { Msg.fail(me, "That game doesn't allow spectators."); return; }
+            Spectators.exit(me);
             Spectators.enter(open.getFirst(), me, null);
             Msg.ok(me, "Watching the ", Msg.v(open.getFirst().type().id()), ". ", Msg.run("/l"), " to leave.");
         });
@@ -86,8 +87,8 @@ public final class SpectateCommands {
                 return;
             }
             if (holdsMySeat(me, game)) return;
-            Spectators.exit(me); // a view elsewhere ends first
             if (!Spectating.allowed(game)) { Msg.fail(me, "That game doesn't allow spectators."); return; }
+            Spectators.exit(me); // only now: a view elsewhere ends once this one is certain
             Spectators.enter(game, me, target);
             Msg.ok(me, "Watching ", Msg.v(target.getUsername()), "'s ", Msg.v(game.type().id()), ". ", Msg.run("/l"), " to leave.");
         }, name);

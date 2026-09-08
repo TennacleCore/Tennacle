@@ -539,6 +539,10 @@ public final class Replays {
             Msg.fail(viewer, "You're in a game. ", Msg.run("/l"), " first.");
             return;
         }
+        if (id.equals(watching(viewer))) { // already in it: opening a second theater of the same game helps nobody
+            Msg.say(viewer, "You're already watching that replay.");
+            return;
+        }
         if (!Parties.requireLeader(viewer)) return;
         byte[] bytes;
         try {
