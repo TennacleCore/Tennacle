@@ -192,7 +192,8 @@ public final class Presentation implements GameModule {
         }
         Player winner = game.firstMember(m -> outcome.winner().equals(Match.teamOf(game, m)));
         if (winner != null) {
-            Match.each(game, p -> p.showTitle(look.verdict().title(game, outcome.winner().equals(Match.teamOf(game, p)), winner)));
+            Match.each(game, p -> p.showTitle(game.roster().slotOf(p) == null ? Look.over(game)
+                    : look.verdict().title(game, outcome.winner().equals(Match.teamOf(game, p)), winner)));
             Replays.shown(game, look.verdict().title(game, true, winner)); // the replay keeps the winner's
         }
         // a score or time ending eliminates nobody, so the losing side falls here instead of at LastStanding

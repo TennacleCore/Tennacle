@@ -800,6 +800,43 @@ class BedFightRoundTest extends HeadlessServerTest {
                 .toList();
     }
 
+    /** A watcher took no side, so the end names none: gold, and not bold. */
+    @Test
+    void aWatcherReadsGameOver() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "OverRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "OverBlue");
+        FakePlayer watcher = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "OverWatch");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            tennacle.games.watch.Spectators.enter(game, watcher.player, red.player);
+            await("watching", () -> game.spectators().contains(watcher.player));
+
+            red.sent.clear();
+            watcher.sent.clear();
+            game.decide(Outcome.winner(game.roster().slotOf(red.player).team()), 1);
+
+            assertTrue(titles(red).stream().anyMatch(t -> t.contains("Victory")), "a seat reads its own: " + titles(red));
+            assertEquals(List.of("Game Over!"), titles(watcher), "and a watcher reads no side's");
+            net.kyori.adventure.text.Component over = watcher.sent(net.minestom.server.network.packet.server.play.SetTitleTextPacket.class)
+                    .getFirst().title();
+            assertEquals(net.kyori.adventure.text.format.NamedTextColor.GOLD, over.color());
+            assertNotEquals(net.kyori.adventure.text.format.TextDecoration.State.TRUE,
+                    over.decoration(net.kyori.adventure.text.format.TextDecoration.BOLD), "plain, not bold");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+            watcher.player.remove();
+        }
+    }
+
     private static List<String> titles(FakePlayer p) {
         return p.sent(net.minestom.server.network.packet.server.play.SetTitleTextPacket.class).stream()
                 .map(t -> plain(t.title())).toList();

@@ -98,6 +98,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         Title title(Game game, boolean won, Player winner);
     }
 
+    /** What a watcher reads at the end: they took no side, so the verdict names none. */
+    public static @NotNull Title over(@NotNull Game game) {
+        return Title.title(Component.text("Game Over!", NamedTextColor.GOLD), Component.empty(),
+                Match.times(game, 0, 40, 10));
+    }
+
     /** The start countdown's voice: chat line, optional title per beat, and the at-zero line. */
     public record Count(@NotNull IntFunction<Component> number,
                         @Nullable IntFunction<Component> title,
