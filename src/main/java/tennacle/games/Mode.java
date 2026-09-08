@@ -24,7 +24,9 @@ import java.util.function.Supplier;
  *
  * @param ghostLoser death animation + observer spectate for an eliminated player; off = everyone stays put
  * @param intro      the instruction lines hypixel's game-start block shows; empty skips the block
- * @param teamScore  the per-team score key of a SCORING mode (hypixel's "TEAM WINS!" verdict); null = a plain duel
+ * @param sided      a mode played as sides, so chat and its kin name the speaker's ([RED] on scrims); off = a
+ *                   plain duel, where naming the side of two players says nothing
+ * @param teamScore  the per-team score key of a SCORING mode (hypixel's "TEAM WINS!" verdict); null = no score
  * @param tabStats   the seat counters the house tab menu lists, in order; empty = no line
  * @param marks      how a replay's bookmarks read on the bookmark screen; null = the name on paper
  * @param look       the look every match of this mode wears whatever preset it runs; null = the preset's own,
@@ -33,16 +35,18 @@ import java.util.function.Supplier;
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
                    @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants,
-                   @NotNull List<Component> intro, boolean ghostLoser, @Nullable StateKey<Integer> teamScore,
+                   @NotNull List<Component> intro, boolean ghostLoser, boolean sided,
+                   @Nullable StateKey<Integer> teamScore,
                    @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look) {
 
     /** A mode whose looks are its platforms' - every mode with captures behind them. */
     public Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                 @NotNull Supplier<MechanicsProfile.Builder> profile,
                 @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants,
-                @NotNull List<Component> intro, boolean ghostLoser, @Nullable StateKey<Integer> teamScore,
+                @NotNull List<Component> intro, boolean ghostLoser, boolean sided,
+                @Nullable StateKey<Integer> teamScore,
                 @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
-        this(name, type, arena, profile, base, variants, intro, ghostLoser, teamScore, tabStats, marks, null);
+        this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null);
     }
 
     /** A seat's own counter under a label ({@code Kills: 3}) - the viewer's, never the team's. */

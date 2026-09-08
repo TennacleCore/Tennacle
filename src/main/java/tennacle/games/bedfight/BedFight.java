@@ -194,6 +194,7 @@ public final class BedFight {
                         Component.empty(),
                         Component.text("Break their bed, then eliminate them!", NamedTextColor.YELLOW)),
                 true, // an eliminated player watches the rest out
+                true, // sides: chat names the speaker's, as bridge does
                 null, // no team score: the last side standing wins
                 List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
                         new Mode.SeatStat("Beds", BEDS)),

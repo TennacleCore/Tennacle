@@ -271,6 +271,7 @@ public final class Bridge {
                         Component.empty(),
                         Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
                 false, // no death animation or spectate: everyone stays where they stand
+                true,  // sides: chat names the speaker's
                 GOALS, // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
                 List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS), new Mode.SeatStat("Goals", SCORED)),
                 Banners::mark);

@@ -489,6 +489,13 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertNotNull(mine);
             String side = tennacle.looks.Palette.titled(game.roster().team(mine.team()));
 
+            // a side game names the speaker's side, the way bridge does - no team score to gate it on
+            var chat = new net.minestom.server.event.player.PlayerChatEvent(
+                    blue.player, List.of(red.player, blue.player), "gg");
+            net.minestom.server.event.EventDispatcher.call(chat);
+            assertEquals("[" + tennacle.games.Match.teamName(game, blue.player) + "] HouseBedBlue: gg",
+                    plain(chat.getFormattedMessage()), "the side rides the line, as it does in bridge");
+
             blue.sent.clear();
             break0(blue.player, new BlockVec(-7, 65, 0));
             String banner = said(blue).stream().filter(l -> l.contains("was destroyed by"))

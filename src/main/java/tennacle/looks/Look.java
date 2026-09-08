@@ -263,7 +263,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         Component line = Component.text(speaker.getUsername() + ": ", NamedTextColor.GRAY)
                 .append(Component.text(message, NamedTextColor.WHITE));
         Mode mode = Matches.modeOf(game);
-        if (mode != null && mode.teamScore() == null) return line; // a plain duel has no side to name
+        if (mode != null && !mode.sided()) return line; // a plain duel has no side worth naming
         return Component.text("[" + Match.teamName(game, speaker) + "] ", Match.teamColor(game, speaker)).append(line);
     }
 
