@@ -148,7 +148,9 @@ final class Dressing {
         if (!dressed.add(viewer)) return;
         remote.enter(viewer, controller);
         if (controller) viewer.setHeldItemSlot((byte) Remote.PLAY); // the hand starts on play/pause
-        viewer.setTag(ShardTabList.SPECTATOR, true); // both eras sink and grey a spectator entry natively
+        // NOT ShardTabList.SPECTATOR: a client draws a spectator-flagged player as the head alone
+        // (RenderPlayer.setModelVisibilities), and co-watchers are the only bodies a theater has to show each
+        // other. The row greys and sinks below on its own name and order instead
         viewer.setTag(ShardTabList.LIST_ORDER, -1); // a modern client's own row sorts on this
         viewer.setTag(ShardTabList.SORT_NAME, sortName(viewer.getUsername())); // a 1.8 row apart from the ghost's
         viewer.setDisplayName(Component.text(viewer.getUsername(), NamedTextColor.GRAY)

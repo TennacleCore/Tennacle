@@ -635,6 +635,10 @@ public final class Replays {
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true);
         theater.watchers().add(viewer);
         watching.put(viewer, theater);
+        // the row before the body: a 1.8 client drops the spawn of a player it holds no tab entry for, and the
+        // transfer below spawns the theater's other watchers the moment this one lands. Dressing's own resync
+        // decorates the row afterwards - it is the ADD that has to come first
+        ShardTabList.resync(viewer);
         Pos landing = landing(theater.arena());
         viewer.setInstance(theater.stage().instance(), landing).thenRun(() -> {
             if (watching.get(viewer) != theater) return;

@@ -180,8 +180,9 @@ public final class Spectators {
         return null;
     }
 
-    /** A watcher's body as a fresh one: full bars, nothing on it, nothing in it. */
+    /** A watcher's body as a fresh one: on its feet, full bars, nothing on it, nothing in it. */
     public static void freshen(@NotNull Player p) {
+        io.github.term4.grotto.Bodies.revive(p); // a corpse watches invisibly: the hide outlives the death
         p.setHealth((float) p.getAttributeValue(Attribute.MAX_HEALTH));
         p.setFood(20);
         p.setFoodSaturation(5f);

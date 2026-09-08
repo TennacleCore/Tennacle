@@ -105,14 +105,7 @@ public final class Playground {
 
     /** The lobby body: adventure, nothing worn, nothing carried - a game outfits its own. */
     static void outfit(Player p) {
-        // Minestom clears the dead flag in respawn() alone. A death nobody answered - a game that ended over the
-        // body, a mode that hands out no respawn - arrives here as a player the server calls dead: their own
-        // client draws the fallen corpse, and the hide that rides a death keeps every other client from drawing
-        // them at all
-        if (p.isDead()) {
-            p.setRespawnPoint(p.getPosition());
-            p.respawn();
-        }
+        io.github.term4.grotto.Bodies.revive(p); // a death nobody answered arrives here dead, and unviewable with it
         p.setGameMode(GameMode.ADVENTURE);
         p.getInventory().clear();
         p.setHelmet(ItemStack.AIR);

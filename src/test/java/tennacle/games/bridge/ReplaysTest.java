@@ -248,7 +248,7 @@ class ReplaysTest extends HeadlessServerTest {
             tennacle.audit.Audit.go(guest.player, host.player);
             assertEquals(show, Replays.playbackOf(guest.player), "the host's theater, not one of the guest's own");
             tickUntil(show.shard(), "the guest is dressed",
-                    () -> Boolean.TRUE.equals(guest.player.getTag(ShardTabList.SPECTATOR)));
+                    () -> Integer.valueOf(-1).equals(guest.player.getTag(ShardTabList.LIST_ORDER)));
             assertEquals(0, held(guest.player), "and a guest gets no remote");
 
             Replays.leave(guest.player);
@@ -343,6 +343,8 @@ class ReplaysTest extends HeadlessServerTest {
 
             MinecraftServer.getCommandManager().execute(viewer.player, "party MmcMate");
             MinecraftServer.getCommandManager().execute(mate.player, "party accept");
+            viewer.sent.clear();
+            mate.sent.clear();
             Replays.watch(viewer.player, game.id(), BridgeRoundTest.fixture());
             Playback playback = Replays.playbackOf(viewer.player);
             assertNotNull(playback, "the watch raised a theater");
@@ -356,6 +358,8 @@ class ReplaysTest extends HeadlessServerTest {
 
             tickUntil(theater, "the party sees itself", () -> mate.player.getViewers().contains(viewer.player));
             assertTrue(viewer.player.getViewers().contains(mate.player), "and is seen back");
+            assertAddBeforeSpawn(viewer, mate.player);
+            assertAddBeforeSpawn(mate, viewer.player);
         } finally {
             Replays.leave(viewer.player);
             Matches.toLobby(viewer.player);
@@ -417,7 +421,8 @@ class ReplaysTest extends HeadlessServerTest {
                     && c.entities().contains("ChanRed")), "the lineup colors the ghosts' names");
             assertTrue(viewer.sent(ScoreboardObjectivePacket.class).stream().anyMatch(o -> o.objectiveName().startsWith("rh-")),
                     "the health column is up");
-            assertTrue(Boolean.TRUE.equals(viewer.player.getTag(ShardTabList.SPECTATOR)), "a watcher lists as a spectator");
+            assertNull(viewer.player.getTag(ShardTabList.SPECTATOR),
+                    "never flagged a spectator: the flag draws a co-watcher as a floating head");
             assertEquals(Material.LIME_DYE, viewer.player.getInventory().getItemStack(Remote.PLAY).material(), "the leader holds the remote");
             assertEquals(Material.PLAYER_HEAD, viewer.player.getInventory().getItemStack(Remote.FASTER).material());
             assertEquals(Material.COMPASS, viewer.player.getInventory().getItemStack(Remote.PLAYERS).material());
@@ -480,6 +485,22 @@ class ReplaysTest extends HeadlessServerTest {
     }
 
     // a plain shard's clock is the server scheduler
+    /** A client drops the spawn of a player it holds no tab entry for: the theater's row goes out first. */
+    private static void assertAddBeforeSpawn(FakePlayer viewer, net.minestom.server.entity.Player subject) {
+        var list = List.copyOf(viewer.sent);
+        int add = -1, spawn = -1;
+        for (int i = 0; i < list.size(); i++) {
+            var pk = net.minestom.server.network.packet.server.SendablePacket
+                    .extractServerPacket(net.minestom.server.network.ConnectionState.PLAY, list.get(i));
+            if (add < 0 && pk instanceof net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket u
+                    && u.entries().stream().anyMatch(en -> en.uuid().equals(subject.getUuid()))) add = i;
+            if (spawn < 0 && pk instanceof net.minestom.server.network.packet.server.play.SpawnEntityPacket se
+                    && se.entityId() == subject.getEntityId()) spawn = i;
+        }
+        assertTrue(spawn >= 0, "the theater spawned " + subject.getUsername());
+        assertTrue(add >= 0 && add < spawn, "the row precedes the body (add@" + add + " spawn@" + spawn + ")");
+    }
+
     private static void tickUntil(Shard stage, String what, Supplier<Boolean> done) {
         long deadline = System.currentTimeMillis() + 8000;
         while (!done.get() && System.currentTimeMillis() < deadline) {
