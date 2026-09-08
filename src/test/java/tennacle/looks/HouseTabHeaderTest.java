@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,6 +33,31 @@ class HouseTabHeaderTest extends HeadlessServerTest {
 
     private static String header(Player viewer) {
         return PlainTextComponentSerializer.plainText().serialize(Look.TENNACLE.tab().header().apply(viewer));
+    }
+
+    /** The count in the chrome is the count online: somebody leaving repaints everyone else's. */
+    @Test
+    void theCountFollowsWhoIsOnline() {
+        FakePlayer stays = FakePlayer.connect(instance, new Pos(680.5, 65, 680.5), "CountStays");
+        FakePlayer goes = FakePlayer.connect(instance, new Pos(682.5, 65, 682.5), "CountGoes");
+        try {
+            MinecraftServer.getSchedulerManager().processTick(); // the joins' own repaints land first
+            stays.sent.clear();
+            net.minestom.server.event.EventDispatcher.call(
+                    new net.minestom.server.event.player.PlayerDisconnectEvent(goes.player));
+            MinecraftServer.getSchedulerManager().processTick();
+
+            String painted = stays.sent(net.minestom.server.network.packet.server.play
+                            .PlayerListHeaderAndFooterPacket.class).stream()
+                    .map(h -> PlainTextComponentSerializer.plainText().serialize(h.header()))
+                    .reduce((first, last) -> last).orElse("");
+            assertFalse(painted.isEmpty(), "somebody leaving repaints the chrome for whoever stayed");
+            int now = MinecraftServer.getConnectionManager().getOnlinePlayerCount();
+            assertTrue(painted.contains(now + " player"), "with the count as it stands, " + now + ": " + painted);
+        } finally {
+            goes.player.remove();
+            stays.player.remove();
+        }
     }
 
     @Test

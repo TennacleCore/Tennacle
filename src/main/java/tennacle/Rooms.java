@@ -12,6 +12,8 @@ import io.github.term4.canvas.chat.Chat;
 import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.event.player.PlayerSpawnEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,6 +33,15 @@ public final class Rooms {
         Chat.install(Rooms::of);
         TabList.header(Rooms::tabHeader);
         TabList.footer(Rooms::tabFooter);
+        // the lobby chrome counts who is online, so the count changing is what repaints it - otherwise every
+        // other viewer's header keeps the number it was drawn with. Next tick: the leaver still counts in this one
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
+            if (e.isFirstSpawn()) MinecraftServer.getSchedulerManager().scheduleNextTick(TabList::refreshAll);
+        });
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
+                e -> MinecraftServer.getSchedulerManager().scheduleNextTick(TabList::refreshAll));
+
+
     }
 
     /** The viewer's game's look - the replayed game's for a watcher - else the server chrome in the house look. */
