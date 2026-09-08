@@ -1,6 +1,7 @@
 package tennacle.games.watch;
 
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.network.packet.server.play.SpawnPositionPacket;
@@ -57,8 +58,17 @@ public final class Lineup {
     public static void install() {
         if (installed) return;
         installed = true;
+        // a view ends at unaim, but a disconnect never passes through one: Grotto's own handler unspectates,
+        // which is its hooks, not this app's exit. Without this the map keeps the Player, and the tick below
+        // walks it for the life of the server
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
+                e -> AIMS.remove(e.getPlayer()));
         MinecraftServer.getSchedulerManager().buildTask(() -> AIMS.forEach((viewer, aim) -> {
-            if (!viewer.isOnline() || viewer.getInstance() == null) return;
+            if (!viewer.isOnline()) { // a body removed without a disconnect, in a test or a teardown
+                AIMS.remove(viewer);
+                return;
+            }
+            if (viewer.getInstance() == null) return; // mid-transfer: the aim waits for them to land
             Pos at = aim.at().get();
             if (at == null) return;
             Point block = new BlockVec(at.blockX(), at.blockY(), at.blockZ());

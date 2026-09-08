@@ -18,6 +18,7 @@ import tennacle.games.watch.Spectators;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -92,6 +93,38 @@ class SpectateNamesTest extends HeadlessServerTest {
             await("the view ended itself", () -> Matches.grotto().spectating(out.player) == null);
 
             Matches.toLobby(out.player);
+            game.decide(Outcome.draw(), 1);
+            BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
+        } finally {
+            red.player.remove();
+            blue.player.remove();
+            out.player.remove();
+        }
+    }
+
+    /** A watcher who logs out leaves nothing behind: the compass aim holds the Player, and unaim never runs. */
+    @Test
+    void aDisconnectDropsTheAim() {
+        Mode bridge = Matches.mode("bridge");
+        Game game = Matches.launch(bridge, Matches.platformFor(null), BridgeRoundTest.fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "AimRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "AimBlue");
+        FakePlayer out = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "AimWatch");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+
+            Spectators.enter(game, out.player, red.player);
+            BridgeRoundTest.tickUntil(game, "the view lands",
+                    () -> ShardView.of(out.player).blocks() == game.shard());
+            assertEquals("AimRed", tennacle.games.watch.Lineup.following(out.player), "the compass follows them");
+
+            EventDispatcher.call(new net.minestom.server.event.player.PlayerDisconnectEvent(out.player));
+            assertNull(tennacle.games.watch.Lineup.following(out.player), "and lets go when they go");
+
             game.decide(Outcome.draw(), 1);
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
         } finally {
