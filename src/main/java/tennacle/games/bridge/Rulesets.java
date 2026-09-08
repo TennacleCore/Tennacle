@@ -4,6 +4,7 @@ import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.Bodies;
 import io.github.term4.grotto.modules.combat.Freeze;
+import io.github.term4.grotto.modules.combat.Projectiles;
 import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.flow.TimeLimit;
 import tennacle.games.Match;
@@ -26,6 +27,7 @@ final class Rulesets {
             .rule(Roster.RECLAIM_TICKS, -1L) // a seat waits for the rest of the game
             .rule(Abandonment.EMPTY_TICKS, 1200L) // a minute with nobody in, then the game closes
             .rule(Bodies.CLEARS, List.of(Bodies.ARROWS)) // arrows stay in a body until the cages reset it
+            .rule(Projectiles.DIE_WITH_SHOOTER, true) // a shot in the air dies with the one who fired it
             .path("projectiles/minecraft:arrow/removeOnBlockHit", true)
             .path("projectiles/minecraft:arrow/selfHit", "pass_through") // no bow boost unless a platform asks
             // same team + FF off is the client lever that stops a 1.8 client hiding an arrow, so teammates already
