@@ -40,6 +40,8 @@ import io.github.term4.polyp.platform.SharedTeam;
 import io.github.term4.polyp.platform.compatibility.SpectatorHud;
 import io.github.term4.polyp.platform.compatibility.SpectatorMode;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
+import io.github.term4.barnacle.marker.LimitMarker;
+import io.github.term4.barnacle.marker.Marker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.modules.flow.Phases;
@@ -52,6 +54,7 @@ import net.minestom.server.codec.StructCodec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.instance.Instance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -171,7 +174,7 @@ public final class Replays {
     private static final int SPOOL_TICKS = 1200;
 
     private record Theater(String game, Shard stage, Playback playback, Arena arena, Dressing dressing,
-                          Set<Player> watchers) {}
+                          Set<Player> watchers, double floor) {}
 
     private static volatile @Nullable Path dir;
     private static volatile @Nullable ShardManager shards;
@@ -204,6 +207,12 @@ public final class Replays {
             Matches.toLobby(viewer);
         } : null);
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> leave(e.getPlayer()));
+        // no game watches the theater's void line, so the replay does: back to where the watcher came in
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerMoveEvent.class, e -> {
+            Theater theater = watching.get(e.getPlayer());
+            if (theater == null || e.getNewPosition().y() >= theater.floor()) return;
+            e.getPlayer().teleport(landing(theater.arena()));
+        });
         // watchers are observers of the stage, members of nothing: the tab lists a theater's watchers to each other
         ShardTabList.rule((viewer, subject) -> {
             Theater theirs = watching.get(subject);
@@ -571,7 +580,8 @@ public final class Replays {
         Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", playedOn(data, file), mode,
                 lookName != null ? lookName : "tennacle", lineup != null ? lineup : List.of(),
                 health != null ? health : List.of());
-        Theater theater = new Theater(id, stage, playback, arena, dressing, ConcurrentHashMap.newKeySet());
+        Theater theater = new Theater(id, stage, playback, arena, dressing, ConcurrentHashMap.newKeySet(),
+                floor(arena));
         theaters.add(theater);
         for (Player member : Parties.of(viewer)) { // the leader first: the remote is theirs
             if (member != viewer && Game.of(member) != null) {
@@ -650,6 +660,18 @@ public final class Replays {
                     .withBaseEntities(other -> watching.get(other) == theater));
             theater.dressing().enter(viewer, controller);
         });
+    }
+
+    // the lowest plane the map draws - a game's void line, where it has one; else far enough under the arrival
+    // that only a watcher off the map crosses it
+    private static double floor(Arena arena) {
+        Double lowest = null;
+        for (Marker marker : arena.markers()) {
+            if (marker instanceof LimitMarker plane && plane.y() != null && (lowest == null || plane.y() < lowest)) {
+                lowest = plane.y();
+            }
+        }
+        return lowest != null ? lowest : landing(arena).y() - 64;
     }
 
     // where a dead seat waits, as the game puts it (the dead marker, else the spectator's spot), leveled: a marker

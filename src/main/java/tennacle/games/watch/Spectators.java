@@ -116,16 +116,32 @@ public final class Spectators {
     }
 
     /**
-     * Puts a watcher who left the arena back on it: the spawn of the side they follow, so they come back where
-     * the play is, else the map's own watching spot. A watcher following a watcher inherits the name with the aim.
+     * Puts a watcher who left the arena back on it: where the side they follow respawns, so they come back where
+     * the play is, else the map's own watching spot.
      */
     public static void recall(@NotNull Game game, @NotNull Player viewer) {
-        String following = Lineup.following(viewer);
-        Player target = following != null ? game.memberNamed(following) : null;
-        Slot seat = target != null ? game.roster().slotOf(target) : null;
-        Pos at = seat != null ? seat.spawn() : null;
+        Slot seat = followed(game, viewer);
+        Respawns respawns = game.module(Respawns.class);
+        Pos at = seat == null ? null : respawns != null ? respawns.spawnOf(seat) : seat.spawn();
         if (at == null) at = game.spectatorLanding();
         if (at != null) viewer.teleport(at.withPitch(0), Vec.ZERO); // level: a marker authored looking down would tilt it
+    }
+
+    // down the chain of aims: whoever a watcher follows may be watching someone themselves
+    private static @Nullable Slot followed(Game game, Player viewer) {
+        Player who = viewer;
+        for (int hop = 0; hop < 8; hop++) { // a pair aimed at each other would otherwise circle
+            String name = Lineup.following(who);
+            if (name == null) return null;
+            Player member = game.memberNamed(name);
+            if (member != null) return game.roster().slotOf(member);
+            who = null;
+            for (Player watcher : game.spectators()) {
+                if (watcher.getUsername().equals(name)) who = watcher;
+            }
+            if (who == null) return null;
+        }
+        return null;
     }
 
     /** Whom {@code /spectate} can name: the seats, ghosts and viewers of every running game that takes them -
