@@ -86,31 +86,35 @@ public final class TestServer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestServer.class);
     private static final int EDITOR_IDLE_MINUTES = 10;
-    private static long editorEmptySince;
+    private static final java.util.Map<String, Long> editorEmptySince = new java.util.concurrent.ConcurrentHashMap<>();
 
     // an abandoned editor closes on its own, but the unsaved work survives as an .autosave sidecar
     private static void editorWatchdog() {
-        var editing = Bloom.session();
-        if (editing == null || !editing.instance().getPlayers().isEmpty()) {
-            editorEmptySince = 0;
-            return;
+        for (var editing : Bloom.sessions().values()) {
+            if (!editing.instance().getPlayers().isEmpty()) {
+                editorEmptySince.remove(editing.id());
+                continue;
+            }
+            long since = editorEmptySince.computeIfAbsent(editing.id(), id -> System.currentTimeMillis());
+            if (System.currentTimeMillis() - since < EDITOR_IDLE_MINUTES * 60_000L) continue;
+            editorEmptySince.remove(editing.id());
+            if (autosave(editing)) {
+                LOGGER.info("arena {} sat empty {}m - closed, unsaved edits in the .autosave",
+                        editing.id(), EDITOR_IDLE_MINUTES);
+            }
+            editing.close();
         }
-        if (editorEmptySince == 0) {
-            editorEmptySince = System.currentTimeMillis();
-            return;
-        }
-        if (System.currentTimeMillis() - editorEmptySince < EDITOR_IDLE_MINUTES * 60_000L) return;
-        editorEmptySince = 0;
-        if (autosave()) {
-            LOGGER.info("arena {} sat empty {}m - closed, unsaved edits in the .autosave",
-                    editing.id(), EDITOR_IDLE_MINUTES);
-        }
-        editing.close();
     }
 
-    /** Writes the live editor session beside its arena; {@code false} = nothing open, or it could not be written. */
-    private static boolean autosave() {
-        var editing = Bloom.session();
+    /** Every open session written beside its arena; {@code false} = nothing open, or none landed. */
+    private static boolean autosaveAll() {
+        boolean any = false;
+        for (var editing : Bloom.sessions().values()) any |= autosave(editing);
+        return any;
+    }
+
+    /** Writes {@code editing} beside its arena; {@code false} = it could not be written. */
+    private static boolean autosave(io.github.term4.bloom.Session editing) {
         if (editing == null) return false;
         Path sidecar = arenaDir().resolve(editing.id() + ".bncl.autosave");
         try {
@@ -258,9 +262,14 @@ public final class TestServer {
         Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
         Commands.describe(AppCommand.Audience.DEV, "give", "An item by material, for the editor.");
         tennacle.games.map.SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
+        // a builder walking into the editor leaves whatever they were in first - the compass, the ghost
+        // body and the rest belong to that session, not to this one. Editor to editor is just a hop
+        Bloom.onEntering(p -> {
+            if (Bloom.sessionOf(p) == null) Sessions.depart(p);
+        });
         Sessions.register(p -> { // /l leaves the editor OPEN - the idle watchdog below owns closing
-            var editing = Bloom.session();
-            if (editing == null || p.getInstance() != editing.instance()) return null;
+            var editing = Bloom.sessionOf(p);
+            if (editing == null) return null;
             return () -> {
                 Matches.toLobby(p);
                 Msg.say(p, Msg.v(editing.id()), " stays open. ", Msg.run("/arena edit"), " steps back in; it closes after "
@@ -312,7 +321,7 @@ public final class TestServer {
             }
         }));
         Shutdown.step("replays", 20, () -> Replays.flush(15, TimeUnit.SECONDS)); // the cut games' files land
-        Shutdown.step("editor", 10, () -> onTick(10, TestServer::autosave));
+        Shutdown.step("editor", 10, () -> onTick(10, TestServer::autosaveAll));
         Shutdown.step("player data", 15, () -> {
             vault.flush(10, TimeUnit.SECONDS);
             vault.close();

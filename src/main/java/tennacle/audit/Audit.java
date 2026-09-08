@@ -100,8 +100,8 @@ public final class Audit {
         if (instance == Matches.lobby()) return "lobby";
         Arena arena = arenaOf(instance);
         if (arena != null) return "map " + mapName(arena);
-        Session editing = Bloom.session();
-        if (editing != null && editing.instance() == instance) return "editor " + editing.id();
+        Session editing = editorAt(instance);
+        if (editing != null) return "editor " + editing.id();
         return "world " + instance.getDimensionName() + " " + instance.getUuid().toString().substring(0, 6);
     }
 
@@ -161,8 +161,8 @@ public final class Audit {
             String replay = Replays.replayOf(at);
             if (replay != null) return "replay " + replay.substring(0, Math.min(6, replay.length()));
         }
-        Session editing = Bloom.session();
-        if (editing != null && editing.instance() == shard.instance()) return "editor " + editing.id();
+        Session editing = editorAt(shard.instance());
+        if (editing != null) return "editor " + editing.id();
         return null;
     }
 
@@ -222,7 +222,7 @@ public final class Audit {
         Game game = Game.of(p);
         Game watched = Matches.grotto().spectating(p);
         String replay = Replays.watching(p);
-        Session editing = Bloom.session();
+        Session editing = p.getInstance() == null ? null : editorAt(p.getInstance());
         Shard shard = Shard.of(p);
         if (game != null) {
             Slot slot = game.roster().slotOf(p);
@@ -236,7 +236,7 @@ public final class Audit {
         } else if (replay != null) {
             out.add("watching replay ");
             out.add(shard != null ? whoLink(replay.substring(0, Math.min(6, replay.length())), shard) : Msg.v(replay));
-        } else if (editing != null && editing.instance() == p.getInstance()) {
+        } else if (editing != null) {
             out.add("editing ");
             out.add(Msg.v(editing.id()));
         } else if (shard != null) {
@@ -251,6 +251,14 @@ public final class Audit {
             out.add(" · party of " + party.size() + (Parties.leads(p) ? " (leader)" : ""));
         }
         return out;
+    }
+
+    // several arenas may be open at once: the one whose world this is
+    private static @Nullable Session editorAt(net.minestom.server.instance.Instance instance) {
+        for (Session open : Bloom.sessions().values()) {
+            if (open.instance() == instance) return open;
+        }
+        return null;
     }
 
     /** {@code text} that opens {@code shard}'s players as heads; the hover is its standing. */
