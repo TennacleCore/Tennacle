@@ -184,12 +184,23 @@ public final class Cages implements GameModule {
             if (!caged) {
                 caged = true;
                 stamp(game); // seats are filled by now - picks resolve, players wait inside the cage
+                settle(game);
             }
         });
         st.alarms().register(RECAGE_ALARM, (tick, payload) -> recage(game, payload));
         st.alarms().arm(STAMP_ALARM, st.tick() + 2);
         armCount(game, st.tick() + game.rules().resolve(Scope.GAME, Countdown.GRACE));
         game.rules().watch(Countdown.FROM, (scope, value) -> recount(game));
+    }
+
+    // the ticks before the stamp are open air where the floor is going to be: an arrival carrying the lobby's
+    // momentum falls through it, and the cage then builds over their head
+    private void settle(Game game) {
+        game.forEachMember(member -> {
+            Slot slot = game.roster().slotOf(member);
+            Pos at = slot != null ? seat(game, slot) : null;
+            if (at != null && !at.samePoint(member.getPosition())) member.teleport(at, Vec.ZERO);
+        });
     }
 
     private void armCount(Game game, long at) {
