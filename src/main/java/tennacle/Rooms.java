@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The rooms: a member speaks to their game (spectators included), a spectator to the other spectators of
@@ -27,6 +28,8 @@ import java.util.List;
  */
 public final class Rooms {
 
+    private static final AtomicBoolean repainting = new AtomicBoolean();
+
     private Rooms() {}
 
     public static void install() {
@@ -34,14 +37,20 @@ public final class Rooms {
         TabList.header(Rooms::tabHeader);
         TabList.footer(Rooms::tabFooter);
         // the lobby chrome counts who is online, so the count changing is what repaints it - otherwise every
-        // other viewer's header keeps the number it was drawn with. Next tick: the leaver still counts in this one
+        // other viewer's header keeps the number it was drawn with
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
-            if (e.isFirstSpawn()) MinecraftServer.getSchedulerManager().scheduleNextTick(TabList::refreshAll);
+            if (e.isFirstSpawn()) repaint();
         });
-        MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
-                e -> MinecraftServer.getSchedulerManager().scheduleNextTick(TabList::refreshAll));
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> repaint());
+    }
 
-
+    /** Next tick, and once: the leaver still counts in this one, and a queue emptying is one count change. */
+    private static void repaint() {
+        if (!repainting.compareAndSet(false, true)) return;
+        MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+            repainting.set(false);
+            TabList.refreshAll();
+        });
     }
 
     /** The viewer's game's look - the replayed game's for a watcher - else the server chrome in the house look. */
