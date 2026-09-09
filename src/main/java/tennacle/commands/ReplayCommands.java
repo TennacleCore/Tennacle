@@ -1,5 +1,6 @@
 package tennacle.commands;
 
+import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 import tennacle.storage.SafeName;
 import tennacle.Msg;
@@ -40,7 +41,7 @@ public final class ReplayCommands {
 
     /** The playback a timeline command drives: the game replay {@code sender} is watching, else the demo's. */
     private static @Nullable Playback current(net.minestom.server.command.CommandSender sender) {
-        Playback watched = sender instanceof Player p ? Replays.playbackOf(p) : null;
+        Playback watched = sender instanceof Player p ? Theaters.playbackOf(p) : null;
         return watched != null ? watched : demo;
     }
 
@@ -163,7 +164,7 @@ public final class ReplayCommands {
         // a game's own replay, by its id or the code its board showed
         Argument<String> game = ArgumentType.Word("game");
         replay.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) Replays.watch(p, ctx.get(game));
+            if (sender instanceof Player p) Theaters.watch(p, ctx.get(game));
         }, ArgumentType.Literal("watch"), game);
         replay.addSyntax((sender, ctx) -> {
             Playback playback = current(sender);

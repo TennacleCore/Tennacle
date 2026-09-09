@@ -1,6 +1,7 @@
 package tennacle;
 
 import tennacle.games.matchmaking.Parties;
+import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 import tennacle.looks.Look;
 import io.github.term4.canvas.tab.TabList;
@@ -55,7 +56,7 @@ public final class Rooms {
 
     /** The viewer's game's look - the replayed game's for a watcher - else the server chrome in the house look. */
     private static Look lookFor(Player viewer) {
-        Look replayed = Replays.lookOf(viewer);
+        Look replayed = Theaters.lookOf(viewer);
         if (replayed != null) return replayed;
         Game game = gameOf(viewer);
         if (game == null) game = Matches.grotto().spectating(viewer);

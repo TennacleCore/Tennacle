@@ -7,6 +7,7 @@ import io.github.term4.grotto.modules.view.Refusals;
 import java.util.function.Function;
 import io.github.term4.canvas.chat.Chat;
 import tennacle.Msg;
+import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 
 import io.github.term4.canvas.presets.HypixelIntro;
@@ -217,7 +218,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     // what they are doing in white, where in the value color, the code that names it dim - the board's own
     // shape. The accent is the gradient's middle, which fights the title rather than sitting under it
     private static Component houseWhere(Player viewer) {
-        Replays.Watched replay = Replays.watched(viewer);
+        Theaters.Watched replay = Theaters.watched(viewer);
         if (replay != null) { // the game's own line, marked as a replay, dated: a code names a game only beside its date
             Component where = white((replay.mode() != null ? replay.mode().title() : replay.game()) + " replay")
                     .append(Msg.THEME.prose(" on ")).append(Msg.THEME.value(replay.arena().meta().name()));

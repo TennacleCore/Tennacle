@@ -4,6 +4,7 @@ import tennacle.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Matches;
 import tennacle.games.matchmaking.Parties;
+import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 import tennacle.games.watch.Spectators;
 import tennacle.games.Mode;
@@ -158,7 +159,7 @@ public final class Audit {
         for (Shard at = shard; at != null; at = at.parent()) {
             Game game = Game.of(at);
             if (game != null) return "game " + gameName(game);
-            String replay = Replays.replayOf(at);
+            String replay = Theaters.replayOf(at);
             if (replay != null) return "replay " + replay.substring(0, Math.min(6, replay.length()));
         }
         Session editing = editorAt(shard.instance());
@@ -221,7 +222,7 @@ public final class Audit {
         List<Object> out = new ArrayList<>();
         Game game = Game.of(p);
         Game watched = Matches.grotto().spectating(p);
-        String replay = Replays.watching(p);
+        String replay = Theaters.watching(p);
         Session editing = p.getInstance() == null ? null : editorAt(p.getInstance());
         Shard shard = Shard.of(p);
         if (game != null) {
@@ -480,7 +481,7 @@ public final class Audit {
             Msg.ok(viewer, "Watching ", Msg.v(target.getUsername()), ". ", Msg.run("/l"), " to leave.");
             return;
         }
-        if (Replays.join(viewer, target)) return; // their theater, not one of our own
+        if (Theaters.join(viewer, target)) return; // their theater, not one of our own
         Instance instance = target.getInstance();
         if (instance == null) {
             Msg.fail(viewer, Msg.v(target.getUsername()), " is nowhere right now.");

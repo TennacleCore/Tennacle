@@ -88,7 +88,7 @@ public final class Spectators {
             Player who = e.getPlayer();
             Game watched = Matches.grotto().spectating(who);
             if (watched != null && who.getInstance() != watched.instance()) exit(who);
-            else if (Replays.strayed(who)) Replays.leave(who);
+            else if (Theaters.strayed(who)) Theaters.leave(who);
         });
         // a spectator lists only in the game they watch (to its members and its other spectators), grayed
         ShardTabList.rule((viewer, subject) -> {
@@ -101,7 +101,7 @@ public final class Spectators {
 
     /** Whether {@code who} is watching rather than playing - a game's crowd, or a replay's. */
     public static boolean watches(@NotNull net.minestom.server.entity.Entity who) {
-        return who instanceof Player p && (Matches.grotto().spectating(p) != null || Replays.watching(p) != null);
+        return who instanceof Player p && (Matches.grotto().spectating(p) != null || Theaters.watching(p) != null);
     }
 
     // a true spectator rides the camera of a player in the game they watch; anyone else is not a target
@@ -176,7 +176,7 @@ public final class Spectators {
     public static boolean exit(@NotNull Player viewer) {
         // every route out calls this first, and a theater's dressing would otherwise ride along to wherever
         // they land: a tab row still flagged spectator draws them INVISIBLE to every other client
-        boolean theater = Replays.leave(viewer);
+        boolean theater = Theaters.leave(viewer);
         Game watched = Matches.grotto().spectating(viewer);
         boolean wore = SpectatorMode.exit(viewer); // the camera home and the body back before the world changes
         if (watched == null && !wore) return theater;
