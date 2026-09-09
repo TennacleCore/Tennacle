@@ -32,7 +32,7 @@ import net.minestom.server.potion.PotionType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.bridge.ShardBridge;
+import tennacle.glue.ShardBridge;
 
 import java.util.ArrayList;
 import java.util.List;

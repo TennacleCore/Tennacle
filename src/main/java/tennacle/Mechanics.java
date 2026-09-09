@@ -1,7 +1,7 @@
 package tennacle;
 
-import tennacle.bridge.ReplayBridge;
-import tennacle.bridge.ShardBridge;
+import tennacle.glue.ReplayBridge;
+import tennacle.glue.ShardBridge;
 
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.storage.EntityDescriptors;

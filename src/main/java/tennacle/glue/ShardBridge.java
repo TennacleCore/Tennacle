@@ -1,4 +1,4 @@
-package tennacle.bridge;
+package tennacle.glue;
 
 import io.github.term4.polyp.entity.FallingBlockEntity;
 import io.github.term4.polyp.Polyp;

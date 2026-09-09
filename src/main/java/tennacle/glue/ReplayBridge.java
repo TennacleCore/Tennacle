@@ -1,4 +1,4 @@
-package tennacle.bridge;
+package tennacle.glue;
 
 import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.api.event.projectile.ProjectileHitEvent;

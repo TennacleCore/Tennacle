@@ -31,8 +31,8 @@ import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SpawnEntityPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.bridge.ReplayBridge;
-import tennacle.bridge.ShardBridge;
+import tennacle.glue.ReplayBridge;
+import tennacle.glue.ShardBridge;
 
 import java.util.List;
 import java.util.Map;

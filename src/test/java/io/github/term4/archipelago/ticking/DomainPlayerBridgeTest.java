@@ -11,7 +11,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.network.player.GameProfile;
 import net.minestom.server.network.player.PlayerConnection;
 import org.junit.jupiter.api.Test;
-import tennacle.bridge.ShardBridge;
+import tennacle.glue.ShardBridge;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;

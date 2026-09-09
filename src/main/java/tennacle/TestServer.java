@@ -1,10 +1,12 @@
 package tennacle;
 
-import tennacle.games.map.SectionCommands;
+import tennacle.commands.SectionCommands;
+import tennacle.games.bedfight.BedFight;
 import tennacle.games.matchmaking.Parties;
 import tennacle.games.matchmaking.Duels;
 import tennacle.games.matchmaking.Queues;
 import tennacle.games.watch.Spectators;
+import tennacle.games.watch.Tapes;
 import tennacle.games.watch.Replays;
 import tennacle.looks.GameSounds;
 import tennacle.looks.TabStats;
@@ -253,7 +255,7 @@ public final class TestServer {
         Sumo.install();   // ring-out over a void plane; the platform picks the knockback
         Boxing.install(); // speed 2, first to 10 hits; /stats for career numbers
         Bridge.install(); // blue vs red, first to five goals
-        tennacle.games.bedfight.BedFight.install(); // break the bed, then eliminate
+        BedFight.install(); // break the bed, then eliminate
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(arenaDir(), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
@@ -261,7 +263,7 @@ public final class TestServer {
         Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
         Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
         Commands.describe(AppCommand.Audience.DEV, "give", "An item by material, for the editor.");
-        tennacle.games.map.SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
+        SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
         // a builder walking into the editor leaves whatever they were in first - the compass, the ghost
         // body and the rest belong to that session, not to this one. Editor to editor is just a hop
         Bloom.onEntering(p -> {
@@ -320,7 +322,7 @@ public final class TestServer {
                 if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             }
         }));
-        Shutdown.step("replays", 20, () -> Replays.flush(15, TimeUnit.SECONDS)); // the cut games' files land
+        Shutdown.step("replays", 20, () -> Tapes.flush(15, TimeUnit.SECONDS)); // the cut games' files land
         Shutdown.step("editor", 10, () -> onTick(10, TestServer::autosaveAll));
         Shutdown.step("player data", 15, () -> {
             vault.flush(10, TimeUnit.SECONDS);

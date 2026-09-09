@@ -1,4 +1,4 @@
-package tennacle.games.map;
+package tennacle.commands;
 
 import io.github.term4.barnacle.Arena;
 import io.github.term4.bloom.Bloom;

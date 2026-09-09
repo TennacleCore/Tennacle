@@ -4,9 +4,11 @@ import tennacle.games.watch.Remote;
 import net.minestom.server.event.inventory.InventoryPreClickEvent;
 import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.Material;
+import tennacle.games.watch.Theaters;
+import tennacle.games.watch.Tapes;
 import tennacle.games.watch.Replays;
 import tennacle.games.watch.Spectators;
-import tennacle.bridge.ReplayBridge;
+import tennacle.glue.ReplayBridge;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -104,7 +106,7 @@ class ReplaysTest extends HeadlessServerTest {
         assertFalse(Files.exists(spool), "and is gone");
         assertFalse(Files.exists(spool.getParent()), "with the folder from before the mode folders");
         assertEquals("LEFT", ShardFile.userData(Files.readAllBytes(filed)).get(Replays.CODE), "with the header's data");
-        assertEquals(filed, Replays.fileOf("leftover"));
+        assertEquals(filed, Tapes.fileOf("leftover"));
         assertTrue(Files.exists(replays.resolve("boxing").resolve("loose.shard")), "the loose file moved under its mode");
         assertFalse(Files.exists(loose));
     }
@@ -169,7 +171,7 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
             await("the file lands under its mode", () -> Files.exists(file));
-            assertEquals(file, Replays.fileOf(game.id()));
+            assertEquals(file, Tapes.fileOf(game.id()));
             await("the players hear it", () -> said(red, "This game has been recorded") && said(blue, "This game has been recorded"));
             String json = blue.sent(SystemChatPacket.class).stream()
                     .map(c -> GsonComponentSerializer.gson().serialize(c.message()))
@@ -209,15 +211,15 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(mate.player, "party join WatchLead");
             assertEquals(2, tennacle.games.matchmaking.Parties.of(lead.player).size(), "a party of two");
 
-            Replays.watch(lead.player, game.id(), BridgeRoundTest.fixture());
-            await("both admitted", () -> Replays.playbackOf(mate.player) != null);
-            assertEquals(Replays.playbackOf(lead.player), Replays.playbackOf(mate.player), "one theater between them");
+            Theaters.watch(lead.player, game.id(), BridgeRoundTest.fixture());
+            await("both admitted", () -> Theaters.playbackOf(mate.player) != null);
+            assertEquals(Theaters.playbackOf(lead.player), Theaters.playbackOf(mate.player), "one theater between them");
             assertTrue(ShardView.of(lead.player).seesEntity(mate.player), "the leader sees who came along");
             assertTrue(ShardView.of(mate.player).seesEntity(lead.player), "and is seen back");
 
-            Replays.leave(lead.player);
+            Theaters.leave(lead.player);
             Matches.toLobby(lead.player);
-            Replays.leave(mate.player);
+            Theaters.leave(mate.player);
             Matches.toLobby(mate.player);
         } finally {
             red.player.remove();
@@ -246,22 +248,22 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Replays.watch(host.player, game.id(), BridgeRoundTest.fixture());
-            Playback show = Replays.playbackOf(host.player);
+            Theaters.watch(host.player, game.id(), BridgeRoundTest.fixture());
+            Playback show = Theaters.playbackOf(host.player);
             assertNotNull(show, "the host opened a theater");
             tickUntil(show.shard(), "the host is dressed", () -> held(host.player) > 0);
 
             tennacle.audit.Audit.go(guest.player, host.player);
-            assertEquals(show, Replays.playbackOf(guest.player), "the host's theater, not one of the guest's own");
+            assertEquals(show, Theaters.playbackOf(guest.player), "the host's theater, not one of the guest's own");
             tickUntil(show.shard(), "the guest is dressed",
                     () -> Integer.valueOf(-1).equals(guest.player.getTag(ShardTabList.LIST_ORDER)));
             assertEquals(1, held(guest.player), "and a guest carries the compass alone");
             assertEquals(Material.COMPASS, guest.player.getInventory().getItemStack(Remote.PLAYERS).material());
             assertTrue(guest.player.getInventory().getItemStack(Remote.PLAY).isAir(), "none of the remote");
 
-            Replays.leave(guest.player);
+            Theaters.leave(guest.player);
             Matches.toLobby(guest.player);
-            Replays.leave(host.player);
+            Theaters.leave(host.player);
             Matches.toLobby(host.player);
         } finally {
             red.player.remove();
@@ -298,24 +300,24 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Replays.watch(one.player, game.id(), BridgeRoundTest.fixture());
-            Replays.watch(two.player, game.id(), BridgeRoundTest.fixture());
-            Playback first = Replays.playbackOf(one.player);
-            Playback second = Replays.playbackOf(two.player);
+            Theaters.watch(one.player, game.id(), BridgeRoundTest.fixture());
+            Theaters.watch(two.player, game.id(), BridgeRoundTest.fixture());
+            Playback first = Theaters.playbackOf(one.player);
+            Playback second = Theaters.playbackOf(two.player);
             assertNotNull(first);
             assertNotNull(second);
             assertNotEquals(first, second, "each watcher plays their own");
             assertNotEquals(first.shard(), second.shard(), "on a shard of their own");
-            assertEquals(game.id(), Replays.watching(one.player));
-            assertEquals(game.id(), Replays.watching(two.player));
+            assertEquals(game.id(), Theaters.watching(one.player));
+            assertEquals(game.id(), Theaters.watching(two.player));
 
             first.pause(true);
             assertFalse(second.paused(), "one remote never reaches the other");
-            assertTrue(Replays.leave(one.player), "the first leaves");
+            assertTrue(Theaters.leave(one.player), "the first leaves");
             Matches.toLobby(one.player);
             assertFalse(first.active(), "and their theater closes");
             assertTrue(second.active(), "the other plays on");
-            assertTrue(Replays.leave(two.player));
+            assertTrue(Theaters.leave(two.player));
             Matches.toLobby(two.player);
             assertFalse(second.active());
         } finally {
@@ -344,8 +346,8 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Replays.watch(red.player, game.id(), BridgeRoundTest.fixture());
-            Playback playback = Replays.playbackOf(red.player);
+            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             Map<Integer, String> last = new java.util.LinkedHashMap<>(); // the fold keeps the latest per cell
             for (var op : playback.ops(io.github.term4.archipelago.replay.core.Channels.BLOCKS)) {
@@ -357,7 +359,7 @@ class ReplaysTest extends HeadlessServerTest {
                     x < 0 ? "minecraft:blue_terracotta" : "minecraft:red_terracotta", block,
                     "x=" + x + " ends on " + block));
         } finally {
-            Replays.leave(red.player);
+            Theaters.leave(red.player);
             Matches.toLobby(red.player);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
@@ -383,8 +385,8 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Replays.watch(red.player, game.id(), BridgeRoundTest.fixture());
-            Playback playback = Replays.playbackOf(red.player);
+            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             tickUntil(playback.shard(), "the theater dressed them",
                     () -> Integer.valueOf(-1).equals(red.player.getTag(ShardTabList.LIST_ORDER)));
@@ -395,7 +397,7 @@ class ReplaysTest extends HeadlessServerTest {
             tickUntil(playback.shard(), "back where they came in",
                     () -> red.player.getPosition().samePoint(arrival));
         } finally {
-            Replays.leave(red.player);
+            Theaters.leave(red.player);
             Matches.toLobby(red.player);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
@@ -421,16 +423,16 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Replays.watch(red.player, game.id(), BridgeRoundTest.fixture());
-            Playback playback = Replays.playbackOf(red.player);
+            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             tickUntil(playback.shard(), "the theater dressed them",
                     () -> Integer.valueOf(-1).equals(red.player.getTag(ShardTabList.LIST_ORDER)));
 
             red.player.setInstance(instance, new Pos(0.5, 65, 0.5)).join(); // a bare move, no leave call
-            await("the theater let them go", () -> Replays.watching(red.player) == null);
+            await("the theater let them go", () -> Theaters.watching(red.player) == null);
         } finally {
-            Replays.leave(red.player);
+            Theaters.leave(red.player);
             Matches.toLobby(red.player);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
@@ -455,24 +457,24 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(live.join(blue.player));
             await("seated for the live one", () -> Game.of(red.player) == live);
 
-            Replays.watch(watcher.player, first, BridgeRoundTest.fixture());
-            assertEquals(first, Replays.watching(watcher.player), "into the first replay");
+            Theaters.watch(watcher.player, first, BridgeRoundTest.fixture());
+            assertEquals(first, Theaters.watching(watcher.player), "into the first replay");
 
             // a second watch from inside the first: straight across, no /l
-            Replays.watch(watcher.player, second, BridgeRoundTest.fixture());
-            assertEquals(second, Replays.watching(watcher.player), "and straight into the second");
+            Theaters.watch(watcher.player, second, BridgeRoundTest.fixture());
+            assertEquals(second, Theaters.watching(watcher.player), "and straight into the second");
 
             // and out of a replay into a live game's crowd
             Spectators.enter(live, watcher.player, red.player);
-            assertNull(Replays.watching(watcher.player), "the theater let go");
+            assertNull(Theaters.watching(watcher.player), "the theater let go");
             assertSame(live, Matches.grotto().spectating(watcher.player), "watching the live game now");
 
             // and back the other way
-            Replays.watch(watcher.player, first, BridgeRoundTest.fixture());
-            assertEquals(first, Replays.watching(watcher.player), "back into a replay");
+            Theaters.watch(watcher.player, first, BridgeRoundTest.fixture());
+            assertEquals(first, Theaters.watching(watcher.player), "back into a replay");
             assertNull(Matches.grotto().spectating(watcher.player), "and no longer in the crowd");
         } finally {
-            Replays.leave(watcher.player);
+            Theaters.leave(watcher.player);
             Spectators.exit(watcher.player);
             Matches.toLobby(watcher.player);
             if (live.status() == Game.Status.OPEN) live.end(Outcome.aborted());
@@ -497,20 +499,20 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(mate.player, "party join HopLead");
             assertEquals(2, tennacle.games.matchmaking.Parties.of(lead.player).size(), "a party of two");
 
-            Replays.watch(lead.player, first, BridgeRoundTest.fixture());
-            Playback one = Replays.playbackOf(lead.player);
+            Theaters.watch(lead.player, first, BridgeRoundTest.fixture());
+            Playback one = Theaters.playbackOf(lead.player);
             assertNotNull(one);
             tickUntil(one.shard(), "both standing in the first", () -> standing(one, lead, mate));
 
-            Replays.watch(lead.player, second, BridgeRoundTest.fixture());
-            Playback two = Replays.playbackOf(lead.player);
+            Theaters.watch(lead.player, second, BridgeRoundTest.fixture());
+            Playback two = Theaters.playbackOf(lead.player);
             assertNotNull(two);
             assertNotSame(one, two, "a second theater, not the first again");
             tickUntil(two.shard(), "both standing in the second", () -> standing(two, lead, mate));
-            assertEquals(second, Replays.watching(mate.player), "the party crossed with its leader");
+            assertEquals(second, Theaters.watching(mate.player), "the party crossed with its leader");
         } finally {
-            Replays.leave(lead.player);
-            Replays.leave(mate.player);
+            Theaters.leave(lead.player);
+            Theaters.leave(mate.player);
             Matches.toLobby(lead.player);
             Matches.toLobby(mate.player);
             red.player.remove();
@@ -538,21 +540,21 @@ class ReplaysTest extends HeadlessServerTest {
             live.state().set(io.github.term4.grotto.state.Scope.GAME,
                     io.github.term4.grotto.modules.view.Spectating.ALLOWED, false);
 
-            Replays.watch(watcher.player, replay, BridgeRoundTest.fixture());
-            Playback stage = Replays.playbackOf(watcher.player);
+            Theaters.watch(watcher.player, replay, BridgeRoundTest.fixture());
+            Playback stage = Theaters.playbackOf(watcher.player);
             assertNotNull(stage);
             tickUntil(stage.shard(), "in the theater", () -> standing(stage, watcher));
 
             // a game that takes no crowd says so - and does not cost them the replay they were in
             MinecraftServer.getCommandManager().execute(watcher.player, "spectate KeepRed");
             assertNull(Matches.grotto().spectating(watcher.player), "no crowd to join");
-            assertEquals(replay, Replays.watching(watcher.player), "and the replay they had stands");
+            assertEquals(replay, Theaters.watching(watcher.player), "and the replay they had stands");
 
             // and asking for the replay they are already in leaves it exactly as it was
-            Replays.watch(watcher.player, replay, BridgeRoundTest.fixture());
-            assertSame(stage, Replays.playbackOf(watcher.player), "the same theater, not a second of it");
+            Theaters.watch(watcher.player, replay, BridgeRoundTest.fixture());
+            assertSame(stage, Theaters.playbackOf(watcher.player), "the same theater, not a second of it");
         } finally {
-            Replays.leave(watcher.player);
+            Theaters.leave(watcher.player);
             Matches.toLobby(watcher.player);
             if (live.status() == Game.Status.OPEN) live.end(Outcome.aborted());
             red.player.remove();
@@ -563,7 +565,7 @@ class ReplaysTest extends HeadlessServerTest {
 
     private static boolean standing(Playback stage, FakePlayer... watchers) {
         for (FakePlayer w : watchers) {
-            if (w.player.getInstance() != stage.shard().instance() || Replays.playbackOf(w.player) != stage) return false;
+            if (w.player.getInstance() != stage.shard().instance() || Theaters.playbackOf(w.player) != stage) return false;
         }
         return true;
     }
@@ -603,8 +605,8 @@ class ReplaysTest extends HeadlessServerTest {
             await("the file lands", () -> Files.exists(file));
 
             red.sent.clear();
-            Replays.watch(red.player, game.id(), BridgeRoundTest.fixture()); // one of the two who played it
-            Playback playback = Replays.playbackOf(red.player);
+            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture()); // one of the two who played it
+            Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             tickUntil(playback.shard(), "the theater dressed them",
                     () -> Integer.valueOf(-1).equals(red.player.getTag(ShardTabList.LIST_ORDER)));
@@ -615,7 +617,7 @@ class ReplaysTest extends HeadlessServerTest {
                         "their own name never joins a recorded side: it would paint their living body");
             }
         } finally {
-            Replays.leave(red.player);
+            Theaters.leave(red.player);
             Matches.toLobby(red.player);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();
@@ -652,8 +654,8 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(mate.player, "party accept");
             viewer.sent.clear();
             mate.sent.clear();
-            Replays.watch(viewer.player, game.id(), BridgeRoundTest.fixture());
-            Playback playback = Replays.playbackOf(viewer.player);
+            Theaters.watch(viewer.player, game.id(), BridgeRoundTest.fixture());
+            Playback playback = Theaters.playbackOf(viewer.player);
             assertNotNull(playback, "the watch raised a theater");
             assertTrue(playback.counts().getOrDefault("tennacle:rows", 0) > 0,
                     "the board recorded: " + playback.counts());
@@ -673,9 +675,9 @@ class ReplaysTest extends HeadlessServerTest {
             assertEquals(Math.round(mate.player.getHealth()), tabScore(viewer, mate.player),
                     "a watcher's row reads their own bar, not the zero an unscored one invents");
         } finally {
-            Replays.leave(viewer.player);
+            Theaters.leave(viewer.player);
             Matches.toLobby(viewer.player);
-            Replays.leave(mate.player);
+            Theaters.leave(mate.player);
             Matches.toLobby(mate.player);
             red.player.remove();
             blue.player.remove();
@@ -707,10 +709,10 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(viewer.player, "party ChanMate");
             MinecraftServer.getCommandManager().execute(mate.player, "party accept");
             viewer.sent.clear();
-            Replays.watch(viewer.player, game.id(), BridgeRoundTest.fixture()); // the fixture is in no pool
-            Playback playback = Replays.playbackOf(viewer.player);
+            Theaters.watch(viewer.player, game.id(), BridgeRoundTest.fixture()); // the fixture is in no pool
+            Playback playback = Theaters.playbackOf(viewer.player);
             assertNotNull(playback, "the watch raised a theater");
-            assertEquals(playback, Replays.playbackOf(mate.player), "the party watches behind its leader");
+            assertEquals(playback, Theaters.playbackOf(mate.player), "the party watches behind its leader");
             assertTrue(playback.counts().getOrDefault("tennacle:line", 0) > 0, playback.counts().toString());
             assertTrue(playback.counts().getOrDefault("tennacle:title", 0) > 0, playback.counts().toString());
             assertTrue(playback.counts().getOrDefault("tennacle:rows", 0) > 0, "the board recorded: " + playback.counts());
@@ -776,18 +778,18 @@ class ReplaysTest extends HeadlessServerTest {
             playback.reverse(false);
             tickUntil(theater, "the replay runs out and holds its last frame", () -> playback.paused() && playback.tick() >= playback.length());
             assertTrue(playback.active(), "the theater stays up");
-            assertEquals(game.id(), Replays.watching(viewer.player), "and so does the watcher");
+            assertEquals(game.id(), Theaters.watching(viewer.player), "and so does the watcher");
             tickUntil(theater, "told so", () -> said(viewer, "The replay is over."));
-            assertTrue(Replays.leave(viewer.player), "the leader leaves");
+            assertTrue(Theaters.leave(viewer.player), "the leader leaves");
             Matches.toLobby(viewer.player);
-            assertNull(Replays.watching(viewer.player));
-            assertNull(Replays.watching(mate.player), "the party went home too");
+            assertNull(Theaters.watching(viewer.player));
+            assertNull(Theaters.watching(mate.player), "the party went home too");
             assertFalse(playback.active(), "the last one out closed the theater");
             await("back in the lobby", () -> viewer.player.getInstance() == instance);
             assertNull(viewer.player.getTag(ShardTabList.SPECTATOR));
             assertTrue(viewer.player.getInventory().getItemStack(Remote.PLAY).isAir(), "the remote stays in the theater");
         } finally {
-            Replays.leave(viewer.player);
+            Theaters.leave(viewer.player);
             MinecraftServer.getCommandManager().execute(viewer.player, "party disband");
             red.player.remove();
             blue.player.remove();

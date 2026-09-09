@@ -50,7 +50,7 @@ class BedFightRoundTest extends HeadlessServerTest {
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
-        tennacle.bridge.ReplayBridge.install(); // the bookmarks ride a running recording
+        tennacle.glue.ReplayBridge.install(); // the bookmarks ride a running recording
         tennacle.games.watch.Replays.install(replays, new ShardManager());
     }
 
