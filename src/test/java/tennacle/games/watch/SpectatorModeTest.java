@@ -49,7 +49,7 @@ class SpectatorModeTest extends HeadlessServerTest {
         FakePlayer w = FakePlayer.connect(instance, new Pos(24.5, 65, 24.5), "FeatherWatch");
         Game game = null;
         try {
-            Polyp.getInstance().clientInfo().setProtocol(w.player, 47); // 1.8, the retry
+            Polyp.getInstance().clientInfo().setProtocol(w.player, 47);
             Mode sumo = Matches.mode("sumo");
             assertNotNull(sumo);
             game = Matches.start(sumo, Matches.platformFor(null), List.of(List.of(a.player), List.of(b.player)));
@@ -59,9 +59,10 @@ class SpectatorModeTest extends HeadlessServerTest {
             assertEquals(SpectatorMode.Mode.GHOST, SpectatorMode.mode(w.player), "enters as the ghost");
 
             w.player.setHeldItemSlot((byte) Spectators.FEATHER_SLOT);
-            clickBoth(w.player);
+            click(w.player);
             assertEquals(SpectatorMode.Mode.TRUE, SpectatorMode.mode(w.player), "one click, one swap");
-            clickBoth(w.player);
+            tick(w.player);
+            click(w.player);
             assertEquals(SpectatorMode.Mode.GHOST, SpectatorMode.mode(w.player), "and back, not there and back");
         } finally {
             Spectators.exit(w.player);
@@ -72,17 +73,30 @@ class SpectatorModeTest extends HeadlessServerTest {
         }
     }
 
-    // what a 1.8 client sends for one right-click on a block it could not use: the main hand, then the off
-    private static void clickBoth(net.minestom.server.entity.Player viewer) {
-        for (net.minestom.server.entity.PlayerHand hand : net.minestom.server.entity.PlayerHand.values()) {
-            net.minestom.server.event.EventDispatcher.call(
-                    new net.minestom.server.event.player.PlayerBlockInteractEvent(viewer, hand,
-                            viewer.getInstance(),
-                            net.minestom.server.instance.block.Block.STONE,
-                            new net.minestom.server.coordinate.BlockVec(24, 64, 24),
-                            new net.minestom.server.coordinate.Vec(0.5, 1, 0.5),
-                            net.minestom.server.instance.block.BlockFace.TOP));
-        }
+    /**
+     * One right-click on a block a 1.8 client could not use, as the client sends it: the placement, then the
+     * use-item behind it, both on the main hand. {@code PlayerControllerMP.onPlayerRightClick} returns the
+     * item's own {@code onItemUse}, false for a feather, so {@code Minecraft.rightClickMouse} still runs its
+     * {@code sendUseItem} fallback.
+     */
+    private static void click(net.minestom.server.entity.Player viewer) {
+        net.minestom.server.event.EventDispatcher.call(
+                new net.minestom.server.event.player.PlayerBlockInteractEvent(viewer,
+                        net.minestom.server.entity.PlayerHand.MAIN, viewer.getInstance(),
+                        net.minestom.server.instance.block.Block.STONE,
+                        new net.minestom.server.coordinate.BlockVec(24, 64, 24),
+                        new net.minestom.server.coordinate.Vec(0.5, 1, 0.5),
+                        net.minestom.server.instance.block.BlockFace.TOP));
+        net.minestom.server.event.EventDispatcher.call(
+                new net.minestom.server.event.player.PlayerUseItemEvent(viewer,
+                        net.minestom.server.entity.PlayerHand.MAIN, viewer.getItemInMainHand(), 0));
+    }
+
+    // the harness ticks the shard, not a watcher bound to nothing; a press is one per the player's own tick
+    private static void tick(net.minestom.server.entity.Player viewer) {
+        long was = viewer.getAliveTicks();
+        viewer.tick(System.nanoTime() / 1_000_000L);
+        assertTrue(viewer.getAliveTicks() > was, "the watcher ticked");
     }
 
     private static void settle(java.util.function.BooleanSupplier done) throws InterruptedException {

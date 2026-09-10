@@ -100,9 +100,9 @@ public final class Remote {
         installed = true;
         Lineup.install();
         var events = MinecraftServer.getGlobalEventHandler();
-        // cancelled or not: a spectator policy elsewhere may have refused the use already. MAIN alone, as
-        // everywhere a right-click drives something: a client that changed nothing retries the click on the
-        // off hand, and a remote that presses on both plays and pauses in the same breath
+        // cancelled or not: a spectator policy elsewhere may have refused the use already. MAIN alone, and
+        // one press per tick ({@link Press}): a remote pressed at a block arrives twice and would play and
+        // pause in the same breath
         events.addListener(EventListener.builder(PlayerUseItemEvent.class).ignoreCancelled(false).handler(e -> {
             Remote remote = BY_PLAYER.get(e.getPlayer());
             if (remote == null || e.getHand() != PlayerHand.MAIN) return;
@@ -247,8 +247,10 @@ public final class Remote {
     // a right click and the swing the client sends after it are one press
     private void press(Player viewer, boolean right) {
         long now = playback.shard().ticks();
-        if (right) pressed.put(viewer, now);
-        else if (pressed.getOrDefault(viewer, -1L) == now) return;
+        if (right) {
+            if (!Press.once(viewer)) return;
+            pressed.put(viewer, now); // the swing the client sends with it is not a left click
+        } else if (pressed.getOrDefault(viewer, -1L) == now) return;
         if (viewer.getHeldSlot() == PLAYERS) { // the compass is every watcher's; the rest is the remote
             if (right) players(viewer);
             return;

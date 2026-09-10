@@ -62,15 +62,15 @@ public final class Spectators {
                 return !watches(actor) && !watches(target) && ShardPolicy.super.affects(actor, target);
             }
         });
-        // the compass: the picker of the players alive; Grotto refuses a spectator's use, so listen past the cancel.
-        // MAIN alone: a client that changed nothing retries the whole click on the off hand, and a feather that
-        // toggles on both is a click that toggles twice
+        // the compass and the feather; Grotto refuses a spectator's use, so listen past the cancel. Both events,
+        // because one press reaches us as either or both ({@link Press}), and MAIN because an off-hand press is
+        // the client's own choice to use the other hand, not this click
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerUseItemEvent.class)
                 .ignoreCancelled(false)
-                .handler(e -> { if (e.getHand() == PlayerHand.MAIN) righted(e.getPlayer()); }).build());
+                .handler(e -> righted(e.getPlayer(), e.getHand())).build());
         MinecraftServer.getGlobalEventHandler().addListener(EventListener.builder(PlayerBlockInteractEvent.class)
                 .ignoreCancelled(false)
-                .handler(e -> { if (e.getHand() == PlayerHand.MAIN) righted(e.getPlayer()); }).build());
+                .handler(e -> righted(e.getPlayer(), e.getHand())).build());
         MinecraftServer.getGlobalEventHandler().addListener(InventoryPreClickEvent.class, e -> {
             Player who = e.getPlayer();
             if ((Matches.grotto().spectating(who) != null || ghosting(who) != null) && Screens.screen(who) == null) e.setCancelled(true);
@@ -193,7 +193,8 @@ public final class Spectators {
     public static final int COMPASS_SLOT = 0, FEATHER_SLOT = 1;
 
     // a right click, whatever it landed on: each tool reads its own slot, and a left click reaches neither
-    private static void righted(Player viewer) {
+    private static void righted(Player viewer, PlayerHand hand) {
+        if (hand != PlayerHand.MAIN || !Press.once(viewer)) return;
         compass(viewer);
         feather(viewer);
     }
@@ -268,7 +269,7 @@ public final class Spectators {
             Msg.fail(viewer, "Your client has no spectator mode (1.7).");
         } else if (mode == SpectatorMode.Mode.TRUE) {
             Msg.say(viewer, "Spectator mode: click a player to ride their camera, sneak to leave it. ",
-                    Msg.run("/spec mode ghost"), " for the ghost body.");
+                    Msg.run("/spec mode ghost"), " for the ghost body, or the feather at a block.");
         } else {
             Msg.say(viewer, "Ghost body. ", Msg.run("/spec mode true"), " for spectator mode.");
         }
