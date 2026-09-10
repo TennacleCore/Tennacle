@@ -87,16 +87,22 @@ class SpectatorModeTest extends HeadlessServerTest {
                         new net.minestom.server.coordinate.BlockVec(24, 64, 24),
                         new net.minestom.server.coordinate.Vec(0.5, 1, 0.5),
                         net.minestom.server.instance.block.BlockFace.TOP));
+        step(viewer); // the entity ticks between the two packets as often as not - measured on the live server
         net.minestom.server.event.EventDispatcher.call(
                 new net.minestom.server.event.player.PlayerUseItemEvent(viewer,
                         net.minestom.server.entity.PlayerHand.MAIN, viewer.getItemInMainHand(), 0));
     }
 
-    // the harness ticks the shard, not a watcher bound to nothing; a press is one per the player's own tick
+    private static void step(net.minestom.server.entity.Player viewer) {
+        viewer.tick(System.nanoTime() / 1_000_000L);
+    }
+
+    // the harness ticks the shard, not a watcher bound to nothing. Four, the client's own right-click delay:
+    // nearer than that and a press reads as the tail of the one before it
     private static void tick(net.minestom.server.entity.Player viewer) {
         long was = viewer.getAliveTicks();
-        viewer.tick(System.nanoTime() / 1_000_000L);
-        assertTrue(viewer.getAliveTicks() > was, "the watcher ticked");
+        for (int i = 0; i < 4; i++) step(viewer);
+        assertTrue(viewer.getAliveTicks() >= was + 4, "the watcher ticked");
     }
 
     private static void settle(java.util.function.BooleanSupplier done) throws InterruptedException {
