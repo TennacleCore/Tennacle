@@ -66,8 +66,6 @@ public final class Rules implements GameModule {
     }
 
     private final Set<Point> placed = new HashSet<>();
-    /** Seats whose holder walked out owing a respawn: the bed falling while they are away spends it. */
-    private final Set<Integer> away = new HashSet<>();
     private Game game;
     private Respawns respawns;
     private KillCredit credit;
@@ -98,10 +96,12 @@ public final class Rules implements GameModule {
         ceilingY = (int) Math.floor(plane(BedFight.HEIGHT));
         Beds beds = game.module(Beds.class);
         if (beds != null) {
-            // bedwars: a bed lost while its holder is away spends the respawn they walked out owing
+            // bedwars: a bed lost while nobody is sitting in the seat spends the respawn its holder walked
+            // out owing. Read at the fall rather than kept from the leave - a seat owns nobody whether they
+            // left mid-round, walked out of the countdown, or never arrived
             beds.onFall(team -> {
-                for (Slot seat : game.roster().slots()) {
-                    if (seat.team().equals(team) && away.remove(seat.index())) {
+                for (Slot seat : game.roster().seatsOf(team)) {
+                    if (game.roster().ownerOf(seat) == null) {
                         standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
                     }
                 }
@@ -157,9 +157,9 @@ public final class Rules implements GameModule {
     }
 
     /**
-     * Walking out is a death like any other: the seat is held, so it owes a respawn - and a bed lost while
-     * nobody is sitting in it makes that the last one. A death taken WHILE connected keeps its respawn even
-     * if the bed falls mid-wait, which is the queue's own doing and bedwars' rule.
+     * Walking out is a death like any other: the seat is held, so it owes a respawn, and the bed falling on an
+     * empty seat spends it. A death taken WHILE connected keeps its respawn even if the bed falls mid-wait,
+     * which is the queue's own doing and bedwars' rule.
      */
     @Override
     public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
@@ -168,13 +168,7 @@ public final class Rules implements GameModule {
         // the seat is the departure's: by now the roster no longer answers for them
         Scope scope = Scope.slot(seat.index());
         game.state().set(scope, BedFight.DEATHS, game.state().get(scope, BedFight.DEATHS) + 1);
-        if (Beds.stands(game, seat.team())) away.add(seat.index());
-        else standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
-    }
-
-    @Override
-    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
-        away.remove(slot.index()); // back in the seat, and back in the running
+        if (!Beds.stands(game, seat.team())) standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
     }
 
     /** A member dropped under the void plane ({@code Limits}): the same end a killing blow gets. */

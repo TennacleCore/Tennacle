@@ -714,6 +714,36 @@ class BedFightRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** Out of the seat is out of the seat: the countdown leaver never reached the handler that once recorded it. */
+    @Test
+    void aCountdownLeaverIsOutToo() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "EarlyRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "EarlyBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            Slot seat = game.roster().slotOf(red.player);
+            assertNotNull(seat);
+            Scope mine = Scope.slot(seat.index());
+
+            game.depart(red.player); // before the cage opens, so no death is owed and nothing records them
+            live(game);
+            assertFalse(game.state().get(mine, LastStanding.OUT), "the bed still stands, so they may come back");
+
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            assertTrue(game.state().get(mine, LastStanding.OUT), "nobody was sitting there when it went");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
     /** The replay keeps the bed that went and the death nobody came back from, both sides of each named. */
     @Test
     void theReplayKeepsBedsAndFinalKills() {
