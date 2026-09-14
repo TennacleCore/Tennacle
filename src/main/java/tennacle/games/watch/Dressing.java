@@ -329,6 +329,19 @@ final class Dressing {
         return out;
     }
 
+    /**
+     * The recorded actor's tab row, in the side's color, or {@code null} for a name the lineup never held. The
+     * teams below cannot paint these: they key on the name, which a watcher of their own match shares.
+     */
+    @Nullable Component listName(@NotNull String username) {
+        for (Seat seat : lineup) {
+            if (seat.name().equals(username)) {
+                return Component.text(username, seat.color()).decoration(TextDecoration.ITALIC, false);
+            }
+        }
+        return null;
+    }
+
     private TextColor colorOf(String team) {
         for (Seat seat : lineup) if (seat.team().equals(team)) return seat.color();
         return NamedTextColor.WHITE;

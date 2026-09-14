@@ -202,6 +202,7 @@ public final class Theaters {
         Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", playedOn(data, file), mode,
                 lookName != null ? lookName : "tennacle", lineup != null ? lineup : List.of(),
                 health != null ? health : List.of());
+        playback.ghostNames(dressing::listName); // before the first move op raises a ghost
         Theater theater = new Theater(id, stage, playback, arena, dressing, ConcurrentHashMap.newKeySet(),
                 floor(arena));
         theaters.add(theater);
