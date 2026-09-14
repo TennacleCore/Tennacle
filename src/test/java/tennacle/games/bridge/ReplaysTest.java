@@ -616,6 +616,14 @@ class ReplaysTest extends HeadlessServerTest {
                 assertFalse(made.entities().contains("PlayedRed"),
                         "their own name never joins a recorded side: it would paint their living body");
             }
+            // so the color rides the ghost's own entry instead, which a name-keyed team could never reach
+            tickUntil(playback.shard(), "their ghost rises", () -> playback.ghost("PlayedRed") != null);
+            var ghost = red.sent(net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket.class).stream()
+                    .flatMap(info -> info.entries().stream())
+                    .filter(e -> e.username().equals("PlayedRed") && !e.uuid().equals(red.player.getUuid()))
+                    .reduce((first, last) -> last).orElse(null);
+            assertNotNull(ghost, "their ghost's profile reached them");
+            assertNotNull(ghost.displayName(), "and it reads in the side's color");
         } finally {
             Theaters.leave(red.player);
             Matches.toLobby(red.player);
