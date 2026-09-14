@@ -158,6 +158,7 @@ public final class BedFight {
                 .rule(Loadout.DROP, false)   // the kit is the whole economy: it never leaves the body
                 .rule(Loadout.UNEQUIP, false)
                 .rule(Respawns.RESPAWN_TICKS, 60L)
+                .rule(Respawns.REJOIN_TICKS, 120L) // coming back costs twice a death: walking out was the death
                 .rule(Respawns.CLEAR, 2) // a spawn is buildable over; landing there takes the roof back down
                 .rule(Respawns.PROTECT_TICKS, 40L) // knockback immunity after a respawn; a swing forfeits it
                 .rule(KillCredit.TICKS, 100L)      // a shove credits the void kill for this long

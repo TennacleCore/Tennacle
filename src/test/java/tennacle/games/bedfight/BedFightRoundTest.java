@@ -714,6 +714,79 @@ class BedFightRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** Walking out inside the credit window is a kill for whoever last landed a hit, and a death for the leaver. */
+    @Test
+    void aHitThenALeaveIsAKill() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "LogRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "LogBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot mine = game.roster().slotOf(red.player);
+            Slot theirs = game.roster().slotOf(blue.player);
+            assertNotNull(mine);
+            assertNotNull(theirs);
+
+            io.github.term4.grotto.modules.combat.KillCredit credit =
+                    game.module(io.github.term4.grotto.modules.combat.KillCredit.class);
+            assertNotNull(credit);
+            credit.record(red.player, blue.player, game.state().tick()); // blue got a hit in
+
+            game.depart(red.player);
+            assertEquals(1, game.state().get(Scope.slot(mine.index()), BedFight.DEATHS), "walking out is a death");
+            assertEquals(1, game.state().get(Scope.slot(theirs.index()), BedFight.KILLS),
+                    "and the hit inside the window takes the kill with it");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    /** Coming back owes a wait of its own, longer than a death's: the rejoin is priced by its own rule. */
+    @Test
+    void aRejoinWaitsItsOwnClock() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BackRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "BackBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot seat = game.roster().slotOf(red.player);
+            assertNotNull(seat);
+            Scope mine = Scope.slot(seat.index());
+
+            game.depart(red.player);
+            assertFalse(game.state().get(mine, io.github.term4.grotto.modules.combat.Respawns.DEAD),
+                    "nobody waits in an empty seat");
+
+            assertTrue(game.join(red.player), "the seat was held for them"); // still standing in the world they left
+            assertTrue(game.state().get(mine, io.github.term4.grotto.modules.combat.Respawns.DEAD),
+                    "and they come back into the wait, not onto the map");
+            assertTrue(game.isGhost(red.player), "a ghost until it runs out - no member, so Game.of reads null");
+
+            io.github.term4.grotto.modules.combat.Respawns respawns =
+                    game.module(io.github.term4.grotto.modules.combat.Respawns.class);
+            assertNotNull(respawns);
+            assertEquals(120L, respawns.remaining(red.player), "the rejoin's own clock, not the death's 60");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
     /** Out of the seat is out of the seat: the countdown leaver never reached the handler that once recorded it. */
     @Test
     void aCountdownLeaverIsOutToo() {

@@ -157,9 +157,10 @@ public final class Rules implements GameModule {
     }
 
     /**
-     * Walking out is a death like any other: the seat is held, so it owes a respawn, and the bed falling on an
-     * empty seat spends it. A death taken WHILE connected keeps its respawn even if the bed falls mid-wait,
-     * which is the queue's own doing and bedwars' rule.
+     * Walking out is a death like any other: whoever last hit them inside the credit window takes the kill, and
+     * the seat is held, so it owes a respawn - which {@link Respawns#REJOIN_TICKS} prices when they come back and
+     * the bed falling on the empty seat spends if they do not. A death taken WHILE connected keeps its respawn
+     * even if the bed falls mid-wait, which is the queue's own doing and bedwars' rule.
      */
     @Override
     public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
@@ -168,7 +169,28 @@ public final class Rules implements GameModule {
         // the seat is the departure's: by now the roster no longer answers for them
         Scope scope = Scope.slot(seat.index());
         game.state().set(scope, BedFight.DEATHS, game.state().get(scope, BedFight.DEATHS) + 1);
-        if (!Beds.stands(game, seat.team())) standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
+        Player by = credit.creditFor(player);
+        String verb = by != null ? "was killed by" : "left the game";
+        if (by != null) Match.addSeat(game, by, BedFight.KILLS);
+        if (!Beds.stands(game, seat.team())) {
+            mark(player, seat, by, verb);
+            standing.out(seat, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game)));
+            if (standing.standing(seat.team()) == 0) {
+                Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
+                if (banner != null) Match.say(game, banner);
+            }
+            return;
+        }
+        Match.say(game, tennacle.games.Matches.lookOf(game).death()
+                .render(game, seat, player.getUsername(), by, verb));
+    }
+
+    /** Coming back to a bed that went while they were away changes nothing: the seat is still out. */
+    @Override
+    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
+        if (!reclaimed || Beds.stands(game, slot.team())) return;
+        respawns.cancel(player); // the wait the rejoin armed has nothing to land on
+        standing.out(slot, LastStanding.Cause.eliminated(null, "left the game"));
     }
 
     /** A member dropped under the void plane ({@code Limits}): the same end a killing blow gets. */

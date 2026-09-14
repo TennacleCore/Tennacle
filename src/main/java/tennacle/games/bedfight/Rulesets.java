@@ -32,6 +32,7 @@ final class Rulesets {
                     .rule(Presets.KEY, "hypixel")
                     .rule(io.github.term4.grotto.modules.flow.Countdown.FROM, 5) // captured: "The game starts in 5 seconds!"
                     .rule(io.github.term4.grotto.modules.combat.Respawns.RESPAWN_TICKS, 100L)
+                    .rule(io.github.term4.grotto.modules.combat.Respawns.REJOIN_TICKS, 200L) // bedwars: ten, not five
                     .path("damage/enabledTypes", "with(minecraft:fall)") // a hypixel bed fight bridges at its own risk
                     .over(BASE),
             "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18").over(BASE),
