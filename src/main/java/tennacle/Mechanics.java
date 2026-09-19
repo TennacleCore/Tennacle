@@ -6,6 +6,7 @@ import tennacle.glue.ShardBridge;
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.storage.EntityDescriptors;
 import io.github.term4.polyp.MechanicsKeys;
+import io.github.term4.polyp.MechanicsProfile;
 import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.mechanics.attack.AttackSystem;
 import io.github.term4.polyp.mechanics.attribute.AttributeSystem;
@@ -47,15 +48,11 @@ public final class Mechanics {
         return PRESET;
     }
 
-    /** 1.8 mechanics + the full compat/fixes layer over shards: the two bridges are the whole integration. */
-    public static void install() {
-        polyp = Polyp.getInstance();
-        polyp.viaConnectionDetails = true; // the Via on the Velocity proxies reports each client's protocol
-        polyp.installViaBridge = true; // the proxies run the ViaBridge plugin
-        polyp.init();
-        polyp.profiles().setGlobal(PRESET.profile().toBuilder()
+    /** A preset under this server's own layer: the compat debug flag and the fix set every scope inherits. */
+    public static MechanicsProfile profileOf(Preset preset) {
+        return preset.profile().toBuilder()
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
-                .set(MechanicsKeys.COMPAT, PRESET.compat().toBuilder()
+                .set(MechanicsKeys.COMPAT, preset.compat().toBuilder()
                         .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
                 // inventorySync is EXPERIMENTAL in the lib and is being bisected against a 1.8 pick-block fault
                 .set(MechanicsKeys.FIXES, FixesConfig.builder(Fixes18.config())
@@ -65,7 +62,16 @@ public final class Mechanics {
                         // that already scopes self-placement per profile (Shard.placementBodyCheck)
                         .legacySelfPlacement(FixToggleConfig.of(false))
                         .build())
-                .build());
+                .build();
+    }
+
+    /** 1.8 mechanics + the full compat/fixes layer over shards: the two bridges are the whole integration. */
+    public static void install() {
+        polyp = Polyp.getInstance();
+        polyp.viaConnectionDetails = true; // the Via on the Velocity proxies reports each client's protocol
+        polyp.installViaBridge = true; // the proxies run the ViaBridge plugin
+        polyp.init();
+        polyp.profiles().setGlobal(profileOf(PRESET));
         AttackSystem.install(polyp);
         DamageSystem.install(polyp);
         KnockbackSystem.install(polyp);

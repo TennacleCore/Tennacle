@@ -44,6 +44,7 @@ import tennacle.commands.ReplayCommands;
 import tennacle.commands.RulesCommands;
 import tennacle.commands.TeamCommands;
 import tennacle.commands.ShardCommands;
+import tennacle.commands.PresetCommands;
 import tennacle.commands.SimTpsCommands;
 import tennacle.commands.SpectateCommands;
 import tennacle.lobby.Welcome;
@@ -213,6 +214,7 @@ public final class TestServer {
         if (devCommands) {
             DevCommands.register(Mechanics.polyp);
             SimTpsCommands.register(Mechanics.polyp, shards, world);
+            PresetCommands.register(Mechanics.polyp, world); // /preset: the mechanics preset at each scope, live
         } else {
             LOGGER.info("dev commands off (tennacle.dev-commands)");
         }
