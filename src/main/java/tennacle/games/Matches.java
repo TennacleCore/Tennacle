@@ -25,6 +25,9 @@ import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.MechanicsKeys;
+import io.github.term4.polyp.mechanics.explosion.BlockBreaking;
+import io.github.term4.polyp.mechanics.explosion.ExplosionConfig;
 import io.github.term4.polyp.MechanicsProfile;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.Pos;
@@ -264,6 +267,11 @@ public final class Matches {
         rules.seed(game); // first: the preset the profile starts from is itself a rule - read after seeding, or a
                           // change to it lands one fold late (the value you set applies on the NEXT change)
         MechanicsProfile.Builder profile = Presets.builderFor(game, mode); // mechanics:preset, else the mode's
+        // a match's terrain is the arena's. Presets fitted for a block-breaking game (hypixel, mmc18) carry
+        // blast rays, and inside a match those grief the map - a mode that wants breakable ground registers a
+        // named BlockBreaking (as bridge does for heal-apple) and names it on explosion/blockBreaking below
+        profile.mutate(MechanicsKeys.EXPLOSION, ex -> ex == null ? null
+                : ExplosionConfig.builder(ex).blockBreaking((BlockBreaking) null).build());
         rules.apply(profile, Mechanics.polyp.profiles().global(), game);
         Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
     }
