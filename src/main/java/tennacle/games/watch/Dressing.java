@@ -105,6 +105,9 @@ final class Dressing {
             out.add(new Lineup.Entry(seat.name(), seat.color(), playback.skin(seat.name()), () -> {
                 Ghost now = playback.ghost(seat.name());
                 return now != null && now.getInstance() != null ? now.getPosition() : null;
+            }, () -> {
+                Ghost now = playback.ghost(seat.name());
+                return now != null && now.getInstance() != null ? now : null;
             }));
         }
         return out;

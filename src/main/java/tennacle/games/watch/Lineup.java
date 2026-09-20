@@ -19,9 +19,11 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerSkin;
 import net.minestom.server.item.ItemStack;
+import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,16 +32,23 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * The players alive right now, as heads on a screen; a click lands the viewer at one, and the compass then
- * points at them ({@link #aim}) as they move, until the next pick. A replay reads its ghosts, a live game its
- * seated members - each hands over a {@link Supplier} of {@link Entry entries}, read at the moment the compass
- * is used.
+ * The players alive right now, as heads on a screen; a left click lands the viewer at one and a right click
+ * rides their camera, and the compass then points at them ({@link #aim}) as they move, until the next pick.
+ * A replay reads its ghosts, a live game its seated members - each hands over a {@link Supplier} of
+ * {@link Entry entries}, read at the moment the compass is used.
  */
 public final class Lineup {
 
-    /** One alive player: the name in the side's color, their skin, and where they stand. */
+    /** One alive player: the name in the side's color, their skin, where they stand, and the body to ride. */
     public record Entry(@NotNull String name, @NotNull TextColor color, @Nullable PlayerSkin skin,
-                        @NotNull Supplier<@Nullable Pos> at) {}
+                        @NotNull Supplier<@Nullable Pos> at, @NotNull Supplier<@Nullable Entity> body) {
+
+        /** A lineup with no body to ride: a right click lands like a left one. */
+        public Entry(@NotNull String name, @NotNull TextColor color, @Nullable PlayerSkin skin,
+                     @NotNull Supplier<@Nullable Pos> at) {
+            this(name, color, skin, at, () -> null);
+        }
+    }
 
     private static final Component NAME = Component.text("Players", NamedTextColor.AQUA);
     /** A screen's own title: no color, so it draws in the gray a container's label always has. */
@@ -129,10 +138,15 @@ public final class Lineup {
             Entry entry = entries.get(i);
             screen.button(9 + i - at * PAGE, Items.head(entry.skin(), Component.text(entry.name(), entry.color())),
                     (who, click) -> {
-                        Pos to = entry.at().get();
                         who.closeInventory();
+                        Entity body = click instanceof Click.Right ? entry.body().get() : null;
+                        Pos to = entry.at().get();
                         if (to == null) {
                             Msg.fail(who, Msg.v(entry.name()), " is gone.");
+                            return;
+                        }
+                        if (body != null && Spectators.view(who, body, entry.name())) {
+                            aim(who, entry.name(), entry.at()); // the compass still follows them once the camera comes home
                             return;
                         }
                         who.teleport(to);

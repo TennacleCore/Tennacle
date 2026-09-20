@@ -257,9 +257,30 @@ public final class Spectators {
             Slot seat = game.roster().slotOf(member);
             if (seat == null || game.isGhost(member) || (respawns != null && respawns.isDead(member))) continue;
             out.add(new Lineup.Entry(member.getUsername(), game.roster().team(seat.team()).color(), member.getSkin(),
-                    () -> member.isOnline() && Game.of(member) == game ? member.getPosition() : null));
+                    () -> member.isOnline() && Game.of(member) == game ? member.getPosition() : null,
+                    () -> member.isOnline() && Game.of(member) == game ? member : null));
         }
         return out;
+    }
+
+    /** Rides {@code target}'s camera, taking the spectator body first; {@code false} = the viewer was told why not. */
+    public static boolean view(@NotNull Player viewer, @NotNull net.minestom.server.entity.Entity target,
+                               @NotNull String name) {
+        if (SpectatorMode.mode(viewer) == null) {
+            Msg.fail(viewer, "Only a spectator can watch from a player.");
+            return false;
+        }
+        if (SpectatorMode.mode(viewer) != SpectatorMode.Mode.TRUE
+                && !SpectatorMode.enter(viewer, SpectatorMode.Mode.TRUE)) {
+            Msg.fail(viewer, "Your client has no spectator mode (1.7).");
+            return false;
+        }
+        if (!SpectatorMode.camera(viewer, target)) {
+            Msg.fail(viewer, Msg.v(name), " is gone.");
+            return false;
+        }
+        Msg.say(viewer, "Watching from ", Msg.v(name), ". Sneak to come back.");
+        return true;
     }
 
     /** Switches a spectating {@code viewer}'s body, telling them; {@code false} = not spectating. */
