@@ -155,7 +155,7 @@ public final class Bridge {
     /**
      * The hypixel heal apple: full health, and Absorption I for a minute only if the eater has none. Code,
      * because it is game logic rather than a knob - {@code registerFactories} NAMES it so a ruleset can point
-     * the golden apple at it without anyone writing behaviour as data.
+     * the golden apple at it without anyone writing behavior as data.
      */
     private static final ConsumableBehavior HEAL_APPLE = new ConsumableBehavior() {
         @Override

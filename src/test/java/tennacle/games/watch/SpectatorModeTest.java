@@ -114,7 +114,7 @@ class SpectatorModeTest extends HeadlessServerTest {
     }
 
     @Test
-    void gameModeCommandsSwitchASpectatorsBodyAndRefuseTheRest() throws InterruptedException {
+    void gamemodeSwitchesSpectatorBody() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ModeA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "ModeB");
         FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "ModeWatch");
@@ -142,7 +142,7 @@ class SpectatorModeTest extends HeadlessServerTest {
             assertEquals(GameMode.ADVENTURE, w.player.getGameMode());
             assertTrue(SpectatorHud.hidden(w.player));
             assertEquals(TextDecoration.State.FALSE, w.player.getDisplayName().decoration(TextDecoration.ITALIC),
-                    "grey and upright in tab, the scrims row");
+                    "gray and upright in tab, the scrims row");
             // no nameplate over a spectator, and a 1.8 client hangs the below-name health off that same gate
             String specTeam = w.sent(TeamsPacket.class).stream()
                     .filter(t -> t.action() instanceof TeamsPacket.CreateTeamAction create
@@ -211,7 +211,7 @@ class SpectatorModeTest extends HeadlessServerTest {
 
     /** Vanilla's law over the game's sight rules: a true spectator is unseen by ghosts, a head to true spectators, gone while riding. */
     @Test
-    void aTrueSpectatorIsSeenBySpectatorEyesAloneAndByNoneWhileRiding() throws InterruptedException {
+    void trueSpectatorSeenBySpectators() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "LawA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "LawB");
         FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "LawWatchW");

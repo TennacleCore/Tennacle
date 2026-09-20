@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * What a theater's watchers see besides the world: the lineup's colors on names and nameplates, the health column
- * the game showed, the game's sidebar as its first seat saw it, the look's tab chrome, and each other greyed and
+ * the game showed, the game's sidebar as its first seat saw it, the look's tab chrome, and each other grayed and
  * sunk below the players the way a game lists its spectators. A watcher's own ghost shares their name, and
  * teams key on names: the watcher lists under a sort name on 1.8 (a team past the lineup's sinks it) and on
  * nothing but the list order on a modern client, so the ghost keeps the seat's color either way. One per
@@ -151,7 +151,7 @@ final class Dressing {
         if (controller) viewer.setHeldItemSlot((byte) Remote.PLAY); // the hand starts on play/pause
         // NOT ShardTabList.SPECTATOR: a client draws a spectator-flagged player as the head alone
         // (RenderPlayer.setModelVisibilities), and co-watchers are the only bodies a theater has to show each
-        // other. The row greys and sinks below on its own name and order instead
+        // other. The row grays and sinks below on its own name and order instead
         viewer.setTag(ShardTabList.LIST_ORDER, -1); // a modern client's own row sorts on this
         viewer.setTag(ShardTabList.SORT_NAME, sortName(viewer.getUsername())); // a 1.8 row apart from the ghost's
         viewer.setDisplayName(Component.text(viewer.getUsername(), NamedTextColor.GRAY)

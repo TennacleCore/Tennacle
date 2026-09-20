@@ -284,7 +284,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .append(Component.text("❤", NamedTextColor.RED));
     }
 
-    // hypixel: light-blue name, grey "is on", red value, grey "HP!"
+    // hypixel: light-blue name, gray "is on", red value, gray "HP!"
     private static Component hypixelHit(Player target, float health, float impact) {
         return Component.text(target.getUsername(), NamedTextColor.AQUA)
                 .append(Component.text(" is on ", NamedTextColor.GRAY))
@@ -292,7 +292,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .append(Component.text(" HP!", NamedTextColor.GRAY));
     }
 
-    // minemen: yellow name, bold grey arrow, light-purple hearts, then the signed change in parens
+    // minemen: yellow name, bold gray arrow, light-purple hearts, then the signed change in parens
     // (damage -N red, heal +N green) - e.g. Dogln ➡ 7❤ (-3❤)
     private static Component minemenHit(Player target, float health, float impact) {
         boolean heal = impact > 0;

@@ -119,7 +119,7 @@ public final class Spectators {
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
         freshen(viewer);
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true); // landed inside a player: no push, either way
-        game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags greys the tab name
+        game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags grays the tab name
         viewer.getInventory().clear();
         viewer.getInventory().setItemStack(COMPASS_SLOT, Lineup.compass());
         viewer.getInventory().setItemStack(FEATHER_SLOT, feather());

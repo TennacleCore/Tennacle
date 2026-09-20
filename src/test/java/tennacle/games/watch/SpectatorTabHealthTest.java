@@ -101,7 +101,7 @@ class SpectatorTabHealthTest extends HeadlessServerTest {
                     .filter(p -> p.actions().contains(PlayerInfoUpdatePacket.Action.ADD_PLAYER))
                     .flatMap(p -> p.entries().stream()).filter(e -> e.uuid().equals(x.player.getUuid())).toList();
             assertTrue(wSees.getLast().gameMode() == GameMode.SPECTATOR,
-                    "flagged spectator to a co-spectator too: drawn as a head, sunk, greyed, and its score skipped");
+                    "flagged spectator to a co-spectator too: drawn as a head, sunk, grayed, and its score skipped");
             assertTrue(w.sent(UpdateScorePacket.class).stream().noneMatch(u -> objective.equals(u.objectiveName())
                             && u.entityName().equals("TabHpWatchX")), "no score is sent for a flagged row");
         } finally {

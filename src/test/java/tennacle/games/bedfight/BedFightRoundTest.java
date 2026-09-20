@@ -312,7 +312,7 @@ class BedFightRoundTest extends HeadlessServerTest {
         }
     }
 
-    /** The row stays through the wait, greyed for everyone, and comes back in the side's color. */
+    /** The row stays through the wait, grayed for everyone, and comes back in the side's color. */
     @Test
     void aDeadRowGreysAndComesBack() {
         Mode bedfight = Matches.mode("bedfight");
@@ -334,7 +334,7 @@ class BedFightRoundTest extends HeadlessServerTest {
             Respawns respawns = game.module(Respawns.class);
             assertNotNull(respawns);
             respawns.queue(red.player);
-            assertEquals(net.kyori.adventure.text.format.NamedTextColor.GRAY, color(red.player), "greyed while down");
+            assertEquals(net.kyori.adventure.text.format.NamedTextColor.GRAY, color(red.player), "grayed while down");
             assertTrue(io.github.term4.archipelago.shard.ShardTabList.listed(blue.player, red.player),
                     "and the enemy still lists them");
 
