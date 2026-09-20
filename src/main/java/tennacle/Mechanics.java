@@ -18,7 +18,7 @@ import io.github.term4.polyp.mechanics.itemdamage.ItemDamageSystem;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
-import io.github.term4.polyp.platform.fixes.Fixes18;
+import io.github.term4.polyp.platform.fixes.FixesLegacy;
 import io.github.term4.polyp.platform.fixes.FixToggleConfig;
 import io.github.term4.polyp.platform.fixes.FixesConfig;
 import io.github.term4.polyp.platform.fixes.FixesSystem;
@@ -55,7 +55,7 @@ public final class Mechanics {
                 .set(MechanicsKeys.COMPAT, preset.compat().toBuilder()
                         .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
                 // inventorySync is EXPERIMENTAL in the lib and is being bisected against a 1.8 pick-block fault
-                .set(MechanicsKeys.FIXES, FixesConfig.builder(Fixes18.config())
+                .set(MechanicsKeys.FIXES, FixesConfig.builder(FixesLegacy.config())
                         .inventorySync(FixToggleConfig.of(Config.flag("tennacle.inventory-sync", true)))
                         // OFF here, and it must stay off: the fix takes the placement listener slot the shard
                         // router owns, and its blanket placer exclusion would sit in front of the body check
