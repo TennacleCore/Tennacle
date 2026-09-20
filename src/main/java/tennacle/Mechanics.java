@@ -10,6 +10,7 @@ import io.github.term4.polyp.MechanicsProfile;
 import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.mechanics.attack.AttackSystem;
 import io.github.term4.polyp.mechanics.attribute.AttributeSystem;
+import io.github.term4.polyp.mechanics.blocks.BlocksSystem;
 import io.github.term4.polyp.mechanics.blocking.BlockingSystem;
 import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
@@ -72,6 +73,15 @@ public final class Mechanics {
         polyp.installViaBridge = true; // the proxies run the ViaBridge plugin
         polyp.init();
         polyp.profiles().setGlobal(profileOf(PRESET));
+
+        // vanilla placement rules (stairs, slabs, fences, doors, ...): registered on the BlockManager, so
+        // both plain instances and shard-routed placements resolve them
+        org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations.registerDefault();
+        // a bed or chest click is a use unless sneaking (vanilla, both eras); the shard routing resolves it by key
+        org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations.register(
+                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getBEDS(),
+                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getCHESTS());
+        BlocksSystem.install(polyp); // after the rules above: the chest slot wraps the one registered there
         AttackSystem.install(polyp);
         DamageSystem.install(polyp);
         KnockbackSystem.install(polyp);
@@ -84,13 +94,6 @@ public final class Mechanics {
         Vri.install(polyp); // crack overlay, break FX, drops, pickup - the preset's VriConfig, a ruleset's edits over it
         explosions = ExplosionSystem.install(polyp);
         ItemDamageSystem.install(polyp); // ground loot: explosions, fire, lava, cactus, void
-
-        // vanilla placement rules (stairs, slabs, fences, doors, ...): registered on the BlockManager, so
-        // both plain instances and shard-routed placements resolve them
-        org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations.registerDefault();
-        // a bed click is a use unless sneaking (vanilla, both eras); the shard routing resolves it by key
-        org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations.register(
-                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getBEDS());
 
         ShardBridge.install();
         // save/load glue for mechanics entities: the codec reads archipelago's ENTITY_SAVE natively; mechanics stamps
