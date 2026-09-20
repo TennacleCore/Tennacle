@@ -68,7 +68,7 @@ class SectionsTest extends HeadlessServerTest {
     }
 
     @Test
-    void eachArmTakesItsTeamsHueAndTheArenaKeepsItsOwn() {
+    void armsTakeTeamHues() {
         Arena map = fixture();
         Game game = stamped(map);
         try {
@@ -85,7 +85,7 @@ class SectionsTest extends HeadlessServerTest {
     }
 
     @Test
-    void aSeasonalPaletteReachesAMapNobodyReauthored() {
+    void seasonalPaletteReachesOldMaps() {
         List<Tint> before = Livery.ordinals();
         Livery.ordinals(List.of(Tint.parse("dark_purple"), Tint.parse("gold")));
         Game game = null;

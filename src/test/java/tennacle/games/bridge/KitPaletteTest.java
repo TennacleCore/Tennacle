@@ -32,7 +32,7 @@ class KitPaletteTest extends HeadlessServerTest {
     }
 
     @Test
-    void aNetworkLookReplacesTheBlockItselfAndTheLayoutHoldsStill() {
+    void lookSwapsBlockKeepsLayout() {
         Map<String, String> before = Livery.overrides().values();
         Livery.overrides(Map.of("blocks", "slime_block"));
         Game game = null;

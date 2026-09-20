@@ -21,7 +21,7 @@ class RulesetTest extends HeadlessServerTest {
     }
 
     @Test
-    void keepAndWithoutDropScopedEntriesSoTheRestFoldsWithoutAGame() {
+    void keepAndWithoutFoldGameless() {
         Ruleset scoped = Ruleset.named("scoped")
                 .path("hunger/enabled", false)
                 .path(Scope.team("1"), "hunger/enabled", true);

@@ -41,7 +41,7 @@ class StepThreeTest extends HeadlessServerTest {
     }
 
     @Test
-    void theQueuePairsTwoSidesAndLiveModifiersReFold() throws InterruptedException {
+    void queuePairsAndRefolds() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "QueueA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "QueueB");
         FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "QueueW");

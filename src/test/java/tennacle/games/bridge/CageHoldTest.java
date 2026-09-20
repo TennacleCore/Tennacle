@@ -60,7 +60,7 @@ class CageHoldTest extends HeadlessServerTest {
     }
 
     @Test
-    void boundedHoldsInsideTheBoxWhateverTheCageLooksLike() {
+    void boundedHoldsInsideTheBox() {
         Game game = bridge();
         try {
             assertEquals(3, game.rules().resolve(Scope.GAME, Freeze.BOUNDS), "a three-block box by default");

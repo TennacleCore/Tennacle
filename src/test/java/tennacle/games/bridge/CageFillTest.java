@@ -47,7 +47,7 @@ class CageFillTest extends HeadlessServerTest {
     }
 
     @Test
-    void aFillNobodyCanParseIsDroppedRatherThanBreakingTheCage() {
+    void unparsableFillIsDropped() {
         Map<String, Role.Fill> fills = Cages.fills(fill("1", "not_a_block", "2", "lapis_ore"));
         assertTrue(fills.get("1") == null, "the bad one is gone");
         assertEquals(Material.LAPIS_ORE, fills.get("2").block(), "the rest of the set stands");

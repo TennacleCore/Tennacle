@@ -234,7 +234,7 @@ class BridgeRoundTest extends HeadlessServerTest {
     }
 
     @Test
-    void aDeadPlayerWaitsGhostedWithTheDeathScreenThenRespawns() {
+    void deadWaitsGhostedThenRespawns() {
         Mode bridge = Matches.mode("bridge");
         Game game = Matches.launch(bridge, Matches.platformFor(null), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DeadRed");
