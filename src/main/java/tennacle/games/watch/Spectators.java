@@ -266,16 +266,17 @@ public final class Spectators {
     /** Rides {@code target}'s camera, taking the spectator body first; {@code false} = the viewer was told why not. */
     public static boolean view(@NotNull Player viewer, @NotNull net.minestom.server.entity.Entity target,
                                @NotNull String name) {
-        if (SpectatorMode.mode(viewer) == null) {
+        SpectatorMode.Mode worn = SpectatorMode.mode(viewer);
+        if (worn == null) {
             Msg.fail(viewer, "Only a spectator can watch from a player.");
             return false;
         }
-        if (SpectatorMode.mode(viewer) != SpectatorMode.Mode.TRUE
-                && !SpectatorMode.enter(viewer, SpectatorMode.Mode.TRUE)) {
+        if (worn != SpectatorMode.Mode.TRUE && !SpectatorMode.enter(viewer, SpectatorMode.Mode.TRUE)) {
             Msg.fail(viewer, "Your client has no spectator mode (1.7).");
             return false;
         }
-        if (!SpectatorMode.camera(viewer, target)) {
+        // a ghost takes spectator mode only to ride: the sneak home gives the ghost body back
+        if (!SpectatorMode.camera(viewer, target, worn == SpectatorMode.Mode.TRUE ? null : worn)) {
             Msg.fail(viewer, Msg.v(name), " is gone.");
             return false;
         }
