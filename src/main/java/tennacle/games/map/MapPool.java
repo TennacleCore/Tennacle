@@ -149,6 +149,6 @@ public final class MapPool implements Maps {
         }
         unfinished.remove(stem(file));
         HotArena.drain(maps.put(file, arena));
-        System.out.println("[maps:" + tag + "] " + file.getFileName() + " in rotation");
+        LOGGER.info("[maps:{}] {} in rotation", tag, file.getFileName());
     }
 }
