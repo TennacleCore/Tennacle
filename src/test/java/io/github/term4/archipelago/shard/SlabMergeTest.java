@@ -34,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 1.8 {@code ItemSlab.onItemUse}, both branches. The merge checks the doubled cube with the excludes-NOBODY
  * {@code checkNoEntityCollision}, so the placer standing on the half they click refuses it - and the branch
  * {@code return}s either way, so nothing falls through to ItemBlock: no block, no sound, the use spent.
- * A slab of another kind never reaches that branch and lands through ItemBlock, which DOES exclude the placer:
- * into their own legs, with the sound, exactly as 1.8 does it.
+ * A slab of another kind never reaches that branch and goes through ItemBlock, whose check counts the placer
+ * just the same: nothing in their legs either, and nothing sounds.
  */
 class SlabMergeTest extends HeadlessServerTest {
 
@@ -63,7 +63,7 @@ class SlabMergeTest extends HeadlessServerTest {
                     .build());
             shard.join(p.player);
             assertTrue(op.compat().legacyClient(), "a 1.8 placer");
-            assertTrue(op.compat().legacySelfPlace(), "1.8 excludes the placer from ItemBlock's check");
+            assertTrue(op.compat().legacySelfPlace(), "1.8's own placement boxes");
             shard.setBlock(new Vec(2400, 64, 2400), Block.OAK_SLAB.withProperty("type", "bottom"));
 
             click(p, Material.OAK_SLAB);
@@ -73,10 +73,9 @@ class SlabMergeTest extends HeadlessServerTest {
                     "and the branch returns: nothing falls through into their legs");
             assertEquals(List.of(), sounds(p), "a merge that never happened never sounds");
 
-            click(p, Material.SPRUCE_SLAB); // another kind: ItemBlock's path, which excludes the placer
-            assertTrue(shard.getBlock(new Vec(2400, 65, 2400)).compare(Block.SPRUCE_SLAB),
-                    "1.8 lands this one in their own legs");
-            assertEquals(1, sounds(p).size(), "and sounds it, like the server that placed it");
+            click(p, Material.SPRUCE_SLAB); // another kind: ItemBlock's path, which counts the placer too
+            assertEquals(Block.AIR, shard.getBlock(new Vec(2400, 65, 2400)), "nothing in their legs either");
+            assertEquals(List.of(), sounds(p), "and nothing sounds");
         } finally {
             Polyp.getInstance().profiles().setPlayer(op, null);
             p.player.remove();

@@ -54,6 +54,33 @@ class ChestClickTest extends HeadlessServerTest {
         assertTrue(inAShard(true, BlockFace.NORTH).compare(Block.CHEST), "sneaking places off the chest");
     }
 
+    /** The one placement a vanilla 1.8 client never sends: the ground under its own feet, with a chest beside.
+     *  1.8 checks the placer's body there, so a client that sends it anyway gets Spigot's refusal. */
+    @Test
+    void yourOwnCellRefusesAChest() {
+        Vec chest = new Vec(2520, 64, 2500);
+        Vec own = new Vec(2521, 64, 2500);
+        EventNode<Event> routing = Shard.blockRouting();
+        MinecraftServer.getGlobalEventHandler().addChild(routing);
+        instance.loadChunk(2520 >> 4, 2500 >> 4).join();
+        Shard shard = new Shard(instance);
+        FakePlayer placer = arm(new Pos(2521.5, 64, 2500.5), "OwnCellChest", true);
+        try {
+            shard.join(placer.player);
+            shard.setBlock(chest, Block.CHEST.withProperty("facing", "north"));
+            MinecraftServer.getGlobalEventHandler().call(new PlayerPacketEvent(placer.player,
+                    click(own.sub(0, 1, 0), BlockFace.TOP))); // the ground under them, top face
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            assertTrue(shard.getBlock(own).air(), "nothing lands in the placer's own cell");
+            assertTrue("single".equals(shard.getBlock(chest).getProperty("type")), "and the chest beside stays single");
+        } finally {
+            Polyp.getInstance().profiles().setPlayer(placer.player, null);
+            placer.player.remove();
+            shard.reset();
+            MinecraftServer.getGlobalEventHandler().removeChild(routing);
+        }
+    }
+
     @Test
     void baseLayerClickPlacesNothing() {
         assertTrue(outsideAnyShard(false).air(), "the base listener consults the registered rule too");
@@ -68,7 +95,7 @@ class ChestClickTest extends HeadlessServerTest {
         return new ClientPlayerBlockPlacementPacket(PlayerHand.MAIN, chest, face, 0.5f, 0.5f, 0.5f, false, false, 1);
     }
 
-    /** A 1.8 placer on the mmc18 layer: the one whose own body never blocks a placement the server is handed. */
+    /** A 1.8 placer on the mmc18 layer. */
     private static FakePlayer arm(Pos at, String name, boolean sneaking) {
         FakePlayer placer = FakePlayer.connect(instance, at, name);
         Polyp.getInstance().clientInfo().setProtocol(placer.player, 47);
@@ -80,11 +107,12 @@ class ChestClickTest extends HeadlessServerTest {
     }
 
     /** What lands off a shard's chest after a member's click on {@code face}: above it for TOP (the member stands
-     *  on the chest), north of it otherwise (the member stands there). */
+     *  on the chest), north of it otherwise. */
     private Block inAShard(boolean sneaking, BlockFace face) {
         Vec chest = new Vec(2500, 64, 2500);
         Vec off = chest.relative(face);
-        Pos stand = face == BlockFace.TOP ? new Pos(2500.5, 64.875, 2500.5) : new Pos(2500.5, 64, 2499.5);
+        // on the chest for TOP; two cells north otherwise, clear of the cell the chest lands in
+        Pos stand = face == BlockFace.TOP ? new Pos(2500.5, 64.875, 2500.5) : new Pos(2500.5, 64, 2497.5);
         EventNode<Event> routing = Shard.blockRouting();
         MinecraftServer.getGlobalEventHandler().addChild(routing);
         instance.loadChunk(2500 >> 4, 2500 >> 4).join();
