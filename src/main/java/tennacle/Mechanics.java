@@ -11,6 +11,7 @@ import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.mechanics.attack.AttackSystem;
 import io.github.term4.polyp.mechanics.attribute.AttributeSystem;
 import io.github.term4.polyp.mechanics.blocks.BlocksSystem;
+import io.github.term4.polyp.mechanics.containers.ContainerSystem;
 import io.github.term4.polyp.mechanics.blocking.BlockingSystem;
 import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
@@ -77,11 +78,12 @@ public final class Mechanics {
         // vanilla placement rules (stairs, slabs, fences, doors, ...): registered on the BlockManager, so
         // both plain instances and shard-routed placements resolve them
         org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations.registerDefault();
-        // a bed or chest click is a use unless sneaking (vanilla, both eras); the shard routing resolves it by key
+        // a bed or container click is a use unless sneaking (vanilla, both eras); the shard routing resolves it by key
         org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations.register(
                 org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getBEDS(),
-                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getCHESTS());
+                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getCONTAINERS());
         BlocksSystem.install(polyp); // after the rules above: the chest slot wraps the one registered there
+        ContainerSystem.install(polyp); // the opening itself: contents on the world, spilled on break
         AttackSystem.install(polyp);
         DamageSystem.install(polyp);
         KnockbackSystem.install(polyp);

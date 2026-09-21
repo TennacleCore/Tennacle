@@ -36,7 +36,7 @@ class ChestClickTest extends HeadlessServerTest {
     @BeforeAll
     static void mechanics() {
         MechanicsBoot.ensure();
-        BlockBehaviorRuleRegistrations.register(VanillaBlockBehaviour.INSTANCE.getCHESTS());
+        BlockBehaviorRuleRegistrations.register(VanillaBlockBehaviour.INSTANCE.getCONTAINERS());
     }
 
     @Test

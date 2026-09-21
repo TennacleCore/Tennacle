@@ -8,7 +8,10 @@ import io.github.term4.polyp.util.Directions;
 import io.github.term4.archipelago.replay.Recording;
 import io.github.term4.archipelago.replay.Replay;
 import io.github.term4.archipelago.replay.channel.EventDispatcher;
+import io.github.term4.archipelago.replay.core.ContainerChannels;
 import io.github.term4.archipelago.replay.core.CoreChannels;
+import io.github.term4.archipelago.shard.Shard;
+import io.github.term4.polyp.api.event.container.ContainerChangeEvent;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -33,6 +36,7 @@ public final class ReplayBridge {
 
     public static void install() {
         CoreChannels.register();
+        ContainerChannels.register();
         if (installed) return;
         installed = true;
 
@@ -60,6 +64,12 @@ public final class ReplayBridge {
                                     shooter);
                         }
                     });
+                });
+
+                // a container slot changing in a recorded layer: the store's own event, one op per slot
+                node.addListener(ContainerChangeEvent.class, e -> {
+                    if (!(e.world() instanceof Shard layer) || !rec.layers().contains(layer)) return;
+                    rec.emit(ContainerChannels.CONTAINERS, ContainerChannels.slot(rec.layer(layer), e.key(), e.slot(), e.after()));
                 });
 
                 // impact-time removal: the per-tick sweep is a tick late - the twin sails through the mannequin
