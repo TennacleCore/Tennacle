@@ -40,7 +40,7 @@ class ChestClickTest extends HeadlessServerTest {
     }
 
     @Test
-    void theChestUnderYourFeetStaysAlone() {
+    void chestUnderfootStaysAlone() {
         assertTrue(inAShard(false, BlockFace.TOP).air(), "a bare click on the chest you stand on is a use");
     }
 
@@ -54,11 +54,10 @@ class ChestClickTest extends HeadlessServerTest {
         assertTrue(inAShard(true, BlockFace.NORTH).compare(Block.CHEST), "sneaking places off the chest");
     }
 
-    /** The one placement a vanilla 1.8 client never sends: the ground under its own feet, with a chest beside.
-     *  The ground has no use, so sneaking is beside the point; 1.8 checks the placer's body there, and a client
-     *  that sends it anyway gets Spigot's refusal. */
+    /** The ground under the placer's own feet, with a chest beside: a vanilla 1.8 client refuses it before sending,
+     *  and a client that sends it anyway gets the same refusal here. No use on the ground, so sneaking is moot. */
     @Test
-    void yourOwnCellRefusesAChest() {
+    void ownCellRefusesChest() {
         Vec chest = new Vec(2520, 64, 2500);
         Vec own = new Vec(2521, 64, 2500);
         EventNode<Event> routing = Shard.blockRouting();

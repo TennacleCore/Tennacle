@@ -30,8 +30,8 @@ public final class ShardBridge {
     /** Install once at boot, before players join (alongside {@code Shard.blockRouting()}). */
     public static synchronized void install() {
         ShardWorlds.install();
-        // 1.8's placement boxes for LEGACY placers only (nothing for ladder/vine/web, the raytrace octant for
-        // stairs); modern clients keep the precise check their own prediction agrees with
+        // 1.8 clutch semantics for LEGACY placers only (ladder/vine/web unchecked, stairs into their own body);
+        // modern clients keep the precise check their own prediction agrees with
         Shard.placementBodyCheck(CompatPlacement::placementBodyCheck);
         // Polyp's WorldSounds emits the break fx off the break event a routed dig fires too; the default would double it
         Shard.breakFx((breaker, shard, pos, broken) -> {});
