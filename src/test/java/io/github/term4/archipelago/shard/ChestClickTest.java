@@ -55,7 +55,8 @@ class ChestClickTest extends HeadlessServerTest {
     }
 
     /** The one placement a vanilla 1.8 client never sends: the ground under its own feet, with a chest beside.
-     *  1.8 checks the placer's body there, so a client that sends it anyway gets Spigot's refusal. */
+     *  The ground has no use, so sneaking is beside the point; 1.8 checks the placer's body there, and a client
+     *  that sends it anyway gets Spigot's refusal. */
     @Test
     void yourOwnCellRefusesAChest() {
         Vec chest = new Vec(2520, 64, 2500);
@@ -64,7 +65,7 @@ class ChestClickTest extends HeadlessServerTest {
         MinecraftServer.getGlobalEventHandler().addChild(routing);
         instance.loadChunk(2520 >> 4, 2500 >> 4).join();
         Shard shard = new Shard(instance);
-        FakePlayer placer = arm(new Pos(2521.5, 64, 2500.5), "OwnCellChest", true);
+        FakePlayer placer = arm(new Pos(2521.5, 64, 2500.5), "OwnCellChest", false);
         try {
             shard.join(placer.player);
             shard.setBlock(chest, Block.CHEST.withProperty("facing", "north"));
