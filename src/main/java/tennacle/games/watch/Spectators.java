@@ -116,10 +116,12 @@ public final class Spectators {
      * holding nothing but the players' compass.
      */
     public static void enter(@NotNull Game game, @NotNull Player viewer, @Nullable Player target) {
+        // the game first: if it closed between the command's check and here, the body stays untouched rather
+        // than ghosted in the lobby until they type /l
+        game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags grays the tab name
         SpectatorMode.enter(viewer, SpectatorMode.Mode.GHOST);
         freshen(viewer);
         SharedTeam.set(viewer, SharedTeam.Reason.SPECTATOR, true); // landed inside a player: no push, either way
-        game.spectate(viewer, target != null ? target.getPosition() : null); // Nametags grays the tab name
         viewer.getInventory().clear();
         viewer.getInventory().setItemStack(COMPASS_SLOT, Lineup.compass());
         viewer.getInventory().setItemStack(FEATHER_SLOT, feather());

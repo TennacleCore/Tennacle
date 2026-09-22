@@ -39,7 +39,13 @@ public final class Atomic {
         Files.createDirectories(dir);
         Path tmp = Files.createTempFile(dir, target.getFileName().toString(), ".tmp");
         try {
-            Files.write(tmp, bytes);
+            // forced before the move: a rename is atomic, but delayed allocation can still leave the
+            // renamed target empty after a power cut
+            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(tmp,
+                    java.nio.file.StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+                channel.write(java.nio.ByteBuffer.wrap(bytes));
+                channel.force(true);
+            }
             try {
                 Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException e) { // some network/container filesystems

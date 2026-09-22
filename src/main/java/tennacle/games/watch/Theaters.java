@@ -370,6 +370,14 @@ public final class Theaters {
         }
     }
 
+    /** Shutdown: every theater closed on the tick, before the clocks stop under their stages. */
+    public static void closeAll() {
+        for (Theater theater : List.copyOf(theaters)) {
+            for (Player watcher : List.copyOf(theater.watchers())) leave(watcher);
+            if (theaters.remove(theater)) close(theater);
+        }
+    }
+
     private static void close(Theater theater) {
         theater.dressing().close();
         if (theater.playback().active()) theater.playback().halt();

@@ -104,7 +104,12 @@ public final class FileVault implements Vault {
         synchronized (account) {
             pending = account.pending;
         }
-        pending.whenComplete((done, error) -> accounts.remove(player, account));
+        pending.whenComplete((done, error) -> {
+            synchronized (account) {
+                if (account.pending != pending) return; // a later write chained on: that one owns the eviction
+            }
+            accounts.remove(player, account);
+        });
     }
 
     /** Waits out every pending write; {@code false} = something was still in flight when the wait ran out. */

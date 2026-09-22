@@ -1,6 +1,7 @@
 package tennacle;
 
 import tennacle.commands.SectionCommands;
+import tennacle.games.watch.Theaters;
 import tennacle.games.bedfight.BedFight;
 import tennacle.games.matchmaking.Parties;
 import tennacle.games.matchmaking.Duels;
@@ -335,6 +336,8 @@ public final class TestServer {
             vault.close();
             MatchLog.flush(5, TimeUnit.SECONDS);
         });
+        // before the clocks: a stage shard ticks on its own domain, and nothing else closes one
+        Shutdown.step("theaters", 10, () -> onTick(10, Theaters::closeAll));
         Shutdown.step("shard clocks", 10, ExecutionDomain::shutdown);
         Shutdown.step("health endpoint", 5, Health::stop);
     }
