@@ -7,6 +7,11 @@ import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.event.player.PlayerPacketOutEvent;
 import net.minestom.server.network.packet.client.ClientPacket;
 import net.minestom.server.network.packet.client.common.ClientKeepAlivePacket;
+import net.minestom.server.network.ConnectionState;
+import net.minestom.server.network.NetworkBuffer;
+import net.minestom.server.network.packet.PacketWriting;
+import net.minestom.server.network.packet.server.BufferedPacket;
+import net.minestom.server.network.packet.server.play.StartConfigurationPacket;
 import net.minestom.server.network.packet.server.ServerPacket;
 import net.minestom.server.network.packet.server.common.KeepAlivePacket;
 import net.minestom.server.timer.TaskSchedule;
@@ -148,11 +153,6 @@ public final class LagSimulator {
     /** Per-player outbound delay in milliseconds; absent means the player is not lagged outbound. */
     private final Map<UUID, Long> delayMillis = new ConcurrentHashMap<>();
     private final Map<UUID, Queue<Held<ServerPacket>>> outBuffers = new ConcurrentHashMap<>();
-    /**
-     * Per player, not one global set: a grouped send shares ONE packet instance across every viewer, so a
-     * global set would let the copy released for one lagged player walk through another's hold untouched.
-     */
-    private final Map<UUID, Set<ServerPacket>> outReleased = new ConcurrentHashMap<>();
 
     /**
      * Inbound packets Minestom itself handles off the queue, held on the wall clock instead of the tick.
@@ -303,9 +303,8 @@ public final class LagSimulator {
     void onOutPacket(PlayerPacketOutEvent event) {
         if (idleOut()) return;
         ServerPacket packet = event.getPacket();
+        if (changesState(packet)) return; // a configuration handshake is not a thing to lag
         UUID uuid = event.getPlayer().getUuid();
-        Set<ServerPacket> passing = outReleased.get(uuid);
-        if (passing != null && passing.remove(packet)) return;
         Long delay = delayMillis.get(uuid);
         Queue<Held<ServerPacket>> held = outBuffers.get(uuid);
         boolean draining = held != null && !held.isEmpty();
@@ -323,7 +322,12 @@ public final class LagSimulator {
     }
 
     private boolean idleOut() {
-        return delayMillis.isEmpty() && outBuffers.isEmpty() && outReleased.isEmpty();
+        return delayMillis.isEmpty() && outBuffers.isEmpty();
+    }
+
+    /** A packet that moves the connection out of PLAY; framed bytes carry no state transition, so never hold one. */
+    private static boolean changesState(ServerPacket packet) {
+        return packet instanceof StartConfigurationPacket;
     }
 
     private void markReleased(UUID uuid, ClientPacket packet) {
@@ -369,7 +373,6 @@ public final class LagSimulator {
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(entry.getKey());
             if (player == null) {
                 delayMillis.remove(entry.getKey());
-                outReleased.remove(entry.getKey());
                 iterator.remove();
                 continue;
             }
@@ -378,10 +381,7 @@ public final class LagSimulator {
             while ((head = queue.peek()) != null && head.releaseNanos() <= now) {
                 release(player, queue.poll());
             }
-            if (queue.isEmpty() && !delayMillis.containsKey(entry.getKey())) {
-                iterator.remove();
-                outReleased.remove(entry.getKey());
-            }
+            if (queue.isEmpty() && !delayMillis.containsKey(entry.getKey())) iterator.remove();
         }
     }
 
@@ -435,13 +435,14 @@ public final class LagSimulator {
             lastKeepAliveOutHold.put(player.getUuid(),
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - outgoing.heldAtNanos));
         }
-        outReleased.computeIfAbsent(player.getUuid(),
-                        k -> Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>())))
-                .add(outgoing.packet());
-        // straight onto the connection, NOT back through sendPacket: this packet already passed the rewrites and
-        // the InventorySync mirror once, and that mirror now believes the client holds what we never sent - a
-        // second pass reads the slot as a redundant echo and eats it
-        player.getPlayerConnection().sendPacket(outgoing.packet());
+        // framed bytes, NOT the packet: a re-delivery is not a send. It skips PlayerPacketOutEvent, so the
+        // replay probe and every other out listener read this packet once, where the server produced it - and it
+        // skips sendPacket, whose rewrites and InventorySync mirror already ran and would now eat the slot as a
+        // redundant echo
+        NetworkBuffer buffer = NetworkBuffer.resizableBuffer(256, MinecraftServer.process());
+        PacketWriting.writeFramedPacket(buffer, ConnectionState.PLAY, outgoing.packet(),
+                MinecraftServer.getCompressionThreshold());
+        player.getPlayerConnection().sendPacket(new BufferedPacket(buffer, 0, buffer.writeIndex()));
     }
 
     /** How long the last outbound keep-alive was really held, or -1 if none has been held since install. */

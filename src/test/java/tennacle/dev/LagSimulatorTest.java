@@ -18,8 +18,21 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SetPlayerInventorySlotPacket;
 import net.minestom.server.network.packet.server.play.SetSlotPacket;
+import net.minestom.server.network.ConnectionState;
+import net.minestom.server.network.packet.PacketReading;
+import net.minestom.server.network.packet.PacketReading.ParsedPacket;
+import net.minestom.server.network.packet.PacketReading.Result;
+import net.minestom.server.network.packet.server.BufferedPacket;
+import net.minestom.server.network.packet.server.SendablePacket;
+import net.minestom.server.network.packet.server.ServerPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+
+import java.util.List;
+
+import java.util.zip.DataFormatException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -311,7 +324,9 @@ class LagSimulatorTest extends HeadlessServerTest {
                 sim.drainOut();
                 return sim.pendingOut(p.player) == 0;
             });
-            assertEquals(1, slotUpdates(p), "the release goes to the wire, not back through the mirror");
+            assertEquals(0, slotUpdates(p), "the release never re-enters sendPacket, so the mirror never sees it");
+            assertEquals(1, released(p).stream().filter(SetPlayerInventorySlotPacket.class::isInstance).count(),
+                    "the slot update reached the wire, and its frame decodes back to what was held");
         } finally {
             sim.setOutboundMillis(p.player, 0);
             if (!armed) InventorySync.disable();
@@ -323,5 +338,23 @@ class LagSimulatorTest extends HeadlessServerTest {
     private static int slotUpdates(FakePlayer p) {
         return p.sent(SetPlayerInventorySlotPacket.class).size()
                 + (int) p.sent(SetSlotPacket.class).stream().filter(s -> s.windowId() == 0).count();
+    }
+
+    /** What the simulator wrote as framed bytes, read back off the wire - nothing else on the connection is. */
+    private static List<ServerPacket> released(FakePlayer p) {
+        List<ServerPacket> out = new ArrayList<>();
+        for (SendablePacket sent : p.sent) {
+            if (!(sent instanceof BufferedPacket framed)) continue;
+            try {
+                Result<ServerPacket> read = PacketReading.readServers(framed.buffer(), ConnectionState.PLAY,
+                        MinecraftServer.getCompressionThreshold() > 0);
+                if (read instanceof Result.Success<ServerPacket> ok) {
+                    for (ParsedPacket<ServerPacket> one : ok.packets()) out.add(one.packet());
+                }
+            } catch (DataFormatException e) {
+                throw new AssertionError("the simulator framed a packet the wire cannot read", e);
+            }
+        }
+        return out;
     }
 }
