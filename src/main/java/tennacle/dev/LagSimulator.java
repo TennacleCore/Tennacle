@@ -100,18 +100,18 @@ public final class LagSimulator {
         }
     }
 
-    /** The outbound counterpart, stamped on the wall clock rather than the tick. */
-    private static final class Outgoing {
-        private final ServerPacket packet;
+    /** A packet held on the wall clock rather than the tick - both millisecond pipes use this. */
+    private static final class Held<P> {
+        private final P packet;
         private final long heldAtNanos = System.nanoTime();
         private volatile long releaseNanos;
 
-        Outgoing(ServerPacket packet, long releaseNanos) {
+        Held(P packet, long releaseNanos) {
             this.packet = packet;
             this.releaseNanos = releaseNanos;
         }
 
-        ServerPacket packet() {
+        P packet() {
             return packet;
         }
 
@@ -146,12 +146,20 @@ public final class LagSimulator {
 
     /** Per-player outbound delay in milliseconds; absent means the player is not lagged outbound. */
     private final Map<UUID, Long> delayMillis = new ConcurrentHashMap<>();
-    private final Map<UUID, Queue<Outgoing>> outBuffers = new ConcurrentHashMap<>();
+    private final Map<UUID, Queue<Held<ServerPacket>>> outBuffers = new ConcurrentHashMap<>();
     /**
      * Per player, not one global set: a grouped send shares ONE packet instance across every viewer, so a
      * global set would let the copy released for one lagged player walk through another's hold untouched.
      */
     private final Map<UUID, Set<ServerPacket>> outReleased = new ConcurrentHashMap<>();
+
+    /**
+     * Inbound packets Minestom itself handles off the queue, held on the wall clock instead of the tick.
+     * {@code PlayerSocketConnection.IMMEDIATE_PROCESS_PACKETS} names them; in PLAY that is the keep-alive,
+     * which it marks "used to calculate latency". Routing it through the tick buffer quantized its hold to
+     * whatever was left of the tick, so the ping a client shows read well under what was asked for.
+     */
+    private final Map<UUID, Queue<Held<ClientPacket>>> preciseIn = new ConcurrentHashMap<>();
 
     /**
      * What the last keep-alive in each direction was really held for. The ping a client shows comes from that
@@ -183,6 +191,7 @@ public final class LagSimulator {
         outClock.scheduleAtFixedRate(() -> {
             try {
                 drainOut();
+                drainPreciseIn();
             } catch (Throwable t) {
                 MinecraftServer.getExceptionManager().handleException(t);
             }
@@ -215,6 +224,14 @@ public final class LagSimulator {
         else delayTicks.put(player.getUuid(), ticks);
         // what is already in the pipe cannot arrive later than the shortened pipe would deliver it. Without this
         // the old head gates the queue for its full original delay and the backlog piles up behind it
+        long nanoCeiling = System.nanoTime()
+                + TimeUnit.MILLISECONDS.toNanos(Math.max(0, ticks) * MinecraftServer.TICK_MS);
+        Queue<Held<ClientPacket>> precise = preciseIn.get(player.getUuid());
+        if (precise != null) {
+            for (Held<ClientPacket> one : precise) {
+                if (one.releaseNanos > nanoCeiling) one.releaseNanos = nanoCeiling;
+            }
+        }
         Queue<Delayed> held = buffers.get(player.getUuid());
         if (held == null) return;
         long ceiling = tick + Math.max(0, ticks);
@@ -227,10 +244,10 @@ public final class LagSimulator {
     public void setOutboundMillis(Player player, long millis) {
         if (millis <= 0) delayMillis.remove(player.getUuid());
         else delayMillis.put(player.getUuid(), millis);
-        Queue<Outgoing> held = outBuffers.get(player.getUuid());
+        Queue<Held<ServerPacket>> held = outBuffers.get(player.getUuid());
         if (held == null) return;
         long ceiling = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(Math.max(0, millis));
-        for (Outgoing outgoing : held) {
+        for (Held<ServerPacket> outgoing : held) {
             if (outgoing.releaseNanos > ceiling) outgoing.releaseNanos = ceiling;
         }
     }
@@ -258,8 +275,16 @@ public final class LagSimulator {
         UUID uuid = event.getPlayer().getUuid();
         Long delay = delayTicks.get(uuid);
         Queue<Delayed> held = buffers.get(uuid);
-        boolean draining = held != null && !held.isEmpty();
+        Queue<Held<ClientPacket>> precise = preciseIn.get(uuid);
+        boolean draining = (held != null && !held.isEmpty()) || (precise != null && !precise.isEmpty());
         if (delay == null && !draining) return; // not lagged, and nothing of theirs still in flight
+        if (offQueue(packet)) {
+            preciseIn.computeIfAbsent(uuid, k -> new ConcurrentLinkedQueue<>())
+                    .add(new Held<>(packet, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(
+                            (delay == null ? 0 : delay) * MinecraftServer.TICK_MS)));
+            event.setCancelled(true);
+            return;
+        }
         // An unlagged player with a buffer still queues, at zero delay: a new packet must never overtake a held one.
         // A packet that arrives INSIDE a tick rounds up to the next flush. Most inbound packets arrive on a tick
         // (onPacket runs inside interpretPacketQueue), but Minestom handles keep-alive on the read thread, off the
@@ -278,14 +303,19 @@ public final class LagSimulator {
         Set<ServerPacket> passing = outReleased.get(uuid);
         if (passing != null && passing.remove(packet)) return;
         Long delay = delayMillis.get(uuid);
-        Queue<Outgoing> held = outBuffers.get(uuid);
+        Queue<Held<ServerPacket>> held = outBuffers.get(uuid);
         boolean draining = held != null && !held.isEmpty();
         if (delay == null && !draining) return;
-        Queue<Outgoing> queue = outBuffers.computeIfAbsent(uuid, k -> new ConcurrentLinkedQueue<>());
+        Queue<Held<ServerPacket>> queue = outBuffers.computeIfAbsent(uuid, k -> new ConcurrentLinkedQueue<>());
         if (queue.size() >= MAX_HELD_OUT) release(event.getPlayer(), queue.poll());
-        queue.add(new Outgoing(packet, System.nanoTime()
+        queue.add(new Held<>(packet, System.nanoTime()
                 + TimeUnit.MILLISECONDS.toNanos(delay == null ? 0 : delay)));
         event.setCancelled(true);
+    }
+
+    /** Whether Minestom processes this one on the read thread, off the player's packet queue. */
+    private static boolean offQueue(ClientPacket packet) {
+        return packet instanceof ClientKeepAlivePacket;
     }
 
     void flush() {
@@ -305,10 +335,6 @@ public final class LagSimulator {
             int budget = releaseBudget();
             while (budget-- > 0 && (head = queue.peek()) != null && head.releaseTick() <= now) {
                 queue.poll();
-                if (head.packet() instanceof ClientKeepAlivePacket) {
-                    lastKeepAliveInHold.put(entry.getKey(),
-                            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - head.heldAtNanos));
-                }
                 released.add(head.packet());
                 player.addPacketToQueue(head.packet());
             }
@@ -320,7 +346,7 @@ public final class LagSimulator {
         long now = System.nanoTime();
         var iterator = outBuffers.entrySet().iterator();
         while (iterator.hasNext()) {
-            Map.Entry<UUID, Queue<Outgoing>> entry = iterator.next();
+            Map.Entry<UUID, Queue<Held<ServerPacket>>> entry = iterator.next();
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(entry.getKey());
             if (player == null) {
                 delayMillis.remove(entry.getKey());
@@ -328,8 +354,8 @@ public final class LagSimulator {
                 iterator.remove();
                 continue;
             }
-            Queue<Outgoing> queue = entry.getValue();
-            Outgoing head;
+            Queue<Held<ServerPacket>> queue = entry.getValue();
+            Held<ServerPacket> head;
             while ((head = queue.peek()) != null && head.releaseNanos() <= now) {
                 release(player, queue.poll());
             }
@@ -340,7 +366,38 @@ public final class LagSimulator {
         }
     }
 
-    private void release(Player player, Outgoing outgoing) {
+    /**
+     * Dispatches a due off-queue packet the way the read thread does, rather than re-queueing it - queueing
+     * would hand back the tick of jitter this pipe exists to avoid. Same call, off the tick, as
+     * {@code PlayerSocketConnection.read} makes for these packet types.
+     */
+    void drainPreciseIn() {
+        long now = System.nanoTime();
+        var iterator = preciseIn.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Queue<Held<ClientPacket>>> entry = iterator.next();
+            Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(entry.getKey());
+            if (player == null) {
+                iterator.remove();
+                continue;
+            }
+            Queue<Held<ClientPacket>> queue = entry.getValue();
+            Held<ClientPacket> head;
+            while ((head = queue.peek()) != null && head.releaseNanos() <= now) {
+                queue.poll();
+                if (head.packet() instanceof ClientKeepAlivePacket) {
+                    lastKeepAliveInHold.put(entry.getKey(),
+                            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - head.heldAtNanos));
+                }
+                released.add(head.packet());
+                MinecraftServer.getPacketListenerManager()
+                        .processClientPacket(head.packet(), player.getPlayerConnection());
+            }
+            if (queue.isEmpty() && !delayTicks.containsKey(entry.getKey())) iterator.remove();
+        }
+    }
+
+    private void release(Player player, Held<ServerPacket> outgoing) {
         if (outgoing == null) return;
         if (outgoing.packet() instanceof KeepAlivePacket) {
             lastKeepAliveOutHold.put(player.getUuid(),
@@ -370,7 +427,7 @@ public final class LagSimulator {
 
     /** Outbound packets still held for {@code player}. */
     int pendingOut(Player player) {
-        Queue<Outgoing> queue = outBuffers.get(player.getUuid());
+        Queue<Held<ServerPacket>> queue = outBuffers.get(player.getUuid());
         return queue == null ? 0 : queue.size();
     }
 }

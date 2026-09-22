@@ -9,6 +9,7 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.event.player.PlayerPacketOutEvent;
+import net.minestom.server.network.packet.client.common.ClientKeepAlivePacket;
 import net.minestom.server.network.packet.client.play.ClientPlayerPositionPacket;
 import net.minestom.server.network.packet.server.play.UpdateHealthPacket;
 import org.junit.jupiter.api.Test;
@@ -179,6 +180,36 @@ class LagSimulatorTest extends HeadlessServerTest {
             sim.onPacket(move(p.player, 0)); // immediately after, as interpretPacketQueue runs
             sim.flush();
             assertEquals(0, sim.pending(p.player), "one tick asked, one tick served");
+        } finally {
+            sim.setInboundTicks(p.player, 0);
+            p.player.remove();
+        }
+    }
+
+    /**
+     * The keep-alive is the only thing a client ping is measured from, and Minestom takes it off the queue on
+     * the read thread. It gets the millisecond pipe, so its hold is what was asked for rather than whatever
+     * remained of the tick.
+     */
+    @Test
+    void theKeepAliveIsHeldOnTheClock() throws InterruptedException {
+        LagSimulator sim = new LagSimulator();
+        FakePlayer p = FakePlayer.connect(instance, new Pos(970.5, 70, 900.5), "LagKeepAlive");
+        try {
+            sim.setInboundTicks(p.player, 1); // 50ms
+            PlayerPacketEvent ka = new PlayerPacketEvent(p.player, new ClientKeepAlivePacket(1234L));
+            sim.onPacket(ka);
+            assertTrue(ka.isCancelled(), "held, not passed to the latency listener yet");
+            assertEquals(0, sim.pending(p.player), "and not in the tick buffer, which would round it");
+
+            for (int t = 0; t < 4; t++) sim.flush(); // ticks alone must not release it
+            sim.drainPreciseIn();
+            assertEquals(-1, sim.lastKeepAliveInHold(p.player), "still inside its 50ms");
+
+            Thread.sleep(80);
+            sim.drainPreciseIn();
+            assertTrue(sim.lastKeepAliveInHold(p.player) >= 50,
+                    "held at least what was asked: " + sim.lastKeepAliveInHold(p.player) + "ms");
         } finally {
             sim.setInboundTicks(p.player, 0);
             p.player.remove();
