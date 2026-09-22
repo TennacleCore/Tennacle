@@ -80,6 +80,13 @@ public final class DevCommands {
         Msg.tag(p, "ns", "client sprint block ", Msg.v(mode.equals("blind") ? "blind (" + Math.max(2, blindTicks) + "t)" : mode));
     }
 
+    private static void reportLag(LagSimulator lag, Player p) {
+        long inbound = lag.inboundTicks(p);
+        Msg.tag(p, "sim-lag", "ping ", Msg.v(lag.simulatedPing(p)), "ms = ",
+                Msg.v(inbound * MinecraftServer.TICK_MS), "ms in (", Msg.v(inbound), "t) + ",
+                Msg.v(lag.outboundMillis(p)), "ms out");
+    }
+
     public static void register(Polyp polyp) {
 
         // what the tab is ACTUALLY being sent for this viewer - the tab differs per client generation
@@ -137,19 +144,30 @@ public final class DevCommands {
         });
         Commands.register(boom);
 
-        // test-only inbound-lag simulator (delays a player's movement packets so the server perceives their
-        // position/onGround late, like a high-ping client). Purely test-side - mechanics is untouched.
+        // test-only latency simulator. Purely test-side - mechanics is untouched.
         final LagSimulator lag = new LagSimulator();
         lag.install();
-        AppCommand lagCmd = Commands.dev("lag", "Delay your own movement packets.")
-                .usage("/lag <ticks>", "delay your own movement packets (0 = off)");
-        Argument<Integer> ticksArg = ArgumentType.Integer("ticks");
+        AppCommand lagCmd = Commands.dev("lag", "Give yourself a simulated ping.")
+                .usage("/lag <ms>", "simulated round trip, split over both directions (0 = off)")
+                .usage("/lag in <ticks> out <ms>", "set each direction yourself");
+        Argument<Integer> pingArg = ArgumentType.Integer("ms");
+        Argument<Integer> inArg = ArgumentType.Integer("ticks");
+        Argument<Integer> outArg = ArgumentType.Integer("ms");
         lagCmd.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
-            int ticks = ctx.get(ticksArg);
-            lag.setDelay(p, ticks);
-            Msg.tag(p, "sim-lag", "inbound packet latency = ", Msg.v(ticks), " ticks");
-        }, ticksArg);
+            int asked = ctx.get(pingArg);
+            if (lag.setPing(p, asked) < asked) {
+                Msg.tag(p, "sim-lag", "capped at ", Msg.v(LagSimulator.MAX_PING_MILLIS),
+                        "ms: past that the keep-alive drops you");
+            }
+            reportLag(lag, p);
+        }, pingArg);
+        lagCmd.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            lag.setInboundTicks(p, Math.max(0, ctx.get(inArg)));
+            lag.setOutboundMillis(p, Math.max(0, ctx.get(outArg)));
+            reportLag(lag, p);
+        }, ArgumentType.Literal("in"), inArg, ArgumentType.Literal("out"), outArg);
         Commands.register(lagCmd);
 
         // /compat: toggle this player between the global 1.8 profile and a per-player modern override (mode switch demo)
