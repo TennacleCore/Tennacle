@@ -6,6 +6,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import java.time.LocalDate;
 import tennacle.games.Mode;
 import tennacle.looks.Look;
+import io.github.term4.archipelago.LegacyNames;
 import io.github.term4.archipelago.replay.Ghost;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.core.StateChannels;
@@ -329,7 +330,7 @@ final class Dressing {
 
     // the italic code marks a spectator row, as Nametags does; the 1.8 profile-name cap holds the rest
     private static String sortName(String username) {
-        return "\u00a7o" + username.substring(0, Math.min(username.length(), 14));
+        return LegacyNames.prefixed("\u00a7o", username);
     }
 
     private Map<String, List<String>> teams() {
