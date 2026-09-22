@@ -249,8 +249,16 @@ public final class Matches {
             g.state().set(Scope.GAME, PLATFORM, platform.name());
             if (!options.rules().isEmpty()) modifiers.put(g.id(), options.rules());
             fold(g);
-            Replays.record(g);
-            for (Consumer<Game> hook : options.atLaunch()) hook.accept(g);
+            // the recording and its spool are started here but the ctor's failure path cannot reach them:
+            // a launch that throws after this would leave a spool the next boot files as a replay of nothing
+            try {
+                Replays.record(g);
+                for (Consumer<Game> hook : options.atLaunch()) hook.accept(g);
+            } catch (RuntimeException | Error t) {
+                Replays.discard(g);
+                modifiers.remove(g.id());
+                throw t;
+            }
         });
     }
 

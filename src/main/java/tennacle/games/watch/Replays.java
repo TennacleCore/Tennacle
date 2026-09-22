@@ -156,6 +156,18 @@ public final class Replays {
     }
 
     /** Called at launch; a no-op until {@link #install}. */
+    /** Drops a recording started for a launch that then failed: the maps and the spool go with it. */
+    public static void discard(@NotNull Game game) {
+        Recording recording = live.remove(game.id());
+        if (recording == null) return;
+        recorded.remove(recording);
+        try {
+            recording.abandon();
+        } catch (IOException e) {
+            LOGGER.warn("the spool of the failed launch {} was not dropped", game.id(), e);
+        }
+    }
+
     public static void record(@NotNull Game game) {
         Mode mode = Matches.modeOf(game);
         Path spool = Tapes.spoolOf(game.id(), mode != null ? mode.name() : null);

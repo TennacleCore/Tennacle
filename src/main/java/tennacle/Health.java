@@ -37,7 +37,8 @@ public final class Health {
         MinecraftServer.getGlobalEventHandler().addListener(ServerTickMonitorEvent.class, e -> {
             double ms = e.getTickMonitor().getTickTime();
             synchronized (recent) {
-                recent[at++ % WINDOW] = ms;
+                recent[at] = ms;
+                at = (at + 1) % WINDOW;
                 double total = 0;
                 for (double sample : recent) total += sample;
                 averageMs = total / WINDOW;
@@ -92,8 +93,8 @@ public final class Health {
 
     private static String status() {
         return "{\"status\":\"" + (averageMs > TICK_MS * 2 ? "degraded" : "ok")
-                + "\",\"tps\":" + String.format("%.2f", tps())
-                + ",\"tickMs\":" + String.format("%.2f", averageMs)
+                + "\",\"tps\":" + String.format(java.util.Locale.ROOT, "%.2f", tps())
+                + ",\"tickMs\":" + String.format(java.util.Locale.ROOT, "%.2f", averageMs)
                 + ",\"players\":" + MinecraftServer.getConnectionManager().getOnlinePlayerCount()
                 + ",\"games\":" + games()
                 + ",\"uptimeSeconds\":" + (System.currentTimeMillis() - BOOTED_AT) / 1000L + "}";

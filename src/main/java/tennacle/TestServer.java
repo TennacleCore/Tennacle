@@ -198,7 +198,11 @@ public final class TestServer {
         Shutdown.install();
 
         Mechanics.install();
-        boolean devCommands = Config.flag("tennacle.dev-commands", loopback);
+        // loopback is also the PRODUCTION shape behind Velocity, so the bind alone is the wrong gate:
+        // the arsenal defaults on only where forwarding is unauthenticated too
+        boolean unauthenticated = Config.value("tennacle.velocity-secret") == null
+                && Config.value("tennacle.bungeeguard-tokens") == null;
+        boolean devCommands = Config.flag("tennacle.dev-commands", loopback && unauthenticated);
         InstanceContainer world = Playground.createWorld(devCommands); // the test pads ride the dev flag
         Playground.installListeners(world);
         Commands.help(); // /help reads the registry every command below lands in
