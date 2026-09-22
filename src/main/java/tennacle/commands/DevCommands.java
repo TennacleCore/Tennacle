@@ -42,6 +42,8 @@ import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * The polyp example server's dev/test toolset plus the shard-aware {@code /boom}: lag simulation, profile
  * switches, explosions, enchants, effects, blockable swords, velocity-cap A/B.
@@ -85,6 +87,9 @@ public final class DevCommands {
         Msg.tag(p, "sim-lag", "ping ", Msg.v(lag.simulatedPing(p)), "ms = ",
                 Msg.v(inbound * MinecraftServer.TICK_MS), "ms in (", Msg.v(inbound), "t) + ",
                 Msg.v(lag.outboundMillis(p)), "ms out");
+        // the keep-alive round trip is 10s apart, so this trails a change by up to that long
+        Msg.tag(p, "sim-lag", "measured ", Msg.v(p.getLatency()), "ms, last keep-alive ",
+                Msg.v(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - p.getLastKeepAlive())), "ms ago");
     }
 
     public static void register(Polyp polyp) {
@@ -148,8 +153,12 @@ public final class DevCommands {
         final LagSimulator lag = new LagSimulator();
         lag.install();
         AppCommand lagCmd = Commands.dev("lag", "Give yourself a simulated ping.")
+                .usage("/lag", "what is set, and what the keep-alive actually measured")
                 .usage("/lag <ms>", "simulated round trip, split over both directions (0 = off)")
                 .usage("/lag in <ticks> out <ms>", "set each direction yourself");
+        lagCmd.setDefaultExecutor((sender, ctx) -> {
+            if (sender instanceof Player p) reportLag(lag, p);
+        });
         Argument<Integer> pingArg = ArgumentType.Integer("ms");
         Argument<Integer> inArg = ArgumentType.Integer("ticks");
         Argument<Integer> outArg = ArgumentType.Integer("ms");
