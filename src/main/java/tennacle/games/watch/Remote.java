@@ -82,6 +82,7 @@ public final class Remote {
     private final Map<Player, Controls> controllers = new ConcurrentHashMap<>();
     private final Map<Player, Long> pressed = new ConcurrentHashMap<>(); // a right click's tick: the swing after it is the same press
     private volatile boolean shownPaused;
+    private volatile String lastTimeline = "";
     private volatile boolean shownReversed;
     private volatile boolean saidOver;
 
