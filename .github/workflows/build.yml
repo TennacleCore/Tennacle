@@ -64,7 +64,7 @@ jobs:
 
       - uses: actions/checkout@v6
         with:
-          repository: Term4/schem
+          repository: TennacleCore/schem
           token: ${{ secrets.SIBLINGS_TOKEN }}
           path: schem
 
