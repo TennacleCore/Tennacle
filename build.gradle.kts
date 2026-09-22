@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    val minestomVersion = "2026.08.28-26.2"
+    val minestomVersion = "2026.09.12-26.2"
     val junitVersion = "6.1.3"
 
     implementation("net.minestom:minestom:$minestomVersion")
