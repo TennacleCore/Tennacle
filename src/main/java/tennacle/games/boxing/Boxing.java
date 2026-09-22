@@ -145,10 +145,11 @@ public final class Boxing {
                                 .best(BEST_COMBO, CAREER_COMBO))
                 .build();
         for (Ruleset ruleset : VARIANTS.values()) ruleset.check(Mechanics.polyp.profiles().global(), type);
-        Mode boxing = new Mode("boxing", type, arena, MechanicsProfile::builder, BASE, VARIANTS,
+        Mode boxing = Mode.of("boxing", type, arena, MechanicsProfile::builder, BASE, VARIANTS)
                 // no boxing capture - sumo's single-bold-line pattern
-                List.of(Component.text("First player to land 100 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
-                true, false, null, List.of(), null);
+                .intro(Component.text("First player to land 100 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD))
+                .ghostLoser()
+                .build();
         Duels.mode(boxing);
         Flags.offer(boxing, "preset");
         registerStats();

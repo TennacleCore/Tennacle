@@ -271,16 +271,18 @@ public final class Bridge {
             return null;
         });
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
-        Mode bridge = new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(),
-                List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
+        // no ghostLoser: nobody is eliminated, everyone stays where they stand
+        Mode bridge = Mode.of("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants())
+                .intro(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
                         Component.text("Knock off your opponent to gain a clear path.", NamedTextColor.YELLOW),
                         Component.empty(),
-                        Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW)),
-                false, // no death animation or spectate: everyone stays where they stand
-                true,  // sides: chat names the speaker's
-                GOALS, // a SCORING mode: hypixel ends on "<TEAM> WINS!" over the final score
-                List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS), new Mode.SeatStat("Goals", SCORED)),
-                Banners::mark);
+                        Component.text("First player to score 5 goals wins!", NamedTextColor.YELLOW))
+                .sided()
+                .teamScore(GOALS)
+                .tabStats(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
+                        new Mode.SeatStat("Goals", SCORED))
+                .marks(Banners::mark)
+                .build();
         Duels.mode(bridge);
         Flags.offer(bridge, "preset");
         // what a bridge request can ask for by name; the rule ids stay reachable as the raw form

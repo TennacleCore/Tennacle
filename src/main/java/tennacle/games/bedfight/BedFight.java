@@ -207,17 +207,18 @@ public final class BedFight {
             return null;
         });
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
-        Mode bedfight = new Mode("bedfight", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(),
-                List.of(Component.text("Bridge across and break the enemy bed.", NamedTextColor.YELLOW),
+        // no teamScore: the last side standing wins
+        Mode bedfight = Mode.of("bedfight", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants())
+                .intro(Component.text("Bridge across and break the enemy bed.", NamedTextColor.YELLOW),
                         Component.text("While your bed stands you respawn.", NamedTextColor.YELLOW),
                         Component.empty(),
-                        Component.text("Break their bed, then eliminate them!", NamedTextColor.YELLOW)),
-                true, // an eliminated player watches the rest out
-                true, // sides: chat names the speaker's, as bridge does
-                null, // no team score: the last side standing wins
-                List.of(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
-                        new Mode.SeatStat("Beds", BEDS)),
-                Marks::render);
+                        Component.text("Break their bed, then eliminate them!", NamedTextColor.YELLOW))
+                .ghostLoser()
+                .sided()
+                .tabStats(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
+                        new Mode.SeatStat("Beds", BEDS))
+                .marks(Marks::render)
+                .build();
         Duels.mode(bedfight);
         Flags.offer(bedfight, "preset");
     }

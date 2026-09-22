@@ -49,6 +49,90 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null);
     }
 
+    /**
+     * The construction path: four positional booleans and nulls say nothing at a call site, and this record has
+     * thirteen components. A mode names only what it turns on.
+     */
+    public static @NotNull Builder of(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
+                                      @NotNull Supplier<MechanicsProfile.Builder> profile,
+                                      @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants) {
+        return new Builder(name, type, arena, profile, base, variants);
+    }
+
+    public static final class Builder {
+
+        private final String name;
+        private final GameType type;
+        private final Maps arena;
+        private final Supplier<MechanicsProfile.Builder> profile;
+        private final Ruleset base;
+        private final Map<String, Ruleset> variants;
+        private List<Component> intro = List.of();
+        private boolean ghostLoser;
+        private boolean sided;
+        private @Nullable StateKey<Integer> teamScore;
+        private List<SeatStat> tabStats = List.of();
+        private @Nullable Marks marks;
+        private @Nullable String look;
+
+        private Builder(String name, GameType type, Maps arena, Supplier<MechanicsProfile.Builder> profile,
+                        Ruleset base, Map<String, Ruleset> variants) {
+            this.name = name;
+            this.type = type;
+            this.arena = arena;
+            this.profile = profile;
+            this.base = base;
+            this.variants = variants;
+        }
+
+        /** The instruction lines the game-start block shows; unset skips the block. */
+        public @NotNull Builder intro(@NotNull Component... lines) {
+            this.intro = List.of(lines);
+            return this;
+        }
+
+        /** An eliminated player gets the death animation and watches the rest out. */
+        public @NotNull Builder ghostLoser() {
+            this.ghostLoser = true;
+            return this;
+        }
+
+        /** Played as sides, so chat and its kin name the speaker's. */
+        public @NotNull Builder sided() {
+            this.sided = true;
+            return this;
+        }
+
+        /** A SCORING mode's per-team key, which ends it on "TEAM WINS!" over the score. */
+        public @NotNull Builder teamScore(@NotNull StateKey<Integer> key) {
+            this.teamScore = key;
+            return this;
+        }
+
+        /** The seat counters the house tab menu lists, in order. */
+        public @NotNull Builder tabStats(@NotNull SeatStat... stats) {
+            this.tabStats = List.of(stats);
+            return this;
+        }
+
+        /** How a replay's bookmarks read on the bookmark screen; unset is the name on paper. */
+        public @NotNull Builder marks(@NotNull Marks marks) {
+            this.marks = marks;
+            return this;
+        }
+
+        /** The look every match wears whatever preset it runs; unset is the preset's own. */
+        public @NotNull Builder look(@NotNull String look) {
+            this.look = look;
+            return this;
+        }
+
+        public @NotNull Mode build() {
+            return new Mode(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore,
+                    tabStats, marks, look);
+        }
+    }
+
     /** A seat's own counter under a label ({@code Kills: 3}) - the viewer's, never the team's. */
     public record SeatStat(@NotNull String label, @NotNull StateKey<Integer> key) {}
 

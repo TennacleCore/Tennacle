@@ -106,10 +106,10 @@ public final class Sumo {
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         for (Ruleset ruleset : VARIANTS.values()) ruleset.check(Mechanics.polyp.profiles().global(), type);
-        Mode sumo = new Mode("sumo", type, arena, MechanicsProfile::builder,
-                BASE, VARIANTS,
-                List.of(Component.text("Eliminate your opponents!", NamedTextColor.YELLOW, TextDecoration.BOLD)),
-                true, false, null, List.of(), null);
+        Mode sumo = Mode.of("sumo", type, arena, MechanicsProfile::builder, BASE, VARIANTS)
+                .intro(Component.text("Eliminate your opponents!", NamedTextColor.YELLOW, TextDecoration.BOLD))
+                .ghostLoser()
+                .build();
         Duels.mode(sumo);
         Flags.offer(sumo, "preset");
     }
