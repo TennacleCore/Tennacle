@@ -14,7 +14,7 @@ import io.github.term4.grotto.roster.Team;
 import tennacle.looks.Palette;
 import tennacle.looks.Presentation;
 import tennacle.games.Presets;
-import io.github.term4.bloom.edit.Teams;
+import io.github.term4.bloom.mapmaking.Teams;
 
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;

@@ -12,7 +12,7 @@ import tennacle.games.Mode;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.bloom.Bloom;
-import io.github.term4.bloom.Session;
+import io.github.term4.bloom.mapmaking.Session;
 import io.github.term4.canvas.Canvas;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Grotto;

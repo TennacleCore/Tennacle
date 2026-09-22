@@ -5,7 +5,7 @@ import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
-import io.github.term4.bloom.Session;
+import io.github.term4.bloom.mapmaking.Session;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.roster.SlotLayout;
 import net.minestom.server.coordinate.BlockVec;

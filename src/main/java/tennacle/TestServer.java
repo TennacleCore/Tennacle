@@ -22,6 +22,7 @@ import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.Viewers;
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.bloom.Bloom;
+import io.github.term4.bloom.mapmaking.Session;
 import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.chat.Chat;
 import io.github.term4.canvas.tab.TabList;
@@ -119,7 +120,7 @@ public final class TestServer {
     }
 
     /** Writes {@code editing} beside its arena; {@code false} = it could not be written. */
-    private static boolean autosave(io.github.term4.bloom.Session editing) {
+    private static boolean autosave(Session editing) {
         if (editing == null) return false;
         Path sidecar = arenaDir().resolve(editing.id() + ".bncl.autosave");
         try {

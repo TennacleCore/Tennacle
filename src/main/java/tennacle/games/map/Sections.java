@@ -2,7 +2,7 @@ package tennacle.games.map;
 
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.RegionMarker;
-import io.github.term4.bloom.edit.Teams;
+import io.github.term4.bloom.mapmaking.Teams;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Game;

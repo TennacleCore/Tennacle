@@ -12,7 +12,7 @@ import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.polyp.platform.player.PlayerNames;
-import io.github.term4.bloom.edit.Teams;
+import io.github.term4.bloom.mapmaking.Teams;
 import tennacle.games.Presets;
 import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;

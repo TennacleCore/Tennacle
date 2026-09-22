@@ -15,7 +15,7 @@ import io.github.term4.barnacle.Arena;
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
-import io.github.term4.bloom.Session;
+import io.github.term4.bloom.mapmaking.Session;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;

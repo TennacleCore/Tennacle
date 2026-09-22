@@ -17,7 +17,7 @@ import io.github.term4.grotto.modules.flow.Countdown;
 import java.util.ArrayList;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.canvas.theme.Livery;
-import io.github.term4.bloom.edit.Teams;
+import io.github.term4.bloom.mapmaking.Teams;
 import tennacle.games.Presets;
 import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;

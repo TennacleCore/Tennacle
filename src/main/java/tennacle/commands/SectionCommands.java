@@ -2,10 +2,10 @@ package tennacle.commands;
 
 import io.github.term4.barnacle.Arena;
 import io.github.term4.bloom.Bloom;
-import io.github.term4.bloom.Session;
+import io.github.term4.bloom.mapmaking.Session;
 import io.github.term4.bloom.command.Say;
-import io.github.term4.bloom.edit.Layout;
-import io.github.term4.bloom.edit.Templates;
+import io.github.term4.bloom.mapmaking.Layout;
+import io.github.term4.bloom.mapmaking.Templates;
 import net.minestom.server.command.CommandSender;
 
 import java.io.IOException;

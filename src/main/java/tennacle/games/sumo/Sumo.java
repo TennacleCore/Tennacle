@@ -11,7 +11,7 @@ import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
-import io.github.term4.bloom.edit.Teams;
+import io.github.term4.bloom.mapmaking.Teams;
 import tennacle.games.Presets;
 import tennacle.Mechanics;
 import tennacle.games.Flags;
