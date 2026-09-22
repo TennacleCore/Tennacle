@@ -98,6 +98,7 @@ public final class Cages implements GameModule {
 
     private static Arena cageSource;
     private static Map<String, CageDef> cageDefs = Map.of();
+    private static boolean missingLogged; // a missing cages arena is re-read on every stamp otherwise
     private static final tennacle.PlayerPrefs.Entry<String, String> PICK =
             tennacle.PlayerPrefs.register(Bridge.CAGE_CHOICE);
 
@@ -275,14 +276,27 @@ public final class Cages implements GameModule {
         armCount(game, game.state().tick() + 1);
     }
 
+    /**
+     * Reads the cages off the boot thread, so the first stamp of the first bridge match does not instantiate
+     * and unload an arena on that game's clock. Safe to call twice.
+     */
+    public static void warm() {
+        cages();
+    }
+
     /** The authored cages by variant; re-extracted when /arena save swaps the arena. */
     private static synchronized Map<String, CageDef> cages() {
         Arena arena;
         try {
             arena = CAGES.get();
         } catch (IllegalStateException missing) {
+            if (!missingLogged) {
+                missingLogged = true;
+                LOGGER.warn("no cages arena - every freeze is open-air until one is saved");
+            }
             return Map.of(); // no cages arena yet - open-air freeze
         }
+        missingLogged = false;
         if (arena == cageSource) return cageDefs;
         cageSource = arena;
         Map<String, CageDef> defs = new HashMap<>();

@@ -2,7 +2,6 @@ package tennacle.games;
 
 import tennacle.games.matchmaking.Queues;
 import tennacle.games.watch.Spectators;
-import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 import tennacle.looks.Look;
 import tennacle.looks.GameSounds;
@@ -408,8 +407,8 @@ public final class Matches {
                 if (grotto.engaged(player)) throw new IllegalStateException(player.getUsername() + " is in a game");
             }
         }
-        // a watcher seated out of a theater leaves it first: its dressing would ride into the game
-        for (Collection<Player> side : sides) for (Player player : side) Theaters.leave(player);
+        // the theater leave rides Spectators.exit in the seating loop below: doing it here too strands a watcher
+        // in the arena base with no view when the launch or the seat-count check throws between the two
         Game game = launch(mode, platform, arena, options);
         List<Team> teams = game.roster().teams();
         if (sides.size() > teams.size()) {

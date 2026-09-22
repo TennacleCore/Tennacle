@@ -186,6 +186,7 @@ public final class Bridge {
         MapPool arena = MapPool.of("bridge");
         Teams.register(DEFAULTS); // the editor shows an arena's effective look
         Cages.editable();
+        Cages.warm(); // off the boot thread, not off the first bridge match's clock
         TYPE = GameType.builder("bridge")
                 .slots(SlotLayout.groups(CAGE, Parties.MAX)) // a party shares its cage
                 .teams(a -> tennacle.looks.Palette.teams(a, CAGE, DEFAULTS))
