@@ -40,7 +40,8 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>The quantum is a tick and cannot be finer: {@code Player.interpretPacketQueue} is called once per tick from
  * {@code Player.update}, so a packet released mid-tick just waits for the boundary. A sub-tick inbound hold buys
- * jitter, not resolution.
+ * jitter, not resolution. An arrival inside a tick therefore rounds UP to the next flush - a hold is never
+ * shorter than asked, at the cost of being up to a tick longer for the packets that arrive off the queue.
  *
  * <p><em>Every</em> inbound PLAY packet is delayed, not just movement - true one-way latency. Delaying movement
  * alone left the rest (keep-alive, which drives {@code getLatency()}; swing / use-entity; teleport-confirm acks)
@@ -126,6 +127,12 @@ public final class LagSimulator {
      * one tick of lag measured as ~2 (~100ms) instead of one.
      */
     private volatile long tick = 0;
+
+    /** When {@link #flush} last ran, so an arrival can tell whether it is on a tick boundary or inside one. */
+    private volatile long lastFlushNanos = System.nanoTime();
+
+    /** Within this of a flush, an arrival counts as landing on the boundary rather than inside the tick. */
+    private static final long ALIGNED_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
 
     /** Per-player inbound delay in ticks; absent (or {@code <= 0}) means the player is not lagged inbound. */
     private final Map<UUID, Long> delayTicks = new ConcurrentHashMap<>();
@@ -254,8 +261,14 @@ public final class LagSimulator {
         boolean draining = held != null && !held.isEmpty();
         if (delay == null && !draining) return; // not lagged, and nothing of theirs still in flight
         // An unlagged player with a buffer still queues, at zero delay: a new packet must never overtake a held one.
+        // A packet that arrives INSIDE a tick rounds up to the next flush. Most inbound packets arrive on a tick
+        // (onPacket runs inside interpretPacketQueue), but Minestom handles keep-alive on the read thread, off the
+        // queue - and releasing that at the next flush held it for the remainder of the tick, not the tick asked
+        // for. Short-changing a latency simulator is the one thing it must not do, so this rounds up, never down.
+        long ticks = delay == null ? 0 : delay;
+        if (ticks > 0 && System.nanoTime() - lastFlushNanos > ALIGNED_NANOS) ticks++;
         buffers.computeIfAbsent(uuid, k -> new ConcurrentLinkedQueue<>())
-                .add(new Delayed(packet, tick + (delay == null ? 0 : delay)));
+                .add(new Delayed(packet, tick + ticks));
         event.setCancelled(true);
     }
 
@@ -277,6 +290,7 @@ public final class LagSimulator {
 
     void flush() {
         long now = ++tick; // single writer (the scheduler task); volatile for onPacket's reads
+        lastFlushNanos = System.nanoTime();
         var iterator = buffers.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<UUID, Queue<Delayed>> entry = iterator.next();

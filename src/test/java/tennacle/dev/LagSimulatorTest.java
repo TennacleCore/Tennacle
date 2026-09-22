@@ -144,6 +144,47 @@ class LagSimulatorTest extends HeadlessServerTest {
         }
     }
 
+    /**
+     * Minestom handles keep-alive on the read thread, off the queue, so it arrives inside a tick rather than on
+     * one. Releasing that at the next flush held it for the remainder of the tick - a 50ms delay measured 23.
+     */
+    @Test
+    void anArrivalInsideATickRoundsUp() throws InterruptedException {
+        LagSimulator sim = new LagSimulator();
+        FakePlayer p = FakePlayer.connect(instance, new Pos(950.5, 70, 900.5), "LagMidTick");
+        try {
+            sim.setInboundTicks(p.player, 1);
+            sim.flush(); // a tick boundary
+            Thread.sleep(20); // now we are inside it, where a read-thread packet lands
+            sim.onPacket(move(p.player, 0));
+
+            sim.flush();
+            assertEquals(1, sim.pending(p.player), "the next flush is not a full tick away - it waits");
+            sim.flush();
+            assertEquals(0, sim.pending(p.player), "and goes out on the one after");
+        } finally {
+            sim.setInboundTicks(p.player, 0);
+            p.player.remove();
+        }
+    }
+
+    /** A packet that lands on the boundary still gets exactly what was asked for, not a tick more. */
+    @Test
+    void anArrivalOnTheTickIsExact() {
+        LagSimulator sim = new LagSimulator();
+        FakePlayer p = FakePlayer.connect(instance, new Pos(960.5, 70, 900.5), "LagOnTick");
+        try {
+            sim.setInboundTicks(p.player, 1);
+            sim.flush();
+            sim.onPacket(move(p.player, 0)); // immediately after, as interpretPacketQueue runs
+            sim.flush();
+            assertEquals(0, sim.pending(p.player), "one tick asked, one tick served");
+        } finally {
+            sim.setInboundTicks(p.player, 0);
+            p.player.remove();
+        }
+    }
+
     /** A grouped send hands every viewer ONE packet instance, so the pass-through mark cannot be global. */
     @Test
     void oneSharedPacketIsHeldPerPlayer() throws InterruptedException {
