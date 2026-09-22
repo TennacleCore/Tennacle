@@ -97,7 +97,10 @@ public final class LobbyCommands {
         Queues.dequeue(p);
         Spectators.exit(p);
         KitLayouts.cancel(p);
-        pick.join(p);
+        if (!pick.join(p)) { // the game closed, or the held seat went, between the pick and here
+            p.sendMessage(yellow("That seat is gone."));
+            return;
+        }
         p.sendMessage(yellow("Rejoining ").append(gameLine(pick, p)).append(yellow("...")));
     }
 

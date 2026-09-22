@@ -376,7 +376,7 @@ public final class Matches {
         Thread.ofVirtual().name("tennacle-map-" + mode.name()).start(() -> {
             try {
                 arena.instantiate();
-            } catch (RuntimeException e) {
+            } catch (RuntimeException | Error e) { // an OOM here would leave both sides waiting forever
                 out.completeExceptionally(e);
                 return;
             }
@@ -404,6 +404,7 @@ public final class Matches {
             for (Player player : side) {
                 // engaged, not seated: the shard tag lands at the end of the transfer, and a player mid-flight
                 // into another game would otherwise be seated twice
+                if (!player.isOnline()) throw new IllegalStateException(player.getUsername() + " left");
                 if (grotto.engaged(player)) throw new IllegalStateException(player.getUsername() + " is in a game");
             }
         }

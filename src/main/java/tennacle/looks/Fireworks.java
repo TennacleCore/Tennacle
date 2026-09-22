@@ -1,5 +1,6 @@
 package tennacle.looks;
 
+import io.github.term4.polyp.world.MechanicsWorld;
 import net.kyori.adventure.util.RGBLike;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
@@ -23,14 +24,15 @@ public final class Fireworks {
 
     private Fireworks() {}
 
-    public static void burst(@NotNull Instance instance, @NotNull Pos at, @NotNull List<? extends RGBLike> colors) {
+    /** {@code world} is the game's shard, not the base instance: an unbound entity is invisible to its members. */
+    public static void burst(@NotNull MechanicsWorld world, @NotNull Pos at, @NotNull List<? extends RGBLike> colors) {
         List<RGBLike> palette = List.copyOf(colors);
         ItemStack charge = ItemStack.of(Material.FIREWORK_ROCKET).with(DataComponents.FIREWORKS, new FireworkList(1, List.of(
                 new FireworkExplosion(FireworkExplosion.Shape.STAR, palette, List.of(), false, false),
                 new FireworkExplosion(FireworkExplosion.Shape.CREEPER, palette, List.of(), false, false))));
         Entity rocket = new Entity(EntityType.FIREWORK_ROCKET);
         ((FireworkRocketMeta) rocket.getEntityMeta()).setFireworkInfo(charge);
-        rocket.setInstance(instance, at).thenRun(() -> {
+        world.spawn(rocket, at).thenRun(() -> {
             rocket.triggerStatus(BURST);
             rocket.scheduleRemove(Duration.ofMillis(100));
         });

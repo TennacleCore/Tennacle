@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.watch.Lineup;
 import tennacle.commands.RulesCompletions;
 import tennacle.games.Match;
 import tennacle.games.watch.Spectators;
@@ -107,7 +108,10 @@ public final class Rules implements GameModule {
                 }
             });
         }
-        respawns.onRespawn((player, seat) -> kits.refit(player)); // the kit comes back whole on every spawn
+        respawns.onRespawn((player, seat) -> {
+            Lineup.unaim(player); // the compass aim of the life they just lost
+            kits.refit(player);
+        }); // the kit comes back whole on every spawn
         respawns.onDead((player, seat) -> Spectators.ghostKit(player)); // the wait holds a compass, nothing else
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim) || game.roster().slotOf(victim) == null) return;

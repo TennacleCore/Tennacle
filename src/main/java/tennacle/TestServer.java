@@ -385,7 +385,10 @@ public final class TestServer {
         String configured = Config.value("tennacle.game-secret");
         if (configured != null) return configured;
         Path file = data.resolve("game-secret");
-        if (Files.isReadable(file)) return Files.readString(file, StandardCharsets.UTF_8).trim();
+        if (Files.isReadable(file)) {
+            String stored = Files.readString(file, StandardCharsets.UTF_8).trim();
+            if (!stored.isEmpty()) return stored; // a blank file boots and then fails every launch
+        }
         byte[] bytes = new byte[32];
         new SecureRandom().nextBytes(bytes);
         String generated = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);

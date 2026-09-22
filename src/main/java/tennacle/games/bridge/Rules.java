@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import tennacle.games.watch.Lineup;
 import tennacle.games.watch.Replays;
 import tennacle.looks.Look;
 import tennacle.looks.Deaths;
@@ -133,7 +134,10 @@ public final class Rules implements GameModule {
         minBuildY = floor; // never beneath the bridge's underside
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
         look = tennacle.games.Matches.lookNameOf(game); // stamped before modules install, never changes
-        respawns.onRespawn((player, seat) -> refit(game, player));
+        respawns.onRespawn((player, seat) -> {
+            Lineup.unaim(player); // the compass aim of the life they just lost
+            refit(game, player);
+        });
         respawns.onDead((player, seat) -> Spectators.ghostKit(player)); // the wait: a compass to the living, nothing else
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
@@ -185,7 +189,7 @@ public final class Rules implements GameModule {
         });
         st.alarms().register(FIREWORK_ALARM, (tick, payload) -> {
             String team = payload.getString("team");
-            Fireworks.burst(game.instance(), center(game), List.of(NamedTextColor.WHITE, game.roster().team(team).color()));
+            Fireworks.burst(game.shard(), center(game), List.of(NamedTextColor.WHITE, game.roster().team(team).color()));
             int left = payload.getInt("left") - 1;
             if (left > 0) {
                 st.alarms().arm(FIREWORK_ALARM, tick + 20, CompoundBinaryTag.builder()
