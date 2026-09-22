@@ -3,7 +3,7 @@ plugins {
     application
 }
 
-description = "The full Archipelago + MinestomMechanics playground server and cross-library bridge tests"
+description = "The Tennacle server: the app every library here is built for, and the cross-library bridge tests"
 group = "io.github.term4"
 version = "0.1.0"
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -42,6 +42,12 @@ dependencies {
 application {
     mainClass = "tennacle.TestServer"
     applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED") // polar's zstd-jni
+}
+
+// `run` holds the build outputs open, so a rebuild during a session either fails on a locked jar or feeds the
+// live JVM half-new classes. installDist copies them, and nothing but installDist writes there again.
+tasks.named<Sync>("installDist") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.test {

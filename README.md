@@ -1,10 +1,22 @@
 # Tennacle
 
-The full Archipelago + MinestomMechanics playground: the combined test server (`./gradlew run`) and the
-cross-library bridge tests (`./gradlew test`).
+The app the libraries are built for: the combined server and the cross-library bridge tests
+(`./gradlew test`).
 
-Builds against the sibling `../MinestomMechanics` and `../Archipelago` checkouts when present (live sources,
-no publish step); otherwise resolves the published/mavenLocal artifacts.
+Run it from an installed copy, not from the build outputs - `./gradlew run` holds them open, so a rebuild
+mid-session either fails on a locked jar or hands the live JVM half-new classes:
+
+```
+./gradlew installDist
+build/install/Tennacle/bin/Tennacle
+```
+
+Both the arena directory and the config file are read relative to the working directory, so start it from
+the repository root.
+
+Builds against the sibling `../Polyp`, `../Archipelago`, `../Barnacle`, `../Grotto`, `../Bloom`, `../Canvas`
+and `../schem` checkouts when present (live sources, no publish step); otherwise resolves the
+published/mavenLocal artifacts. `blocksandstuff-blocks` is a local fork and always comes from mavenLocal.
 
 - `TestServer` - boot only; `Mechanics` (systems + bridges), `Playground` (world, test pads, kit, TNT item)
 - `ShardCommands` / `ReplayCommands` / `DevCommands` - /shard, /replay, and the polyp dev toolset (/lag, /enchant, ...)
