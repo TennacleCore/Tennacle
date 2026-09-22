@@ -190,13 +190,18 @@ public final class Boxing {
 
     private static void show(Object to, String username, UUID uuid) {
         var vault = Matches.grotto().vault();
-        vault.get(uuid, CAREER_HITS).thenAccept(hits ->
-                vault.get(uuid, CAREER_SPRINT).thenAccept(sprint ->
-                        vault.get(uuid, CAREER_COMBO).thenAccept(combo -> {
-                            String wtap = hits > 0 ? Math.round(sprint * 100.0 / hits) + "%" : "-";
-                            Msg.say((net.minestom.server.command.CommandSender) to,
-                                    Msg.v(username), ": ", Msg.v(hits), " hits, ", Msg.v(wtap), " w-tap, best combo ",
-                                    Msg.v(combo), ".");
-                        })));
+        var sender = (net.minestom.server.command.CommandSender) to;
+        vault.get(uuid, CAREER_HITS)
+                .thenCompose(hits -> vault.get(uuid, CAREER_SPRINT)
+                        .thenCompose(sprint -> vault.get(uuid, CAREER_COMBO)
+                                .thenAccept(combo -> {
+                                    String wtap = hits > 0 ? Math.round(sprint * 100.0 / hits) + "%" : "-";
+                                    Msg.say(sender, Msg.v(username), ": ", Msg.v(hits), " hits, ", Msg.v(wtap),
+                                            " w-tap, best combo ", Msg.v(combo), ".");
+                                })))
+                .exceptionally(failed -> { // an unread failure here is a command that answers nothing at all
+                    Msg.fail(sender, "Could not read those stats.");
+                    return null;
+                });
     }
 }

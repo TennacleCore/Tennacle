@@ -78,7 +78,9 @@ public final class FileVault implements Vault {
                 account.entries.put(key.id(), key.encode(value));
                 save(player, account);
             }
-        }, io);
+        }, io).whenComplete((ignored, failed) -> { // most callers drop this future: an encode or write failure is news
+            if (failed != null) LOGGER.warn("vault write {} for {} failed", key.id(), player, failed);
+        });
     }
 
     /** Atomic per player: the read, the function and the write all run under that account's lock. */

@@ -102,6 +102,10 @@ public final class PlayerPrefs {
 
     private static <S, T> CompletableFuture<?> fetch(Entry<S, T> entry, UUID player) {
         return Matches.grotto().vault().get(player, entry.key)
-                .thenAccept(stored -> entry.cache.put(player, entry.decode.apply(stored)));
+                .thenAccept(stored -> {
+                    // a read landing after the timeout kick would otherwise refill the cache the kick cleared
+                    if (MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player) == null) return;
+                    entry.cache.put(player, entry.decode.apply(stored));
+                });
     }
 }
