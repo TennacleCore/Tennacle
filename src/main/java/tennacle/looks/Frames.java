@@ -209,7 +209,13 @@ public final class Frames {
 
     /** Captured hypixel clock, both halves padded: {@code 01:59}. */
     public static String clock(long ticks) {
-        long seconds = ticks / 20;
+        long seconds = Math.max(0, ticks) / 20;
         return "%02d:%02d".formatted(seconds / 60, seconds % 60);
+    }
+
+    /** Captured scrims clock, minutes unpadded: {@code 1:59}. */
+    public static String shortClock(long ticks) {
+        long seconds = Math.max(0, ticks) / 20;
+        return seconds / 60 + ":" + "%02d".formatted(seconds % 60);
     }
 }

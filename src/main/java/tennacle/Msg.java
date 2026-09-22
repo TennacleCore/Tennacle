@@ -93,10 +93,6 @@ public final class Msg {
         THEME.usage(to, title, subtitle, rows);
     }
 
-    public static Component gradient(String text) {
-        return THEME.gradient(text);
-    }
-
     public static Component boardTitle(net.minestom.server.entity.Player viewer, String text) {
         return THEME.boardTitle(viewer, text);
     }

@@ -71,14 +71,4 @@ public final class Config {
     public static @NotNull Path path(@NotNull String key, @NotNull String fallback) {
         return Path.of(string(key, fallback));
     }
-
-    /** A secret that must be set: refuses to boot rather than falling back to one that lives in the source. */
-    public static @NotNull String required(@NotNull String key) {
-        String value = value(key);
-        if (value == null) {
-            throw new IllegalStateException("set " + key + " (or " + key.replace('.', '_').toUpperCase(Locale.ROOT)
-                    + " in the environment) - there is no default for it");
-        }
-        return value;
-    }
 }

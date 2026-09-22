@@ -19,6 +19,7 @@ import io.github.term4.canvas.theme.Livery;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.archipelago.shard.ShardManager;
+import io.github.term4.archipelago.Viewers;
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.bloom.Bloom;
 import io.github.term4.canvas.Canvas;
@@ -291,7 +292,7 @@ public final class TestServer {
         // each library reads a viewer's protocol itself and decides what an unknown one means: modern by
         // default, since guessing legacy sends a modern client 1.8 wire tricks it draws literally
         Bloom.viewerProtocol(p -> Mechanics.polyp.clientInfo().getProtocol(p));
-        ShardTabList.viewerProtocol(p -> Mechanics.polyp.clientInfo().getProtocol(p));
+        Viewers.protocol(p -> Mechanics.polyp.clientInfo().getProtocol(p)); // archipelago's tab list and replays
         Canvas.viewerProtocol(p -> Mechanics.polyp.clientInfo().getProtocol(p));
         // a name completes where the viewer's tab lists it - the same scope on a 1.8 client as a modern one
         PlayerNames.visible(ShardTabList::listed);

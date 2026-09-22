@@ -38,7 +38,7 @@ final class Boards {
     // captured: clock, badged goal meters, the players
     private static void scrimsRows(Scoreboard b) {
         b.line((g, me) -> Component.text("Time: ", NamedTextColor.WHITE)
-                        .append(Component.text(clock(TimeLimit.left(g)), Frames.timeColor(g, TimeLimit.left(g)))))
+                        .append(Component.text(Frames.shortClock(TimeLimit.left(g)), Frames.timeColor(g, TimeLimit.left(g)))))
                 .blank()
                 .line((g, me) -> meterLine(g, teamAt(g, 0)), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> meterLine(g, teamAt(g, 1)), Bridge.GOALS, Score.TARGET)
@@ -109,11 +109,6 @@ final class Boards {
         return seat != null ? game.state().get(Scope.slot(seat.index()), key) : 0;
     }
 
-    // captured scrims clock: minutes unpadded
-    private static String clock(long ticks) {
-        long seconds = Math.max(0, ticks) / 20;
-        return seconds / 60 + ":" + "%02d".formatted(seconds % 60);
-    }
 
     private static int myTeamGoals(Game game, Player me) {
         Slot seat = game.roster().slotOf(me);

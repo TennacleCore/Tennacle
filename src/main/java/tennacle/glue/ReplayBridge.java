@@ -40,9 +40,6 @@ public final class ReplayBridge {
         if (installed) return;
         installed = true;
 
-        // the twin wire is generation-split (legacy viewers also get per-tick anchors and pins)
-        Replay.viewerProtocol(p -> Polyp.getInstance().clientInfo().getProtocol(p));
-
         // launches recorded at end of THIS tick (the stamp exists, nothing can hit before its first move tick) -
         // a per-tick sampler alone misses projectiles that hit and remove themselves within one tick. The ASYNC
         // world spawn may not have landed by then (no instance/position yet), so the spawn pos comes from the event.

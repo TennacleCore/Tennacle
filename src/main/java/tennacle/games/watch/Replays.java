@@ -1,5 +1,6 @@
 package tennacle.games.watch;
 
+import tennacle.looks.Frames;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -306,8 +307,7 @@ public final class Replays {
     /** Scrims' line: green, a click copies the watch command, the hover names the map and the length. */
     /** A recorded length as a watcher reads it, {@code m:ss}. */
     public static @NotNull String clock(long ticks) {
-        long seconds = Math.max(0, ticks) / 20;
-        return seconds / 60 + ":" + "%02d".formatted(seconds % 60);
+        return Frames.shortClock(ticks);
     }
 
     static @NotNull Component recordedLine(@NotNull String gameId, @NotNull String map, long ticks) {

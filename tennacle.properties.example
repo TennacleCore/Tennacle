@@ -28,3 +28,27 @@ tennacle.arena-dir = arenas
 
 tennacle.chunk-view-distance = 8
 tennacle.entity-view-distance = 5
+
+# how long an arena with no game on it stays instantiated
+tennacle.map-idle-minutes = 10
+
+# the line under the server name on the multiplayer list; unset = none
+# tennacle.motd =
+
+# the tint order a team with nothing authored falls back to, as named wire colors
+# tennacle.palette = red,blue,green,yellow,aqua,light_purple,dark_purple,gold
+
+# network-wide block roles over every map's own; where the palette changes the hue, this changes the block
+# tennacle.look = blocks=slime_block,cage=glass
+
+# Polyp's legacy inventory slot fix; off only to measure what it costs
+# tennacle.inventory-sync = true
+
+# this file's own path, as a system property only (it is read before the file is)
+# -Dtennacle.config = tennacle.properties
+
+# Archipelago reads its own directories from archipelago.properties beside this one, or -Darchipelago.<key>.
+# Defaults, all relative to the working directory:
+#   replay-dir  = replays
+#   save-dir    = shard-saves
+#   crash-dir   = archipelago-crashes

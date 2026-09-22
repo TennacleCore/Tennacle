@@ -46,10 +46,6 @@ public final class Mechanics {
 
     private Mechanics() {}
 
-    public static Preset presetFor(Player p) {
-        return PRESET;
-    }
-
     /** A preset under this server's own layer: the compat debug flag and the fix set every scope inherits. */
     public static MechanicsProfile profileOf(Preset preset) {
         return preset.profile().toBuilder()

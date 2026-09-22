@@ -78,11 +78,11 @@ final class Boards {
     private static Component clockLine(Game game, String label) {
         long full = game.rules().resolve(Scope.GAME, Beds.DESTROY);
         if (full < 0 || Beds.standing(game).isEmpty()) {
-            return row("Time: ", Component.text(clock(Match.playTime(game)), NamedTextColor.GREEN));
+            return row("Time: ", Component.text(Frames.shortClock(Match.playTime(game)), NamedTextColor.GREEN));
         }
         long left = Beds.fallsIn(game);
         if (left < 0) left = full; // the opener: the clock arms with the live phase and reads full until it does
-        return row(label, Component.text(clock(left), Frames.timeColor(game, left)));
+        return row(label, Component.text(Frames.shortClock(left), Frames.timeColor(game, left)));
     }
 
     private static Component row(String label, Component value) {
@@ -116,8 +116,4 @@ final class Boards {
         return index < teams.size() ? teams.get(index).id() : null;
     }
 
-    private static String clock(long ticks) {
-        long seconds = Math.max(0, ticks) / 20;
-        return seconds / 60 + ":" + (seconds % 60 < 10 ? "0" : "") + seconds % 60;
-    }
 }

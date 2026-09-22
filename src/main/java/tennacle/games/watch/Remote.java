@@ -1,5 +1,6 @@
 package tennacle.games.watch;
 
+import tennacle.looks.Frames;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
@@ -382,7 +383,6 @@ public final class Remote {
     }
 
     public static String stamp(long ticks) {
-        long seconds = Math.max(0, ticks) / 20;
-        return "%02d:%02d".formatted(seconds / 60, seconds % 60);
+        return Frames.clock(ticks);
     }
 }
