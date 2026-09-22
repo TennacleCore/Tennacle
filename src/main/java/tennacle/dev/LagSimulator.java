@@ -139,10 +139,11 @@ public final class LagSimulator {
     /** Per-player FIFO of held inbound packets, drained in arrival order so movement stays sequenced. */
     private final Map<UUID, Queue<Delayed>> buffers = new ConcurrentHashMap<>();
     /**
-     * Packets re-fed by {@link #flush} and awaiting their second pass through {@link #onPacket}. Identity-keyed:
-     * movement packets are value records, so two stationary "same position" packets would otherwise collide.
+     * Packets re-fed and awaiting their second pass through {@link #onPacket}. Identity-keyed: movement packets
+     * are value records, so two stationary "same position" packets would otherwise collide. Per player, so an
+     * idle simulator can rule itself out with a lock-free size read instead of entering a synchronized set.
      */
-    private final Set<ClientPacket> released = Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
+    private final Map<UUID, Set<ClientPacket>> inReleased = new ConcurrentHashMap<>();
 
     /** Per-player outbound delay in milliseconds; absent means the player is not lagged outbound. */
     private final Map<UUID, Long> delayMillis = new ConcurrentHashMap<>();
@@ -268,11 +269,13 @@ public final class LagSimulator {
     }
 
     void onPacket(PlayerPacketEvent event) {
+        if (idleIn()) return; // every inbound packet on the server lands here; an unused simulator costs four reads
         ClientPacket packet = event.getPacket();
-        // Second pass: re-fed by flush after its delay - let it reach the real handler this time. Ahead of the
-        // delay lookup, so one released after the lag is switched off still clears the set instead of sitting in it.
-        if (released.remove(packet)) return;
         UUID uuid = event.getPlayer().getUuid();
+        // Second pass: re-fed after its delay - let it reach the real handler this time. Ahead of the delay
+        // lookup, so one released after the lag is switched off still clears the set instead of sitting in it.
+        Set<ClientPacket> back = inReleased.get(uuid);
+        if (back != null && back.remove(packet)) return;
         Long delay = delayTicks.get(uuid);
         Queue<Delayed> held = buffers.get(uuid);
         Queue<Held<ClientPacket>> precise = preciseIn.get(uuid);
@@ -298,6 +301,7 @@ public final class LagSimulator {
     }
 
     void onOutPacket(PlayerPacketOutEvent event) {
+        if (idleOut()) return;
         ServerPacket packet = event.getPacket();
         UUID uuid = event.getPlayer().getUuid();
         Set<ServerPacket> passing = outReleased.get(uuid);
@@ -311,6 +315,20 @@ public final class LagSimulator {
         queue.add(new Held<>(packet, System.nanoTime()
                 + TimeUnit.MILLISECONDS.toNanos(delay == null ? 0 : delay)));
         event.setCancelled(true);
+    }
+
+    // ConcurrentHashMap.isEmpty is a counter read, no lock and no iteration - unlike the identity sets
+    private boolean idleIn() {
+        return delayTicks.isEmpty() && buffers.isEmpty() && preciseIn.isEmpty() && inReleased.isEmpty();
+    }
+
+    private boolean idleOut() {
+        return delayMillis.isEmpty() && outBuffers.isEmpty() && outReleased.isEmpty();
+    }
+
+    private void markReleased(UUID uuid, ClientPacket packet) {
+        inReleased.computeIfAbsent(uuid,
+                k -> Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()))).add(packet);
     }
 
     /** Whether Minestom processes this one on the read thread, off the player's packet queue. */
@@ -327,6 +345,7 @@ public final class LagSimulator {
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(entry.getKey());
             if (player == null) { // disconnected - drop the buffer and the lag setting
                 delayTicks.remove(entry.getKey());
+                inReleased.remove(entry.getKey());
                 iterator.remove();
                 continue;
             }
@@ -335,7 +354,7 @@ public final class LagSimulator {
             int budget = releaseBudget();
             while (budget-- > 0 && (head = queue.peek()) != null && head.releaseTick() <= now) {
                 queue.poll();
-                released.add(head.packet());
+                markReleased(entry.getKey(), head.packet());
                 player.addPacketToQueue(head.packet());
             }
             if (queue.isEmpty() && !delayTicks.containsKey(entry.getKey())) iterator.remove();
@@ -378,6 +397,7 @@ public final class LagSimulator {
             Map.Entry<UUID, Queue<Held<ClientPacket>>> entry = iterator.next();
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(entry.getKey());
             if (player == null) {
+                inReleased.remove(entry.getKey());
                 iterator.remove();
                 continue;
             }
@@ -389,11 +409,23 @@ public final class LagSimulator {
                     lastKeepAliveInHold.put(entry.getKey(),
                             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - head.heldAtNanos));
                 }
-                released.add(head.packet());
+                markReleased(entry.getKey(), head.packet());
                 MinecraftServer.getPacketListenerManager()
                         .processClientPacket(head.packet(), player.getPlayerConnection());
             }
-            if (queue.isEmpty() && !delayTicks.containsKey(entry.getKey())) iterator.remove();
+            if (queue.isEmpty() && !delayTicks.containsKey(entry.getKey())) {
+                iterator.remove();
+                retireInReleased(entry.getKey());
+            }
+        }
+    }
+
+    // only once BOTH inbound pipes are done with them: either can still owe a second pass
+    private void retireInReleased(UUID uuid) {
+        Queue<Delayed> ticked = buffers.get(uuid);
+        Queue<Held<ClientPacket>> precise = preciseIn.get(uuid);
+        if ((ticked == null || ticked.isEmpty()) && (precise == null || precise.isEmpty())) {
+            inReleased.remove(uuid);
         }
     }
 

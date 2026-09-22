@@ -216,6 +216,33 @@ class LagSimulatorTest extends HeadlessServerTest {
         }
     }
 
+    /** With nobody lagged the listeners run for every packet on the server, so they must bail before any lock. */
+    @Test
+    void anIdleSimulatorLetsEverythingBy() {
+        LagSimulator sim = new LagSimulator();
+        FakePlayer p = FakePlayer.connect(instance, new Pos(980.5, 70, 900.5), "LagIdle");
+        try {
+            PlayerPacketEvent in = move(p.player, 0);
+            sim.onPacket(in);
+            assertFalse(in.isCancelled());
+            PlayerPacketOutEvent outbound = out(p.player, 20f);
+            sim.onOutPacket(outbound);
+            assertFalse(outbound.isCancelled());
+
+            // and it goes back to idle once a lagged player is done, or the gate would stay open for good
+            sim.setInboundTicks(p.player, 1);
+            sim.onPacket(move(p.player, 1));
+            sim.setInboundTicks(p.player, 0);
+            for (int t = 0; t < 4; t++) sim.flush();
+            PlayerPacketEvent after = move(p.player, 2);
+            sim.onPacket(after);
+            assertFalse(after.isCancelled(), "the simulator let go of this player entirely");
+        } finally {
+            sim.setInboundTicks(p.player, 0);
+            p.player.remove();
+        }
+    }
+
     /** A grouped send hands every viewer ONE packet instance, so the pass-through mark cannot be global. */
     @Test
     void oneSharedPacketIsHeldPerPlayer() throws InterruptedException {
