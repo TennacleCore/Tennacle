@@ -1,17 +1,16 @@
 package tennacle.storage;
 
+import io.github.term4.archipelago.storage.Durable;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
 
-/** Durable writes: a temp sibling, then a move, so a crash or a full disk mid-write never truncates the target. */
+/** The app's side of durable storage: {@link Durable#write} plus the sweep of what a crash left behind. */
 public final class Atomic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Atomic.class);
@@ -35,24 +34,6 @@ public final class Atomic {
     }
 
     public static void write(@NotNull Path target, byte @NotNull [] bytes) throws IOException {
-        Path dir = target.toAbsolutePath().getParent();
-        Files.createDirectories(dir);
-        Path tmp = Files.createTempFile(dir, target.getFileName().toString(), ".tmp");
-        try {
-            // forced before the move: a rename is atomic, but delayed allocation can still leave the
-            // renamed target empty after a power cut
-            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(tmp,
-                    java.nio.file.StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
-                channel.write(java.nio.ByteBuffer.wrap(bytes));
-                channel.force(true);
-            }
-            try {
-                Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException e) { // some network/container filesystems
-                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } finally {
-            Files.deleteIfExists(tmp);
-        }
+        Durable.write(target, bytes);
     }
 }
