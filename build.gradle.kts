@@ -30,9 +30,9 @@ dependencies {
     implementation("dev.hollowcube:polar:1.16.0")
     compileOnly("it.unimi.dsi:fastutil:8.5.19") // javac reads PolarLoader signatures that reference it
     implementation("com.github.luben:zstd-jni:1.5.7-16")
-    runtimeOnly("org.tinylog:tinylog-api:2.8.0-M2")
-    runtimeOnly("org.tinylog:tinylog-impl:2.8.0-M2")
-    runtimeOnly("org.tinylog:slf4j-tinylog:2.8.0-M2")
+    runtimeOnly("org.tinylog:tinylog-api:2.8.0")
+    runtimeOnly("org.tinylog:tinylog-impl:2.8.0")
+    runtimeOnly("org.tinylog:slf4j-tinylog:2.8.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")

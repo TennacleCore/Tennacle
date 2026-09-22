@@ -1,0 +1,97 @@
+name: Build
+
+on:
+  - push
+  - pull_request
+
+# the composite build wants every sibling checkout beside it; most are private, so a cross-repo read token
+# has to be configured or the build job stands down rather than failing red
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.token.outputs.ready }}
+    steps:
+      - id: token
+        run: echo "ready=${{ secrets.SIBLINGS_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: guard
+    if: needs.guard.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Tennacle
+        uses: actions/checkout@v6
+        with:
+          path: Tennacle
+
+      - name: Check out the libraries
+        uses: actions/checkout@v6
+        with:
+          repository: TennacleCore/Polyp
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: Polyp
+
+      - uses: actions/checkout@v6
+        with:
+          repository: TennacleCore/Archipelago
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: Archipelago
+
+      - uses: actions/checkout@v6
+        with:
+          repository: TennacleCore/Barnacle
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: Barnacle
+
+      - uses: actions/checkout@v6
+        with:
+          repository: TennacleCore/Canvas
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: Canvas
+
+      - uses: actions/checkout@v6
+        with:
+          repository: TennacleCore/Grotto
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: Grotto
+
+      - uses: actions/checkout@v6
+        with:
+          repository: TennacleCore/Bloom
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: Bloom
+
+      - uses: actions/checkout@v6
+        with:
+          repository: Term4/schem
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: schem
+
+      # not a composite include: the fork is resolved as a snapshot, so it has to be in the local repository
+      - uses: actions/checkout@v6
+        with:
+          repository: TennacleCore/blocks-and-stuff
+          token: ${{ secrets.SIBLINGS_TOKEN }}
+          path: blocks-and-stuff
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Publish the blocks fork
+        working-directory: blocks-and-stuff
+        run: |
+          chmod +x gradlew
+          ./gradlew :blocksandstuff-blocks:publishToMavenLocal
+
+      - name: Build with Gradle
+        working-directory: Tennacle
+        run: |
+          chmod +x gradlew
+          ./gradlew build
