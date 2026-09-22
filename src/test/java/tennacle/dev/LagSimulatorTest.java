@@ -40,11 +40,11 @@ class LagSimulatorTest extends HeadlessServerTest {
 
             sim.setDelay(p.player, 1);
             for (int i = 300; i < 350; i++) sim.onPacket(move(p.player, i));
-            for (int t = 0; t < 199; t++) sim.flush();
-            assertEquals(350, sim.pending(p.player), "the old head still gates the queue, so nothing is early");
 
-            sim.flush(); // the tick the backlog comes due
+            sim.flush(); // the shortened pipe brings the whole backlog due at once
             assertEquals(350 - budget(), sim.pending(p.player), "one tick releases one budget, not the pile");
+            sim.flush();
+            assertEquals(350 - 2 * budget(), sim.pending(p.player), "and it keeps stepping");
         } finally {
             sim.setDelay(p.player, 0);
             p.player.remove();

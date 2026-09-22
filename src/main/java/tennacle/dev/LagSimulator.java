@@ -45,8 +45,28 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public final class LagSimulator {
 
-    /** A held packet and the simulator tick at/after which it should be released for real processing. */
-    private record Delayed(ClientPacket packet, long releaseTick) {}
+    /**
+     * A held packet and the simulator tick at/after which it should be released. {@code releaseTick} is only
+     * ever lowered, by {@link #setDelay}: a shortened pipe delivers what is already in it sooner. Releases stay
+     * in arrival order regardless, since only the head is ever polled.
+     */
+    private static final class Delayed {
+        private final ClientPacket packet;
+        private volatile long releaseTick;
+
+        Delayed(ClientPacket packet, long releaseTick) {
+            this.packet = packet;
+            this.releaseTick = releaseTick;
+        }
+
+        ClientPacket packet() {
+            return packet;
+        }
+
+        long releaseTick() {
+            return releaseTick;
+        }
+    }
 
     /**
      * The simulator's own tick, incremented at the top of each {@link #flush}. Stamping and draining MUST share
@@ -82,6 +102,14 @@ public final class LagSimulator {
     public void setDelay(Player player, long ticks) {
         if (ticks <= 0) delayTicks.remove(player.getUuid());
         else delayTicks.put(player.getUuid(), ticks);
+        // what is already in the pipe cannot arrive later than the shortened pipe would deliver it. Without this
+        // the old head gates the queue for its full original delay and the backlog piles up behind it
+        Queue<Delayed> held = buffers.get(player.getUuid());
+        if (held == null) return;
+        long ceiling = tick + Math.max(0, ticks);
+        for (Delayed delayed : held) {
+            if (delayed.releaseTick > ceiling) delayed.releaseTick = ceiling;
+        }
     }
 
     /** Current simulated latency for the player, in ticks (0 = not lagged). */
