@@ -4,6 +4,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.network.packet.client.ClientPacket;
+import net.minestom.server.ServerFlag;
 import net.minestom.server.timer.TaskSchedule;
 
 import java.util.Collections;
@@ -35,6 +36,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * updated sooner than its position/ground. Lag is set only once the player is already in PLAY, so the login/config
  * handshake is never delayed; the one visible side effect is the spawn-teleport confirm arriving a few ticks late,
  * which self-resolves.
+ *
+ * <p>A release is rate-capped. {@code Player.addPacketToQueue} offers into a queue bounded at
+ * {@code minestom.packet-queue-size} and KICKS with "Too Many Packets" when it is full, while
+ * {@code interpretPacketQueue} drains only {@code minestom.packet-per-tick} of it per tick. Lowering the delay
+ * makes a whole backlog eligible at once (the new stamps undercut the old ones the FIFO is still holding), and
+ * an uncapped drain pushed all of it in one flush - which is what kicked a lagged player on a second /lag.
  */
 public final class LagSimulator {
 
@@ -59,6 +66,12 @@ public final class LagSimulator {
      */
     private final Set<ClientPacket> released = Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
 
+    // half the interpret budget: the live stream the client is still sending needs the other half, or the
+    // bounded inbound queue fills and the player is kicked
+    private static int releaseBudget() {
+        return Math.max(1, ServerFlag.PLAYER_PACKET_PER_TICK / 2);
+    }
+
     /** Registers the packet listener and the per-tick release task. Call once after {@code MinecraftServer.init}. */
     public void install() {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerPacketEvent.class, this::onPacket);
@@ -76,20 +89,25 @@ public final class LagSimulator {
         return delayTicks.getOrDefault(player.getUuid(), 0L);
     }
 
-    private void onPacket(PlayerPacketEvent event) {
-        Long delay = delayTicks.get(event.getPlayer().getUuid());
-        if (delay == null) return; // not a lagged player
+    void onPacket(PlayerPacketEvent event) {
         ClientPacket packet = event.getPacket();
-        // Second pass: re-fed by flush after its delay - let it reach the real handler this time.
+        // Second pass: re-fed by flush after its delay - let it reach the real handler this time. Ahead of the
+        // delay lookup, so one released after /lag 0 still clears the set instead of sitting in it for good.
         if (released.remove(packet)) return;
+        UUID uuid = event.getPlayer().getUuid();
+        Long delay = delayTicks.get(uuid);
+        Queue<Delayed> held = buffers.get(uuid);
+        boolean draining = held != null && !held.isEmpty();
+        if (delay == null && !draining) return; // not lagged, and nothing of theirs still in flight
         // First pass: hold it and drop it from this tick's processing. Every inbound packet is delayed (true one-way
         // latency), so nothing about this player - position, ground flag, ping, swings - updates sooner than the rest.
-        buffers.computeIfAbsent(event.getPlayer().getUuid(), k -> new ConcurrentLinkedQueue<>())
-                .add(new Delayed(packet, tick + delay));
+        // An unlagged player with a buffer still queues, at zero delay: a new packet must never overtake a held one.
+        buffers.computeIfAbsent(uuid, k -> new ConcurrentLinkedQueue<>())
+                .add(new Delayed(packet, tick + (delay == null ? 0 : delay)));
         event.setCancelled(true);
     }
 
-    private void flush() {
+    void flush() {
         long now = ++tick; // single writer (the scheduler task); volatile for onPacket's reads
         var iterator = buffers.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -102,11 +120,19 @@ public final class LagSimulator {
             }
             Queue<Delayed> queue = entry.getValue();
             Delayed head;
-            while ((head = queue.peek()) != null && head.releaseTick() <= now) {
+            int budget = releaseBudget();
+            while (budget-- > 0 && (head = queue.peek()) != null && head.releaseTick() <= now) {
                 queue.poll();
                 released.add(head.packet());
                 player.addPacketToQueue(head.packet());
             }
+            if (queue.isEmpty() && !delayTicks.containsKey(entry.getKey())) iterator.remove();
         }
+    }
+
+    /** Packets still held for {@code player} - what a lowered delay has yet to let through. */
+    int pending(Player player) {
+        Queue<Delayed> queue = buffers.get(player.getUuid());
+        return queue == null ? 0 : queue.size();
     }
 }
