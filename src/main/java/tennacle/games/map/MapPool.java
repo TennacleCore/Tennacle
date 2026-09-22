@@ -61,6 +61,23 @@ public final class MapPool implements Maps {
         return this;
     }
 
+    /** What a mode needs beyond the marker counts: the phrase a map still wants, or {@code null} when ready. */
+    @FunctionalInterface
+    public interface Fitness {
+        @Nullable String wants(@NotNull Arena arena);
+    }
+
+    private final java.util.List<Fitness> checks = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /**
+     * Adds a mode's own fitness check, run at every refresh alongside the marker counts. A map that fails one is
+     * held out of the rotation with that phrase instead of failing at launch or playing wrong.
+     */
+    public @NotNull MapPool requires(@NotNull Fitness check) {
+        checks.add(check);
+        return this;
+    }
+
     @Override
     public Arena get() {
         if (!scanned) scan();
@@ -129,6 +146,15 @@ public final class MapPool implements Maps {
                     return expect.getKey().id() + " with y pinned (/marker limit " + expect.getKey().id() + " y=<n>)";
                 }
             }
+        }
+        for (Fitness check : checks) {
+            String wants;
+            try {
+                wants = check.wants(arena);
+            } catch (RuntimeException e) { // a check that throws is itself a map the mode cannot read
+                wants = "a readable look (" + (e.getMessage() != null ? e.getMessage() : e.toString()) + ")";
+            }
+            if (wants != null) return wants;
         }
         return null;
     }

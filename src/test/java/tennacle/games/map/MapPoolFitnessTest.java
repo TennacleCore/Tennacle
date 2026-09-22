@@ -70,6 +70,18 @@ class MapPoolFitnessTest extends HeadlessServerTest {
 
             MapPool none = MapPool.of("nobodystag").serves(type);
             assertThrows(IllegalStateException.class, none::get, "an empty rotation still says so");
+
+            // a mode's own check, beyond the counts: both maps have every marker and one still cannot be played
+            MapPool picky = MapPool.of("pooltest").serves(type)
+                    .requires(a -> a.meta().id().equals("halfbuilt") ? "a bed under a spawn group" : null);
+            assertEquals(java.util.Set.of("ready"), picky.names(), "the check holds it out too");
+            assertTrue(picky.holdouts().toString().contains("a bed under a spawn group"),
+                    "and says what it wants: " + picky.holdouts());
+
+            MapPool throwing = MapPool.of("pooltest").serves(type)
+                    .requires(a -> { throw new IllegalStateException("no such tint 'chartreuse'"); });
+            assertTrue(throwing.names().isEmpty(), "a check that throws holds the map out rather than the launch");
+            assertTrue(throwing.holdouts().toString().contains("chartreuse"), "" + throwing.holdouts());
         } finally {
             if (was == null) System.clearProperty("tennacle.arena-dir");
             else System.setProperty("tennacle.arena-dir", was);

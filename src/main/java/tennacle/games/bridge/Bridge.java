@@ -265,6 +265,11 @@ public final class Bridge {
         }, variantArg);
         Commands.register(cageCmd);
         KitLayouts.editable("bridge", KIT);
+                // a map whose authored tints do not parse throws at launch, taking the whole mode with it
+        arena.requires(a -> {
+            Palette.teams(a, CAGE, DEFAULTS);
+            return null;
+        });
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
         Mode bridge = new Mode("bridge", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants(),
                 List.of(Component.text("Cross the bridge to score goals.", NamedTextColor.YELLOW),
