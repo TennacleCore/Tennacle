@@ -1,7 +1,7 @@
 package tennacle.games.bedfight;
 
 import tennacle.games.watch.Lineup;
-import tennacle.commands.RulesCompletions;
+import tennacle.games.map.Building;
 import tennacle.games.Match;
 import tennacle.games.watch.Spectators;
 
@@ -17,19 +17,15 @@ import io.github.term4.grotto.modules.combat.KillCredit;
 import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.roster.Slot;
-import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.player.PlayerBlockBreakEvent;
-import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -42,31 +38,19 @@ import java.util.Set;
  */
 public final class Rules implements GameModule {
 
-    /** Building at all: off, and a seat neither places nor breaks. */
-    public static final StateKey<Boolean> BUILD = StateKey.of("space.build", Codec.BOOLEAN, true);
-    /** Absolute max build Y; {@code -1} keeps the {@code bedfight:height} marker. */
-    public static final StateKey<Integer> HEIGHT = StateKey.of("space.build.height", Codec.INT, -1);
-    /** Lowest placeable Y; {@code -1} keeps the {@code bedfight:floor} marker. */
-    public static final StateKey<Integer> FLOOR = StateKey.of("space.build.floor", Codec.INT, -1);
-    /** May place outside the {@code bedfight:build} region - still under the height and above the floor. */
-    public static final StateKey<Boolean> OUTSIDE = StateKey.of("space.build.outside", Codec.BOOLEAN, false);
-    /** A block a member put there. */
-    public static final String PLACED = "placed";
-    /** The map's own. */
-    public static final String MAP = "map";
+    // the build and break rules are Building's: bridge declares the same six ids, and two owners of one id is
+    // a rule that resolves differently depending on which class the reader found first
+    public static final StateKey<Boolean> BUILD = Building.BUILD;
+    public static final StateKey<Integer> HEIGHT = Building.HEIGHT;
+    public static final StateKey<Integer> FLOOR = Building.FLOOR;
+    public static final StateKey<Boolean> OUTSIDE = Building.OUTSIDE;
+    public static final String PLACED = Building.PLACED;
+    public static final String MAP = Building.MAP;
     /** What may be broken inside a {@code bedfight:defense} region; a kind nobody names stays standing. */
-    public static final StateKey<List<String>> BREAK = StateKey.of("space.break", Codec.STRING.list(), List.of(PLACED, MAP));
+    public static final StateKey<List<String>> BREAK = Building.BREAK;
     /** What may be broken outside one - the rest of the map. */
-    public static final StateKey<List<String>> BREAK_OUTSIDE =
-            StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
+    public static final StateKey<List<String>> BREAK_OUTSIDE = Building.BREAK_OUTSIDE;
 
-
-    static {
-        RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
-        RulesCompletions.words(BREAK_OUTSIDE.id(), List.of(PLACED, MAP));
-    }
-
-    private final Set<Point> placed = new HashSet<>();
     private Game game;
     private Respawns respawns;
     private KillCredit credit;
@@ -78,7 +62,7 @@ public final class Rules implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, BREAK, BREAK_OUTSIDE);
+        return Building.RULES;
     }
 
     @Override
@@ -131,33 +115,7 @@ public final class Rules implements GameModule {
             if (e.source() instanceof Player source && source == victim) return;
             if (respawns.isProtected(victim)) e.setCancelled(true);
         });
-        game.on(PlayerBlockPlaceEvent.class, e -> {
-            Player player = e.getPlayer();
-            if (game.roster().slotOf(player) == null) return;
-            Point pos = e.getBlockPosition();
-            boolean allowed = game.rules().resolve(player, BUILD) && (buildable(player, pos)
-                    || (game.rules().resolve(player, OUTSIDE) && inBand(player, pos))); // off the slices, still in the band
-            if (!allowed) {
-                e.setCancelled(true); // Refusals says so
-                return;
-            }
-            placed.add(new net.minestom.server.coordinate.BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
-            respawns.unprotect(player);
-        });
-        game.on(PlayerBlockBreakEvent.class, e -> {
-            Player player = e.getPlayer();
-            if (game.roster().slotOf(player) == null) return;
-            Point pos = e.getBlockPosition();
-            Point key = new net.minestom.server.coordinate.BlockVec(pos.blockX(), pos.blockY(), pos.blockZ());
-            boolean own = placed.contains(key);
-            List<String> may = game.rules().resolve(player, defended(pos) ? BREAK : BREAK_OUTSIDE);
-            if (!game.rules().resolve(player, BUILD) || !may.contains(own ? PLACED : MAP)) {
-                e.setCancelled(true);
-                return;
-            }
-            placed.remove(key); // after the refusal: a block that stays is still the one who placed it
-            respawns.unprotect(player);
-        });
+        Building.install(game, Building.space(this::buildable, this::inBand, this::defended), respawns::unprotect);
     }
 
     /**

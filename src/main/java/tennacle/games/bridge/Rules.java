@@ -8,11 +8,11 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import tennacle.looks.Fireworks;
 import io.github.term4.canvas.theme.SoundSet;
 import java.util.Set;
-import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.commands.RulesCompletions;
+import tennacle.games.map.Building;
 import tennacle.games.watch.Spectators;
 import io.github.term4.canvas.Canvas;
 
@@ -37,8 +37,6 @@ import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
@@ -47,8 +45,6 @@ import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.player.PlayerBlockBreakEvent;
-import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.sound.SoundEvent;
 import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.nbt.BinaryTagTypes;
@@ -70,28 +66,20 @@ public final class Rules implements GameModule {
     private static final Sound ARROW_BACK =
             Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1f);
 
-    private final LongSet placed = new LongOpenHashSet();
     private int minBuildY;
     private int maxBuildY;
-    /** Building at all: off, and a seat neither places nor breaks. */
-    public static final StateKey<Boolean> BUILD = StateKey.of("space.build", Codec.BOOLEAN, true);
-    /** Absolute max build Y; {@code -1} keeps the {@code bridge:height} marker. */
-    public static final StateKey<Integer> HEIGHT = StateKey.of("space.build.height", Codec.INT, -1);
-    /** May place outside the {@code bridge:build} slices - still under the height and above the floor. */
-    public static final StateKey<Boolean> OUTSIDE = StateKey.of("space.build.outside", Codec.BOOLEAN, false);
-    /** A block a member put there. */
-    public static final String PLACED = "placed";
-    /** The map's own. */
-    public static final String MAP = "map";
+    // the build and break rules are Building's: bed fight declares the same six ids
+    public static final StateKey<Boolean> BUILD = Building.BUILD;
+    public static final StateKey<Integer> HEIGHT = Building.HEIGHT;
+    public static final StateKey<Boolean> OUTSIDE = Building.OUTSIDE;
+    public static final String PLACED = Building.PLACED;
+    public static final String MAP = Building.MAP;
     /** What may be broken inside the bridge sections; a kind nobody names stays standing. */
-    public static final StateKey<List<String>> BREAK = StateKey.of("space.break", Codec.STRING.list(), List.of(PLACED, MAP));
+    public static final StateKey<List<String>> BREAK = Building.BREAK;
     /** What may be broken outside the bridge sections. */
-    public static final StateKey<List<String>> BREAK_OUTSIDE =
-            StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
+    public static final StateKey<List<String>> BREAK_OUTSIDE = Building.BREAK_OUTSIDE;
 
     static {
-        RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
-        RulesCompletions.words(BREAK_OUTSIDE.id(), List.of(PLACED, MAP));
         RulesCompletions.words(Goals.OWN.id(), List.of(Goals.OWN_NOTHING, Goals.OWN_DEATH));
     }
 
@@ -103,7 +91,7 @@ public final class Rules implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(BUILD, HEIGHT, OUTSIDE, BREAK, BREAK_OUTSIDE);
+        return Building.RULES;
     }
 
     @Override
@@ -159,32 +147,16 @@ public final class Rules implements GameModule {
             if (source == victim) return; // protection never blocks your own boost
             if (respawns.isProtected(victim)) e.setCancelled(true);
         });
-        game.on(PlayerBlockPlaceEvent.class, e -> {
-            Player player = e.getPlayer();
-            if (game.roster().slotOf(player) == null) return;
-            Point pos = e.getBlockPosition();
-            boolean allowed = game.rules().resolve(player, BUILD) && (buildable(build, pos, player)
-                    || (game.rules().resolve(player, OUTSIDE) && inBand(pos, player))); // off the slices, still in the band
-            if (!allowed || onASpawn(game, pos)) {
-                e.setCancelled(true); // Refusals says so
-                return;
+        Building.install(game, new Building.Space() {
+            @Override public boolean buildable(@NotNull Player placer, @NotNull Point pos) {
+                return Rules.this.buildable(build, pos, placer);
             }
-            placed.add(packed(pos));
-            respawns.unprotect(player);
-        });
-        game.on(PlayerBlockBreakEvent.class, e -> {
-            Player player = e.getPlayer();
-            if (game.roster().slotOf(player) == null) return;
-            Point pos = e.getBlockPosition();
-            boolean own = placed.contains(packed(pos));
-            List<String> may = game.rules().resolve(player, inBridge(game, pos) ? BREAK : BREAK_OUTSIDE);
-            if (!game.rules().resolve(player, BUILD) || !may.contains(own ? PLACED : MAP)) {
-                e.setCancelled(true);
-                return;
+            @Override public boolean inBand(@NotNull Player placer, @NotNull Point pos) {
+                return Rules.this.inBand(pos, placer);
             }
-            placed.remove(packed(pos)); // after the refusal: a block that stays is still the one who placed it
-            respawns.unprotect(player);
-        });
+            @Override public boolean guarded(@NotNull Point pos) { return inBridge(game, pos); }
+            @Override public boolean reserved(@NotNull Point pos) { return onASpawn(game, pos); }
+        }, respawns::unprotect);
         st.alarms().register(FIREWORK_ALARM, (tick, payload) -> {
             String team = payload.getString("team");
             Fireworks.burst(game.shard(), center(game), List.of(NamedTextColor.WHITE, game.roster().team(team).color()));
@@ -387,8 +359,4 @@ public final class Rules implements GameModule {
         return at != null ? at : game.arena().meta().spawn();
     }
 
-    // vanilla's BlockPos.asLong packing: one primitive per placed block, no key object per place or break
-    private static long packed(Point pos) {
-        return ((long) pos.blockX() & 0x3FFFFFFL) << 38 | ((long) pos.blockZ() & 0x3FFFFFFL) << 12 | (pos.blockY() & 0xFFFL);
-    }
 }
