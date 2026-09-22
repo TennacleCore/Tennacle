@@ -438,7 +438,10 @@ public final class LagSimulator {
         outReleased.computeIfAbsent(player.getUuid(),
                         k -> Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>())))
                 .add(outgoing.packet());
-        player.sendPacket(outgoing.packet());
+        // straight onto the connection, NOT back through sendPacket: this packet already passed the rewrites and
+        // the InventorySync mirror once, and that mirror now believes the client holds what we never sent - a
+        // second pass reads the slot as a redundant echo and eats it
+        player.getPlayerConnection().sendPacket(outgoing.packet());
     }
 
     /** How long the last outbound keep-alive was really held, or -1 if none has been held since install. */

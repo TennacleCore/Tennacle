@@ -12,6 +12,13 @@ import net.minestom.server.event.player.PlayerPacketOutEvent;
 import net.minestom.server.network.packet.client.common.ClientKeepAlivePacket;
 import net.minestom.server.network.packet.client.play.ClientPlayerPositionPacket;
 import net.minestom.server.network.packet.server.play.UpdateHealthPacket;
+import io.github.term4.polyp.platform.fixes.client.InventorySync;
+import net.minestom.server.event.EventListener;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
+import net.minestom.server.network.packet.server.play.SetPlayerInventorySlotPacket;
+import net.minestom.server.network.packet.server.play.SetSlotPacket;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The outbound side rides the write thread instead, which is what lets a ping land off a tick boundary.
  */
 class LagSimulatorTest extends HeadlessServerTest {
+
+    @BeforeAll
+    static void wire() {
+        tennacle.games.TestWiring.ensure(instance); // the inventory case needs the real player class and its fixes
+    }
 
     private static int budget() {
         return Math.max(1, ServerFlag.PLAYER_PACKET_PER_TICK / 2);
@@ -271,5 +283,45 @@ class LagSimulatorTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    /**
+     * Reported from games: /lag broke the inventory. The hold captures at {@link PlayerPacketOutEvent}, downstream
+     * of everything {@code OptimizedPlayer.sendPacket} does - Polyp's InventorySync mirror included. Re-sending
+     * through sendPacket runs that mirror a second time and it reads its own anchored slot back as a redundant echo.
+     */
+    @Test
+    void aHeldSlotStillReachesTheClient() {
+        LagSimulator sim = new LagSimulator();
+        EventListener<PlayerPacketOutEvent> hold = EventListener.of(PlayerPacketOutEvent.class, sim::onOutPacket);
+        MinecraftServer.getGlobalEventHandler().addListener(hold);
+        boolean armed = InventorySync.enabled();
+        if (!armed) InventorySync.install(MinecraftServer.getGlobalEventHandler());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(960.5, 70, 900.5), "LagBag");
+        try {
+            p.player.getInventory().setItemStack(0, ItemStack.of(Material.DIAMOND_SWORD)); // anchors the mirror
+            p.sent.clear();
+
+            sim.setOutboundMillis(p.player, 30);
+            p.player.getInventory().setItemStack(0, ItemStack.of(Material.BOW));
+            assertEquals(0, slotUpdates(p), "held, so nothing on the wire yet");
+            assertTrue(sim.pendingOut(p.player) >= 1, "and the simulator has it");
+
+            await("the hold expires", () -> {
+                sim.drainOut();
+                return sim.pendingOut(p.player) == 0;
+            });
+            assertEquals(1, slotUpdates(p), "the release goes to the wire, not back through the mirror");
+        } finally {
+            sim.setOutboundMillis(p.player, 0);
+            if (!armed) InventorySync.disable();
+            MinecraftServer.getGlobalEventHandler().removeListener(hold);
+            p.player.remove();
+        }
+    }
+
+    private static int slotUpdates(FakePlayer p) {
+        return p.sent(SetPlayerInventorySlotPacket.class).size()
+                + (int) p.sent(SetSlotPacket.class).stream().filter(s -> s.windowId() == 0).count();
     }
 }
