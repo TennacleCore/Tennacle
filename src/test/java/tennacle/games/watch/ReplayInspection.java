@@ -13,6 +13,8 @@ import net.kyori.adventure.nbt.ByteArrayBinaryTag;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.minestom.server.codec.Transcoder;
+import net.minestom.server.network.NetworkBuffer;
+import net.minestom.server.network.packet.server.play.SoundEffectPacket;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -84,6 +86,14 @@ class ReplayInspection extends HeadlessServerTest {
         for (Recorded<?> op : read(Channels.SPAWNS, channels)) {
             Channels.Spawn s = (Channels.Spawn) op.op();
             if (!s.shooter().isEmpty()) shots.merge(s.shooter(), 1, Integer::sum);
+        }
+        for (Recorded<?> op : read(Channels.FX, channels)) {
+            Channels.Fx f = (Channels.Fx) op.op();
+            if (f.kind() != Channels.FX_CUE && f.kind() != Channels.FX_SOUND) continue;
+            SoundEffectPacket sound = NetworkBuffer.wrap(f.data(), 0, f.data().length,
+                    net.minestom.server.MinecraftServer.process()).read(SoundEffectPacket.SERIALIZER);
+            System.out.println("  fx@" + op.tick() + " " + (f.kind() == Channels.FX_CUE ? "CUE  " : "SOUND")
+                    + " " + sound.soundEvent() + " pitch=" + sound.pitch());
         }
         List<String> names = new ArrayList<>(moves.keySet());
         for (String name : actors.keySet()) if (!names.contains(name)) names.add(name);
