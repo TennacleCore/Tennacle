@@ -294,7 +294,7 @@ final class Dressing {
             if (!plain.contains(code)) continue;
             String date = plain.replace(code, "").trim();
             lines.remove(i);
-            lines.addAll(i, List.of(look.theme().prose(Frames.date(lookName, LocalDate.now())),
+            lines.addAll(i, List.of(look.theme().prose(Frames.date(look, LocalDate.now())),
                     look.theme().dim("Recorded:"), under(look.theme().value(date)), under(look.theme().value(code))));
             break;
         }

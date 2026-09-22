@@ -94,17 +94,14 @@ final class Banners {
     // minemen footage: only the name rides the team color, "scored!" stays yellow;
     // hypixel captured: the whole "<name> scored!" in the team color (scrims follows it)
     static Component scoredTitle(Game game, Player scorer, TextColor color) {
-        return "minemen".equals(Matches.lookNameOf(game))
-                ? Component.text(scorer.getUsername(), color)
-                        .append(Component.text(" scored!", NamedTextColor.YELLOW))
-                : Component.text(scorer.getUsername() + " scored!", color);
+        return scoredHeld(game, scorer.getUsername(), color);
     }
 
     // captured per network - minemen: team names, yellow prose, "!"; scrims and hypixel share
     // team names, gray prose, "."
     // captured - hypixel: green number always, trailing "..."; scrims: no dots, green 5-4 / yellow 3-2 / red 1
     static Component cageCount(Game game, int n) {
-        boolean hypixel = "hypixel".equals(Matches.lookNameOf(game));
+        boolean hypixel = Matches.lookOf(game).cue(Look.COUNT_DOTS);
         NamedTextColor tone = hypixel ? NamedTextColor.GREEN
                 : n >= 4 ? NamedTextColor.GREEN : n >= 2 ? NamedTextColor.YELLOW : NamedTextColor.RED;
         Component line = Component.text("Cages open in ", NamedTextColor.GRAY)
@@ -118,7 +115,7 @@ final class Banners {
 
     /** {@link #scoredTitle} by name - the scorer may be gone by the time the re-cage count renders it. */
     static Component scoredHeld(Game game, String scorer, TextColor color) {
-        return "minemen".equals(Matches.lookNameOf(game))
+        return Matches.lookOf(game).cue(Look.NAMED_ACCENT)
                 ? Component.text(scorer, color).append(Component.text(" scored!", NamedTextColor.YELLOW))
                 : Component.text(scorer + " scored!", color);
     }
@@ -126,7 +123,7 @@ final class Banners {
     static Component fallLine(Game game, Player fallen, @Nullable Player by) {
         var roster = game.roster();
         Component name = Component.text(fallen.getUsername() + " ", roster.team(Bridge.teamOf(game, fallen)).color());
-        if ("minemen".equals(Matches.lookNameOf(game))) {
+        if (Matches.lookOf(game).cue(Look.NAMED_ACCENT)) {
             if (by == null) return name.append(Component.text("fell into the void!", NamedTextColor.YELLOW));
             return name.append(Component.text("was hit into the void by ", NamedTextColor.YELLOW))
                     .append(Component.text(by.getUsername(), roster.team(Bridge.teamOf(game, by)).color()))
@@ -142,7 +139,7 @@ final class Banners {
     static Component killedLine(Game game, Player victim, @Nullable Player by, double range) {
         var roster = game.roster();
         Component name = Component.text(victim.getUsername() + " ", roster.team(Bridge.teamOf(game, victim)).color());
-        boolean minemen = "minemen".equals(Matches.lookNameOf(game));
+        boolean minemen = Matches.lookOf(game).cue(Look.NAMED_ACCENT);
         NamedTextColor prose = minemen ? NamedTextColor.YELLOW : NamedTextColor.GRAY;
         if (by == null) return name.append(Component.text(minemen ? "died!" : "died.", prose));
         // captured minemen: a shot names the range it was taken from; everything else is the plain line

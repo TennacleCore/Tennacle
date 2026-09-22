@@ -71,7 +71,6 @@ public final class Rules implements GameModule {
             Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1f);
 
     private final LongSet placed = new LongOpenHashSet();
-    private String look;
     private int minBuildY;
     private int maxBuildY;
     /** Building at all: off, and a seat neither places nor breaks. */
@@ -133,7 +132,6 @@ public final class Rules implements GameModule {
         }
         minBuildY = floor; // never beneath the bridge's underside
         maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
-        look = tennacle.games.Matches.lookNameOf(game); // stamped before modules install, never changes
         respawns.onRespawn((player, seat) -> {
             Lineup.unaim(player); // the compass aim of the life they just lost
             refit(game, player);
@@ -345,7 +343,7 @@ public final class Rules implements GameModule {
         GameState st = game.state();
         Match.addSeat(game, scorer, Bridge.SCORED);
         var color = game.roster().team(seat.team()).color();
-        Component banner = switch (look) {
+        Component banner = switch (Matches.lookOf(game).cue(Look.GOAL_BANNER)) {
             case "minemen" -> Banners.minemen(game, scorer, color);
             case "hypixel" -> Banners.hypixel(game, scorer, color, goals);
             default -> Banners.scrims(game, scorer, color);
@@ -363,7 +361,7 @@ public final class Rules implements GameModule {
                 .putFloat("health", scorer.getHealth() + scorer.getAdditionalHearts())
                 .put("sides", sides.build()).build());
         Matches.cue(game, SoundSet.SCORED);
-        if (look.equals("hypixel")) { // uncaptured: five bursts a second apart at the center, white and the team's color
+        if (Matches.lookOf(game).cue(Look.GOAL_FIREWORKS)) { // uncaptured: five bursts a second apart, white and the team's color
             st.alarms().arm(FIREWORK_ALARM, st.tick() + 1, CompoundBinaryTag.builder()
                     .putInt("left", 5).putString("team", seat.team()).build());
         }

@@ -10,6 +10,7 @@ import net.minestom.server.coordinate.Vec;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.canvas.theme.Role;
 import tennacle.games.Match;
+import tennacle.looks.Look;
 import tennacle.games.Matches;
 
 import io.github.term4.barnacle.Arena;
@@ -103,7 +104,6 @@ public final class Cages implements GameModule {
             tennacle.PlayerPrefs.register(Bridge.CAGE_CHOICE);
 
     private final Map<Point, Block> replaced = new HashMap<>();
-    private String look;
     private Phases phases;
     private Component held;
     private boolean introShown;
@@ -177,7 +177,6 @@ public final class Cages implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         GameState st = game.state();
-        look = Matches.lookNameOf(game); // stamped before modules install, never changes
         phases = game.module(Phases.class);
         if (phases == null) throw new IllegalStateException("Cages needs Phases installed before it");
         st.alarms().register(COUNT_ALARM, (tick, payload) -> beat(game, payload.getInt("n")));
@@ -232,21 +231,21 @@ public final class Cages implements GameModule {
         if (!Match.opening(game)) return;
         remaining = n;
         nextBeat = -1;
-        boolean hypixel = "hypixel".equals(look);
+        boolean hypixel = Matches.lookOf(game).cue(Look.COUNT_DOTS);
         if (!caged) {
             caged = true;
             stamp(game);
         }
         if (!introShown) {
             introShown = true;
-            if (hypixel) { // captured: the instruction block lands right before the first cage beat
+            if (Matches.lookOf(game).cue(Look.INTRO_BEFORE_CAGES)) { // captured: right before the first cage beat
                 Match.say(game, p -> Matches.lookOf(game).count().started().apply(game, p));
             }
         }
         if (n > 0) {
             Title beat = Title.title(held != null ? held : Component.empty(),
                     Banners.cageCount(game, n), Match.times(game, 0, 40, 0));
-            Component chat = "scrims".equals(look) ? Banners.cageCount(game, n) : null;
+            Component chat = Matches.lookOf(game).cue(Look.COUNT_IN_CHAT) ? Banners.cageCount(game, n) : null;
             Match.title(game, beat);
             if (chat != null) Match.say(game, chat); // captured: scrims mirrors the count into chat
             Match.each(game, p -> p.playSound(hypixel ? HAT : TICK));

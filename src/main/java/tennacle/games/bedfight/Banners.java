@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import tennacle.looks.Look;
 import tennacle.games.Matches;
 import tennacle.looks.Palette;
 
@@ -109,10 +110,10 @@ final class Banners {
     }
 
     private static boolean minemen(Game game) {
-        return "minemen".equals(Matches.lookNameOf(game));
+        return Matches.lookOf(game).cue(Look.NAMED_ACCENT);
     }
 
     private static boolean hypixel(Game game) {
-        return "hypixel".equals(Matches.lookNameOf(game));
+        return Matches.lookOf(game).cue(Look.COUNT_DOTS);
     }
 }

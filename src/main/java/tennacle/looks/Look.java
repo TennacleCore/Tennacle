@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 
@@ -42,7 +43,45 @@ import java.util.function.IntFunction;
  */
 public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verdict verdict, @NotNull Count count,
                    @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth,
-                   @NotNull HitReport.Line hit, @NotNull Tiebreak tiebreak) {
+                   @NotNull HitReport.Line hit, @NotNull Tiebreak tiebreak, @NotNull Map<Cue<?>, Object> cues) {
+
+    /** A look's answer to one presentation question a mode asks, with what a look that says nothing means. */
+    public record Cue<T>(@NotNull String id, @NotNull T fallback) {
+        @Override public String toString() { return id; }
+    }
+
+    public Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verdict verdict, @NotNull Count count,
+                @NotNull SoundSet sounds, @NotNull ChatLine chat, @NotNull Tab tab, boolean tabHealth,
+                @NotNull HitReport.Line hit, @NotNull Tiebreak tiebreak) {
+        this(theme, death, verdict, count, sounds, chat, tab, tabHealth, hit, tiebreak, Map.of());
+    }
+
+    /** The name alone wears the team's tint and the prose stays yellow, rather than the whole line tinting. */
+    public static final Cue<Boolean> NAMED_ACCENT = new Cue<>("named-accent", false);
+    /** A countdown number is always green and trails dots, rather than greening down to red. */
+    public static final Cue<Boolean> COUNT_DOTS = new Cue<>("count-dots", false);
+    /** The cage countdown is mirrored into chat, not just the title. */
+    public static final Cue<Boolean> COUNT_IN_CHAT = new Cue<>("count-in-chat", false);
+    /** The instruction block lands right before the first cage beat. */
+    public static final Cue<Boolean> INTRO_BEFORE_CAGES = new Cue<>("intro-before-cages", false);
+    /** A goal sets off fireworks at the center. */
+    public static final Cue<Boolean> GOAL_FIREWORKS = new Cue<>("goal-fireworks", false);
+    /** Which goal banner this look prints; the modes register their own renderers under it. */
+    public static final Cue<String> GOAL_BANNER = new Cue<>("goal-banner", "scrims");
+
+    /** This look's answer, or the cue's fallback. */
+    @SuppressWarnings("unchecked")
+    public <T> @NotNull T cue(@NotNull Cue<T> cue) {
+        Object set = cues.get(cue);
+        return set != null ? (T) set : cue.fallback();
+    }
+
+    /** A copy answering {@code cue}; the constants chain these instead of growing another constructor argument. */
+    public <T> @NotNull Look with(@NotNull Cue<T> cue, @NotNull T value) {
+        Map<Cue<?>, Object> next = new java.util.LinkedHashMap<>(cues);
+        next.put(cue, value);
+        return new Look(theme, death, verdict, count, sounds, chat, tab, tabHealth, hit, tiebreak, Map.copyOf(next));
+    }
 
     /** A seat walked out on, or one re-claimed: the name as this look names players, then the fact. */
     public static @NotNull Component departure(Game game, Slot seat, String name, boolean back) {
@@ -149,7 +188,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             SoundSet.of().cue(SoundSet.COUNTDOWN, MMC_TICK).cue(SoundSet.START, MMC_GO)
                     .cue(SoundSet.KILL, DING), // the ding on kill credit
             (g, speaker, message) -> Chat.plain(speaker, message),
-            new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak);
+            new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak).with(NAMED_ACCENT, true).with(GOAL_BANNER, "minemen");
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
@@ -157,7 +196,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             // captured: bold aqua network line, yellow "Playing on <address>", aqua store line
             new Tab(p -> Component.text("TENNACLE", NamedTextColor.AQUA, TextDecoration.BOLD)
                             .append(Component.text("\nPlaying on " + ADDRESS + "\n", NamedTextColor.YELLOW)),
-                    p -> Component.text("\n" + STORE, NamedTextColor.AQUA)), true, Look::scrimsHit, Look::scrimsTiebreak);
+                    p -> Component.text("\n" + STORE, NamedTextColor.AQUA)), true, Look::scrimsHit, Look::scrimsTiebreak).with(COUNT_IN_CHAT, true);
 
     /** Captured hypixel: scoring modes end on TEAM WINS! + the score; plain duels on VICTORY!/DEFEAT!. */
     public static final Look HYPIXEL = new Look(Msg.HYPIXEL, Look::hypixelDeath, Look::hypixelVerdict,
@@ -178,7 +217,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             new Tab(p -> Component.text("You are playing on ", NamedTextColor.GREEN)
                             .append(Component.text(ADDRESS.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD)),
                     p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
-                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak);
+                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak).with(COUNT_DOTS, true).with(INTRO_BEFORE_CAGES, true).with(GOAL_FIREWORKS, true).with(GOAL_BANNER, "hypixel");
 
     /** The house look: the gradient on titles, light gray prose, light blue values, names in their team's tint. */
     public static final Look TENNACLE = new Look(Msg.THEME, Look::scrimsDeath, Look::scrimsVerdict,
@@ -222,7 +261,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         if (replay != null) { // the game's own line, marked as a replay, dated: a code names a game only beside its date
             Component where = white((replay.mode() != null ? replay.mode().title() : replay.game()) + " replay")
                     .append(Msg.THEME.prose(" on ")).append(Msg.THEME.value(replay.arena().meta().name()));
-            String when = Frames.date(replay.look(), replay.played());
+            String when = Frames.date(Matches.look(replay.look()), replay.played());
             return where.append(Msg.THEME.dim(" · " + (replay.code().isEmpty() ? when : when + " " + replay.code())));
         }
         Game game = Game.of(viewer);
