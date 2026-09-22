@@ -122,6 +122,13 @@ public final class MapPool implements Maps {
             if (found != expect.getValue()) {
                 return expect.getValue() + " " + expect.getKey().id() + " (it has " + found + ")";
             }
+            // the count is not the whole contract: every limit in play is a height plane, and a rule that reads
+            // one unpinned throws from module install - a map with the right count then fails EVERY launch
+            for (io.github.term4.barnacle.marker.Marker marker : arena.markers(expect.getKey())) {
+                if (marker instanceof io.github.term4.barnacle.marker.LimitMarker limit && limit.y() == null) {
+                    return expect.getKey().id() + " with y pinned (/marker limit " + expect.getKey().id() + " y=<n>)";
+                }
+            }
         }
         return null;
     }
