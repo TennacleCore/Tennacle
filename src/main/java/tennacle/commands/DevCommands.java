@@ -90,6 +90,8 @@ public final class DevCommands {
         // the keep-alive round trip is 10s apart, so this trails a change by up to that long
         Msg.tag(p, "sim-lag", "measured ", Msg.v(p.getLatency()), "ms, last keep-alive ",
                 Msg.v(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - p.getLastKeepAlive())), "ms ago");
+        Msg.tag(p, "sim-lag", "that round trip was really held ", Msg.v(lag.lastKeepAliveOutHold(p)),
+                "ms out + ", Msg.v(lag.lastKeepAliveInHold(p)), "ms in (-1 = never held)");
     }
 
     public static void register(Polyp polyp) {

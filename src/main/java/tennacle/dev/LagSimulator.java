@@ -6,7 +6,9 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.event.player.PlayerPacketOutEvent;
 import net.minestom.server.network.packet.client.ClientPacket;
+import net.minestom.server.network.packet.client.common.ClientKeepAlivePacket;
 import net.minestom.server.network.packet.server.ServerPacket;
+import net.minestom.server.network.packet.server.common.KeepAlivePacket;
 import net.minestom.server.timer.TaskSchedule;
 
 import java.util.Collections;
@@ -80,6 +82,7 @@ public final class LagSimulator {
      */
     private static final class Delayed {
         private final ClientPacket packet;
+        private final long heldAtNanos = System.nanoTime();
         private volatile long releaseTick;
 
         Delayed(ClientPacket packet, long releaseTick) {
@@ -99,6 +102,7 @@ public final class LagSimulator {
     /** The outbound counterpart, stamped on the wall clock rather than the tick. */
     private static final class Outgoing {
         private final ServerPacket packet;
+        private final long heldAtNanos = System.nanoTime();
         private volatile long releaseNanos;
 
         Outgoing(ServerPacket packet, long releaseNanos) {
@@ -141,6 +145,14 @@ public final class LagSimulator {
      * global set would let the copy released for one lagged player walk through another's hold untouched.
      */
     private final Map<UUID, Set<ServerPacket>> outReleased = new ConcurrentHashMap<>();
+
+    /**
+     * What the last keep-alive in each direction was really held for. The ping a client shows comes from that
+     * one round trip and nothing else, so when the tab number disagrees with what was asked for, these two say
+     * which pipe did not contribute.
+     */
+    private final Map<UUID, Long> lastKeepAliveOutHold = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastKeepAliveInHold = new ConcurrentHashMap<>();
 
     private ScheduledExecutorService outClock;
 
@@ -279,6 +291,10 @@ public final class LagSimulator {
             int budget = releaseBudget();
             while (budget-- > 0 && (head = queue.peek()) != null && head.releaseTick() <= now) {
                 queue.poll();
+                if (head.packet() instanceof ClientKeepAlivePacket) {
+                    lastKeepAliveInHold.put(entry.getKey(),
+                            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - head.heldAtNanos));
+                }
                 released.add(head.packet());
                 player.addPacketToQueue(head.packet());
             }
@@ -312,10 +328,24 @@ public final class LagSimulator {
 
     private void release(Player player, Outgoing outgoing) {
         if (outgoing == null) return;
+        if (outgoing.packet() instanceof KeepAlivePacket) {
+            lastKeepAliveOutHold.put(player.getUuid(),
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - outgoing.heldAtNanos));
+        }
         outReleased.computeIfAbsent(player.getUuid(),
                         k -> Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>())))
                 .add(outgoing.packet());
         player.sendPacket(outgoing.packet());
+    }
+
+    /** How long the last outbound keep-alive was really held, or -1 if none has been held since install. */
+    public long lastKeepAliveOutHold(Player player) {
+        return lastKeepAliveOutHold.getOrDefault(player.getUuid(), -1L);
+    }
+
+    /** How long the last inbound keep-alive was really held, or -1 if none has been held since install. */
+    public long lastKeepAliveInHold(Player player) {
+        return lastKeepAliveInHold.getOrDefault(player.getUuid(), -1L);
     }
 
     /** Inbound packets still held for {@code player} - what a lowered delay has yet to let through. */
