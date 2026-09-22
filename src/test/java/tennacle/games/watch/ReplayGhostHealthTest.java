@@ -1,0 +1,98 @@
+package tennacle.games.watch;
+
+import io.github.term4.archipelago.replay.Ghost;
+import io.github.term4.archipelago.replay.Playback;
+import io.github.term4.archipelago.replay.Recording;
+import io.github.term4.archipelago.replay.Replay;
+import io.github.term4.archipelago.Viewers;
+import io.github.term4.archipelago.replay.core.CoreChannels;
+import io.github.term4.archipelago.replay.core.StateChannels;
+import io.github.term4.archipelago.shard.Shard;
+import io.github.term4.archipelago.testsupport.FakePlayer;
+import io.github.term4.archipelago.testsupport.HeadlessServerTest;
+import io.github.term4.grotto.modules.view.HealthDisplay;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.network.packet.server.play.UpdateScorePacket;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import tennacle.games.TestWiring;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Reported from replays: every ghost's health read 0 in tab and over the head while a watcher's read 20. A 1.8
+ * client names a ghost's row by its plated profile, so a score under the bare username lands on no row - and an
+ * unscored row still draws a number there, which is zero.
+ */
+class ReplayGhostHealthTest extends HeadlessServerTest {
+
+    @BeforeAll
+    static void wire() {
+        TestWiring.ensure(instance);
+        CoreChannels.register();
+        StateChannels.register();
+        // the harness wires no era lever, and the replay wire tests share this convention
+        Viewers.protocol(p -> p.getUsername().contains("Legacy") ? 47 : MinecraftServer.PROTOCOL_VERSION);
+    }
+
+    private static void tick() {
+        MinecraftServer.getSchedulerManager().processTick();
+        MinecraftServer.getSchedulerManager().processTickEnd();
+    }
+
+    @Test
+    void aGhostScoresOnTheRowTheClientHolds() {
+        Shard stage = new Shard(instance);
+        FakePlayer actor = FakePlayer.connect(instance, new Pos(700.5, 65, 700.5), "GhostHpActor");
+        byte[] file;
+        Recording rec = null;
+        try {
+            stage.join(actor.player);
+            actor.player.setHealth(17f);
+            rec = Replay.record(stage);
+            tick();
+            actor.player.teleport(new Pos(702.5, 65, 700.5)).join(); // a move op: the ghost goes up on it
+            tick();
+        } finally {
+            file = rec != null ? rec.stop() : new byte[0];
+            actor.player.remove();
+        }
+
+        Shard theater = new Shard(instance);
+        Playback playback = Replay.play(theater, file);
+        Dressing dressing = new Dressing(theater, playback, "ghosthp1", "", LocalDate.now(), null, "tennacle",
+                List.of("GhostHpActor|red|" + NamedTextColor.RED.value()), List.of(HealthDisplay.TAB));
+        playback.ghostNames(dressing::listName);
+        FakePlayer watcher = FakePlayer.connect(instance, new Pos(704.5, 65, 700.5), "GhostHpLegacy");
+        try {
+            theater.join(watcher.player);
+            dressing.enter(watcher.player, true);
+            watcher.sent.clear();
+            for (int i = 0; i < 4; i++) tick();
+
+            Ghost ghost = playback.ghost("GhostHpActor");
+            assertNotNull(ghost, "the move op raised the ghost");
+            String row = ghost.listedName(watcher.player);
+            assertEquals("§c" + "GhostHpActor", row, "a 1.8 row wears the side's color in the name itself");
+
+            List<UpdateScorePacket> scores = watcher.sent(UpdateScorePacket.class).stream()
+                    .filter(u -> u.objectiveName().startsWith("rh-")).toList();
+            assertTrue(scores.stream().anyMatch(u -> u.entityName().equals(row) && u.score() == 17),
+                    "the recorded health lands on that row: " + scores);
+            assertTrue(scores.stream().noneMatch(u -> u.entityName().equals("GhostHpActor")),
+                    "and never under the bare name, which names no row here: " + scores);
+        } finally {
+            dressing.exit(watcher.player);
+            dressing.close();
+            playback.halt();
+            watcher.player.remove();
+        }
+    }
+}

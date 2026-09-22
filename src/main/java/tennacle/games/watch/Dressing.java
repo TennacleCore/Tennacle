@@ -184,13 +184,13 @@ final class Dressing {
                     ScoreboardObjectivePacket.Type.INTEGER, null));
             if (tabHealth) viewer.sendPacket(new DisplayScoreboardPacket((byte) 0, objective));
             if (nameHealth) viewer.sendPacket(new DisplayScoreboardPacket((byte) 2, objective));
-            scores.forEach((name, score) -> viewer.sendPacket(new UpdateScorePacket(name, objective, score, null, null)));
+            scores.forEach((name, score) -> viewer.sendPacket(ghostScore(name, score, viewer)));
             // a listed row with no score of its own still draws a number: 1.8's tab invents one at zero
             // (Scoreboard.getValueFromObjective), and a watcher reading the crowd as dead is worse than
             // reading it as what it is. Both ways - the arrival learns the crowd, the crowd learns them
             for (Player other : dressed) {
-                viewer.sendPacket(watcherScore(other));
-                if (other != viewer) other.sendPacket(watcherScore(viewer));
+                viewer.sendPacket(watcherScore(other, viewer));
+                if (other != viewer) other.sendPacket(watcherScore(viewer, other));
             }
         }
         Board current = board;
@@ -207,9 +207,16 @@ final class Dressing {
         });
     }
 
-    private UpdateScorePacket watcherScore(Player watcher) {
-        return new UpdateScorePacket(ShardTabList.listName(watcher), objective,
+    private UpdateScorePacket watcherScore(Player watcher, Player viewer) {
+        return new UpdateScorePacket(ShardTabList.listName(watcher, viewer), objective,
                 Math.round(watcher.getHealth()), null, null);
+    }
+
+    // a 1.8 ghost's row is named by its plated profile, a modern one's by the username: score the row the
+    // viewer actually holds, or the number it draws is the zero an unscored row invents
+    private UpdateScorePacket ghostScore(String name, int points, Player viewer) {
+        Ghost ghost = playback.ghost(name);
+        return new UpdateScorePacket(ghost != null ? ghost.listedName(viewer) : name, objective, points, null, null);
     }
 
     void exit(@NotNull Player viewer) {
@@ -306,7 +313,7 @@ final class Dressing {
         return Component.text("  ").append(look.theme().dim("» ")).append(value);
     }
 
-    // the recorded health at the cursor, scored under the ghost's name: the tab column and the nameplate's read
+    // the recorded health at the cursor, scored under the ghost's row: the tab column and the nameplate's read
     private void tick() {
         remote.tick();
         if (!tabHealth && !nameHealth) return;
@@ -316,8 +323,7 @@ final class Dressing {
             int points = (int) Math.ceil(health);
             Integer last = scores.put(seat.name(), points);
             if (last != null && last == points) continue;
-            UpdateScorePacket packet = new UpdateScorePacket(seat.name(), objective, points, null, null);
-            for (Player viewer : dressed) viewer.sendPacket(packet);
+            for (Player viewer : dressed) viewer.sendPacket(ghostScore(seat.name(), points, viewer));
         }
     }
 

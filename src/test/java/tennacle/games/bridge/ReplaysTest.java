@@ -822,7 +822,8 @@ class ReplaysTest extends HeadlessServerTest {
     // a plain shard's clock is the server scheduler
     /** What {@code viewer}'s client was last told {@code subject} scores in the theater's health objective. */
     private static int tabScore(FakePlayer viewer, net.minestom.server.entity.Player subject) {
-        String listed = io.github.term4.archipelago.shard.ShardTabList.listName(subject);
+        // the row this viewer holds: a modern client was never sent the sort name
+        String listed = io.github.term4.archipelago.shard.ShardTabList.listName(subject, viewer.player);
         return viewer.sent(net.minestom.server.network.packet.server.play.UpdateScorePacket.class).stream()
                 .filter(p -> p.entityName().equals(listed))
                 .reduce((a, b) -> b).orElseThrow(() -> new AssertionError("no score for " + listed)).score();
