@@ -41,7 +41,12 @@ dependencies {
 
 application {
     mainClass = "tennacle.TestServer"
-    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED") // polar's zstd-jni
+    applicationDefaultJvmArgs = listOf(
+        "--enable-native-access=ALL-UNNAMED", // polar's zstd-jni
+        // unpark the write thread on a send instead of letting it sleep half a tick on an empty queue.
+        // ServerFlag reads it in its static initializer, so it has to be a JVM arg, not System.setProperty
+        "-Dminestom.new-socket-write-lock=true",
+    )
 }
 
 // `run` holds the build outputs open, so a rebuild during a session either fails on a locked jar or feeds the
