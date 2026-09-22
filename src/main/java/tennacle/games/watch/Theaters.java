@@ -162,13 +162,25 @@ public final class Theaters {
             return;
         }
         if (!Parties.requireLeader(viewer)) return;
-        byte[] bytes;
-        try {
-            bytes = Files.readAllBytes(file);
-        } catch (IOException e) {
-            Msg.fail(viewer, "That replay could not be read.");
-            return;
-        }
+        // the read, the decode and a cold map load are all off the tick thread, and Replay.play relays into the
+        // stage's own live domain - which Archipelago refuses from another clock's thread
+        Thread.ofVirtual().name("tennacle-replay-" + id.substring(0, 8)).start(() -> {
+            byte[] loaded;
+            try {
+                loaded = Files.readAllBytes(file);
+            } catch (IOException e) {
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() ->
+                        Msg.fail(viewer, "That replay could not be read."));
+                return;
+            }
+            // the stage, its playback and the admits all on the server tick: a domain player's command runs on
+            // THEIR shard's clock, and Replay.play relays into the stage's own live clock from there
+            MinecraftServer.getSchedulerManager().scheduleNextTick(() -> open(viewer, id, map, loaded, file));
+        });
+    }
+
+    private static void open(Player viewer, String id, @Nullable Arena map, byte[] bytes, Path file) {
+        ShardManager manager = shards;
         UserData.View data = ShardFile.userData(bytes);
         String modeName = data.get(Replays.MODE);
         Mode mode = modeName != null ? Matches.mode(modeName) : null;
@@ -189,7 +201,7 @@ public final class Theaters {
         Playback playback;
         try {
             playback = Replay.play(stage, bytes);
-        } catch (IllegalArgumentException e) {
+        } catch (RuntimeException e) {
             manager.destroy(stage);
             Msg.fail(viewer, "That replay could not be opened: " + e.getMessage());
             return;
@@ -206,13 +218,19 @@ public final class Theaters {
         Theater theater = new Theater(id, stage, playback, arena, dressing, ConcurrentHashMap.newKeySet(),
                 floor(arena));
         theaters.add(theater);
-        for (Player member : Parties.of(viewer)) { // the leader first: the remote is theirs
-            if (member != viewer && Game.of(member) != null) {
-                Msg.say(viewer, Msg.v(member.getUsername()), " is in a game and stays behind.");
-                continue;
+        try {
+            for (Player member : Parties.of(viewer)) { // the leader first: the remote is theirs
+                if (member != viewer && Game.of(member) != null) {
+                    Msg.say(viewer, Msg.v(member.getUsername()), " is in a game and stays behind.");
+                    continue;
+                }
+                admit(member, theater, member == viewer);
+                Msg.ok(member, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
             }
-            admit(member, theater, member == viewer);
-            Msg.ok(member, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
+        } catch (RuntimeException e) {
+            // a stage with its own clock thread would tick on forever with nobody in it
+            if (theaters.remove(theater)) close(theater);
+            throw e;
         }
         if (theater.watchers().isEmpty() && theaters.remove(theater)) close(theater); // nobody made it in
     }

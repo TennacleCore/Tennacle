@@ -14,6 +14,7 @@ import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
 
+import io.github.term4.barnacle.Arena;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardManager;
@@ -83,6 +84,18 @@ class ReplaysTest extends HeadlessServerTest {
     void theClockReads() {
         assertEquals("15:02", Replays.clock(15 * 60 * 20 + 2 * 20));
         assertEquals("0:00", Replays.clock(0));
+    }
+
+
+    /** {@link Theaters#watch} reads, decodes and loads off the tick, then admits on it: pump until it is up. */
+    private static void watch(FakePlayer viewer, String id, Arena arena) {
+        Object before = Theaters.playbackOf(viewer.player); // a hop replaces one theater with another
+        Theaters.watch(viewer.player, id, arena);
+        long deadline = System.currentTimeMillis() + 4000;
+        while (Theaters.playbackOf(viewer.player) == before && System.currentTimeMillis() < deadline) {
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+        }
     }
 
     /** A crash leaves a spool; a run before the mode folders left a loose file: the boot sweep files both. */
@@ -211,7 +224,7 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(mate.player, "party join WatchLead");
             assertEquals(2, tennacle.games.matchmaking.Parties.of(lead.player).size(), "a party of two");
 
-            Theaters.watch(lead.player, game.id(), BridgeRoundTest.fixture());
+            watch(lead, game.id(), BridgeRoundTest.fixture());
             await("both admitted", () -> Theaters.playbackOf(mate.player) != null);
             assertEquals(Theaters.playbackOf(lead.player), Theaters.playbackOf(mate.player), "one theater between them");
             assertTrue(ShardView.of(lead.player).seesEntity(mate.player), "the leader sees who came along");
@@ -248,7 +261,7 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Theaters.watch(host.player, game.id(), BridgeRoundTest.fixture());
+            watch(host, game.id(), BridgeRoundTest.fixture());
             Playback show = Theaters.playbackOf(host.player);
             assertNotNull(show, "the host opened a theater");
             tickUntil(show.shard(), "the host is dressed", () -> held(host.player) > 0);
@@ -300,8 +313,8 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Theaters.watch(one.player, game.id(), BridgeRoundTest.fixture());
-            Theaters.watch(two.player, game.id(), BridgeRoundTest.fixture());
+            watch(one, game.id(), BridgeRoundTest.fixture());
+            watch(two, game.id(), BridgeRoundTest.fixture());
             Playback first = Theaters.playbackOf(one.player);
             Playback second = Theaters.playbackOf(two.player);
             assertNotNull(first);
@@ -346,7 +359,7 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            watch(red, game.id(), BridgeRoundTest.fixture());
             Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             Map<Integer, String> last = new java.util.LinkedHashMap<>(); // the fold keeps the latest per cell
@@ -385,7 +398,7 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            watch(red, game.id(), BridgeRoundTest.fixture());
             Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             tickUntil(playback.shard(), "the theater dressed them",
@@ -423,7 +436,7 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             await("the file lands", () -> Files.exists(replays.resolve("bridge").resolve(game.id() + ".shard")));
 
-            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture());
+            watch(red, game.id(), BridgeRoundTest.fixture());
             Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             tickUntil(playback.shard(), "the theater dressed them",
@@ -457,11 +470,11 @@ class ReplaysTest extends HeadlessServerTest {
             assertTrue(live.join(blue.player));
             await("seated for the live one", () -> Game.of(red.player) == live);
 
-            Theaters.watch(watcher.player, first, BridgeRoundTest.fixture());
+            watch(watcher, first, BridgeRoundTest.fixture());
             assertEquals(first, Theaters.watching(watcher.player), "into the first replay");
 
             // a second watch from inside the first: straight across, no /l
-            Theaters.watch(watcher.player, second, BridgeRoundTest.fixture());
+            watch(watcher, second, BridgeRoundTest.fixture());
             assertEquals(second, Theaters.watching(watcher.player), "and straight into the second");
 
             // and out of a replay into a live game's crowd
@@ -470,7 +483,7 @@ class ReplaysTest extends HeadlessServerTest {
             assertSame(live, Matches.grotto().spectating(watcher.player), "watching the live game now");
 
             // and back the other way
-            Theaters.watch(watcher.player, first, BridgeRoundTest.fixture());
+            watch(watcher, first, BridgeRoundTest.fixture());
             assertEquals(first, Theaters.watching(watcher.player), "back into a replay");
             assertNull(Matches.grotto().spectating(watcher.player), "and no longer in the crowd");
         } finally {
@@ -499,12 +512,12 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(mate.player, "party join HopLead");
             assertEquals(2, tennacle.games.matchmaking.Parties.of(lead.player).size(), "a party of two");
 
-            Theaters.watch(lead.player, first, BridgeRoundTest.fixture());
+            watch(lead, first, BridgeRoundTest.fixture());
             Playback one = Theaters.playbackOf(lead.player);
             assertNotNull(one);
             tickUntil(one.shard(), "both standing in the first", () -> standing(one, lead, mate));
 
-            Theaters.watch(lead.player, second, BridgeRoundTest.fixture());
+            watch(lead, second, BridgeRoundTest.fixture());
             Playback two = Theaters.playbackOf(lead.player);
             assertNotNull(two);
             assertNotSame(one, two, "a second theater, not the first again");
@@ -540,7 +553,7 @@ class ReplaysTest extends HeadlessServerTest {
             live.state().set(io.github.term4.grotto.state.Scope.GAME,
                     io.github.term4.grotto.modules.view.Spectating.ALLOWED, false);
 
-            Theaters.watch(watcher.player, replay, BridgeRoundTest.fixture());
+            watch(watcher, replay, BridgeRoundTest.fixture());
             Playback stage = Theaters.playbackOf(watcher.player);
             assertNotNull(stage);
             tickUntil(stage.shard(), "in the theater", () -> standing(stage, watcher));
@@ -551,7 +564,7 @@ class ReplaysTest extends HeadlessServerTest {
             assertEquals(replay, Theaters.watching(watcher.player), "and the replay they had stands");
 
             // and asking for the replay they are already in leaves it exactly as it was
-            Theaters.watch(watcher.player, replay, BridgeRoundTest.fixture());
+            watch(watcher, replay, BridgeRoundTest.fixture());
             assertSame(stage, Theaters.playbackOf(watcher.player), "the same theater, not a second of it");
         } finally {
             Theaters.leave(watcher.player);
@@ -605,7 +618,7 @@ class ReplaysTest extends HeadlessServerTest {
             await("the file lands", () -> Files.exists(file));
 
             red.sent.clear();
-            Theaters.watch(red.player, game.id(), BridgeRoundTest.fixture()); // one of the two who played it
+            watch(red, game.id(), BridgeRoundTest.fixture()); // one of the two who played it
             Playback playback = Theaters.playbackOf(red.player);
             assertNotNull(playback);
             tickUntil(playback.shard(), "the theater dressed them",
@@ -662,7 +675,7 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(mate.player, "party accept");
             viewer.sent.clear();
             mate.sent.clear();
-            Theaters.watch(viewer.player, game.id(), BridgeRoundTest.fixture());
+            watch(viewer, game.id(), BridgeRoundTest.fixture());
             Playback playback = Theaters.playbackOf(viewer.player);
             assertNotNull(playback, "the watch raised a theater");
             assertTrue(playback.counts().getOrDefault("tennacle:rows", 0) > 0,
@@ -717,7 +730,7 @@ class ReplaysTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(viewer.player, "party ChanMate");
             MinecraftServer.getCommandManager().execute(mate.player, "party accept");
             viewer.sent.clear();
-            Theaters.watch(viewer.player, game.id(), BridgeRoundTest.fixture()); // the fixture is in no pool
+            watch(viewer, game.id(), BridgeRoundTest.fixture()); // the fixture is in no pool
             Playback playback = Theaters.playbackOf(viewer.player);
             assertNotNull(playback, "the watch raised a theater");
             assertEquals(playback, Theaters.playbackOf(mate.player), "the party watches behind its leader");
