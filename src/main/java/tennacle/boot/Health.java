@@ -1,4 +1,4 @@
-package tennacle;
+package tennacle.boot;
 
 import com.sun.net.httpserver.HttpServer;
 import net.minestom.server.MinecraftServer;

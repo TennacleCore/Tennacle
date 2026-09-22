@@ -2,7 +2,7 @@ package tennacle.commands;
 
 import tennacle.games.watch.Spectators;
 import io.github.term4.polyp.mechanics.attribute.catalog.VanillaPotions;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.Msg;
 import tennacle.dev.Arsenal;
 import tennacle.dev.LagSimulator;

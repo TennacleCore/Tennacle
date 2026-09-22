@@ -9,7 +9,7 @@ import io.github.term4.polyp.mechanics.projectile.types.Arrow;
 import io.github.term4.polyp.mechanics.projectile.types.ProjectileTypeConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.Presets;

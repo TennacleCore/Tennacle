@@ -1,5 +1,6 @@
 package tennacle;
 
+import tennacle.boot.Mechanics;
 import io.github.term4.canvas.theme.Theme;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

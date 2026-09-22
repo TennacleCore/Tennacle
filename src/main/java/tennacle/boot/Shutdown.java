@@ -1,4 +1,4 @@
-package tennacle;
+package tennacle.boot;
 
 import net.minestom.server.MinecraftServer;
 import org.jetbrains.annotations.NotNull;

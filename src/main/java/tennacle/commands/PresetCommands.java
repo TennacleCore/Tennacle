@@ -1,6 +1,6 @@
 package tennacle.commands;
 
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.Msg;
 
 import io.github.term4.polyp.MechanicsProfile;

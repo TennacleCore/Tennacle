@@ -1,7 +1,7 @@
 package tennacle.games;
 
 import tennacle.games.map.Maps;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.state.StateKey;

@@ -1,6 +1,6 @@
 package tennacle.commands;
 
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Matches;
 import tennacle.games.Ruleset;

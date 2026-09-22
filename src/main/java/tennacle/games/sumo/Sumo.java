@@ -13,7 +13,7 @@ import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
 import io.github.term4.bloom.mapmaking.Teams;
 import tennacle.games.Presets;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.games.Flags;
 import tennacle.games.Match;
 import tennacle.games.Matches;

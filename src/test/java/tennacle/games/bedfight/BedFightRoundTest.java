@@ -163,7 +163,7 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertTrue(game.join(red.player));
             assertTrue(game.join(blue.player));
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
-            tennacle.Mechanics.polyp.clientInfo().setProtocol(red.player, 47); // the band decides, not a modern reach
+            tennacle.boot.Mechanics.polyp.clientInfo().setProtocol(red.player, 47); // the band decides, not a modern reach
             live(game);
 
             assertFalse(refused(red, game, 0, 68, 1), "over the slice, inside the band");
@@ -225,7 +225,7 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertTrue(game.join(red.player));
             assertTrue(game.join(blue.player));
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
-            tennacle.Mechanics.polyp.clientInfo().setProtocol(red.player, 47);
+            tennacle.boot.Mechanics.polyp.clientInfo().setProtocol(red.player, 47);
             live(game);
 
             assertFalse(refusedBreak(red, game, -6, 64, 0), "the wool defending a bed comes off");

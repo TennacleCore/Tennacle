@@ -1,4 +1,4 @@
-package tennacle;
+package tennacle.boot;
 
 import tennacle.glue.ReplayBridge;
 import tennacle.glue.ShardBridge;

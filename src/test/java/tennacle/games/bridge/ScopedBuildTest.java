@@ -61,8 +61,8 @@ class ScopedBuildTest extends HeadlessServerTest {
             blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
             assertTrue(game.join(red.player));
             assertTrue(game.join(blue.player));
-            tennacle.Mechanics.polyp.clientInfo().setProtocol(red.player, 47); // 1.8 clients: the band is the rule here,
-            tennacle.Mechanics.polyp.clientInfo().setProtocol(blue.player, 47); // not a modern client's placement reach
+            tennacle.boot.Mechanics.polyp.clientInfo().setProtocol(red.player, 47); // 1.8 clients: the band is the rule here,
+            tennacle.boot.Mechanics.polyp.clientInfo().setProtocol(blue.player, 47); // not a modern client's placement reach
             await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
             BridgeRoundTest.tickUntil(game, "GO", () -> Match.live(game));
             assertTrue(refused(red, game, -3, 80), "the marker tops the band at 72");

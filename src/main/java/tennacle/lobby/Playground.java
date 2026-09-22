@@ -1,7 +1,7 @@
 package tennacle.lobby;
 
 import io.github.term4.polyp.platform.player.Wardrobe;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 
 import io.github.term4.polyp.tracking.ClientVersion;
 import net.minestom.server.MinecraftServer;

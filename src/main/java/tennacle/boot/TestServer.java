@@ -1,5 +1,10 @@
-package tennacle;
+package tennacle.boot;
 
+import tennacle.GameIds;
+import tennacle.Msg;
+import tennacle.PlayerPrefs;
+import tennacle.Rooms;
+import tennacle.Sessions;
 import tennacle.commands.SectionCommands;
 import tennacle.games.watch.Theaters;
 import tennacle.games.bedfight.BedFight;

@@ -50,7 +50,7 @@ public final class MapPool implements Maps {
         Bloom.onSave(saved -> {
             // starter saves land in templates/ and never join a rotation
             Path parent = saved.getParent();
-            if (parent != null && parent.equals(tennacle.TestServer.arenaDir())) pool.refresh(saved);
+            if (parent != null && parent.equals(tennacle.boot.TestServer.arenaDir())) pool.refresh(saved);
         });
         return pool;
     }
@@ -121,7 +121,7 @@ public final class MapPool implements Maps {
 
     private synchronized void scan() {
         if (scanned) return;
-        Path dir = tennacle.TestServer.arenaDir();
+        Path dir = tennacle.boot.TestServer.arenaDir();
         try (var files = Files.list(dir)) {
             files.filter(f -> f.getFileName().toString().endsWith(".bncl")).forEach(this::refresh);
             scanned = true; // a failed scan stays unscanned: a wrong working directory must not be permanent

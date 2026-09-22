@@ -23,7 +23,7 @@ public final class TestWiring {
     public static synchronized void ensure(InstanceContainer lobby) {
         if (wired) return;
         wired = true;
-        tennacle.Mechanics.polyp = MechanicsBoot.ensure();
+        tennacle.boot.Mechanics.polyp = MechanicsBoot.ensure();
         io.github.term4.archipelago.shard.ShardTabList.install(); // the server's tab list: spawn/entry order is tested
         io.github.term4.polyp.platform.player.PlayerNames.visible(io.github.term4.archipelago.shard.ShardTabList::listed);
         ShardManager shards = new ShardManager();

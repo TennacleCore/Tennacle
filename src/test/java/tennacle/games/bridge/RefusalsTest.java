@@ -1,6 +1,6 @@
 package tennacle.games.bridge;
 
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;

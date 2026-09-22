@@ -1,6 +1,6 @@
 package tennacle.commands;
 
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.games.TestWiring;
 
 import io.github.term4.archipelago.testsupport.FakePlayer;

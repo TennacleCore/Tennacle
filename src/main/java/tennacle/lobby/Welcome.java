@@ -1,6 +1,6 @@
 package tennacle.lobby;
 
-import tennacle.Config;
+import tennacle.boot.Config;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;

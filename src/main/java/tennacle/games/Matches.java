@@ -7,7 +7,7 @@ import tennacle.looks.Look;
 import tennacle.looks.GameSounds;
 import tennacle.storage.MatchLog;
 import io.github.term4.polyp.platform.player.Wardrobe;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.Msg;
 
 import io.github.term4.archipelago.shard.ShardManager;

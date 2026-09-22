@@ -1,7 +1,7 @@
 package tennacle.games;
 
 import tennacle.games.matchmaking.Queues;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;

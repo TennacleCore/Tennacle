@@ -21,7 +21,7 @@ import io.github.term4.bloom.mapmaking.Teams;
 import tennacle.games.Presets;
 import tennacle.commands.Commands;
 import tennacle.commands.AppCommand;
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Flags;
 import tennacle.games.KitLayouts;

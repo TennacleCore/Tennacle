@@ -1,6 +1,6 @@
 package tennacle.games.bedfight;
 
-import tennacle.Mechanics;
+import tennacle.boot.Mechanics;
 import tennacle.games.KitLayouts;
 import tennacle.games.Match;
 import tennacle.games.Matches;
