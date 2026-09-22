@@ -22,7 +22,7 @@ final class Ends {
         return Matches.summary()
                 .row("Score", (g, side, th, color) -> th.meter(
                         g.state().get(Scope.team(side.getFirst().team()), Bridge.GOALS),
-                        g.rules().resolve(Scope.GAME, Score.TARGET), color))
+                        g.rules().resolve(Scope.team(side.getFirst().team()), Score.TARGET), color))
                 .row("Damage", (g, side, th, color) -> th.hearts(0))
                 .row("Pressure", "The share of the game this side spent away from its own base",
                         (g, side, th, color) -> th.value(Match.pressure(g, side.getFirst().team())))
@@ -31,7 +31,7 @@ final class Ends {
                 .cardSection(
                         (g, seat, th, side) -> th.prose("Goals: ")
                                 .append(th.meter(g.state().get(Scope.team(seat.team()), Bridge.GOALS),
-                                        g.rules().resolve(Scope.GAME, Score.TARGET), side)),
+                                        g.rules().resolve(Scope.team(seat.team()), Score.TARGET), side)),
                         (g, seat, th, side) -> th.prose("Damage: ").append(th.hearts(0)),
                         (g, seat, th, side) -> th.prose("KDR: ").append(th.value(0))
                                 .append(th.dim(" | ")).append(th.value(0)).append(th.dim(" (0.0)")))

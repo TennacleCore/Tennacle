@@ -329,7 +329,7 @@ public final class Rules implements GameModule {
         }
         Replays.mark(game, "goal", CompoundBinaryTag.builder().putString("scorer", scorer.getUsername())
                 .putString("team", seat.team()).putInt("color", color.value()).putInt("goals", goals)
-                .putInt("target", game.rules().resolve(Scope.GAME, Score.TARGET))
+                .putInt("target", game.rules().resolve(Scope.team(seat.team()), Score.TARGET))
                 .putFloat("health", scorer.getHealth() + scorer.getAdditionalHearts())
                 .put("sides", sides.build()).build());
         Matches.cue(game, SoundSet.SCORED);

@@ -75,11 +75,11 @@ final class Boards {
     }
 
     // heavy bold arrow + team badge square + the goal meter (siblings: bold must not bleed into the meter)
-    private static Component meterLine(Game game, Team team) {
+    static Component meterLine(Game game, Team team) {
         return Component.empty()
                 .append(Component.text("➜ ", team.color(), TextDecoration.BOLD))
                 .append(Msg.SCRIMS.meter(game.state().get(Scope.team(team.id()), Bridge.GOALS),
-                        game.rules().resolve(Scope.GAME, Score.TARGET), team.color()));
+                        game.rules().resolve(Scope.team(team.id()), Score.TARGET), team.color()));
     }
 
     // captured: a row per seat held on the side, in seat order - the holder, or who a walked-out seat waits for
@@ -97,7 +97,7 @@ final class Boards {
     // captured on both networks: "[R] " team label + team-colored filled circles, the theme's empties
     private static Component circles(Game game, Team team, Theme theme, boolean boldLabel) {
         int goals = game.state().get(Scope.team(team.id()), Bridge.GOALS);
-        int target = Math.max(goals, game.rules().resolve(Scope.GAME, Score.TARGET));
+        int target = Math.max(goals, game.rules().resolve(Scope.team(team.id()), Score.TARGET));
         String tag = "[" + tennacle.looks.Palette.letter(team) + "] ";
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);
