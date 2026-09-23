@@ -4,6 +4,7 @@ import tennacle.games.watch.Spectators;
 import io.github.term4.polyp.mechanics.attribute.catalog.VanillaPotions;
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
+import tennacle.dev.ItemWire;
 import tennacle.dev.Arsenal;
 import tennacle.dev.LagSimulator;
 
@@ -110,6 +111,39 @@ public final class DevCommands {
             for (String line : ShardTabList.history(viewer)) viewer.sendMessage(Msg.v(line));
         });
         Commands.register(tablog);
+
+        // the inventory wire both ways, for reading a legacy pick block: a middle-click that found the stack
+        // reports a held-item change, one that did not reports nothing at all
+        AppCommand itemwire = Commands.dev("itemwire", "Record the inventory wire, both directions.")
+                .usage("/itemwire", "start recording, or read it back")
+                .usage("/itemwire clear", "drop what was recorded and keep going")
+                .usage("/itemwire off", "stop");
+        itemwire.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player viewer)) return;
+            if (!ItemWire.armed(viewer)) {
+                ItemWire.arm(viewer);
+                Msg.ok(viewer, "Recording the inventory wire. Middle-click, then run /itemwire again.");
+                return;
+            }
+            java.util.List<String> lines = ItemWire.read(viewer);
+            if (lines.isEmpty()) {
+                Msg.fail(viewer, "Nothing on the wire since it was armed.");
+                return;
+            }
+            for (String line : lines) Msg.say(viewer, Msg.v(line));
+        });
+        itemwire.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player viewer)) return;
+            String what = ctx.get("what");
+            if (what.equals("off")) {
+                ItemWire.disarm(viewer);
+                Msg.ok(viewer, "Stopped.");
+            } else {
+                ItemWire.clear(viewer);
+                Msg.ok(viewer, "Cleared. Middle-click now.");
+            }
+        }, ArgumentType.Word("what").from("clear", "off"));
+        Commands.register(itemwire);
 
         AppCommand gm = Commands.dev("gm", "Your gamemode.")
                 .usage("/gm <mode>", "survival, creative, adventure or spectator");
