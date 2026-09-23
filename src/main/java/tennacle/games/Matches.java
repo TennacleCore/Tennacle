@@ -26,6 +26,8 @@ import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.mechanics.explosion.BlockBreaking;
+import io.github.term4.polyp.mechanics.containers.Spill;
+import io.github.term4.polyp.mechanics.damage.DeathConfig;
 import io.github.term4.polyp.mechanics.explosion.ExplosionConfig;
 import io.github.term4.polyp.MechanicsProfile;
 import net.minestom.server.codec.Codec;
@@ -279,6 +281,9 @@ public final class Matches {
         // named BlockBreaking (as bridge does for heal-apple) and names it on explosion/blockBreaking below
         profile.mutate(MechanicsKeys.EXPLOSION, ex -> ex == null ? null
                 : ExplosionConfig.builder(ex).blockBreaking((BlockBreaking) null).build());
+        // and its inventories are the game's: a death keeps what it holds and the respawn's outfit takes over. A mode
+        // that spills names death/spill in its ruleset, which folds over this
+        profile.mutate(MechanicsKeys.DEATH, death -> DeathConfig.builder(death).spill(Spill.KEEP).build());
         rules.apply(profile, Mechanics.polyp.profiles().global(), game);
         Mechanics.polyp.profiles().setWorld(game.shard(), profile.build());
     }
