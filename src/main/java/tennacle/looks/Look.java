@@ -104,10 +104,10 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         }, NamedTextColor.RED);
     }
 
-    /** The call when a drawn clock plays on as a tiebreaker; {@code legacy} picks the title's generation. */
+    /** The call when a drawn clock plays on as a tiebreaker; {@code flat} picks the title's generation. */
     @FunctionalInterface
     public interface Tiebreak {
-        Call render(Game game, boolean legacy);
+        Call render(Game game, boolean flat);
     }
 
     /** A title with its chat line. */
@@ -228,20 +228,20 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             true, Look::scrimsHit, Look::tennacleTiebreak);
 
     // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
-    private static Call scrimsTiebreak(Game game, boolean legacy) {
-        return tiebreak(game, legacy, Msg.SCRIMS);
+    private static Call scrimsTiebreak(Game game, boolean flat) {
+        return tiebreak(game, flat, Msg.SCRIMS);
     }
 
-    private static Call hypixelTiebreak(Game game, boolean legacy) {
-        return tiebreak(game, legacy, Msg.HYPIXEL);
+    private static Call hypixelTiebreak(Game game, boolean flat) {
+        return tiebreak(game, flat, Msg.HYPIXEL);
     }
 
-    private static Call minemenTiebreak(Game game, boolean legacy) {
-        return tiebreak(game, legacy, Msg.MINEMEN);
+    private static Call minemenTiebreak(Game game, boolean flat) {
+        return tiebreak(game, flat, Msg.MINEMEN);
     }
 
-    private static Call tennacleTiebreak(Game game, boolean legacy) {
-        return tiebreak(game, legacy, Msg.THEME);
+    private static Call tennacleTiebreak(Game game, boolean flat) {
+        return tiebreak(game, flat, Msg.THEME);
     }
 
     // the network in the house gradient, then the room the viewer is actually in. The title is bold, and a
@@ -307,8 +307,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         return Component.text("[" + Match.teamName(game, speaker) + "] ", Match.teamColor(game, speaker)).append(line);
     }
 
-    private static Call tiebreak(Game game, boolean legacy, Theme theme) {
-        return new Call(Title.title(theme.boardTitle(legacy, "SUDDEN DEATH"),
+    private static Call tiebreak(Game game, boolean flat, Theme theme) {
+        return new Call(Title.title(theme.boardTitle(flat, "SUDDEN DEATH"),
                 theme.prose("Next goal wins!"), Match.times(game, 5, 50, 10)),
                 theme.prose("Sudden death! ").append(theme.value("Next goal wins")).append(theme.prose(".")));
     }

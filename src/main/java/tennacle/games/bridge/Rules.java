@@ -190,7 +190,7 @@ public final class Rules implements GameModule {
         game.state().set(Scope.GAME, Score.NEXT_WINS, true);
         Look.Tiebreak call = Matches.lookOf(game).tiebreak();
         game.forEachAudience(viewer -> {
-            Look.Call mine = call.render(game, Canvas.isLegacy(viewer));
+            Look.Call mine = call.render(game, Canvas.isFlat(viewer));
             viewer.showTitle(mine.title());
             viewer.sendMessage(mine.line());
         });

@@ -151,6 +151,6 @@ public final class Commands {
         }
         String header = audience == AppCommand.Audience.DEV ? "Dev tools" : "Commands";
         String prefix = audience == AppCommand.Audience.DEV ? "/help dev " : "/help ";
-        sender.sendMessage(Msg.THEME.page(Canvas.isLegacy(sender), header, rows, page, PER_PAGE, n -> prefix + n));
+        sender.sendMessage(Msg.THEME.page(Canvas.isFlat(sender), header, rows, page, PER_PAGE, n -> prefix + n));
     }
 }
