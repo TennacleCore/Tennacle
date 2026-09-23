@@ -1,5 +1,6 @@
 package io.github.term4.archipelago.ticking;
 
+import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.platform.player.OptimizedPlayer;
 import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
@@ -74,7 +75,9 @@ class DomainPlayerBridgeTest extends HeadlessServerTest {
             assertTrue(player.ticks.get() <= released + 1, "no clock drives it anymore (headless)");
             assertNull(player.getTag(MechanicsWorld.ENTITY_TAG));
         } finally {
-            MinecraftServer.getConnectionManager().setPlayerProvider(null);
+            // Polyp's, not Minestom's default: later tests in this JVM need the real player type
+            MinecraftServer.getConnectionManager().setPlayerProvider(
+                    (conn, profile) -> Polyp.getInstance().playerFactory.apply(conn, profile));
             domain.retire();
         }
     }

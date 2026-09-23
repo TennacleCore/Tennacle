@@ -1,5 +1,6 @@
 package io.github.term4.archipelago.ticking;
 
+import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
@@ -82,7 +83,9 @@ class DomainTickBridgeTest extends HeadlessServerTest {
             probe.cancel();
             drop.remove();
             player.remove();
-            MinecraftServer.getConnectionManager().setPlayerProvider(null);
+            // Polyp's, not Minestom's default: later tests in this JVM need the real player type
+            MinecraftServer.getConnectionManager().setPlayerProvider(
+                    (conn, profile) -> Polyp.getInstance().playerFactory.apply(conn, profile));
             domain.retire();
         }
     }
@@ -127,7 +130,8 @@ class DomainTickBridgeTest extends HeadlessServerTest {
         } finally {
             shards.destroy(shard);
             player.remove();
-            MinecraftServer.getConnectionManager().setPlayerProvider(null);
+            MinecraftServer.getConnectionManager().setPlayerProvider(
+                    (conn, profile) -> Polyp.getInstance().playerFactory.apply(conn, profile));
         }
     }
 
@@ -160,7 +164,8 @@ class DomainTickBridgeTest extends HeadlessServerTest {
             shards.destroy(parent);
             shards.destroy(elsewhere);
             player.remove();
-            MinecraftServer.getConnectionManager().setPlayerProvider(null);
+            MinecraftServer.getConnectionManager().setPlayerProvider(
+                    (conn, profile) -> Polyp.getInstance().playerFactory.apply(conn, profile));
         }
     }
 
@@ -199,7 +204,8 @@ class DomainTickBridgeTest extends HeadlessServerTest {
             shards.destroy(b);
             pa.remove();
             pb.remove();
-            MinecraftServer.getConnectionManager().setPlayerProvider(null);
+            MinecraftServer.getConnectionManager().setPlayerProvider(
+                    (conn, profile) -> Polyp.getInstance().playerFactory.apply(conn, profile));
         }
     }
 }
