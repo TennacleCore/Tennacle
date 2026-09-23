@@ -7,12 +7,12 @@ import java.time.LocalDate;
 import tennacle.games.Mode;
 import tennacle.looks.Look;
 import io.github.term4.archipelago.LegacyNames;
+import io.github.term4.archipelago.Viewers;
 import io.github.term4.archipelago.replay.Ghost;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.shard.ShardTabList;
-import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.board.Board;
 import io.github.term4.canvas.board.Boards;
 import io.github.term4.canvas.tab.TabList;
@@ -44,8 +44,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * What a theater's watchers see besides the world: the lineup's colors on names and nameplates, the health column
  * the game showed, the game's sidebar as its first seat saw it, the look's tab chrome, and each other grayed and
  * sunk below the players the way a game lists its spectators. A watcher's own ghost shares their name, and
- * teams key on names: the watcher lists under a sort name on 1.8 (a team past the lineup's sinks it) and on
- * nothing but the list order on a modern client, so the ghost keeps the seat's color either way. One per
+ * teams key on names: before 1.21.2 the watcher lists under a sort name (a team past the lineup's sinks it), from
+ * 1.21.2 on nothing but the list order, so the ghost keeps the seat's color either way. One per
  * playback; {@link #enter} dresses a watcher, {@link #exit} undresses.
  */
 final class Dressing {
@@ -156,17 +156,17 @@ final class Dressing {
         // NOT ShardTabList.SPECTATOR: a client draws a spectator-flagged player as the head alone
         // (RenderPlayer.setModelVisibilities), and co-watchers are the only bodies a theater has to show each
         // other. The row grays and sinks below on its own name and order instead
-        viewer.setTag(ShardTabList.LIST_ORDER, -1); // a modern client's own row sorts on this
-        viewer.setTag(ShardTabList.SORT_NAME, sortName(viewer.getUsername())); // a 1.8 row apart from the ghost's
+        viewer.setTag(ShardTabList.LIST_ORDER, -1); // 1.21.2+ sorts the row on this
+        viewer.setTag(ShardTabList.SORT_NAME, sortName(viewer.getUsername())); // older: a row apart from the ghost's
         viewer.setDisplayName(Component.text(viewer.getUsername(), NamedTextColor.GRAY)
                 .decoration(TextDecoration.ITALIC, false));
         ShardTabList.resync(viewer);
         TabList.refresh(viewer);
         SharedTeam.suspend(viewer, true);
-        // a 1.8 client sorts its own row by team name: the watchers' team sits past the lineup's ('~' after '-')
+        // before 1.21.2 a client sorts rows by team name: the watchers' team sits past the lineup's ('~' after '-')
         TeamsPacket joined = new TeamsPacket(spectatorTeam,
                 new TeamsPacket.AddEntitiesToTeamAction(List.of(ShardTabList.listName(viewer))));
-        for (Player other : dressed) if (other != viewer && Canvas.isLegacy(other)) other.sendPacket(joined);
+        for (Player other : dressed) if (other != viewer && Viewers.sortsByName(other)) other.sendPacket(joined);
         // a watcher who played in this game shares a name with their own ghost, and a scoreboard team is keyed
         // by name alone: the recorded side would paint their live body the color they wore in the match. The
         // living come out of the lineup teams, so a watcher stands plain - their own ghost with them
@@ -175,7 +175,7 @@ final class Dressing {
                 new TeamsPacket.CreateTeamAction(settings(colorOf(team), TeamsPacket.NameTagVisibility.ALWAYS),
                         names.stream().filter(name -> !living.contains(name)).toList()))));
         unpaint(viewer); // and the clients already here drop the arrival's name from the side it played on
-        if (Canvas.isLegacy(viewer)) {
+        if (Viewers.sortsByName(viewer)) {
             viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.CreateTeamAction(
                     settings(NamedTextColor.GRAY, TeamsPacket.NameTagVisibility.NEVER),
                     dressed.stream().map(ShardTabList::listName).toList())));
@@ -213,8 +213,8 @@ final class Dressing {
                 Math.round(watcher.getHealth()), null, null);
     }
 
-    // a 1.8 ghost's row is named by its plated profile, a modern one's by the username: score the row the
-    // viewer actually holds, or the number it draws is the zero an unscored row invents
+    // a ghost's row is named by its plated profile where the tab sorts by name, by the username from 1.21.2:
+    // score the row the viewer actually holds, or the number it draws is the zero an unscored row invents
     private UpdateScorePacket ghostScore(String name, int points, Player viewer) {
         Ghost ghost = playback.ghost(name);
         return new UpdateScorePacket(ghost != null ? ghost.listedName(viewer) : name, objective, points, null, null);
@@ -231,10 +231,12 @@ final class Dressing {
         for (String team : teams().keySet()) {
             viewer.sendPacket(new TeamsPacket(teamPrefix + team, new TeamsPacket.RemoveTeamAction()));
         }
-        if (Canvas.isLegacy(viewer)) viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.RemoveTeamAction()));
+        if (Viewers.sortsByName(viewer)) {
+            viewer.sendPacket(new TeamsPacket(spectatorTeam, new TeamsPacket.RemoveTeamAction()));
+        }
         TeamsPacket left = new TeamsPacket(spectatorTeam,
                 new TeamsPacket.RemoveEntitiesToTeamAction(List.of(ShardTabList.listName(viewer))));
-        for (Player other : dressed) if (Canvas.isLegacy(other)) other.sendPacket(left);
+        for (Player other : dressed) if (Viewers.sortsByName(other)) other.sendPacket(left);
         SharedTeam.suspend(viewer, false);
         viewer.removeTag(ShardTabList.SPECTATOR);
         viewer.removeTag(ShardTabList.LIST_ORDER);

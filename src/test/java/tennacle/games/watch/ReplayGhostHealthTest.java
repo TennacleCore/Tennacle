@@ -8,12 +8,14 @@ import io.github.term4.archipelago.Viewers;
 import io.github.term4.archipelago.replay.core.CoreChannels;
 import io.github.term4.archipelago.replay.core.StateChannels;
 import io.github.term4.archipelago.shard.Shard;
+import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.grotto.modules.view.HealthDisplay;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.network.packet.server.play.TeamsPacket;
 import net.minestom.server.network.packet.server.play.UpdateScorePacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,7 +42,8 @@ class ReplayGhostHealthTest extends HeadlessServerTest {
         CoreChannels.register();
         StateChannels.register();
         // the harness wires no era lever, and the replay wire tests share this convention
-        Viewers.protocol(p -> p.getUsername().contains("Legacy") ? 47 : MinecraftServer.PROTOCOL_VERSION);
+        Viewers.protocol(p -> p.getUsername().contains("Legacy") ? 47
+                : p.getUsername().contains("Nine") ? 107 : MinecraftServer.PROTOCOL_VERSION);
     }
 
     private static void tick() {
@@ -47,10 +51,10 @@ class ReplayGhostHealthTest extends HeadlessServerTest {
         MinecraftServer.getSchedulerManager().processTickEnd();
     }
 
-    @Test
-    void aGhostScoresOnTheRowTheClientHolds() {
+    // one actor at 17 health, moved once so the ghost goes up on the playback's first move op
+    private static byte[] recorded(String name, Pos at) {
         Shard stage = new Shard(instance);
-        FakePlayer actor = FakePlayer.connect(instance, new Pos(700.5, 65, 700.5), "GhostHpActor");
+        FakePlayer actor = FakePlayer.connect(instance, at, name);
         byte[] file;
         Recording rec = null;
         try {
@@ -58,13 +62,18 @@ class ReplayGhostHealthTest extends HeadlessServerTest {
             actor.player.setHealth(17f);
             rec = Replay.record(stage);
             tick();
-            actor.player.teleport(new Pos(702.5, 65, 700.5)).join(); // a move op: the ghost goes up on it
+            actor.player.teleport(at.add(2, 0, 0)).join();
             tick();
         } finally {
             file = rec != null ? rec.stop() : new byte[0];
             actor.player.remove();
         }
+        return file;
+    }
 
+    @Test
+    void aGhostScoresOnTheRowTheClientHolds() {
+        byte[] file = recorded("GhostHpActor", new Pos(700.5, 65, 700.5));
         Shard theater = new Shard(instance);
         Playback playback = Replay.play(theater, file);
         Dressing dressing = new Dressing(theater, playback, "ghosthp1", "", LocalDate.now(), null, "tennacle",
@@ -94,5 +103,51 @@ class ReplayGhostHealthTest extends HeadlessServerTest {
             playback.halt();
             watcher.player.remove();
         }
+    }
+
+    /** 1.9 has no list order either: it sorts rows by team, then profile name, exactly as 1.8 does. */
+    @Test
+    void watchersSinkBeforeListOrder() {
+        byte[] file = recorded("SinkActor", new Pos(720.5, 65, 700.5));
+        Shard theater = new Shard(instance);
+        Playback playback = Replay.play(theater, file);
+        Dressing dressing = new Dressing(theater, playback, "sinkwatch", "", LocalDate.now(), null, "tennacle",
+                List.of("SinkActor|red|" + NamedTextColor.RED.value()), List.of(HealthDisplay.TAB));
+        playback.ghostNames(dressing::listName);
+        FakePlayer nine = FakePlayer.connect(instance, new Pos(724.5, 65, 700.5), "SinkNine");
+        FakePlayer modern = FakePlayer.connect(instance, new Pos(726.5, 65, 700.5), "SinkModern");
+        try {
+            theater.join(nine.player);
+            theater.join(modern.player);
+            dressing.enter(nine.player, true);
+            dressing.enter(modern.player, false);
+            for (int i = 0; i < 4; i++) tick();
+
+            assertTrue(watcherTeam(nine).contains(ShardTabList.listName(nine.player)),
+                    "the watchers' team sorts past the lineup's");
+            assertEquals(ShardTabList.listName(nine.player), ShardTabList.listName(nine.player, nine.player));
+            Ghost ghost = playback.ghost("SinkActor");
+            assertNotNull(ghost, "the move op raised the ghost");
+            assertEquals("§cSinkActor", ghost.listedName(nine.player), "apart from a watcher sharing the name");
+
+            assertTrue(watcherTeam(modern).isEmpty(), "1.21.2+ sinks the row on its list order instead");
+            assertEquals("SinkModern", ShardTabList.listName(modern.player, modern.player));
+            assertEquals("SinkActor", ghost.listedName(modern.player));
+        } finally {
+            dressing.exit(nine.player);
+            dressing.exit(modern.player);
+            dressing.close();
+            playback.halt();
+            nine.player.remove();
+            modern.player.remove();
+        }
+    }
+
+    // the entities of every watchers' team this client was told to create
+    private static List<String> watcherTeam(FakePlayer viewer) {
+        return viewer.sent(TeamsPacket.class).stream()
+                .filter(t -> t.teamName().endsWith("~") && t.action() instanceof TeamsPacket.CreateTeamAction)
+                .flatMap(t -> ((TeamsPacket.CreateTeamAction) t.action()).entities().stream())
+                .toList();
     }
 }
