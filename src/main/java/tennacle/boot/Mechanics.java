@@ -52,9 +52,7 @@ public final class Mechanics {
                 // animatiumDebug: chat-narrate every set_server_features send (and why one was skipped)
                 .set(MechanicsKeys.COMPAT, preset.compat().toBuilder()
                         .animatiumDebug(Config.flag("tennacle.animatium-debug", false)).build())
-                // inventorySync is EXPERIMENTAL in the lib and is being bisected against a 1.8 pick-block fault
                 .set(MechanicsKeys.FIXES, FixesConfig.builder(FixesLegacy.config())
-                        .inventorySync(FixToggleConfig.of(Config.flag("tennacle.inventory-sync", true)))
                         // OFF here, and it must stay off: the fix takes the placement listener slot the shard
                         // router owns, and its blanket placer exclusion would sit in front of the body check
                         // that already scopes self-placement per profile (Shard.placementBodyCheck)

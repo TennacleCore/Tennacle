@@ -437,8 +437,7 @@ public final class LagSimulator {
         }
         // framed bytes, NOT the packet: a re-delivery is not a send. It skips PlayerPacketOutEvent, so the
         // replay probe and every other out listener read this packet once, where the server produced it - and it
-        // skips sendPacket, whose rewrites and InventorySync mirror already ran and would now eat the slot as a
-        // redundant echo
+        // skips sendPacket, whose rewrites and inventory sync already ran on it
         NetworkBuffer buffer = NetworkBuffer.resizableBuffer(256, MinecraftServer.process());
         PacketWriting.writeFramedPacket(buffer, ConnectionState.PLAY, outgoing.packet(),
                 MinecraftServer.getCompressionThreshold());

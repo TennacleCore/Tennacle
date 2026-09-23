@@ -12,7 +12,8 @@ import net.minestom.server.event.player.PlayerPacketOutEvent;
 import net.minestom.server.network.packet.client.common.ClientKeepAlivePacket;
 import net.minestom.server.network.packet.client.play.ClientPlayerPositionPacket;
 import net.minestom.server.network.packet.server.play.UpdateHealthPacket;
-import io.github.term4.polyp.platform.fixes.client.InventorySync;
+import io.github.term4.polyp.platform.inventory.InventorySync;
+import io.github.term4.polyp.platform.player.OptimizedPlayer;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
@@ -300,23 +301,24 @@ class LagSimulatorTest extends HeadlessServerTest {
 
     /**
      * Reported from games: /lag broke the inventory. The hold captures at {@link PlayerPacketOutEvent}, downstream
-     * of everything {@code OptimizedPlayer.sendPacket} does - Polyp's InventorySync mirror included. Re-sending
-     * through sendPacket runs that mirror a second time and it reads its own anchored slot back as a redundant echo.
+     * of everything {@code OptimizedPlayer.sendPacket} does, the inventory sync included, so the release must not
+     * run any of it a second time.
      */
     @Test
     void aHeldSlotStillReachesTheClient() {
         LagSimulator sim = new LagSimulator();
         EventListener<PlayerPacketOutEvent> hold = EventListener.of(PlayerPacketOutEvent.class, sim::onOutPacket);
         MinecraftServer.getGlobalEventHandler().addListener(hold);
-        boolean armed = InventorySync.enabled();
-        if (!armed) InventorySync.install(MinecraftServer.getGlobalEventHandler());
         FakePlayer p = FakePlayer.connect(instance, new Pos(960.5, 70, 900.5), "LagBag");
+        InventorySync sync = ((OptimizedPlayer) p.player).inventorySync();
         try {
-            p.player.getInventory().setItemStack(0, ItemStack.of(Material.DIAMOND_SWORD)); // anchors the mirror
+            p.player.getInventory().setItemStack(0, ItemStack.of(Material.DIAMOND_SWORD));
+            sync.broadcast();
             p.sent.clear();
 
             sim.setOutboundMillis(p.player, 30);
             p.player.getInventory().setItemStack(0, ItemStack.of(Material.BOW));
+            sync.broadcast();
             assertEquals(0, slotUpdates(p), "held, so nothing on the wire yet");
             assertTrue(sim.pendingOut(p.player) >= 1, "and the simulator has it");
 
@@ -324,12 +326,11 @@ class LagSimulatorTest extends HeadlessServerTest {
                 sim.drainOut();
                 return sim.pendingOut(p.player) == 0;
             });
-            assertEquals(0, slotUpdates(p), "the release never re-enters sendPacket, so the mirror never sees it");
-            assertEquals(1, released(p).stream().filter(SetPlayerInventorySlotPacket.class::isInstance).count(),
-                    "the slot update reached the wire, and its frame decodes back to what was held");
+            assertEquals(0, slotUpdates(p), "the release never re-enters sendPacket");
+            assertEquals(1, released(p).stream().filter(s -> s instanceof SetSlotPacket slot && slot.windowId() == 0)
+                    .count(), "the slot update reached the wire, and its frame decodes back to what was held");
         } finally {
             sim.setOutboundMillis(p.player, 0);
-            if (!armed) InventorySync.disable();
             MinecraftServer.getGlobalEventHandler().removeListener(hold);
             p.player.remove();
         }
