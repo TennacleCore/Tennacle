@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 public final class Playground {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Playground.class);
+    public static final Pos SPAWN = new Pos(0.5, 42, 0.5);
 
     private Playground() {}
 
@@ -93,7 +94,7 @@ public final class Playground {
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
         events.addListener(AsyncPlayerConfigurationEvent.class, e -> {
             e.setSpawningInstance(world);
-            e.getPlayer().setRespawnPoint(new Pos(0.5, 42, 0.5));
+            e.getPlayer().setRespawnPoint(SPAWN);
             logProtocol(e.getPlayer());
         });
         // the lobby dresses every arrival - a login, a game's exit, a rejoin - at spawn, never in config: a player
@@ -106,6 +107,7 @@ public final class Playground {
     /** The lobby body: adventure, nothing worn, nothing carried - a game outfits its own. */
     static void outfit(Player p) {
         io.github.term4.grotto.Bodies.revive(p); // a death nobody answered arrives here dead, and unviewable with it
+        p.setRespawnPoint(SPAWN); // a lobby death lands here, never where a game last put the player
         p.setGameMode(GameMode.ADVENTURE);
         p.getInventory().clear();
         p.setHelmet(ItemStack.AIR);

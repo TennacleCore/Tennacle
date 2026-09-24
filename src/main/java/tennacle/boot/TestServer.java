@@ -36,7 +36,6 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.instance.InstanceContainer;
@@ -232,7 +231,7 @@ public final class TestServer {
         }
         palette(); // a seasonal look is one config line: every map's arms, kits, cages and names follow
         look();
-        Matches.install(world, new Pos(0.5, 42, 0.5), shards);
+        Matches.install(world, Playground.SPAWN, shards);
 
         // the libraries store nothing: account data is the app's, and this is where it lands
         FileVault vault = new FileVault(data.resolve("players"));
@@ -272,7 +271,7 @@ public final class TestServer {
         BedFight.install(); // break the bed, then eliminate
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
-        Bloom.install(arenaDir(), shards, p -> p.setInstance(world, new Pos(0.5, 42, 0.5)));
+        Bloom.install(arenaDir(), shards, p -> p.setInstance(world, Playground.SPAWN));
         Bloom.registerDefaultCommands();
         Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
         Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
