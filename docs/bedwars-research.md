@@ -95,7 +95,9 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   obfuscated in pregame since 2024-08-28 (off).
 - Countdown (cap): at the threshold `The game starts in 20 seconds!`, then 10, 5, 4, 3, 2, 1. The number
   is yellow at 20, gold at 10, red from 5. Falling below the threshold prints
-  `We don't have enough players! Start cancelled.` A restarted countdown is 10 s (wiki).
+  `We don't have enough players! Start cancelled.` A restarted countdown is 10 s (wiki). The last five
+  seconds also title the digit (5 and 4 yellow, 3 to 1 red; fade 0, stay 20, out 20) and play `note.hat`
+  at volume 20, pitch 1.0 each second (Bed Rush Duel capture).
 - Parties share a team; a party member leaving in pregame sends the party back to the lobby (off).
 - Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
 
@@ -127,13 +129,18 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   least once a second.
 - Tier-up chat (cap): aqua `Diamond Generators`, yellow `have been upgraded to Tier`, red numeral. The
   emerald and tier III lines were not reached: CAPTURE.
-- Bed Gone: all beds go at once (a five-minute warning is claimed by a recreation). Chat, titles and
-  sounds: CAPTURE.
+- Bed Gone: all beds go at once. Candidate text from the string catalog (12.1): a red
+  `All beds will be destroyed in 5 minutes!` warning, then `All beds have been destroyed!`, plain and bold
+  red (likely chat and title). Confirm, with the sounds: CAPTURE.
 - Sudden Death: one ender dragon per team alive at 40:00, plus one more each at 45:00. Dragons break every
   block type, obsidian and end stone included, and hunt enemy players (off, v0.6). Boss bar for 1.9+
-  clients (off 2022). Spawn point, health, speed, damage, knockback, break rate: CAPTURE.
+  clients (off 2022). Candidate text: red `Sudden Death`, then `SUDDEN DEATH: +N <Team> Dragon!` (red, gold,
+  aqua). Spawn point, health, speed, damage, knockback, break rate: CAPTURE.
 - Game End at 50:00: draws exist and award neither a win nor a loss (off 2025-09-02), but the rule when
-  several teams are alive is disputed (draw, shared win, a picked winner): CAPTURE.
+  several teams are alive is disputed (draw, shared win, a picked winner): CAPTURE. The catalog carries
+  bold red `GAME OVER!`, bold yellow `DRAW!`, `It's a draw.`, a yellow
+  `At this rate, a draw will happen in N minutes!` warning and a `Draw in M:SS` label, which suggests the
+  last board entry reads Draw rather than Game End in at least one mode.
 
 ### 3.4 Winning and rewards
 
@@ -387,7 +394,8 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Counter-Offensive: Speed II and Jump Boost II for 15 s to teammates near the base.
 - Reveal (Alarm) Trap: strips invisibility, announces the intruder's name and team.
 - Miner Fatigue Trap: Mining Fatigue for 8 s. Level disputed (I, III, "-80%").
-- Set-off chat (cap): bold red `Miner Fatigue Trap was set off!`. Titles and sounds: CAPTURE.
+- Set-off chat (cap): bold red `Miner Fatigue Trap was set off!`. Candidate title: red `TRAP TRIGGERED!` over
+  bold red `Your trap has been set off!`. Sounds: CAPTURE.
 - Trigger area, the gap between two traps (30 s, until the effect ends, or none), and ordering with several
   intruders: CAPTURE.
 
@@ -415,19 +423,24 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
   death, final when bedless. `<player> disconnected.` (cap).
-- **AFK**: 4 minutes then a 10 s warning in 2017; today: CAPTURE.
+- **AFK**: 4 minutes then a 10 s warning in 2017; today: CAPTURE. Candidate text: bold
+  `You will be afk-ed in 10 seconds!`, `You were kicked for inactivity!`, `<name> was kicked for being AFK!`.
 - Death lines (cap) color names by team with gray text and a period: `<a> was killed by <b>.`,
   `<a> was knocked into the void by <b>.`, `<a> fell into the void.` Kill-message cosmetics swap the verb
   (dozens of variants seen). The default bow-kill line: CAPTURE.
 
 ## 9. Beds
 
-- Enemy beds break by hand with no tool; your own bed cannot be broken. Break time and the own-bed refusal:
-  CAPTURE.
+- Enemy beds break by hand with no tool; your own bed cannot be broken. Candidate refusal: red
+  `You can't destroy your own bed!`. Break time: CAPTURE.
 - Chat (cap): bold `BED DESTRUCTION > `, the team's bed in its color, gray `was destroyed by`, the breaker
   in their color, `!`. Your own team reads `Your Bed was destroyed by <player>!`. Cosmetics swap the verb.
 - Titles for the losing team (duel capture): `BED DESTROYED!` / `You will no longer respawn!`.
-- Sounds: wither death for your own bed, ender dragon for an enemy bed (wiki); ids: CAPTURE.
+- Sounds (Bed Rush Duel capture): the losing side hears `mob.wither.death`, the breaker
+  `mob.enderdragon.growl`, volume 1 and pitch 1.0, right after the chat line and the titles. MineMen's bed
+  fight capture (2026-09-07) plays the same pair, and its growl sits on the enemy bed 45 blocks from the
+  listener: both sounds play at the bed. Bed fight plays the growl to everyone at their own position, the
+  losers included, so both of its network looks are off here.
 - Rewards: `+24 tokens! (Bed Destroyed)` and `+15 Bed Wars XP (Bed Break)` (cap).
 - 1.14+ clients sometimes see a broken bed come back (the sneak eye height failing a server check, per
   players). Worth a test on our side.
@@ -459,7 +472,8 @@ www.hypixel.net           yellow
   captured Solo line reads `[49✫] [PINK] [VIP+] <name>: <message>` (level, team tag, rank).
 - **Titles**: known only from the duel capture (countdown digits, death, respawn, bed destroyed, victory,
   defeat, AFK) with their fade timings. Core BedWars titles: CAPTURE.
-- **Sounds**: almost nothing documented. CAPTURE.
+- **Sounds** (Bed Rush Duel capture): the countdown's `note.hat`, the two bed sounds (section 9), and
+  `random.orb` at volume 1 to the killer on every kill, void knock-offs included. Everything else: CAPTURE.
 
 ## 11. Stats and progression
 
@@ -482,12 +496,22 @@ www.hypixel.net           yellow
 | Capture | Settles |
 |---|---|
 | 2026-08-20 Solo x3 | pregame and in-game sidebars, team letters and colors, Diamond II at 6:00 and Emerald II at 12:00, countdown and cancel lines, join and quit lines, start banner, purchase and not-enough lines, deposit lines, death, void and final-kill lines, bed destruction and elimination lines, the ender chest dump, respawn countdown, invincibility loss, kill loot lines, the tier-up line, a trap set-off, the team upgrade broadcast, reward lines, the end summary |
-| hypixelbf (Bed Rush Duel) | titles and fade timings for countdown, death, respawn, bed destroyed, victory, defeat and AFK; the bed-clock board |
+| hypixelbf (Bed Rush Duel) | titles and fade timings for countdown, death, respawn, bed destroyed, victory, defeat and AFK; the bed-clock board; the countdown, bed and kill sounds |
 | hpxlbw | damage and armor values in a BedWars game, with enchanted armor |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
-preset. Nothing yet covers sounds, holograms, NPCs, shop windows, item spawns, pickups, potion effects,
+preset. Nothing yet covers holograms, NPCs, shop windows, item spawns, pickups, potion effects, most sounds,
 dragons or the late game.
+
+### 12.1 A string catalog that matches the wire
+
+Swofty's recreation ships `configuration/i18n/en_US/official/bedwars.properties` (4,279 lines, MiniMessage
+tags). Every one of the 14 lines we can check against our captures matches, colors included: the respawn
+countdown, `YOU DIED!`, `You have respawned!`, `RESPAWNED!`, `BED DESTROYED!`, `You will no longer respawn!`,
+the tier-up line, the invincibility loss, both not-enough lines, both purchase lines, `VICTORY!`,
+`TEAM ELIMINATED > ...`, `You have been eliminated!` and `You've already purchased this item!`. Its lines for
+events we have not captured are therefore strong candidates, marked as such above. A capture still decides
+colors, order and whether a line is chat or a title.
 
 ## 13. Capture plan
 
@@ -497,9 +521,10 @@ support, which is why that capture has neither. `capture-legacy.js` logs entity 
 equipment, velocity and explosions; `capture-explosion-blocks.js` logs block changes. Nothing logs
 windows, pickups or potion effects.
 
-**One new tool, `capture-bedwars.js`**, in the usual shape (header naming what it discriminates, a
-`run-bedwars.bat`, a closing SUMMARY), because a BedWars game spreads the interesting events over 10 to 50
-minutes and one proxy session can only run one tool. It is the scoreboard tool plus:
+**Built 2026-09-24: `capture-bedwars.js` and `run-bedwars.bat`** (client connects to `localhost:25582`,
+reuses the `profiles/scoreboard` login, `--selftest` runs with no network). One tool because a BedWars game
+spreads the interesting events over 10 to 50 minutes and one proxy session can only run one tool. It is the
+scoreboard tool, whose records it keeps byte for byte plus a trailing `ms` line, and:
 
 | Packets | Answers |
 |---|---|
@@ -511,8 +536,14 @@ minutes and one proxy session can only run one tool. It is the scoreboard tool p
 | `explosion`, `block_change`, `multi_block_change` | pop-up tower build order, bridge egg cadence, stacked TNT, beds under a blast |
 | `world_border`, `experience`, `player_info` | 4v4 border, the level bar, tab list |
 
-SUMMARY: a spawn table per item position (interval histogram per resource), the distinct hologram line
-sets, and one dump per window title.
+SUMMARY on disconnect or Ctrl+C: per spawn block and item, the spawn count, intervals in ms and ticks,
+items per spawn, the most lying near it and the first spawn after "Protect your bed"; each named armor stand
+with its names and update cadence; one dump per window title with lore, enchants, HideFlags, Unbreakable and
+leather color; effects by amplifier and duration; sounds beside the nearest chat or title line.
+
+1.8 wire facts the tool had to get right, verified in MCP-919: armor stands spawn as object 78 through
+`spawn_entity`, not `spawn_entity_living`; the effect packet's particle flag means shown, not hidden; world
+border radius fields are diameters; a fireball's spawn velocity is its acceleration.
 
 **Sessions**, each a short public game or a part of one:
 
