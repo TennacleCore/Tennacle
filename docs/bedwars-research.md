@@ -249,8 +249,10 @@ drops a block's item, 0.2 up and at most 0.1 each way across.
 - **Forge splitting**: when a teammate picks up forge iron or gold, every teammate close by gets a full
   copy, not a share. Iron and gold only, never diamonds, emeralds or forge emeralds, never enemies. Treated
   as intended. Radius (players say 1 to 3 blocks) and the exact rule: CAPTURE.
-- **Carry limit**: a `You didn't pick up any more Iron because you have too much on you!` string exists;
-  threshold and modes: CAPTURE.
+- **Carry limit** (our play): past a threshold you stop picking up generated iron or gold, the items the
+  forge made that nobody has picked up yet, the same items its cap counts, with `You didn't pick up any more
+  Iron because you have too much on you!`. It covers iron and gold only, and never items anyone dropped.
+  The thresholds: CAPTURE (section 13.1, session 2b).
 - **Provenance**: generator XP and several achievements need each item tagged with where it came from.
 
 ### 5.4 What a generator capture has to separate
@@ -267,9 +269,9 @@ at once:
 - **Upgrades.** Each forge level changes both the speed and the cap (2023-05); Emerald Forge adds emeralds.
 - **What lies there.** A cap counts generated items not yet picked up, near the generator. Items a player
   threw there do not count (the 2022 fix), so a capture has to tell generated items from dropped ones.
-- **What you hold.** Past a threshold per resource you stop picking up that resource's generated items
-  ("You didn't pick up any more Iron because you have too much on you!"); items players dropped reportedly
-  still pick up. The threshold per resource and mode, and whether dropped items are exempt: CAPTURE.
+- **What you hold.** Past a threshold you stop picking up generated iron and gold, the same not yet picked up
+  items the cap counts; dropped items always pick up, and diamonds and emeralds have no limit (our play).
+  The iron and gold thresholds: CAPTURE.
 
 We will use some of Hypixel's maps as they are, so each map's own numbers matter, not only the rules. Every
 game played through the capture tool adds that map's record (section 13.1).
@@ -678,15 +680,14 @@ changes the very numbers being measured.
 1. **Forge from the start** (Solo first, then a four-team mode; a map from each pool). From the start, stand
    beside your forge without touching it until it stops spawning: the boost, the base interval, items per
    spawn and the cap. The claim that the first fill reaches 64 iron shows as the most lying before a spawn.
-   Pick up about ten and watch it restart, to see whether its timer kept running through the stop. Drop some
-   of your own iron onto it: if it spawns past the cap, dropped items do not count. Then collect until "You
-   didn't pick up any more Iron", drop two and pick them back up: the carry limit, and whether dropped items
-   are exempt. Gold the same way if time allows.
+   Pick up about ten and watch it restart, to see whether its timer kept running through the stop.
 2. **Mid generators**: stay within 20 blocks of a diamond generator across 6:00 and an emerald one across
    12:00, and across 18:00 and 24:00 when a game lasts. Leave one untouched until it stops, for its cap. The
    countdown tells whether the timer runs while capped: a restart with no spawn means it does.
-   - **2b. Forge upgrades**, with a party pooling diamonds (all four levels cost 20 in Solo/Doubles, 40 in
-     3s/4s): after each level, leave the forge alone until it stops.
+   - **2b. Forge upgrades, then the carry limit** (all four levels cost 20 diamonds in Solo/Doubles, 40 in
+     3s/4s): buy the levels one at a time and leave the forge alone after each until it stops, for each
+     level's speed and cap. With every level bought, stand in the forge and pick up until `You didn't pick up
+     any more` appears, for iron and for gold.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
      diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
 
@@ -694,8 +695,7 @@ Reading the summary:
 - `cap  stopped at N generated lying xK; spawned with up to M lying (at T)`: spawning stopped K times with N
   of its own items lying there; M is the most lying when it still spawned. N = M + items per spawn is a clean
   cap. An M above N, early in the game, is an overfill during the boost.
-- `lying beside them at a stop: D dropped`: other items there at the time. A stop at the same N with D
-  dropped beside it means dropped items do not count.
+- `lying beside them at a stop: D dropped`: other items there at the time, which the cap does not count.
 - `resumed +Tt after a pickup; on the old grid A of B`: on the grid means the timer kept running while
   capped.
 - A generator farther than 24 blocks from you is never read as stopped, only as out of view.
