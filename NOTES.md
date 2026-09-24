@@ -40,6 +40,8 @@ TimeLimit deciders, Countdown + Freeze with a look voice, Respawns + KillCredit 
 Results at the bell; Tennacle keeps Mode / Ruleset / Look / Platform / Matches / Presentation. A look is
 presentation only (a platform pairs a ruleset with a look); effects ride the kit. Steps 1 to 3 are built
 (parties, queue, spectate, live modifiers through /rules); the per-layer rule scope stays open.
+None of the existing minigames drops the inventory at death (bridge, sumo, boxing, bedfight): `Matches.fold` sets
+`death/spill keep` on every match. A mode that should drop (a skywars) names `death/spill drop` in its ruleset.
 
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data
