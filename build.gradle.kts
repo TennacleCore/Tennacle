@@ -46,6 +46,8 @@ application {
         // unpark the write thread on a send instead of letting it sleep half a tick on an empty queue.
         // ServerFlag reads it in its static initializer, so it has to be a JVM arg, not System.setProperty
         "-Dminestom.new-socket-write-lock=true",
+        // a hot site's exception otherwise logs bare, no message and no stack
+        "-XX:-OmitStackTraceInFastThrow",
     )
 }
 
