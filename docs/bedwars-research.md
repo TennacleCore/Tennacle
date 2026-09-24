@@ -1,0 +1,752 @@
+# BedWars research
+
+Status: RESEARCH, 2026-09-23. Nothing is built. This is the fact base for sketching a Hypixel-parity BedWars
+mode: how Hypixel runs the game, what is settled, what only a server capture can settle, and how the pieces
+land on Polyp, Grotto and Tennacle.
+
+Confidence marks used below:
+- **cap**: seen on the wire in our own Hypixel captures. Strongest.
+- **off**: Hypixel staff patch notes (dated) or the public API.
+- **wiki**: Fandom or NamuWiki. Community edited; Fandom's page carries an Outdated banner.
+- **comm**: forum posts, guides, client-mod source. Unverified.
+- **CAPTURE**: no source settles it. Section 13 turns these into a capture plan.
+
+## 1. Sources
+
+- **The official Hypixel Wiki is gone.** It only ever covered SkyBlock and closed in July 2026, so no
+  official wiki page exists for any BedWars fact.
+- **Patch notes**, 2017 to 2026: the Bed Wars Patch Notes forum
+  (https://hypixel.net/forums/bed-wars-patch-notes.262/). Authoritative for their date; later posts often
+  supersede earlier ones silently.
+- **Public API** without a key: `/v2/resources/games`, `/achievements`, `/quests`, `/challenges`. The API
+  documents no stat field names; those come from 16 real `/v2/player` responses committed to GitHub,
+  checked against Statsify, hypixel-api-reborn and coral.
+- **Fandom** (https://hypixel.fandom.com/wiki/Bed_Wars): the main page, its shop and upgrades GUI templates
+  (January 2023, the best layout and lore source even where prices are stale), and 215 map pages with build
+  limits.
+- **NamuWiki** (Korean, read from a 2026-06-01 Wayback snapshot): the most complete generator timings, and
+  its arithmetic checks out against our capture.
+- **Client mods** that parse live Hypixel output: exact strings and timer tables as players see them today.
+- **Our captures** (`Desktop/minemen-capture/captures`):
+  - `2026-08-20T19-42-44-801Z_scoreboard`: three Hypixel Solo games on 1.8.9, game version v1.11.2.
+    Pregame and in-game sidebars and every chat line. No titles, sounds, entities or windows.
+  - `hypixelbf`: a Bed Rush Duel, 2026-09-07. Board, titles with fade timings, death lines.
+  - `hpxlbw`: a damage capture inside a Hypixel BedWars game, 2026-09-01 (health, armor, blocking, arrows,
+    crits on both sides; enchanted armor noted).
+- **Prior art** (section 14): Swofty's Minestom recreation inside the local HypixelSkyBlock fork (AGPL-3.0)
+  and ScreamingSandals BedWars (LGPL-3.0). Facts and design lessons only, never code.
+
+Hypixel balances BedWars around 1.8 combat for every client version (off, v1.10).
+
+## 2. Modes
+
+| Mode | API key | Teams x players | Teams | Price group | Countdown starts at |
+|---|---|---|---|---|---|
+| Solo | `BEDWARS_EIGHT_ONE` | 8 x 1 | Red Blue Green Yellow Aqua White Pink Gray | S/D | 7/8, 20 s (cap) |
+| Doubles | `BEDWARS_EIGHT_TWO` | 8 x 2 | same eight | S/D | 14 (wiki) |
+| 3v3v3v3 | `BEDWARS_FOUR_THREE` | 4 x 3 | Red Blue Green Yellow | 3s/4s | 11 (wiki) |
+| 4v4v4v4 | `BEDWARS_FOUR_FOUR` | 4 x 4 | same four | 3s/4s | 14 (wiki) |
+| 4v4 | `BEDWARS_TWO_FOUR` | 2 x 4 | Red Blue | 3s/4s, no obsidian | 7 (wiki) |
+
+- **Overall stats are the sum of these five** (checked in 16 of 16 real players). Dreams, Castle and
+  tournaments are separate.
+- **4v4** has no dragons; a world border shrinks toward the end and damages players outside it (off, v1.6).
+  Its event times and border numbers: CAPTURE.
+- **Dreams** rotate weekly, one at a time: Rush (maxed generators, three-layer bed defense), Ultimate
+  (kits), Castle (40v40, three beds a side), Voidless, Armed (guns), Lucky Blocks, Swappage, One Block,
+  seasonal Underworld. Separate stats.
+- **Duels** since 2025-08-13, stored under `stats.Duels`: Bed Wars Duel (1v1, the full economy, skips the
+  Level II generator upgrades so the first tier-up is Diamond III at 18:00, wiki) and Bed Rush Duel (two
+  islands, starter gear, premade defenses, 10:00 limit, cap). Tennacle's bedfight hypixel look is built
+  from the Bed Rush Duel capture.
+- **Private games** (MVP++ only) expose modifiers, which read as a ready list of rule knobs: bed
+  instabreak, disable block protection, event time multiplier, health buff, low gravity, max team
+  upgrades, one hit one kill, respawn time (1, 5 or 10 s), speed, no diamonds, no emeralds (API
+  `privategames` object).
+- **Challenges**: 30 opt-in rule restrictions for core modes (no team upgrades, no utilities, slow
+  generator, knockback stick only, no swords, archer only, no sprint, capped resources, and so on), plus 9
+  from 2026. Also rule-shaped; a later concern.
+
+### Team letters and colors
+
+| Team | Sidebar letter | Color |
+|---|---|---|
+| Red | R | red |
+| Blue | B | blue |
+| Green | G | green |
+| Yellow | Y | yellow |
+| Aqua | A | aqua |
+| White | W | white |
+| Pink | P | light_purple |
+| Gray | **S** | dark_gray |
+
+Order and letters are cap (Gray is S because G is taken). Chat tags read `[RED]`, `[PINK]` (cap); the rest
+follow the pattern. Leather dye RGB per team changed twice in 2026 for Pink and Green: CAPTURE. 1.8
+clients render every bed red; 1.12+ see team-colored beds (wiki).
+
+## 3. Match flow
+
+### 3.1 Pregame
+
+- Players wait in a pregame area away from the bases and are teleported to their base at the start.
+- Board (cap): date and server id, `Map: <name>`, `Players: n/8`, `Waiting...` or `Starting in 20s`,
+  `Mode: Solo`, `Version: v1.11.2`, site line. Title BED WARS.
+- Join and quit lines: `<name> has joined (7/8)!`, `<name> has quit!` (cap). Other players' names are
+  obfuscated in pregame since 2024-08-28 (off).
+- Countdown (cap): at the threshold `The game starts in 20 seconds!`, then 10, 5, 4, 3, 2, 1. The number
+  is yellow at 20, gold at 10, red from 5. Falling below the threshold prints
+  `We don't have enough players! Start cancelled.` A restarted countdown is 10 s (wiki).
+- Parties share a team; a party member leaving in pregame sends the party back to the lobby (off).
+- Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
+
+### 3.2 Start
+
+- Banner (cap): a bold green bar of 64 `▬`, a centered bold `Bed Wars`, four centered lines telling you to
+  protect your bed, destroy the enemy beds and collect Iron, Gold, Emerald and Diamond for upgrades, then
+  the closing bar.
+- Starting kit: wooden sword and compass; full team-dyed leather armor, unbreakable, helmet with Aqua
+  Affinity I (off, v0.4; comm 2020). The compass is only given if a Hotbar Manager slot holds it.
+- The XP bar shows BedWars level progress in game (off, v1.6).
+- Spawn protection at the start: CAPTURE.
+
+### 3.3 Timeline (core modes)
+
+| At | Event | Sidebar label | Confidence |
+|---|---|---|---|
+| 0:00 | start, generators at tier I | `Diamond II in 6:00` | cap |
+| 6:00 | diamond generators to tier II | Diamond II | cap |
+| 12:00 | emerald generators to tier II | Emerald II | cap |
+| 18:00 | diamond generators to tier III | Diamond III | off, wiki, 2026 client mods |
+| 24:00 | emerald generators to tier III | Emerald III | same |
+| 30:00 | every remaining bed destroyed | Bed Gone | same |
+| 40:00 | Sudden Death: dragons | Sudden Death | same |
+| 45:00 | a second dragon per alive team | none | off 2025-01-29, broken until 2026-05-20 |
+| 50:00 | game ends | Game End | same |
+
+- The sidebar shows only the next event, one line: white `<Event> in `, green `M:SS` (cap). It redraws at
+  least once a second.
+- Tier-up chat (cap): aqua `Diamond Generators`, yellow `have been upgraded to Tier`, red numeral. The
+  emerald and tier III lines were not reached: CAPTURE.
+- Bed Gone: all beds go at once (a five-minute warning is claimed by a recreation). Chat, titles and
+  sounds: CAPTURE.
+- Sudden Death: one ender dragon per team alive at 40:00, plus one more each at 45:00. Dragons break every
+  block type, obsidian and end stone included, and hunt enemy players (off, v0.6). Boss bar for 1.9+
+  clients (off 2022). Spawn point, health, speed, damage, knockback, break rate: CAPTURE.
+- Game End at 50:00: draws exist and award neither a win nor a loss (off 2025-09-02), but the rule when
+  several teams are alive is disputed (draw, shared win, a picked winner): CAPTURE.
+
+### 3.4 Winning and rewards
+
+- The last team with living players wins.
+- End summary (cap): the winners' line in the team color, then `1st Killer`, `2nd Killer`, `3rd Killer`
+  with kill counts, then reward lines and a replay link. Titles `VICTORY!` / `DEFEAT!` hold 200 ticks in
+  the duel capture; core titles: CAPTURE.
+- XP (off, since 2025-06-30): win +100 Solo/Doubles, +50 3s/4s, +25 4v4 and Dreams; +15 a minute played;
+  +5 for the first kill on each player; +10 per final kill; +15 per bed; +2 per diamond and +3 per emerald
+  picked up from a map generator. Captured lines: `+15 Bed Wars XP (Time Played)`, `(First Kill)`,
+  `(Bed Break)`, `(Diamonds)`, and at the end `(Final Kill + Position Bonus)`.
+- Tokens (cosmetic currency, stored as `coins`): an MVP+ player got +12 per time-played award, +24 per bed,
+  +6 per final kill, +60 per win (cap), each echoed on the action bar. Multipliers by rank: CAPTURE.
+
+## 4. Map anatomy
+
+- **Team island**: bed, spawn, forge (iron and gold), item shop NPC, upgrades NPC, team chest on the left
+  and ender chest on the right (every map since 2018).
+- **Team chest**: shared. Enemy access after the bed breaks (off 2017) or only after elimination (a
+  recreation string): CAPTURE.
+- **Ender chest**: personal, the same contents from any ender chest on the map.
+- **Punch to deposit**: punching a chest with resources in hand deposits the held stack; sneak-punch
+  deposits every stack of that item; nearby players hear it (off 2024-12, 2025-01). Chat (cap):
+  `Deposited x13 Iron Ingot into Ender Chest! (131 Total)` with the item colored by resource.
+
+| Mode | Bases | Diamond gens | Emerald gens |
+|---|---|---|---|
+| Solo, Doubles | 8 | 4 | 4 |
+| 3s, 4s | 4 | 4 | 2 (3 on a few maps) |
+| 4v4 | 2 | 2 | 2 |
+
+- **Build limits** are per map: minimum Y, maximum Y and a build radius on every Fandom map page.
+  Solo/Doubles median max Y 96, radius 121; 3s/4s median max Y 95, radius 103. What the radius measures
+  (circle or square, from where): CAPTURE.
+- **Above the top**: more than one block above the limit for over 30 s starts damage that grows; the timer
+  decays and resets on death (off 2026-05).
+- **No-place zones** are per-map boxes over spawns, base interiors and shopkeepers. Refusal line (cap):
+  `You can't place blocks here!`. Box sizes are map data; whether generators have their own: CAPTURE.
+- **Breaking**: only player-placed blocks. Refusal line (cap): `You can only break blocks placed by a
+  player!`. Plants outside protected areas break without drops (off 2022).
+- **Void**: below the minimum build limit a player cannot drop items or open the inventory (wiki), which
+  stops resource denial. Death height and whether it is instant: CAPTURE.
+- **Liquids**: the water bucket is single use and its source can only be blocked (off v1.4). Flow rules:
+  CAPTURE.
+
+## 5. Economy
+
+Four resources: iron and gold from the island forge, diamonds and emeralds from map generators (emeralds
+also from a forge with the Emerald Forge upgrade). Resources are ordinary item entities, one per spawn,
+never merged (comm, a 2026 client mod).
+
+### 5.1 Island forge
+
+- **Speed is per map**, in three classes. Hypixel's map admin (2020): slow, medium and fast are about 0.33,
+  0.66 and 1.0 iron a second in Solo/Doubles, about 0.33/s more in team modes; the rate is doubled for the
+  first 30 s; speed comes from 1 to 3 spawn nodes per team. A player measured about twice those rates,
+  possibly inside the boost window. Most maps are fast today (Fandom: every 4-team map, 79 of 103
+  Solo/Doubles maps).
+- **Gold rate**: no source. Claimed ratios run from 4 to 16 iron per gold. CAPTURE.
+- **Caps**: 48 iron and 16 gold near the forge (wiki, several sources); the very first fill reaches 64
+  iron (wiki). Forge upgrades raise the caps since 2023-05 (off); the values: CAPTURE. The cap counts
+  resources lying near the generator; items thrown in by players do not.
+- **Forge upgrades**: +50%, +100%, then emeralds, then +200% of iron and gold. The island emerald interval
+  (wiki says 65 s at Emerald Forge and 35 s at Molten in Solo/Doubles) disagrees with the +200% lore:
+  CAPTURE.
+- An eliminated team's forge keeps producing at its level.
+
+### 5.2 Diamond and emerald generators
+
+| | Tier I | Tier II | Tier III | Cap S/D | Cap 3s/4s |
+|---|---|---|---|---|---|
+| Diamond (all modes) | 30 s | 23 s | 11.2 s | 4 | 8 |
+| Emerald, Solo/Doubles | 65 s | 50 s | 35 s | 2 | |
+| Emerald, 3s/4s | 55 s | 40 s | 27.4 s | | 5 or 6 |
+
+- Intervals are NamuWiki's; 11.2 s and 27.4 s are whole ticks (224, 548). 2026 client mods use 30/23/12
+  and 65/50/35 (8 teams) or 55/40/27 (4 teams). Close enough to build on; exact ticks: CAPTURE.
+- NamuWiki's timing is self-consistent with the capture: the first Solo emerald lands at 0:31, and at an
+  emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds at a tier-up and the
+  first diamond: CAPTURE.
+- **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
+  numeral; bold aqua `Diamond` or bold dark green `Emerald`; yellow `Spawns in ` + red number + yellow
+  ` seconds` (singular form exists). Offsets, spin speed, update cadence: CAPTURE.
+- Items near a generator count toward its cap until carried away.
+
+### 5.3 Pickup
+
+- **Forge splitting**: when a teammate picks up forge iron or gold, every teammate close by gets a full
+  copy, not a share. Iron and gold only, never diamonds, emeralds or forge emeralds, never enemies. Treated
+  as intended. Radius (players say 1 to 3 blocks) and the exact rule: CAPTURE.
+- **Carry limit**: a `You didn't pick up any more Iron because you have too much on you!` string exists;
+  threshold and modes: CAPTURE.
+- **Provenance**: generator XP and several achievements need each item tagged with where it came from.
+
+## 6. Item shop
+
+Prices are Solo/Doubles, with 3s/4s in parentheses where it differs. 4v4 uses the 3s/4s prices and sells no
+obsidian.
+
+| Tab | Item | Qty | Price |
+|---|---|---|---|
+| Blocks | Wool (team color) | 16 | 4 iron |
+| | Hardened Clay (team color) | 16 | 12 iron |
+| | Blast-Proof Glass | 4 | 12 iron |
+| | End Stone | 12 | 24 iron |
+| | Ladder | 8 | 4 iron |
+| | Oak Wood Planks | 16 | 4 gold |
+| | Obsidian | 4 | 4 emerald |
+| | Packed Ice (permanent since 2025-09) | ? | CAPTURE (was 8 for 8 iron as a rotating item) |
+| Melee | Stone Sword | 1 | 10 iron |
+| | Iron Sword | 1 | 7 gold |
+| | Diamond Sword | 1 | 4 emerald (3) |
+| | Stick (Knockback I) | 1 | 5 gold |
+| Armor | Permanent Chainmail Armor | legs, boots | 24 iron |
+| | Permanent Iron Armor | legs, boots | 12 gold |
+| | Permanent Diamond Armor | legs, boots | 6 emerald |
+| Tools | Permanent Shears | 1 | 20 iron |
+| | Pickaxe: wood Eff I, iron Eff II, gold Eff III + Sharp II, diamond Eff III | tier | 10 iron, 10 iron, 3 gold, 6 gold |
+| | Axe: wood Eff I, stone Eff I, iron Eff II, diamond Eff III | tier | 10 iron, 10 iron, 3 gold, 6 gold |
+| Ranged | Arrow | 6 | 2 gold |
+| | Bow | 1 | 12 gold |
+| | Bow (Power I) | 1 | 20 gold |
+| | Bow (Power I, Punch I) | 1 | 6 emerald |
+| Potions | Speed II (45 s) | 1 | 1 emerald |
+| | Jump V (45 s) | 1 | 1 emerald |
+| | Invisibility (30 s) | 1 | 2 emerald |
+| Utility | Golden Apple | 1 | 3 gold |
+| | Bedbug | 1 | 24 iron |
+| | Dream Defender | 1 | 120 iron |
+| | Fireball | 1 | 40 iron |
+| | TNT | 1 | 4 gold (8) |
+| | Ender Pearl | 1 | 4 emerald |
+| | Water Bucket | 1 | 2 gold (3) |
+| | Bridge Egg | 1 | 1 emerald |
+| | Magic Milk | 1 | 4 gold |
+| | Sponge | 4, or 6 (conflict) | 2 gold (3) |
+| | Compact Pop-up Tower | 1 | 24 iron |
+| Quick Buy | Tracker, per enemy team | | 2 emerald, unlocks once every enemy bed is gone |
+
+Price history is dense (chainmail, bedbug, water and sponge all changed on 2023-05-03; ladders, arrows,
+the Power bow and the bridge egg on 2021-10-14). The Fandom GUI template still shows pre-2023 prices; the
+table above is the newest documented.
+
+### 6.1 What persists
+
+| Item | On a normal death |
+|---|---|
+| Armor bought as Permanent (legs and boots; helmet and chest stay team leather) | kept |
+| Shears | kept |
+| Pickaxe, axe | drop one tier; tier I is permanent |
+| Swords | lost; the wooden sword comes back whenever no better sword is held |
+| Bows, arrows, blocks, potions, utilities | lost, not dropped |
+| Compass | given back; a bought tracker is lost |
+| Iron, gold, diamonds, emeralds | to the killer (section 8) |
+| Ender chest, team chest | untouched (the ender chest is dumped at a final death) |
+
+- Tools are bought one tier at a time and the shop slot shows the next tier (`Tier: I` in the lore).
+- Buying a lower armor tier is refused; `You've already purchased this item!` exists (cap); exact triggers:
+  CAPTURE.
+- Since 2023, a bought sword replaces the sword in your selected hotbar slot if it is better, and a better
+  sword picked up replaces your current one.
+- Armor can be bought with a full inventory. Where other purchases go when full: CAPTURE.
+- Pressing drop on a permanent item moves it to its Hotbar Manager slot; permanent items cannot go in
+  chests.
+
+### 6.2 Shop window
+
+- A 6-row chest. Row 0 holds the category icons (Quick Buy, Blocks, Melee, Armor, Tools, Ranged, Potions,
+  Utility, Rotating Items); row 1 is glass panes, lime under the selected tab, gray elsewhere, and clicking
+  a pane switches tabs. Items sit in slots 19-25, 28-34 and 37-43.
+- Quick Buy page only: slot 45 opens the Tracker shop, slot 53 the Hotbar Manager.
+- Lore: a gray cost line with the currency colored (iron white, gold gold, emerald dark green), a tier
+  line on tools, gray description lines, a `Sneak Click to add to Quick Buy` line, and a last line that is
+  red `You don't have enough <Currency>!` or yellow `Click to purchase!`. Unaffordable names are red; the
+  affordable color: CAPTURE.
+- Quick Buy is 21 per-player slots, stored as item ids (API `favourites_2`); sneak-click adds or removes.
+  The default layout is disputed (a 21-item 2023 template against a 14-item 2021 API default): CAPTURE on
+  a fresh account.
+- Hotbar Manager: a preferred hotbar slot per category (API `favorite_slots`), used on purchase and on
+  spawn. Number keys over an item buy it straight into that slot.
+- Rotating Items tab: one to three rotating items weekly from a pool of about 30. Defer.
+- Chat (cap): `You purchased <Shop Name>`, `You don't have enough Iron! Need 3 more!`.
+  Shop sounds: CAPTURE.
+
+### 6.3 Special items
+
+| Item | Documented behavior | Still needs a capture |
+|---|---|---|
+| Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower | measured already (Polyp `hypixel`); left: the deflect credit rule |
+| TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`); left: the spread, beds |
+| Bridge Egg | lays a wool bridge along its path (team color presumably); a direct hit knocks back; counts for void credit | length (a hedged 35 blocks from 2017), width, cadence |
+| Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
+| Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
+| Compact Pop-up Tower | builds a one-layer wool tower facing the placer, 2-tall doorway, ladder; returns to the inventory if placed badly; not below the build limit | the block layout and build timing |
+| Magic Milk | no trap triggers for 30 s; cleared on death; keeps other effects | whether defenders are still alerted |
+| Sponge | a temporary block that soaks water | lifetime, radius, quantity |
+| Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | landing measured (Polyp, 130 throws); left: the safe-spot search, any cooldown |
+| Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows | per-viewer equipment packets, particle rate |
+| Golden Apple | vanilla 1.8 effects per the community | effects and eat time |
+
+Explosions, as documented:
+
+| Block | TNT | Fireball |
+|---|---|---|
+| Blast-Proof Glass | immune | immune |
+| End Stone | breaks | does not break |
+| Obsidian | no | no |
+| Wool, clay, planks, ladder | breaks | breaks (clay was disputed; see below) |
+| Anything in or under water | protected | protected |
+| Map blocks | never | never |
+| Beds | CAPTURE | CAPTURE |
+
+**Explosives are the most settled part of BedWars.** Polyp's `hypixel` preset (and its `bedwars()` variant,
+`HYPIXEL_BEDWARS`) was fitted on our own Hypixel captures: TNT fuse 50 ticks detonating at the feet and lit on
+place; the BedWars fireball at power 2, launched at 0.5 for two ticks then 1.0449, no direct damage, passing
+through its owner and detonating a tick late; flat 2.0 blast damage that ignores armor points; knockback
+fitted on 240+ captures; fire only where a block broke; the BedWars pearl landing (130 throws). Its rays are
+vanilla 1.8, with full glass blocks vetoed and casting a hard shadow.
+
+That also settles the table. A power-2 fireball ray starts at 1.4 to 2.6 and pays `(resistance + 0.3) * 0.3`
+per block, so end stone (9.0, 2.79 a block) never breaks while clay (4.2, 1.35), planks, wool and ladders do:
+the clay dispute goes to "breaks". TNT at power 4 (2.8 to 5.2) clears end stone next to the blast, water (100)
+shields what sits behind it, and obsidian never breaks. The only custom block rules are blast-proof glass and
+map-block protection.
+
+## 7. Team upgrades and traps
+
+Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
+
+| Upgrade | Effect | Solo/Doubles | 3s/4s and 4v4 |
+|---|---|---|---|
+| Sharpened Swords | Sharpness I on all swords and axes | 4 | 8 |
+| Reinforced Armor I-IV | Protection I to IV on all armor | 2, 4, 8, 16 | 5, 10, 20, 30 |
+| Maniac Miner I-II | Haste I, Haste II | 2, 4 | 4, 6 |
+| Forge I-IV | +50%, +100%, emeralds, +200% | 2, 4, 6, 8 | 4, 8, 12, 16 |
+| Heal Pool | Regeneration I in your base | 1 | 3 |
+| Cushioned Boots I-II | Feather Falling I, II on boots | 1, 2 | 2, 4 |
+
+- Dragon Buff (5, a second dragon) was retired on 2025-01-29 for Cushioned Boots and the automatic
+  45:00 dragon.
+- A purchase is broadcast to the team (cap): green `<player> purchased `, gold upgrade name. Traps use the
+  same line.
+- Heal Pool radius (a 2017 note says 12 blocks, guides say 5 around the bed) and whether it works without
+  a bed: CAPTURE.
+
+**Traps**:
+- Queue of three, first in first out. The next trap costs 1, 2 or 4 diamonds by how many are queued.
+  One trap fires per intruder entering the base. They never fire once the bed is gone, and since 2025-09
+  cannot be bought then. A queued trap can be removed by its buyer, without a refund.
+- Blindness Trap: Blindness and Slowness on the intruder for 8 s.
+- Counter-Offensive: Speed II and Jump Boost II for 15 s to teammates near the base.
+- Reveal (Alarm) Trap: strips invisibility, announces the intruder's name and team.
+- Miner Fatigue Trap: Mining Fatigue for 8 s. Level disputed (I, III, "-80%").
+- Set-off chat (cap): bold red `Miner Fatigue Trap was set off!`. Titles and sounds: CAPTURE.
+- Trigger area, the gap between two traps (30 s, until the effect ends, or none), and ordering with several
+  intruders: CAPTURE.
+
+## 8. Death and respawn
+
+- **Respawn** 5 s while the bed stands. Chat counts down `You will respawn in 5 seconds!` to 1, then
+  `You have respawned!` (cap). Titles in the duel capture: `YOU DIED!` with a respawn subtitle, then
+  `RESPAWNED!`. The waiting player is a spectator; where they wait: CAPTURE.
+- **Respawn invincibility** exists and ends when you attack:
+  `You attacked someone and lost your invincibility!` (cap). Length: 1.5 s in 2017, then 3 s; today: CAPTURE.
+- **Resources go to the killer's inventory**, wherever the killer is, one line per resource in a fixed
+  order (cap): `+5 Iron` white, `+3 Gold` gold, `+3 Diamonds` aqua, `+2 Emeralds` dark green. Void
+  knock-offs pay out too (cap). With no creditable attacker they are lost. Only resources transfer.
+- **Anti-denial**: no dropping or inventory below the build limit; the cursor and crafting grid do not
+  hide resources; logging out mid-fight still pays the killer, even over the void.
+- **Kill credit**: a mob's kill goes to its owner, fall deaths pay the attacker, a deflected fireball
+  credits the deflector, zero-damage projectiles grant void credit, a suicide right after losing the bed
+  credits the bed breaker. The credit window: CAPTURE (a 2017 guess says about 5 s).
+- **Final kills**: a death with the bed gone eliminates. Bold aqua ` FINAL KILL!` follows the death line;
+  the victim reads `You have been eliminated!`; the last member out prints
+  `TEAM ELIMINATED > <Team> Team has been eliminated!` (cap). Just before the final-kill line the victim's
+  ender chest is dumped into their team's forge:
+  `Contents of <player>'s Ender Chest have been dropped into their fountain.` (cap).
+- **Spectating**: eliminated players spectate with a compass, a settings item, Play Again and Return to
+  Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
+- **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
+  death, final when bedless. `<player> disconnected.` (cap).
+- **AFK**: 4 minutes then a 10 s warning in 2017; today: CAPTURE.
+- Death lines (cap) color names by team with gray text and a period: `<a> was killed by <b>.`,
+  `<a> was knocked into the void by <b>.`, `<a> fell into the void.` Kill-message cosmetics swap the verb
+  (dozens of variants seen). The default bow-kill line: CAPTURE.
+
+## 9. Beds
+
+- Enemy beds break by hand with no tool; your own bed cannot be broken. Break time and the own-bed refusal:
+  CAPTURE.
+- Chat (cap): bold `BED DESTRUCTION > `, the team's bed in its color, gray `was destroyed by`, the breaker
+  in their color, `!`. Your own team reads `Your Bed was destroyed by <player>!`. Cosmetics swap the verb.
+- Titles for the losing team (duel capture): `BED DESTROYED!` / `You will no longer respawn!`.
+- Sounds: wither death for your own bed, ender dragon for an enemy bed (wiki); ids: CAPTURE.
+- Rewards: `+24 tokens! (Bed Destroyed)` and `+15 Bed Wars XP (Bed Break)` (cap).
+- 1.14+ clients sometimes see a broken bed come back (the sneak eye height failing a server check, per
+  players). Worth a test on our side.
+
+## 10. Presentation
+
+- **Sidebar** (cap, Solo):
+
+```
+BED WARS                  bold
+08/20/26  m144Q           gray date, dark_gray server id
+
+Diamond II in 5:22        white label, green time
+
+R Red: ✓                  letter in team color, name white, bold green U+2713
+B Blue: 1                 players left once the bed is gone, green
+A Aqua: ✗                 out, bold red U+2717
+W White: ✓ YOU            gray YOU on your own row
+...
+
+www.hypixel.net           yellow
+```
+
+  Four-team boards add `Kills:`, `Final Kills:` and `Beds Broken:`: CAPTURE. Tennacle's bedfight board is
+  this shape already (`Boards.hypixel`).
+- **Tab**: entries are a bold team letter and the name in team color, with health as a yellow number;
+  kills, final kills and beds broken since 2021. Header, footer and stat placement today: CAPTURE.
+- **Chat**: Solo chat is global; team modes default to team chat with `/shout` on a 60 s cooldown. A
+  captured Solo line reads `[49✫] [PINK] [VIP+] <name>: <message>` (level, team tag, rank).
+- **Titles**: known only from the duel capture (countdown digits, death, respawn, bed destroyed, victory,
+  defeat, AFK) with their fade timings. Core BedWars titles: CAPTURE.
+- **Sounds**: almost nothing documented. CAPTURE.
+
+## 11. Stats and progression
+
+- Stat keys: `<modePrefix><stat>_bedwars` for games_played, wins, losses, kills, deaths, final_kills,
+  final_deaths, beds_broken, beds_lost, items_purchased, permanent_items_purchased, and resources
+  collected per type; `winstreak` per mode. Kills and deaths also split by cause (entity_attack, void,
+  fall, projectile, magic, entity_explosion, fire, fire_tick, suffocation), matching Bukkit's damage-cause
+  names. No blocks-placed or time-played counters.
+- **Level**: within each 100 levels the steps cost 500, 1,000, 2,000 and 3,500 XP, then 5,000 each: 487,000
+  XP per prestige. `level = 100 * floor(xp / 487000)` plus the step count into the remainder; this
+  reproduces the stored level in 15 of 16 real players.
+- **Prestiges**: 101 named color schemes to level 10,000 (Stone, Iron, Gold, Diamond, ... Prestigious).
+  Star glyphs change at 1000/2000/3000/4000 per the current parsers; Fandom says x100. Colors for 7
+  prestiges disagree between sources.
+- **Per-player settings** worth persisting: Quick Buy layout, Hotbar Manager slots.
+- Achievements, quests, cosmetics, Slumber Hotel, tokens shop: out of scope for a first cut.
+
+## 12. What we have captured already
+
+| Capture | Settles |
+|---|---|
+| 2026-08-20 Solo x3 | pregame and in-game sidebars, team letters and colors, Diamond II at 6:00 and Emerald II at 12:00, countdown and cancel lines, join and quit lines, start banner, purchase and not-enough lines, deposit lines, death, void and final-kill lines, bed destruction and elimination lines, the ender chest dump, respawn countdown, invincibility loss, kill loot lines, the tier-up line, a trap set-off, the team upgrade broadcast, reward lines, the end summary |
+| hypixelbf (Bed Rush Duel) | titles and fade timings for countdown, death, respawn, bed destroyed, victory, defeat and AFK; the bed-clock board |
+| hpxlbw | damage and armor values in a BedWars game, with enchanted armor |
+
+Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
+preset. Nothing yet covers sounds, holograms, NPCs, shop windows, item spawns, pickups, potion effects,
+dragons or the late game.
+
+## 13. Capture plan
+
+The existing tools cover part of the CAPTURE list. The current `capture-scoreboard.js` already logs chat,
+titles, the sidebar, teams and `named_sound_effect`; the 2026-08-20 session predates its title and sound
+support, which is why that capture has neither. `capture-legacy.js` logs entity spawns, metadata,
+equipment, velocity and explosions; `capture-explosion-blocks.js` logs block changes. Nothing logs
+windows, pickups or potion effects.
+
+**One new tool, `capture-bedwars.js`**, in the usual shape (header naming what it discriminates, a
+`run-bedwars.bat`, a closing SUMMARY), because a BedWars game spreads the interesting events over 10 to 50
+minutes and one proxy session can only run one tool. It is the scoreboard tool plus:
+
+| Packets | Answers |
+|---|---|
+| `spawn_entity` (items), `entity_metadata`, `entity_destroy`, `collect` | generator schedules per spawn point, items per spawn, caps, pickup and the forge split (who receives a `collect`) |
+| `spawn_entity` / `spawn_entity_living` armor stands and villagers, `entity_metadata` custom names | holograms (text, offsets, update cadence), shopkeepers, dragons, golems, silverfish |
+| `open_window`, `window_items`, `set_slot` with full NBT | both shop windows, lore, colors, the Quick Buy default, owned and max-tier displays, HideFlags and Unbreakable |
+| `entity_equipment` per viewer | invisibility hiding armor, team leather RGB |
+| `entity_effect`, `remove_entity_effect` | trap effects and amplifiers, Heal Pool, Haste, potions, Magic Milk |
+| `explosion`, `block_change`, `multi_block_change` | pop-up tower build order, bridge egg cadence, stacked TNT, beds under a blast |
+| `world_border`, `experience`, `player_info` | 4v4 border, the level bar, tab list |
+
+SUMMARY: a spawn table per item position (interval histogram per resource), the distinct hologram line
+sets, and one dump per window title.
+
+**Sessions**, each a short public game or a part of one:
+
+1. **Forge at the start**: stand on your forge for the first two minutes, then buy Iron Forge and wait at
+   the cap. Once in Solo and once in a four-team mode, on a slow map and a fast map. Rates, the 30 s boost,
+   items per spawn, caps before and after the upgrade.
+2. **Mid generators across a tier change**: sit by a diamond generator from 5:30 to 6:30 and an emerald
+   generator from 11:30 to 12:30. Intervals, first spawns, the reset at tier-up, hologram cadence.
+3. **Shop sweep**: open every tab of both windows, buy one of each cheap item, then try a lower armor
+   tier, a worse sword and a purchase with a full inventory. Windows, NBT, messages, sounds.
+4. **With a party** (Doubles): the forge split at 1, 2, 3 and 4 blocks; each trap, with the partner
+   walking in from different sides and once after Magic Milk; Counter-Offensive and Heal Pool edges.
+5. **Deaths**: with the bed standing (titles, sounds, where you wait), attacking at timed moments after a
+   respawn (invincibility length), a void death with and without a hitter, a final death, going AFK.
+6. **Beds**: break an enemy bed, lose your own, try to break your own.
+7. **Utilities**: a bridge egg, a pop-up tower, a bedbug and a Dream Defender; two TNT placed together;
+   TNT against a bed behind one layer of wool. TNT and fireball physics are already measured.
+8. **Late game**: one game that reaches 30:00, and one that reaches 40:00 (Bed Gone, Sudden Death,
+   dragons, Game End). Public games rarely last that long, and private games need MVP++ (the capture
+   account is MVP+).
+9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
+   modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
+
+Maps are Hypixel's and stay theirs: captures measure behavior, and our maps are our own builds.
+
+## 14. Prior art
+
+Two full BedWars codebases sit in `Documents/GitHub`. Neither license lets us take code into an MIT
+server, and neither matters for that: both are useful for what they get wrong as much as for what they
+get right. The findings below come from reading the code; nothing was built or run.
+
+### 14.1 Swofty's Minestom recreation
+
+`HypixelSkyBlock` (the user's fork of Swofty's project, AGPL-3.0, last commit 2026-06-22):
+`type.bedwarsgame` (139 files), `type.bedwarslobby`, `type.bedwarsconfigurator`, and a shared game layer
+in `type.game`. Minestom `2026.06.05-26.1.2`.
+
+- **Solid**: the shared lifecycle (waiting, a 30 s countdown, in progress, ending, terminated) with join,
+  leave, rejoin and win events, where the mode supplies a handful of predicates. A small typed map schema:
+  per team a spawn, bed feet and head, a forge point and both shop points; globally a waiting point, a
+  spectator point, generator lists and bounds. The configurator finds most points itself (team by wool
+  majority, forge by its slab platform, generators by their stair rings).
+- **Broken** (read, not run): the timeline drifts (Diamond III fires at 24:00, Game End at 136:00) because
+  "time to the next phase" is mutable state; tier-ups relabel holograms without changing rates; Sudden
+  Death does nothing; the killer never receives resources because the inventory is cleared before it is
+  counted; invisibility doubles as the spectator flag, so an invisible player cannot build or pick up;
+  buying an ender pearl replaces the wooden sword; blast-proof glass is plain glass. Bedbug, Dream
+  Defender, sponge, Magic Milk, armor hiding and the forge split are missing.
+- **No 1.8 awareness**: Via lives only in their proxy plugin and is off by default, the game never checks
+  a client's version, and generator holograms are text and block displays a 1.8 client cannot render.
+- **Constants that belong in map data**: build height 105, a no-build radius of 6 around spawns, the void
+  at y 0, a trap radius of 10 from the bed, chest ownership within 10 of a spawn.
+- **Their numbers are not Hypixel's**: a slow forge gives 2 iron every 3 s and 1 gold every 8 s, forge
+  levels multiply by 1.5, 2, 3 and 3 and add an emerald a minute, and iron and gold have no cap.
+- **A string catalog**: `configuration/i18n/en_US/official/bedwars.properties`, 4,279 lines that look
+  copied from the live game. Useful to cross-check wording; our captures win where they differ.
+
+### 14.2 ScreamingSandals BedWars
+
+`BedWars` (a Bukkit plugin, LGPL-3.0, master `1882bc8`, 2026-07-04; most servers still run the older
+`ver/0.2.x`).
+
+- **Lifecycle**: waiting, running, celebrating, rebuilding, disabled, driven by one 1 Hz task per arena,
+  with the phases fixed in code.
+- **About 150 option keys in 12 groups** (lifecycle and lobby, combat and respawn, building and
+  protection, target blocks, spawners, shop and economy, special items, scoreboard and titles, sounds,
+  statistics and rewards, server integration). They resolve arena, then variant, then global. The list is
+  a ready checklist of the rule surface a BedWars mode ends up with; the raw report tabulates every key.
+- **Spawners**: an interval in seconds or ticks, fractional items per spawn (the remainder is a chance of
+  one more), a cap on each spawner's live items, no merging, no pickup delay, no sharing.
+- **Shop**: the default is the old bronze, iron and gold economy. A work-in-progress variant approximates
+  Hypixel (iron every 2 s, gold 8 s, diamonds 30 s, emeralds 60 s) without naming it.
+- **16 special items**, each with its numbers in the raw report (rescue platform, protection wall,
+  tracker, golem, arrow blocker, warp powder, magnet shoes, throwable fireball, TNT sheep, auto-igniting
+  TNT, bridge egg, pop-up tower, and more).
+- **Missing for a Hypixel-style mode**: timed generator tiers, resources to the killer, the forge split,
+  permanent tiered gear, rising upgrade prices, a trap queue, a respawn kit, a reconnect window.
+- **19 defects found by reading**, several of them regressions on master: respawn protection ending about
+  5 ticks after a respawn, below-name health never starting, upgrades skipping items bought afterwards,
+  no reward for eliminating a team's last player.
+
+### 14.3 Lessons we keep
+
+1. **The respawn right is a target** with one question, whether it is still valid: a bed, a countdown, a
+   block that expires, or nothing. A final death is "invalid at death", and the 30:00 bed destruction is
+   the expiring kind. Bedfight's `Beds` plus Grotto's `LastStanding` already have this shape.
+2. **One game clock.** Every timeline event is a function of elapsed time, never a countdown someone
+   decrements. Grotto's alarms already work this way; bedfight's bed alarm is the pattern.
+3. **Team state stays on the team** and is consulted where it matters (a hit reads Sharpened Swords, a
+   blow reads Reinforced Armor, a respawn and a purchase read the gear tier), never copied into
+   inventories. Both codebases broke this and both drift on rejoin and late purchases.
+4. **Participant state is explicit**: alive, respawning, spectating, eliminated. Grotto's `Respawns`,
+   `LastStanding` and `Spectating` already carry it; no entity flag doubles for it.
+5. **One placed-versus-map predicate** drives breaking, explosions, liquids, fire and rollback, keyed by
+   position. Blocks the game places for a player (bridge egg, pop-up tower, sponge) carry the same mark.
+6. **Typed rules, one owner per id, units typed at the boundary**, and a test that every key has a reader.
+   Our `owner:setting` rules and Polyp's generated knobs already are this.
+7. **An item carries only its identity.** A fireball's power, a bedbug's lifetime and a pop-up tower's
+   shape resolve from the active mode when the item is used, the way Polyp profiles already resolve a
+   projectile's numbers, never from parameters baked into item data.
+8. **Game logic stays on the tick thread** (Swofty's move listener runs void and trap checks on a new
+   virtual thread per event).
+9. **Text lives in one keyed place**, one look per network, as bedfight's `Banners` already does.
+10. **Team membership outlives the connection**, which Tennacle's reclaim window already gives.
+
+## 15. Mapping onto our stack
+
+Bed fight (`tennacle.games.bedfight`) is the nearest mode, and most of BedWars starts from it. Paths below
+are relative to each repo's main source root.
+
+### 15.1 What carries over
+
+- **Teams**: the roster, liveries and friendly fire are already N-team. Teams are the arena's
+  `grotto:spawn` groups in ordinal order; a `Tint` gives each team its chat color, leather dye and block
+  hue, and every 16-hue family works (wool, terracotta, stained glass). Parties seat side i on team i, and
+  `Game.join(player, null)` fills the emptiest team.
+- **Beds**: bed fight's `Beds`, `Rules` and `Banners` already do per-team bed regions, the own-bed rule
+  (`beds.break`), both halves together, the losing side's titles, final kills with the note, TEAM
+  ELIMINATED, and the scheduled destruction alarm. Grotto's `LastStanding` decides by team for any number
+  of teams.
+- **Respawns**: Grotto's `Respawns` has the delay, the ghost wait, a per-team landing, clearing a
+  built-over spawn, and protection that a swing forfeits, which is Hypixel's "attacking ends your
+  invincibility". Rejoins are priced by `combat.respawn.rejoin`.
+- **Void and credit**: `Limits` callbacks under a plane and `KillCredit` with a tick window.
+- **Explosives**: Polyp's `Hypixel.bedwars()` profile (section 6.3). What remains is game logic.
+- **Enchant math**: Sharpness (1.8 adds 1.25 a level), Protection (1.8 EPF), Efficiency, all read off the
+  item on every calculation, so a stamped item needs no registration.
+- **Effects**: speed, jump boost, regeneration, slowness, blindness, invisibility, haste and mining
+  fatigue are in Polyp's catalog; kits carry effects; Grotto `Regions` gives enter and exit callbacks for
+  traps and the Heal Pool.
+- **Kits and refit**: seat-derived kit items, and `Kit.refit` re-applies the kit and clears every slot the
+  kit does not fill. That is exactly the BedWars loss on death once armor and tool tiers are seat state.
+- **Menus**: Canvas `Screen` (per-viewer titles and items, buttons, repaint in place, the 1.8 ghost-item
+  resync). `PlayerPrefs` already persists per-player kit layouts, the shape Quick Buy and the Hotbar
+  Manager take.
+- **Building**: Tennacle's `games/map/Building` (build region, height, floor, placed-only breaking, a
+  per-game placed set, `Space.reserved`) and refusal lines through Grotto's `Refusals`.
+- **Item entities**: Polyp's `DroppedItemEntity.spawn(world, pos, velocity, stack, physics, pickupDelay)`
+  is documented for generators; `ItemSpawnEvent` (`Cause.SERVER`) is cancellable; `ItemPickup` refuses the
+  dead; `MechanicsWorld.forEachMemberWithin` finds who stands at a forge.
+- **Containers**: Polyp's `ContainerKey` has `block` and `viewer`, the latter being the per-player ender
+  chest; a team key for the team chest is one registration away.
+- **Stats**: Grotto `Stats` flushes slot counters to career vault keys; Tennacle has `FileVault` and
+  `MatchLog`.
+- **Maps**: Barnacle's point and pos markers are documented for generators, shops and NPCs, and
+  Barnacle's DESIGN already names `bedwars:generator` and `bedwars:shop`. Bloom's symmetry works in quarter
+  turns and mirrors, which fits 4- and 8-way maps.
+- **Replay**: item entities, TNT, mobs and NPCs, every block write (explosions included), container
+  slots, chat, titles and the sidebar all record today.
+- **Holograms on 1.8**: the proxy's ViaBackwards has `map-display-entities: true`, so a modern text
+  display reaches a 1.8 client as armor stands.
+
+### 15.2 What BedWars would trip over on day one
+
+Each of these was read in the code, not just reported:
+
+1. **Empty teams abort the match.** `LastStanding.requireAllSeated` decides `aborted` when any team has
+   nobody present or reserved at GO, and an 8-team lobby starts with empty teams. They should start out,
+   bed gone, with a minimum team count.
+2. **Every TNT placement would print `You can't place blocks here!`.** Polyp primes TNT by cancelling the
+   placement (`ExplosionSystem`), and `Refusals` reads any cancelled placement not marked `handled` as a
+   refusal.
+3. **Knockback-only kills earn no credit.** `KillCredit` records only hits that dealt more than 0 and came
+   from a player. Snowballs, eggs and the BedWars fireball's direct hit deal 0, and blast damage names the
+   TNT or fireball entity as its source, so a fireball knock-off into the void credits nobody. It needs
+   recording off knockback and resolving projectile to shooter and TNT to igniter.
+4. **Explosions break nothing in a match.** `Matches.fold` clears `blockBreaking` for every match and
+   expects a mode to name a registered `BlockBreaking`; none is registered with `FieldFns` yet. A
+   placed-only rule also needs the game's placed set, which is private to the handle `Building` gives bed
+   fight's `Rules`. Explosion breaks write blocks directly, so `Beds` never hears one; placed-only keeps
+   beds safe by construction.
+5. **The death spill never runs in a match.** Bed fight cancels the killing blow and handles the death
+   itself. Resources to the killer is mode code at the death decision, not a `Spill` kind, which keeps the
+   "minigames never drop" fold intact.
+6. **Pink and Gray print wrong.** `Palette.name` takes the display color's name, so they print "Light
+   Purple" and "Dark Gray" with letters L and D; the capture shows `P Pink` and `S Gray`. The default
+   ordinals also lead with blue and end with dark purple and gold, not R B G Y A W P S.
+7. **Two-team assumptions**: bed fight's board has two side rows, `Queues` pairs exactly two equal sides,
+   `Summary` compares two sides, and the hypixel look says "won the Duel!".
+8. **Marker counts are exact**, so one game type cannot serve both 4- and 8-team maps.
+9. **Invisibility hides nothing but the body.** Polyp's `Invisibility` sets the entity flag; armor stays
+   visible to everyone, and no per-viewer equipment filter exists.
+
+### 15.3 New components
+
+| Component | Home | Scope |
+|---|---|---|
+| Timeline | Grotto | named events at offsets from LIVE, alarms re-armed on rule change, `next()` for the board, a hook per event; bed fight's bed alarm becomes one entry |
+| Generators | Grotto | spawn points from markers; interval, tier, cap and pickup delay per resource; forge rate as team state; tiers from the timeline; the forge split on pickup |
+| Holograms | Canvas | per-viewer multi-line text with ticking lines; a text display, with Via's armor-stand emulation or a native armor-stand path for legacy viewers |
+| Shop screens | Canvas, Tennacle | catalog pages, lore colored by what the viewer can afford, purchases through a currency transaction, Quick Buy and Hotbar Manager in `PlayerPrefs`, the upgrades screen writing team state |
+| Currency | Polyp | count; take all or nothing, reporting the shortfall for "Need N more!"; give with an overflow policy in the era's add order |
+| NPCs | Tennacle | shopkeepers from markers (villager or `Ghost`), facing the nearest player, immune to hits and blasts, a click opens a screen. No `PlayerEntityInteractEvent` handler exists in any repo yet |
+| Team upgrades | Tennacle | team state consulted on hit, equip, purchase and spawn; stamping enchants for the glint; Haste, Heal Pool, forge rate |
+| Traps | Tennacle | a per-team queue fired on base-region entry, the four effects, the alarm, Magic Milk's immunity window |
+| Tiers and the death outfit | Tennacle | armor and tool tiers as seat state read by kit factories, tools down a tier before the respawn, resources to the killer, the ender chest to the forge at a final death |
+| Special items | Tennacle, Polyp hooks | bridge egg (a trail behavior on a tagged egg, its wool marked placed), bedbug, Dream Defender, pop-up tower, sponge, Magic Milk, water bucket (the blocks-and-stuff fluids module), TNT placement marked handled |
+| Mobs | new | silverfish and golem with goals, team targeting, a lifetime, damage through Polyp's attack pipeline, credit to the owner |
+| Armor hiding | Polyp | a per-viewer equipment filter for invisible players |
+| Knockback credit | Grotto | `KillCredit` off knockback; projectile to shooter, TNT to igniter |
+| Empty-team start | Grotto | unseated teams out at GO, with a minimum |
+| Placed blocks | Grotto or Tennacle | the per-game placed set as a module explosion rules can read; reserved zones; `FieldFns` factories for placed-only and blast-proof glass |
+| Stats outcomes | Grotto, Tennacle | wins, losses, streaks, final kills; XP and levels |
+| Filling queue | Tennacle | N teams, solos merged, a minimum and a countdown that cancels; team chat and `/shout` |
+| Map keys | Barnacle, Bloom | `bedwars:generator` (forges grouped by team, mid generators ungrouped), `bedwars:shop`, `bedwars:upgrades`, `bedwars:base`, protected zones; Bloom cannot yet author a payload on a point marker |
+| Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
+| Team names | Canvas, Tennacle | a name and letter per team, so Pink and Gray print as captured |
+
+## 16. Decisions for you
+
+1. **Which mode first.** My recommendation is a two-team cut on the bed fight skeleton, shaped like Bed
+   Wars Duel or 4v4. It exercises every new system (generators, both shops, upgrades, traps, the timeline,
+   NPCs, holograms) while items 1, 7 and 8 of 15.2 wait. Solo and Doubles follow once the empty-team
+   start, the filling queue and N-row boards land. The captured board is 8-team Solo, so the look work
+   carries over.
+2. **Parity target.** Exact Hypixel as the `hypixel` look (captured copy, `Hypixel.bedwars()` mechanics),
+   plus the house look, with the numbers as rules so `/rules` shows them.
+3. **Holograms.** Rely on Via's text-display emulation for 1.8, or send armor stands natively by viewer
+   protocol. Via is less work; native gives exact line spacing.
+4. **Where generators and the timeline live.** Grotto if another mode will use them (the timeline at
+   least: bed fight's alarm is one), otherwise Tennacle.
+5. **One type per team size, or a capacity rule.** Exact marker counts force a type per map shape today.
+6. **What a first cut leaves out.** My suggestion: Dreams, rotating items, cosmetics, challenges, quests,
+   tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
+7. **Captures.** Which sessions from section 13 to run first. The late-game ones are the hardest to get
+   without private games.
+
+The "minigames never drop" rule holds for BedWars: nothing spills at death except the ender chest at a
+final death, and resources move straight to the killer.
+
+## Raw research
+
+The seven research reports this page condenses, with every source link, the conflicts between sources and
+the history behind each number, are in `Desktop/minemen-capture/research/bedwars/`: `rules-and-timeline.md`,
+`item-shop.md`, `upgrades-generators.md`, `public-data.md`, `prior-art-swofty.md`,
+`prior-art-screamingsandals.md` and `stack-mapping.md`, plus `capture-digest.md` for the 2026-08-20 Solo capture
+and the API data the stats section was built from.
