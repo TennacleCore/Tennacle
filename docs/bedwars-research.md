@@ -81,7 +81,8 @@ Hypixel balances BedWars around 1.8 combat for every client version (off, v1.10)
 | Gray | **S** | dark_gray |
 
 Order and letters are cap (Gray is S because G is taken). Chat tags read `[RED]`, `[PINK]` (cap); the rest
-follow the pattern. Leather dye RGB per team changed twice in 2026 for Pink and Green: CAPTURE. 1.8
+follow the pattern. Leather dye RGB per team changed twice in 2026 for Pink and Green: CAPTURE (Red is
+`#FF0000`, cap). 1.8
 clients render every bed red; 1.12+ see team-colored beds (wiki).
 
 ## 3. Match flow
@@ -159,6 +160,9 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
 
 - **Team island**: bed, spawn, forge (iron and gold), item shop NPC, upgrades NPC, team chest on the left
   and ender chest on the right (every map since 2018).
+- **Shopkeepers** (cap): both are blacksmith villagers with no name of their own. Armor stands above them
+  read aqua `ITEM SHOP` over yellow bold `RIGHT CLICK`, and in Solo aqua `SOLO` and `UPGRADES` over `RIGHT
+  CLICK`, lines 0.25 to 0.28 apart. What team modes print in place of `SOLO`: CAPTURE.
 - **Team chest**: shared. Enemy access after the bed breaks (off 2017) or only after elimination (a
   recreation string): CAPTURE.
 - **Ender chest**: personal, the same contents from any ender chest on the map.
@@ -202,7 +206,9 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
 
 Four resources: iron and gold from the island forge, diamonds and emeralds from map generators (emeralds
 also from a forge with the Emerald Forge upgrade). Resources are ordinary item entities, one per spawn,
-never merged (comm, a 2026 client mod).
+never merged (comm, a 2026 client mod). The 2026-09-24 capture agrees: 218 spawns from forges and a
+diamond generator, each a single item appearing at one fixed point per generator and moving the way vanilla
+drops a block's item, 0.2 up and at most 0.1 each way across.
 
 ### 5.1 Island forge
 
@@ -271,7 +277,9 @@ game played through the capture tool adds that map's record (section 13.1).
 ## 6. Item shop
 
 Prices are Solo/Doubles, with 3s/4s in parentheses where it differs. 4v4 uses the 3s/4s prices and sells no
-obsidian.
+obsidian. The Solo/Doubles column matches the live shop item for item, price and quantity (a Solo game,
+2026-09-24; every window is in `research/bedwars/shop-windows-2026-09-24.txt`). The 3s/4s prices still need a
+3s or 4s game.
 
 | Tab | Item | Qty | Price |
 |---|---|---|---|
@@ -280,9 +288,9 @@ obsidian.
 | | Blast-Proof Glass | 4 | 12 iron |
 | | End Stone | 12 | 24 iron |
 | | Ladder | 8 | 4 iron |
-| | Oak Wood Planks | 16 | 4 gold |
+| | Wood (oak planks) | 16 | 4 gold |
 | | Obsidian | 4 | 4 emerald |
-| | Packed Ice (permanent since 2025-09) | ? | CAPTURE (was 8 for 8 iron as a rotating item) |
+| | Packed Ice (permanent since 2025-09) | 8 | 8 iron |
 | Melee | Stone Sword | 1 | 10 iron |
 | | Iron Sword | 1 | 7 gold |
 | | Diamond Sword | 1 | 4 emerald (3) |
@@ -309,7 +317,7 @@ obsidian.
 | | Water Bucket | 1 | 2 gold (3) |
 | | Bridge Egg | 1 | 1 emerald |
 | | Magic Milk | 1 | 4 gold |
-| | Sponge | 4, or 6 (conflict) | 2 gold (3) |
+| | Sponge | 4 (3s/4s: 4 or 6, conflict) | 2 gold (3) |
 | | Compact Pop-up Tower | 1 | 24 iron |
 | Quick Buy | Tracker, per enemy team | | 2 emerald, unlocks once every enemy bed is gone |
 
@@ -341,22 +349,51 @@ table above is the newest documented.
 
 ### 6.2 Shop window
 
-- A 6-row chest. Row 0 holds the category icons (Quick Buy, Blocks, Melee, Armor, Tools, Ranged, Potions,
-  Utility, Rotating Items); row 1 is glass panes, lime under the selected tab, gray elsewhere, and clicking
-  a pane switches tabs. Items sit in slots 19-25, 28-34 and 37-43.
-- Quick Buy page only: slot 45 opens the Tracker shop, slot 53 the Hotbar Manager.
-- Lore: a gray cost line with the currency colored (iron white, gold gold, emerald dark green), a tier
-  line on tools, gray description lines, a `Sneak Click to add to Quick Buy` line, and a last line that is
-  red `You don't have enough <Currency>!` or yellow `Click to purchase!`. Unaffordable names are red; the
-  affordable color: CAPTURE.
-- Quick Buy is 21 per-player slots, stored as item ids (API `favourites_2`); sneak-click adds or removes.
+Captured in a Solo game on 2026-09-24, with the player on Red and holding no resources:
+
+- A 6-row chest titled after the open tab (`Quick Buy`, `Blocks`, ...). Row 0 holds the tab icons: Quick Buy
+  (nether star, aqua name), then green-named Blocks (hardened clay), Melee (golden sword), Armor (chainmail
+  boots), Tools (stone pickaxe), Ranged (bow), Potions (brewing stand), Utility (TNT) and Rotating Items
+  (redstone torch). Every icon but the open tab's carries a yellow `Click to view!`. Row 1 is glass panes,
+  lime (160:5) under the open tab and gray (160:7) elsewhere, each named dark gray `⬆ ` + gray `Categories`
+  with the lore dark gray `⬇ ` + gray `Items`; clicking a pane switches tabs. Items sit in slots 19-25,
+  28-34 and 37-43.
+- Quick Buy page only: slot 45 is a compass named green `Tracker Shop`, slot 53 blaze powder named green
+  `Hotbar Manager`; an empty Quick Buy slot is a red pane named red `Empty slot!`.
+- Item lore, in order: gray `Cost: ` then the price in the currency's color (iron white, gold gold, emeralds
+  dark green); gray `Upgraded: ` + a yellow enchant where a team upgrade applies (`Sharpness I` on swords and
+  axes, `Protection IV` on armor); on tools gray `Tier: ` + a yellow numeral; a blank line and the gray
+  description; aqua `Shift Click to add to Quick Buy` (on the Quick Buy page, `Shift Click to remove from Quick
+  Buy!`); then red `You don't have enough Iron!`. That line says `Iron` and `Gold` always, `Emerald` at a
+  price of 1 and `Emeralds` above. Tools add `This is an upgradable item.`, `It will lose 1 tier upon death!`,
+  a blank line, `You will permanently respawn with at` and `least the lowest tier.` Unaffordable names are
+  red; the affordable name color and footer: CAPTURE.
+- The `Shift Click to add` line was missing on Permanent Chainmail and Iron Armor, Permanent Shears and both
+  tools, all five in that player's Quick Buy, while other Quick Buy items kept it. The rule: unknown.
+- Items carry HideFlags 255. Potions are 373:8195 (Speed II), 373:8203 (Jump V) and 373:8206
+  (Invisibility), with CustomPotionEffects; the Dream Defender is spawn egg 383:99, the Bedbug a snowball, the
+  pop-up tower a trapped chest carrying Hypixel's `ExtraAttributes` tag. The shop shows white wool and plain
+  hardened clay (172) whatever the team; the wool lore says it turns into your team's color. The Permanent
+  Diamond Armor lore reads `...which you will always crush with.` (sic).
+- Opening the shop and switching tabs play no sound.
+- Quick Buy is 21 per-player slots, stored as item ids (API `favourites_2`); shift-click adds or removes.
   The default layout is disputed (a 21-item 2023 template against a 14-item 2021 API default): CAPTURE on
   a fresh account.
-- Hotbar Manager: a preferred hotbar slot per category (API `favorite_slots`), used on purchase and on
-  spawn. Number keys over an item buy it straight into that slot.
+- **Tracker Shop** (`Purchase Enemy Tracker`, 4 rows): one wool per enemy team in its color from slot 10,
+  named `Track Team <Team>` (red while locked), lore `Purchase tracking upgrade for your`, `compass which will
+  track each player`, `on a specific team until you die.`, `Cost: 2 Emeralds` and red `Unlocks when all enemy
+  beds are destroyed!`; slot 31 is an arrow named green `Go Back`, lore `To Quick Buy`.
+- **Hotbar Manager** (6 rows, API `favorite_slots`): slots 10-17 hold the categories to drag, Blocks, Melee,
+  Pickaxe, Axe, Shears, Ranged, Potions and Utility (tools split in three, no armor), each with the lore `Drag
+  this to a hotbar slot below to`, `favor that slot when purchasing an`, `item in this category or on spawn.`
+  and yellow `Click to drag!`; row 2 is gray panes `⬆ Categories` over `⬇ Hotbar`; slots 27-35 are the nine
+  hotbar slots, each showing its category's icon with `<Category> items will prioritize this slot!` and yellow
+  `Click to remove!`; slot 48 is `Go Back`, slot 50 a barrier named red `Reset to Default`, lore `Reset your
+  hotbar to the default.` The slots apply on purchase and on spawn; number keys over an item buy it straight
+  into that slot.
 - Rotating Items tab: one to three rotating items weekly from a pool of about 30. Defer.
 - Chat (cap): `You purchased <Shop Name>`, `You don't have enough Iron! Need 3 more!`.
-  Shop sounds: CAPTURE.
+  Purchase sounds: CAPTURE.
 
 ### 6.3 Special items
 
@@ -418,6 +455,26 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   same line.
 - Heal Pool radius (a 2017 note says 12 blocks, guides say 5 around the bed) and whether it works without
   a bed: CAPTURE.
+- **The window** (captured 2026-09-24, Solo; the host's modifiers had every upgrade bought, so only the
+  bought look was seen). Upgrades in slots 10-12 and 19-21: Sharpened Swords (iron sword), Reinforced Armor
+  (iron chestplate), Maniac Miner (golden pickaxe), then the forge (furnace), Heal Pool (beacon) and Cushioned
+  Boots (diamond boots). Traps in 14-16 and 23: Blindness (tripwire hook), Counter-Offensive (feather), Reveal
+  (redstone torch), Miner Fatigue (iron pickaxe). Row 3 is gray panes `⬆ Purchasable` over `⬇ Traps Queue`;
+  slots 39-41 are light gray stained glass (95:8, stack of 1, 2 and 3) named red `Trap #1: No Trap!`, with
+  `The first enemy to walk into your` / `base will trigger this trap!`, `Purchasing a trap will queue it here.`
+  / `Its cost will scale based on the` / `number of traps queued.` and `Next trap: ` + aqua `1 Diamond`.
+- A tiered upgrade's name carries its current tier (`Reinforced Armor IV`, `Maniac Miner II`, `Molten Forge`)
+  and its icon's stack size counts the tiers bought. Its lore lists each tier as green `Tier 1: Protection I` +
+  gray `, ` + aqua `2 Diamonds` (green once bought; the unbought colors: CAPTURE), then green `UNLOCKED`.
+  Single upgrades show `Cost: ` + aqua `4 Diamonds`. Diamonds read `Diamonds` even at 1 in the not-enough
+  line. The Solo/Doubles prices above all match.
+- Lore as sent: Sharpened Swords `Your team permanently gains` / `Sharpness I on all swords and axes!`; the
+  forge `Upgrade resource spawning and` / `capacity on your island.`, its tiers `+50% Resources`, `+100%
+  Resources`, `Spawn emeralds` and `+200% Resources`; Heal Pool `Creates a Regeneration field around` / `your
+  base!`; Blindness Trap `Inflicts Blindness and Slowness for` / `8 seconds.`; Counter-Offensive Trap `Grants
+  Speed II and Jump Boost II` / `for 15 seconds to allied players` / `near your base.`; Reveal Trap `Reveals
+  invisible players as well as` / `their name and team.`; Miner Fatigue Trap `Inflict Mining Fatigue for 8
+  seconds.`
 
 **Traps**:
 - Queue of three, first in first out. The next trap costs 1, 2 or 4 diamonds by how many are queued.
@@ -531,10 +588,11 @@ www.hypixel.net           yellow
 | 2026-08-20 Solo x3 | pregame and in-game sidebars, team letters and colors, Diamond II at 6:00 and Emerald II at 12:00, countdown and cancel lines, join and quit lines, start banner, purchase and not-enough lines, deposit lines, death, void and final-kill lines, bed destruction and elimination lines, the ender chest dump, respawn countdown, invincibility loss, kill loot lines, the tier-up line, a trap set-off, the team upgrade broadcast, reward lines, the end summary |
 | hypixelbf (Bed Rush Duel) | titles and fade timings for countdown, death, respawn, bed destroyed, victory, defeat and AFK; the bed-clock board; the countdown, bed and kill sounds |
 | hpxlbw | damage and armor values in a BedWars game, with enchanted armor |
+| 2026-09-24 Solo, Deadwood (`capture-bedwars.js`) | every shop window at Solo prices, the upgrades window (all bought), the Tracker Shop and Hotbar Manager, the shopkeepers' name tags, Red's leather color, that Hypixel sends advancing world time stamps, and how generator items spawn. It was a private game with the host's modifiers on, so its generator timings and caps are not Hypixel's defaults |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
-preset. Nothing yet covers holograms, NPCs, shop windows, item spawns, pickups, potion effects, most sounds,
-dragons or the late game.
+preset. Nothing yet covers hologram cadence, pickups, potion effects, purchases, most sounds, dragons or the
+late game.
 
 ### 12.1 A string catalog that matches the wire
 
@@ -595,7 +653,8 @@ packet goes out every 20 ticks carrying the world age (`MinecraftServer`).
 Every game played through the tool is a generator sample. Generators spawn whether or not anyone picks up,
 the diamond and emerald holograms count down to anyone in range, and the map and mode come off the pregame
 board, so normal play fills the table map by map. The sessions below cover what normal play cannot show.
-They keep the tool's checklist numbers.
+They keep the tool's checklist numbers, and run in private games with every modifier off, since a modifier
+changes the very numbers being measured.
 
 1. **Forge from the start** (Solo first, then a four-team mode; a map from each pool). From the start, stand
    beside your forge without touching it until it stops spawning: the boost, the base interval, items per
@@ -624,8 +683,10 @@ Reading the summary:
 
 ### 13.2 Everything else
 
-3. **Shop sweep**: open every tab of both windows, buy one of each cheap item, then try a lower armor
-   tier, a worse sword and a purchase with a full inventory. Windows, NBT, messages, sounds.
+3. **Shop sweep**: the Solo windows are captured (2026-09-24). Left: with resources in hand (the affordable
+   look), buy one of each cheap item (purchase lines and sounds), then try a lower armor tier, a worse sword
+   and a purchase with a full inventory; the upgrades window before anything is bought; the same windows in
+   a 3s or 4s game for those prices.
 4. **With a party** (Doubles): the forge split at 1, 2, 3 and 4 blocks; each trap, with the partner
    walking in from different sides and once after Magic Milk; Counter-Offensive and Heal Pool edges.
 5. **Deaths**: with the bed standing (titles, sounds, where you wait), attacking at timed moments after a
@@ -634,8 +695,8 @@ Reading the summary:
 7. **Utilities**: a bridge egg, a pop-up tower, a bedbug and a Dream Defender; two TNT placed together;
    TNT against a bed behind one layer of wool. TNT and fireball physics are already measured.
 8. **Late game**: one game that reaches 30:00, and one that reaches 40:00 (Bed Gone, Sudden Death,
-   dragons, Game End). Public games rarely last that long, and private games need MVP++ (the capture
-   account is MVP+).
+   dragons, Game End). Public games rarely last that long; a private game with no modifiers gets there on
+   schedule.
 9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
    modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
 
