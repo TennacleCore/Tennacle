@@ -359,15 +359,21 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   with the lore dark gray `⬇ ` + gray `Items`; clicking a pane switches tabs. Items sit in slots 19-25,
   28-34 and 37-43.
 - Quick Buy page only: slot 45 is a compass named green `Tracker Shop`, slot 53 blaze powder named green
-  `Hotbar Manager`; an empty Quick Buy slot is a red pane named red `Empty slot!`.
+  `Hotbar Manager`; an empty Quick Buy slot is a red pane named red `Empty slot!`, lore gray `This is a Quick
+  Buy Slot! ` + aqua `Shift Click` / gray `any item in the shop to add it here.`
 - Item lore, in order: gray `Cost: ` then the price in the currency's color (iron white, gold gold, emeralds
   dark green); gray `Upgraded: ` + a yellow enchant where a team upgrade applies (`Sharpness I` on swords and
   axes, `Protection IV` on armor); on tools gray `Tier: ` + a yellow numeral; a blank line and the gray
   description; aqua `Shift Click to add to Quick Buy` (on the Quick Buy page, `Shift Click to remove from Quick
   Buy!`); then red `You don't have enough Iron!`. That line says `Iron` and `Gold` always, `Emerald` at a
   price of 1 and `Emeralds` above. Tools add `This is an upgradable item.`, `It will lose 1 tier upon death!`,
-  a blank line, `You will permanently respawn with at` and `least the lowest tier.` Unaffordable names are
-  red; the affordable name color and footer: CAPTURE.
+  a blank line, `You will permanently respawn with at` and `least the lowest tier.` An affordable item's name
+  is green and its last line yellow `Click to purchase!`; an unaffordable one's name is red. An owned
+  permanent item drops the cost line, keeps a red name and ends in green `UNLOCKED`.
+- Buying plays `note.pling` at the buyer with the chat line green `You purchased ` + gold `<item>`; a refusal
+  plays `mob.endermen.portal` with red `You don't have enough Iron! Need 24 more!`. Both sounds go out at
+  volume 8 with the pitch byte at 255 and 0, which the 1.8 client clamps to 2.0 and 0.5
+  (`SoundManager.getNormalizedPitch`); volume 8 only stretches their range to 128 blocks.
 - The `Shift Click to add` line was missing on Permanent Chainmail and Iron Armor, Permanent Shears and both
   tools, all five in that player's Quick Buy, while other Quick Buy items kept it. The rule: unknown.
 - Items carry HideFlags 255. Potions are 373:8195 (Speed II), 373:8203 (Jump V) and 373:8206
@@ -455,19 +461,30 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   same line.
 - Heal Pool radius (a 2017 note says 12 blocks, guides say 5 around the bed) and whether it works without
   a bed: CAPTURE.
-- **The window** (captured 2026-09-24, Solo; the host's modifiers had every upgrade bought, so only the
-  bought look was seen). Upgrades in slots 10-12 and 19-21: Sharpened Swords (iron sword), Reinforced Armor
+- **The window** (captured 2026-09-24, Solo, twice: once with every upgrade bought by the host's modifiers,
+  once from scratch). Upgrades in slots 10-12 and 19-21: Sharpened Swords (iron sword), Reinforced Armor
   (iron chestplate), Maniac Miner (golden pickaxe), then the forge (furnace), Heal Pool (beacon) and Cushioned
   Boots (diamond boots). Traps in 14-16 and 23: Blindness (tripwire hook), Counter-Offensive (feather), Reveal
   (redstone torch), Miner Fatigue (iron pickaxe). Row 3 is gray panes `⬆ Purchasable` over `⬇ Traps Queue`;
   slots 39-41 are light gray stained glass (95:8, stack of 1, 2 and 3) named red `Trap #1: No Trap!`, with
   `The first enemy to walk into your` / `base will trigger this trap!`, `Purchasing a trap will queue it here.`
   / `Its cost will scale based on the` / `number of traps queued.` and `Next trap: ` + aqua `1 Diamond`.
-- A tiered upgrade's name carries its current tier (`Reinforced Armor IV`, `Maniac Miner II`, `Molten Forge`)
-  and its icon's stack size counts the tiers bought. Its lore lists each tier as green `Tier 1: Protection I` +
-  gray `, ` + aqua `2 Diamonds` (green once bought; the unbought colors: CAPTURE), then green `UNLOCKED`.
-  Single upgrades show `Cost: ` + aqua `4 Diamonds`. Diamonds read `Diamonds` even at 1 in the not-enough
-  line. The Solo/Doubles prices above all match.
+- A tiered upgrade's name carries the tier it sells or last sold (`Reinforced Armor I` before any, `Reinforced
+  Armor IV` when maxed; the forge reads `Iron Forge`, `Golden Forge`, `Emerald Forge`, `Molten Forge`), and its
+  icon's stack size counts the tiers bought. Its lore lists each tier as `Tier 1: Protection I` + gray `, ` +
+  aqua `2 Diamonds`, gray until bought and green after. Single upgrades show `Cost: ` + aqua `4 Diamonds`.
+  The name is yellow and the last line yellow `Click to purchase!` when affordable (yellow here, green in the
+  item shop), red with red `You don't have enough Diamonds!` when not (`Diamonds` even at 1), and green with
+  green `UNLOCKED` once bought. The Solo/Doubles prices above all match.
+- Buying broadcasts green `<player> purchased ` + gold `<upgrade>` to the team, with `note.pling` as in the
+  item shop; an unaffordable click says red `You don't have enough resources to unlock that upgrade!` with
+  `mob.endermen.portal`. A queued trap fills its queue slot as green `Trap #1: Miner Fatigue Trap` with its
+  description, `The first enemy to walk into your` / `base will trigger this trap!` and yellow `Right Click to
+  remove! ` + dark gray `(No refund)`; removing it says red `Removed ` + gold `Miner Fatigue Trap` + red
+  ` from the queue!`.
+- A trap going off (cap): the title red `TRAP TRIGGERED!` over `Your Miner Fatigue Trap has been set off!`
+  (fade 5, stay 35, fade out 10, after a 0/5/0 reset), bold red `Miner Fatigue Trap was set off!` in chat and
+  `mob.endermen.portal` at volume 8, pitch byte 0, all in one tick.
 - Lore as sent: Sharpened Swords `Your team permanently gains` / `Sharpness I on all swords and axes!`; the
   forge `Upgrade resource spawning and` / `capacity on your island.`, its tiers `+50% Resources`, `+100%
   Resources`, `Spawn emeralds` and `+200% Resources`; Heal Pool `Creates a Regeneration field around` / `your
@@ -484,8 +501,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Counter-Offensive: Speed II and Jump Boost II for 15 s to teammates near the base.
 - Reveal (Alarm) Trap: strips invisibility, announces the intruder's name and team.
 - Miner Fatigue Trap: Mining Fatigue for 8 s. Level disputed (I, III, "-80%").
-- Set-off chat (cap): bold red `Miner Fatigue Trap was set off!`. Candidate title: red `TRAP TRIGGERED!` over
-  bold red `Your trap has been set off!`. Sounds: CAPTURE.
+- Set-off (cap): bold red `Miner Fatigue Trap was set off!` in chat, the title red `TRAP TRIGGERED!` over
+  `Your Miner Fatigue Trap has been set off!`, and `mob.endermen.portal` (the window bullets above have the
+  timings).
 - Trigger area, the gap between two traps (30 s, until the effect ends, or none), and ordering with several
   intruders: CAPTURE.
 
@@ -588,6 +606,7 @@ www.hypixel.net           yellow
 | 2026-08-20 Solo x3 | pregame and in-game sidebars, team letters and colors, Diamond II at 6:00 and Emerald II at 12:00, countdown and cancel lines, join and quit lines, start banner, purchase and not-enough lines, deposit lines, death, void and final-kill lines, bed destruction and elimination lines, the ender chest dump, respawn countdown, invincibility loss, kill loot lines, the tier-up line, a trap set-off, the team upgrade broadcast, reward lines, the end summary |
 | hypixelbf (Bed Rush Duel) | titles and fade timings for countdown, death, respawn, bed destroyed, victory, defeat and AFK; the bed-clock board; the countdown, bed and kill sounds |
 | hpxlbw | damage and armor values in a BedWars game, with enchanted armor |
+| 2026-09-24 Solo, Lucky Rush, no modifiers (`capture-bedwars.js`) | purchases and refusals with their sounds, the affordable and owned looks, the upgrades window from scratch, a trap going off, all four forge levels bought, Emerald II and III, 327 block placements |
 | 2026-09-24 Solo, Deadwood (`capture-bedwars.js`) | every shop window at Solo prices, the upgrades window (all bought), the Tracker Shop and Hotbar Manager, the shopkeepers' name tags, Red's leather color, that Hypixel sends advancing world time stamps, and how generator items spawn. It was a private game with the host's modifiers on, so its generator timings and caps are not Hypixel's defaults |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
