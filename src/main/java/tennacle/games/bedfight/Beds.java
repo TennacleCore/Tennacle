@@ -58,6 +58,7 @@ public final class Beds implements GameModule {
     private static final String FALL_ALARM = "bedfight:bed-destruction";
 
     private static final Sound BROKEN = Sound.sound(SoundEvent.ENTITY_ENDER_DRAGON_GROWL, Sound.Source.MASTER, 1f, 1f);
+    private static final Sound LOST_BED = Sound.sound(SoundEvent.ENTITY_WITHER_DEATH, Sound.Source.MASTER, 1f, 1f);
     private static final Component LOST = Component.text("BED DESTROYED!", NamedTextColor.RED);
     private static final Component NO_RESPAWN = Component.text("You will no longer respawn!", NamedTextColor.WHITE);
 
@@ -104,7 +105,7 @@ public final class Beds implements GameModule {
             e.setCancelled(true); // both halves go together, so a half is never left standing
             if (!game.rules().resolve(breaker, BREAK).contains(mine ? OWN : ENEMY)) return; // Refusals says so
             Refusals.handled(e); // cancelled to take the whole bed at once, not to turn them away
-            if (stands(game, owner)) broke(owner, breaker);
+            if (stands(game, owner)) broke(owner, breaker, pos);
         });
         game.state().alarms().register(FALL_ALARM, (tick, payload) -> fall());
         game.rules().watch(DESTROY, (scope, value) -> rearm());
@@ -183,11 +184,13 @@ public final class Beds implements GameModule {
         });
     }
 
-    private void broke(String owner, Player breaker) {
+    private void broke(String owner, Player breaker, Point bed) {
         erase(owner);
         Match.addSeat(game, breaker, BedFight.BEDS);
         Team broken = game.roster().team(owner);
-        game.forEachAudience(viewer -> viewer.playSound(BROKEN));
+        // both networks: the side that lost it hears the wither, everyone else the dragon, each from the bed
+        game.forEachAudience(viewer -> viewer.playSound(owner.equals(Match.teamOf(game, viewer)) ? LOST_BED : BROKEN,
+                bed.blockX() + 0.5, bed.blockY() + 0.5, bed.blockZ() + 0.5));
         told(owner::equals);
         Match.say(game, Banners.bedBroken(game, broken, breaker));
         Team by = game.roster().team(Match.teamOf(game, breaker));

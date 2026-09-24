@@ -24,6 +24,9 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.network.packet.server.play.SoundEffectPacket;
+import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.instance.block.Block;
@@ -137,8 +140,12 @@ class BedFightRoundTest extends HeadlessServerTest {
             break0(red.player, new BlockVec(-7, 65, 0));
             assertTrue(Beds.stands(game, reds), "nobody breaks their own");
 
+            red.sent.clear();
+            blue.sent.clear();
             break0(blue.player, new BlockVec(-7, 65, 0));
             assertFalse(Beds.stands(game, reds), "the enemy took it");
+            assertBedSound(red, SoundEvent.ENTITY_WITHER_DEATH, "the side that lost it");
+            assertBedSound(blue, SoundEvent.ENTITY_ENDER_DRAGON_GROWL, "everyone else");
             assertTrue(Beds.stands(game, blues), "theirs still stands");
             assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(-6, 65, 0)), "both halves go");
             assertEquals(1, game.state().get(io.github.term4.grotto.state.Scope.slot(
@@ -976,6 +983,17 @@ class BedFightRoundTest extends HeadlessServerTest {
             }
         }
         assertTrue(done.get(), what);
+    }
+
+    // from the broken block's center, as both networks send it
+    private static void assertBedSound(FakePlayer p, SoundEvent expected, String who) {
+        List<SoundEffectPacket> bed = p.sent(SoundEffectPacket.class).stream()
+                .filter(s -> SoundEvent.ENTITY_WITHER_DEATH.equals(s.soundEvent())
+                        || SoundEvent.ENTITY_ENDER_DRAGON_GROWL.equals(s.soundEvent()))
+                .toList();
+        assertEquals(1, bed.size(), who + " hears one bed sound");
+        assertEquals(expected, bed.getFirst().soundEvent(), who);
+        assertEquals(new Vec(-6.5, 65.5, 0.5), Vec.fromPoint(bed.getFirst().origin()), who + " hears it from the bed");
     }
 
     private static void break0(net.minestom.server.entity.Player breaker, BlockVec at) {
