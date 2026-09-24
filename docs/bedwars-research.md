@@ -439,8 +439,8 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Sounds (Bed Rush Duel capture): the losing side hears `mob.wither.death`, the breaker
   `mob.enderdragon.growl`, volume 1 and pitch 1.0, right after the chat line and the titles. MineMen's bed
   fight capture (2026-09-07) plays the same pair, and its growl sits on the enemy bed 45 blocks from the
-  listener: both sounds play at the bed. Bed fight plays the growl to everyone at their own position, the
-  losers included, so both of its network looks are off here.
+  listener: both sounds play at the bed. Bed fight does the same since 2026-09-24 (it had played the growl to
+  everyone at their own position, the losers included).
 - Rewards: `+24 tokens! (Bed Destroyed)` and `+15 Bed Wars XP (Bed Break)` (cap).
 - 1.14+ clients sometimes see a broken bed come back (the sneak eye height failing a server check, per
   players). Worth a test on our side.
