@@ -172,9 +172,21 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
 | 3s, 4s | 4 | 4 | 2 (3 on a few maps) |
 | 4v4 | 2 | 2 | 2 |
 
-- **Build limits** are per map: minimum Y, maximum Y and a build radius on every Fandom map page.
-  Solo/Doubles median max Y 96, radius 121; 3s/4s median max Y 95, radius 103. What the radius measures
-  (circle or square, from where): CAPTURE.
+- **Build limits** are per map: minimum Y, maximum Y and a build radius. A map file added 2026-09-24
+  (`research/bedwars/bwmapinfo.json`, in Hypixel's own field names: `pool`, `minBuild`, `maxBuild`,
+  `buildRadius`, `festival`, `reskinOf`) has them for 158 maps: 83 eight-team and 75 four-team, 46 of them
+  festival versions, no 4v4 maps. Medians: eight-team radius 121.5, four-team 103, both built from y 62 or 63
+  up to 96, about 32 blocks of height; Fandom's pages agree. 11 rows have radius -1. The file has no protected
+  areas around bases and generators. What the radius measures (circle or square, around 0,0): CAPTURE
+  (session 2c in section 13.1; the tool reads every placement against this file).
+- **Pools**: the file puts every map in `BEDWARS_8TEAMS_FAST`, `BEDWARS_8TEAMS_SLOW`, `BEDWARS_4TEAMS_FAST`
+  or `BEDWARS_4TEAMS_SLOW` (50, 33, 37 and 38 maps). FAST and SLOW do not match the forge speeds the
+  community lists: Airshow, Glacier, Orchestra, Speedway, Waterfall and Solace are slow iron in both
+  NamuWiki's list and the 2020 map-admin list, yet all six are 8TEAMS_FAST, and Fandom calls every four-team
+  map fast iron while 38 are 4TEAMS_SLOW. Either the pool means something else (SLOW eight-team maps are
+  bigger, median radius 130.5 against 117.5, though the four-team pools barely differ) or the lists are stale
+  since Hypixel standardized speeds in 2023. One game on a map from each pool, in the same mode, settles it;
+  if the pool is the forge speed, the file gives every map's class.
 - **Above the top**: more than one block above the limit for over 30 s starts damage that grows; the timer
   decays and resets on death (off 2026-05).
 - **No-place zones** are per-map boxes over spawns, base interiors and shopkeepers. Refusal line (cap):
@@ -234,6 +246,27 @@ never merged (comm, a 2026 client mod).
 - **Carry limit**: a `You didn't pick up any more Iron because you have too much on you!` string exists;
   threshold and modes: CAPTURE.
 - **Provenance**: generator XP and several achievements need each item tagged with where it came from.
+
+### 5.4 What a generator capture has to separate
+
+Generators need a campaign of their own, not one session, because their numbers move along several axes
+at once:
+
+- **Mode and map.** Forge speed is set per map and can differ between modes on the same map (the map admin
+  in 2020: some maps are slow in Solo and medium in Doubles); four-team forges gained an extra item per
+  spawn in 2017. Emerald generator counts (2 or 3 in 3s/4s) and generator caps vary by map.
+- **Time.** The forge runs faster for the first 30 s (the map admin, 2020; unmeasured). Diamond and emerald
+  generators change interval at each tier (6, 12, 18 and 24 minutes). Each generator's first spawn after the
+  start is its own number: the first Solo emerald lands at 0:31, not after a full 65 s.
+- **Upgrades.** Each forge level changes both the speed and the cap (2023-05); Emerald Forge adds emeralds.
+- **What lies there.** A cap counts generated items not yet picked up, near the generator. Items a player
+  threw there do not count (the 2022 fix), so a capture has to tell generated items from dropped ones.
+- **What you hold.** Past a threshold per resource you stop picking up that resource's generated items
+  ("You didn't pick up any more Iron because you have too much on you!"); items players dropped reportedly
+  still pick up. The threshold per resource and mode, and whether dropped items are exempt: CAPTURE.
+
+We will use some of Hypixel's maps as they are, so each map's own numbers matter, not only the rules. Every
+game played through the capture tool adds that map's record (section 13.1).
 
 ## 6. Item shop
 
@@ -521,37 +554,76 @@ support, which is why that capture has neither. `capture-legacy.js` logs entity 
 equipment, velocity and explosions; `capture-explosion-blocks.js` logs block changes. Nothing logs
 windows, pickups or potion effects.
 
-**Built 2026-09-24: `capture-bedwars.js` and `run-bedwars.bat`** (client connects to `localhost:25582`,
-reuses the `profiles/scoreboard` login, `--selftest` runs with no network). One tool because a BedWars game
-spreads the interesting events over 10 to 50 minutes and one proxy session can only run one tool. It is the
-scoreboard tool, whose records it keeps byte for byte plus a trailing `ms` line, and:
+**`capture-bedwars.js` and `run-bedwars.bat`**, built 2026-09-24, generator tracking added 2026-09-25 (the
+client connects to `localhost:25582`, reusing the `profiles/scoreboard` login; `--selftest` runs with no
+network). One tool because a BedWars game spreads the interesting events over 10 to 50 minutes and one proxy
+session can only run one tool. It is the scoreboard tool, whose records it keeps byte for byte plus a
+trailing `ms` line, and:
 
 | Packets | Answers |
 |---|---|
-| `spawn_entity` (items), `entity_metadata`, `entity_destroy`, `collect` | generator schedules per spawn point, items per spawn, caps, pickup and the forge split (who receives a `collect`) |
-| `spawn_entity` / `spawn_entity_living` armor stands and villagers, `entity_metadata` custom names | holograms (text, offsets, update cadence), shopkeepers, dragons, golems, silverfish |
+| `spawn_entity` (items), `entity_metadata`, `entity_destroy`, `collect` | each generator's schedule, items per spawn, caps, pickups |
+| your `block_dig` and `window_click` drops, other players' positions | which items were generated and which were dropped, so a cap counts generated items only |
+| `window_items` and `set_slot` for your own inventory | the carry limit, and the forge split (your count rising with no pickup of yours) |
+| `update_time` | a server tick clock: Spigot stamps the world age every 20 ticks, so intervals stay in server ticks when the server lags |
+| `spawn_entity` / `spawn_entity_living` armor stands and villagers, `entity_metadata` custom names | holograms (text, offsets, update cadence, countdown restarts), shopkeepers, dragons, golems, silverfish |
 | `open_window`, `window_items`, `set_slot` with full NBT | both shop windows, lore, colors, the Quick Buy default, owned and max-tier displays, HideFlags and Unbreakable |
 | `entity_equipment` per viewer | invisibility hiding armor, team leather RGB |
 | `entity_effect`, `remove_entity_effect` | trap effects and amplifiers, Heal Pool, Haste, potions, Magic Milk |
+| your `block_place`, answered by `block_change` | the build radius's shape, the height limits, protected areas around generators |
 | `explosion`, `block_change`, `multi_block_change` | pop-up tower build order, bridge egg cadence, stacked TNT, beds under a blast |
 | `world_border`, `experience`, `player_info` | 4v4 border, the level bar, tab list |
 
-SUMMARY on disconnect or Ctrl+C: per spawn block and item, the spawn count, intervals in ms and ticks,
-items per spawn, the most lying near it and the first spawn after "Protect your bed"; each named armor stand
-with its names and update cadence; one dump per window title with lore, enchants, HideFlags, Unbreakable and
-leather color; effects by amplifier and duration; sounds beside the nearest chat or title line.
+SUMMARY on disconnect or Ctrl+C: per generator and resource, the spawn count, the first spawn after the
+start, intervals in server ticks with each run and the forge or tier line it follows, items per spawn, where
+spawning stopped and what lay there, and how it resumed after a pickup; each generator's countdown and tier
+lines; the carry limit; the forge split by distance; placements against the map file's radius and height;
+each named armor stand with its names and update cadence; one dump per window title with lore, enchants,
+HideFlags, Unbreakable and leather color; effects by amplifier and duration; sounds beside the nearest chat or
+title line. Each game also appends a line to `captures/generators.jsonl`, and `node capture-bedwars.js
+--table` prints every game so far, one block per map and mode.
 
-1.8 wire facts the tool had to get right, verified in MCP-919: armor stands spawn as object 78 through
-`spawn_entity`, not `spawn_entity_living`; the effect packet's particle flag means shown, not hidden; world
-border radius fields are diameters; a fireball's spawn velocity is its acceleration.
+1.8 wire facts the tool had to get right, verified in MCP-919 and paper_source_1.8.8: armor stands spawn as
+object 78 through `spawn_entity`, not `spawn_entity_living`; the effect packet's particle flag means shown,
+not hidden; world border radius fields are diameters; a fireball's spawn velocity is its acceleration; a
+thrown item leaves the eye 0.3 low at the thrower's x and z (`EntityHuman.a(ItemStack, boolean, boolean)`); a
+placement against a block is answered with the block at the target either way (`PlayerConnection`); the time
+packet goes out every 20 ticks carrying the world age (`MinecraftServer`).
 
-**Sessions**, each a short public game or a part of one:
+### 13.1 Generators
 
-1. **Forge at the start**: stand on your forge for the first two minutes, then buy Iron Forge and wait at
-   the cap. Once in Solo and once in a four-team mode, on a slow map and a fast map. Rates, the 30 s boost,
-   items per spawn, caps before and after the upgrade.
-2. **Mid generators across a tier change**: sit by a diamond generator from 5:30 to 6:30 and an emerald
-   generator from 11:30 to 12:30. Intervals, first spawns, the reset at tier-up, hologram cadence.
+Every game played through the tool is a generator sample. Generators spawn whether or not anyone picks up,
+the diamond and emerald holograms count down to anyone in range, and the map and mode come off the pregame
+board, so normal play fills the table map by map. The sessions below cover what normal play cannot show.
+They keep the tool's checklist numbers.
+
+1. **Forge from the start** (Solo first, then a four-team mode; a map from each pool). From the start, stand
+   beside your forge without touching it until it stops spawning: the boost, the base interval, items per
+   spawn and the cap. The claim that the first fill reaches 64 iron shows as the most lying before a spawn.
+   Pick up about ten and watch it restart, to see whether its timer kept running through the stop. Drop some
+   of your own iron onto it: if it spawns past the cap, dropped items do not count. Then collect until "You
+   didn't pick up any more Iron", drop two and pick them back up: the carry limit, and whether dropped items
+   are exempt. Gold the same way if time allows.
+2. **Mid generators**: stay within 20 blocks of a diamond generator across 6:00 and an emerald one across
+   12:00, and across 18:00 and 24:00 when a game lasts. Leave one untouched until it stops, for its cap. The
+   countdown tells whether the timer runs while capped: a restart with no spawn means it does.
+   - **2b. Forge upgrades**, with a party pooling diamonds (all four levels cost 20 in Solo/Doubles, 40 in
+     3s/4s): after each level, leave the forge alone until it stops.
+   - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
+     diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
+
+Reading the summary:
+- `cap  stopped at N generated lying xK; spawned with up to M lying (at T)`: spawning stopped K times with N
+  of its own items lying there; M is the most lying when it still spawned. N = M + items per spawn is a clean
+  cap. An M above N, early in the game, is an overfill during the boost.
+- `lying beside them at a stop: D dropped`: other items there at the time. A stop at the same N with D
+  dropped beside it means dropped items do not count.
+- `resumed +Tt after a pickup; on the old grid A of B`: on the grid means the timer kept running while
+  capped.
+- A generator farther than 24 blocks from you is never read as stopped, only as out of view.
+
+### 13.2 Everything else
+
 3. **Shop sweep**: open every tab of both windows, buy one of each cheap item, then try a lower armor
    tier, a worse sword and a purchase with a full inventory. Windows, NBT, messages, sounds.
 4. **With a party** (Doubles): the forge split at 1, 2, 3 and 4 blocks; each trap, with the partner
@@ -567,7 +639,8 @@ border radius fields are diameters; a fireball's spawn velocity is its accelerat
 9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
    modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
 
-Maps are Hypixel's and stay theirs: captures measure behavior, and our maps are our own builds.
+We will use some of Hypixel's maps, so the captures record each map's own numbers (forge speed, generators
+and their caps, build limits) alongside the rules.
 
 ## 14. Prior art
 
@@ -770,6 +843,8 @@ Each of these was read in the code, not just reported:
    tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
 7. **Captures.** Which sessions from section 13 to run first. The late-game ones are the hardest to get
    without private games.
+8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
+   map carries its own forge speed, generators and build limits.
 
 The "minigames never drop" rule holds for BedWars: nothing spills at death except the ender chest at a
 final death, and resources move straight to the killer.
@@ -779,5 +854,6 @@ final death, and resources move straight to the killer.
 The seven research reports this page condenses, with every source link, the conflicts between sources and
 the history behind each number, are in `Desktop/minemen-capture/research/bedwars/`: `rules-and-timeline.md`,
 `item-shop.md`, `upgrades-generators.md`, `public-data.md`, `prior-art-swofty.md`,
-`prior-art-screamingsandals.md` and `stack-mapping.md`, plus `capture-digest.md` for the 2026-08-20 Solo capture
-and the API data the stats section was built from.
+`prior-art-screamingsandals.md` and `stack-mapping.md`, plus `capture-digest.md` for the 2026-08-20 Solo capture,
+the API data the stats section was built from, and `bwmapinfo.json`, the map file behind section 4's build
+limits and pools.
