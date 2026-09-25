@@ -562,11 +562,14 @@ Fitted on 19 builds (cap, 2026-09-24): after turning each to one frame, the clea
   block's corner plus 0.5 along the horizontal axis across the tower's facing (z for a tower facing along x,
   x for one facing along z).
 - **Frame**: P is the block the chest would have gone into, and the tower takes the facing the chest would
-  have been placed with (our play): the doorway faces where the chest's front would, toward the placer. `f`
-  counts forward, away from the placer, `r` to the placer's right and `h` up from P; the ladder column is P
-  itself. Three facings were captured; the fourth is the same turned.
-- **Push**: a player standing where a block goes is pushed (our play). Nine pushes in the captures measured
-  0.64 to 0.69 in all, 0.48 to 0.67 of it upward; which way it points: CAPTURE (those logs have no positions).
+  have been placed with: the placer's look rounded to a side, `floor(yaw * 4 / 360 + 0.5) & 3`, turned to face
+  them, so the doorway faces the placer (cap, 11 of 11 towers, all four facings). `f` counts forward, away from
+  the placer, `r` to the placer's right and `h` up from P; the ladder column is P itself.
+- **Push**: a player a block is placed into gets the velocity `-0.5 * look + (0, 0.2, 0)`, where look is that
+  player's own look vector `(-sin yaw * cos pitch, -sin pitch, cos yaw * cos pitch)`: straight back from where
+  they face, and up by more the further down they look. It holds to within 0.0004 on every push with a fresh
+  look (cap, 2026-09-25), from our own towers and another player's, and is sent again for each further block
+  that lands in them.
 - **Blueprint** (team wool unless a ladder):
   - `h = -1 to 3`, the walls: (f, r) = (-2, -1), (-2, 1), (-1, -2), (-1, 2), (0, -2), (0, 2), (1, -1),
     (1, 0), (1, 1), plus (-2, 0) at `h = 2 and 3` only: the doorway is (-2, 0) at `h = 0 and 1`. At `h = -1`
