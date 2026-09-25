@@ -181,8 +181,8 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   `buildRadius`, `festival`, `reskinOf`) has them for 158 maps: 83 eight-team and 75 four-team, 46 of them
   festival versions, no 4v4 maps. Medians: eight-team radius 121.5, four-team 103, both built from y 62 or 63
   up to 96, about 32 blocks of height; Fandom's pages agree. 11 rows have radius -1. The file has no protected
-  areas around bases and generators. What the radius measures (circle or square, around 0,0): CAPTURE
-  (session 2c in section 13.1; the tool reads every placement against this file).
+  areas around bases and generators. The radius is a square around 0,0 (our play): |x| and |z| each stay
+  under it.
 - **Pools**: the file puts every map in `BEDWARS_8TEAMS_FAST`, `BEDWARS_8TEAMS_SLOW`, `BEDWARS_4TEAMS_FAST`
   or `BEDWARS_4TEAMS_SLOW` (50, 33, 37 and 38 maps). FAST and SLOW do not match the forge speeds the
   community lists: Airshow, Glacier, Orchestra, Speedway, Waterfall and Solace are slow iron in both
@@ -199,8 +199,8 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   refused out to 10 to 13 blocks from the forge toward the middle and at y 76. Other placements that failed
   came back as air with no line. Those tests stayed inside the 132-block radius and below the height limit.
   The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
-  the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. That run went one way
-  only, so circle or square is still open, and so is the height limit (placed up to y 73 of 91).
+  the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. The height limit is still
+  open (placed up to y 73 of 91).
 - **Breaking**: only player-placed blocks. Refusal line (cap): `You can only break blocks placed by a
   player!`. Plants outside protected areas break without drops (off 2022).
 - **Void**: below the minimum build limit a player cannot drop items or open the inventory (wiki), which
