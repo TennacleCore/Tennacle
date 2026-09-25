@@ -308,7 +308,7 @@ with identical numbers; every forge level bought one at a time and left to fill,
   copy, not a share. Iron and gold only, never diamonds, emeralds or forge emeralds, never enemies. Treated
   as intended. Measured (cap, Doubles on Sky Rise 2026-09-25): you got a copy standing within about 2.4
   blocks of the item your teammate picked up (55 times) and never from 2.5 blocks on (106 times), so a
-  radius of about 2.5. Whether it counts from the item or from the teammate: open.
+  radius of about 2.5, counted from the item (our play).
 - **Carry limit** (our play): past a threshold you stop picking up generated iron or gold, the items the
   forge made that nobody has picked up yet, the same items its cap counts. It covers iron and gold only, and
   never items anyone dropped. Captured 2026-09-24 (Solo, Lucky Rush, every forge level bought): generated iron
@@ -528,10 +528,11 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   45:00 dragon.
 - A purchase is broadcast to the team (cap): green `<player> purchased `, gold upgrade name. Traps use the
   same line.
-- Heal Pool (cap, Doubles on Sky Rise 2026-09-25): Regeneration I with no timeout, on inside a circle of about
-  21 blocks around the team's spawn point and off outside it; it switched at 20.1 to 21.9 blocks going north,
-  east, south and southeast, where a square would have ranged from 15 to 21. The older claims were 12 blocks
-  (2017) and 5 around the bed (guides). Whether it works without a bed: CAPTURE.
+- Heal Pool (cap, Doubles on Sky Rise 2026-09-25): Regeneration I with no timeout, on inside a sphere of
+  about 21 blocks around the team's spawn point and off outside it. Level with the spawn it switched at 20.1
+  to 21.9 blocks going north, east, south and southeast (a square would have ranged from 15 to 21); 9 blocks
+  above it, at 19 to 20 out, as a sphere puts it; falling off the edge turned it off 18 blocks out. The older
+  claims were 12 blocks (2017) and 5 around the bed (guides). It works without a bed (our play).
 - **The window** (captured 2026-09-24, Solo, twice: once with every upgrade bought by the host's modifiers,
   once from scratch). Upgrades in slots 10-12 and 19-21: Sharpened Swords (iron sword), Reinforced Armor
   (iron chestplate), Maniac Miner (golden pickaxe), then the forge (furnace), Heal Pool (beacon) and Cushioned
