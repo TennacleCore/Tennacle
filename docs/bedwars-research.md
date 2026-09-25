@@ -81,9 +81,9 @@ Hypixel balances BedWars around 1.8 combat for every client version (off, v1.10)
 | Gray | **S** | dark_gray |
 
 Order and letters are cap (Gray is S because G is taken). Chat tags read `[RED]`, `[PINK]` (cap); the rest
-follow the pattern. Leather dye RGB per team changed twice in 2026 for Pink and Green: CAPTURE (Red is
-`#FF0000`, cap). 1.8
-clients render every bed red; 1.12+ see team-colored beds (wiki).
+follow the pattern. Leather dye RGB per team changed twice in 2026 for Pink and Green: CAPTURE. Captured:
+Red `#FF0000`, Blue `#0000FF`, Aqua `#00FFFF`, Gray `#808080`. 1.8 clients render every bed red; 1.12+ see
+team-colored beds (wiki).
 
 ## 3. Match flow
 
@@ -130,9 +130,9 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   least once a second.
 - Tier-up chat (cap): aqua `Diamond Generators`, yellow `have been upgraded to Tier`, red numeral; the
   emerald and tier III lines follow it (cap, 2026-09-24).
-- Bed Gone: all beds go at once. Candidate text from the string catalog (12.1): a red
-  `All beds will be destroyed in 5 minutes!` warning, then `All beds have been destroyed!`, plain and bold
-  red (likely chat and title). Confirm, with the sounds: CAPTURE.
+- Bed Gone: all beds go at once. At 25:00 a red `All beds will be destroyed in 5 minutes!` in chat, with no
+  title or sound (cap, two games). The string catalog (12.1) then has `All beds have been destroyed!`, plain
+  and bold red (likely chat and title); that line and its sounds: CAPTURE.
 - Sudden Death: one ender dragon per team alive at 40:00, plus one more each at 45:00. Dragons break every
   block type, obsidian and end stone included, and hunt enemy players (off, v0.6). Boss bar for 1.9+
   clients (off 2022). Candidate text: red `Sudden Death`, then `SUDDEN DEATH: +N <Team> Dragon!` (red, gold,
@@ -162,13 +162,16 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   and ender chest on the right (every map since 2018).
 - **Shopkeepers** (cap): both are blacksmith villagers with no name of their own. Armor stands above them
   read aqua `ITEM SHOP` over yellow bold `RIGHT CLICK`, and in Solo aqua `SOLO` and `UPGRADES` over `RIGHT
-  CLICK`, lines 0.25 to 0.28 apart. What team modes print in place of `SOLO`: CAPTURE.
+  CLICK`, lines 0.25 to 0.28 apart. Doubles prints `TEAM` in place of `SOLO` (cap).
 - **Team chest**: shared. Enemy access after the bed breaks (off 2017) or only after elimination (a
   recreation string): CAPTURE.
 - **Ender chest**: personal, the same contents from any ender chest on the map.
 - **Punch to deposit**: punching a chest with resources in hand deposits the held stack; sneak-punch
-  deposits every stack of that item; nearby players hear it (off 2024-12, 2025-01). Chat (cap):
-  `Deposited x13 Iron Ingot into Ender Chest! (131 Total)` with the item colored by resource.
+  deposits every stack of that item; nearby players hear it (off 2024-12, 2025-01). Chat (cap): gray
+  `Deposited `, `x13 Iron Ingot ` in the item's color (iron and wool white, gold gold, diamonds aqua,
+  emeralds green), gray `into `, aqua `Team Chest` or light purple `Ender Chest`, gray `! `, dark gray
+  `(131 Total)`: the chest's count of that item. The sound is `random.chestclosed` (volume 1, pitch 1.0) at
+  the depositor's feet, not the chest (cap).
 
 | Mode | Bases | Diamond gens | Emerald gens |
 |---|---|---|---|
@@ -199,12 +202,14 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   refused out to 10 to 13 blocks from the forge toward the middle and at y 76. Other placements that failed
   came back as air with no line. Those tests stayed inside the 132-block radius and below the height limit.
   The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
-  the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. The height limit is still
-  open (placed up to y 73 of 91).
+  the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. Height (cap, Sky Rise, map
+  file 91): wool went down at y 90; 91 was not tried.
 - **Breaking**: only player-placed blocks. Refusal line (cap): `You can only break blocks placed by a
   player!`. Plants outside protected areas break without drops (off 2022).
 - **Void**: below the minimum build limit a player cannot drop items or open the inventory (wiki), which
-  stops resource denial. Death height and whether it is instant: CAPTURE.
+  stops resource denial. The death is instant, with no damage on the way down (cap, seven falls). One fall
+  on Harvest (minimum 60) was alive at y -29 and dead by -51, where the client was when the death arrived.
+  The height itself: CAPTURE (the tool now logs every position under the floor).
 - **Liquids**: the water bucket is single use and its source can only be blocked (off v1.4). Flow rules:
   CAPTURE.
 
@@ -299,7 +304,11 @@ with identical numbers; every forge level bought one at a time and left to fill,
   measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
   numeral; bold aqua `Diamond` or bold dark green `Emerald`; yellow `Spawns in ` + red number + yellow
-  ` seconds` (singular form exists). Offsets, spin speed, update cadence: CAPTURE.
+  ` seconds` (singular form exists). On an Amazon diamond generator (cap, 2026-09-25) the lines stand 0.375
+  apart above the block stand's highest point: the countdown at 2.0, the name at 2.38, the tier at 2.75. The
+  block turns one and a half times one way and back, 60 ticks each way, fastest mid-swing at 14° a tick,
+  rising 0.43 blocks on one sweep and sinking on the other, with a move packet every tick. The countdown
+  renames once a second.
 - Items near a generator count toward its cap until carried away.
 
 ### 5.3 Pickup
@@ -474,7 +483,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 
 | Item | Documented behavior | Still needs a capture |
 |---|---|---|
-| Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower | measured already (Polyp `hypixel`); left: the deflect credit rule |
+| Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws) | measured already (Polyp `hypixel`, without the slowness and the arrow); left: the deflect credit rule |
 | TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`); left: the spread, beds |
 | Bridge Egg | lays a wool bridge along its path (team color presumably); a direct hit knocks back; counts for void credit | length (a hedged 35 blocks from 2017), width, cadence |
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
@@ -575,8 +584,10 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   One trap fires per intruder entering the base. They never fire once the bed is gone, and since 2025-09
   cannot be bought then. A queued trap can be removed by its buyer, without a refund.
 - Blindness Trap: Blindness II for 8 s and Slowness I for 5 s on the intruder (cap, 2026-09-25).
-- Counter-Offensive: Speed II and Jump Boost II for 15 s to teammates near the base.
-- Reveal (Alarm) Trap: strips invisibility, announces the intruder's name and team.
+- Counter-Offensive: goes off on the same 12-block sphere around the bed as the others, then gives its
+  effects (our play). The lore says Speed II and Jump Boost II for 15 s to allies near the base; length and
+  amplifiers on the wire: CAPTURE.
+- Reveal (Alarm) Trap: strips invisibility, announces the intruder's name and team. Its sound: CAPTURE.
 - Miner Fatigue Trap: Mining Fatigue I for 8 s (cap, 160 ticks, particles shown; the I, III or "-80%" dispute
   is over). The intruder gets only the effect: no chat, title or sound.
 - Set-off (cap): bold red `Miner Fatigue Trap was set off!` in chat, the title red `TRAP TRIGGERED!` over
@@ -596,9 +607,15 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 
 ## 8. Death and respawn
 
-- **Respawn** 5 s while the bed stands. Chat counts down `You will respawn in 5 seconds!` to 1, then
-  `You have respawned!` (cap). Titles in the duel capture: `YOU DIED!` with a respawn subtitle, then
-  `RESPAWNED!`. The waiting player is a spectator; where they wait: CAPTURE.
+- **Respawn** 5 s while the bed stands (cap, eight deaths). In the tick of the death: the death line,
+  Invisibility and Night Vision at duration 32767, every item removed, health and food full, the XP bar at 0,
+  a clearing title (times 0/1/0, empty title and subtitle), then times 0/30/0 red `YOU DIED!` over yellow
+  `You will respawn in ` red `5 ` yellow `seconds!`, the same line in chat. Title and chat repeat every
+  second down to `1 second!`. Within 0.1 s the player is teleported to the pregame spawn over the middle
+  (0,152,0 on Sky Rise, 0,133,0 on Harvest) facing yaw 0, and stays in survival: no spectator mode. 4.96 to
+  5.00 s after the death comes a teleport to the point the game started them on, both effects removed, yellow
+  `You have respawned!`, a clearing title with times 0/5/0, then times 5/30/5 green `RESPAWNED!` over an
+  empty subtitle, the XP bar back, and the kit 0.1 s later. The victim hears no sound at either end.
 - **Respawn invincibility** exists and ends when you attack:
   `You attacked someone and lost your invincibility!` (cap). Length: 1.5 s in 2017, then 3 s; today: CAPTURE.
 - **Resources go to the killer's inventory**, wherever the killer is, one line per resource in a fixed
@@ -620,14 +637,16 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   death, final when bedless. `<player> disconnected.` (cap).
 - **AFK**: 4 minutes then a 10 s warning in 2017; today: CAPTURE. Candidate text: bold
   `You will be afk-ed in 10 seconds!`, `You were kicked for inactivity!`, `<name> was kicked for being AFK!`.
+  The red `You are AFK` title in our logs belongs to the main lobby, before a move to Limbo.
 - Death lines (cap) color names by team with gray text and a period: `<a> was killed by <b>.`,
-  `<a> was knocked into the void by <b>.`, `<a> fell into the void.` Kill-message cosmetics swap the verb
-  (dozens of variants seen). The default bow-kill line: CAPTURE.
+  `<a> was knocked into the void by <b>.`, `<a> fell into the void.`, and `<a> died.` for a fall with no
+  attacker. Kill-message cosmetics swap the verb (dozens of variants seen). The default bow-kill line:
+  CAPTURE.
 
 ## 9. Beds
 
-- Enemy beds break by hand with no tool; your own bed cannot be broken. Candidate refusal: red
-  `You can't destroy your own bed!`. Break time: CAPTURE.
+- Enemy beds break by hand with no tool; your own bed cannot be broken: red `You can't destroy your own bed!`
+  in chat, no sound, both halves sent again (cap). Break time: CAPTURE.
 - Chat (cap): bold `BED DESTRUCTION > `, the team's bed in its color, gray `was destroyed by`, the breaker
   in their color, `!`. Your own team reads `Your Bed was destroyed by <player>!`. Cosmetics swap the verb.
 - Titles for the losing team (duel capture): `BED DESTROYED!` / `You will no longer respawn!`.
@@ -665,8 +684,9 @@ www.hypixel.net           yellow
   kills, final kills and beds broken since 2021. Header, footer and stat placement today: CAPTURE.
 - **Chat**: Solo chat is global; team modes default to team chat with `/shout` on a 60 s cooldown. A
   captured Solo line reads `[49✫] [PINK] [VIP+] <name>: <message>` (level, team tag, rank).
-- **Titles**: known only from the duel capture (countdown digits, death, respawn, bed destroyed, victory,
-  defeat, AFK) with their fade timings. Core BedWars titles: CAPTURE.
+- **Titles**: the duel capture has the countdown digits, death, respawn, bed destroyed, victory, defeat and
+  AFK with their fade timings. BedWars' own death and respawn titles are in section 8 (cap); the rest:
+  CAPTURE.
 - **Sounds** (Bed Rush Duel capture): the countdown's `note.hat`, the two bed sounds (section 9), and
   `random.orb` at volume 1 to the killer on every kill, void knock-offs included. Everything else: CAPTURE.
 
@@ -738,6 +758,8 @@ trailing `ms` line, and:
 | your `block_place`, answered by `block_change` | the build radius's shape, the height limits, protected areas around generators |
 | `explosion`, `block_change`, `multi_block_change` | pop-up tower build order, bridge egg cadence, stacked TNT, beds under a blast |
 | `world_border`, `experience`, `player_info` | 4v4 border, the level bar, tab list |
+| `playerlist_header`, the list and below-name objectives | the tab's header and footer whenever they change, which objective the tab shows |
+| your position under the map's minimum build height, every packet, and your ping | the void death height |
 
 SUMMARY on disconnect or Ctrl+C: per generator and resource, the spawn count, the first spawn after the
 start, intervals in server ticks with each run and the forge or tier line it follows, items per spawn, where
@@ -800,10 +822,11 @@ bought, each tier), and each resource in a stretch gets one line:
    and a purchase with a full inventory; the upgrades window before anything is bought; the same windows in
    a 3s or 4s game for those prices.
 4. **With a party** (Doubles): the forge split, the Heal Pool and the Miner Fatigue and Blindness traps are
-   captured (2026-09-25). Left: Counter-Offensive (who counts as near the base), the Reveal Trap, and a
-   walk-in after Magic Milk.
-5. **Deaths**: with the bed standing (titles, sounds, where you wait), attacking at timed moments after a
-   respawn (invincibility length), a void death with and without a hitter, a final death, going AFK.
+   captured (2026-09-25). Left: the Alarm (Reveal) Trap's sound, Counter-Offensive's effect lengths and
+   amplifiers, and a walk-in after Magic Milk.
+5. **Deaths**: the respawn with the bed standing is captured (2026-09-25). Left: attacking at timed moments
+   after a respawn (invincibility length), void deaths with and without a hitter for the kill height, a
+   final death, going AFK.
 6. **Beds**: break an enemy bed, lose your own, try to break your own.
 7. **Utilities**: a bridge egg, a pop-up tower, a bedbug and a Dream Defender; two TNT placed together;
    TNT against a bed behind one layer of wool. TNT and fireball physics are already measured.
