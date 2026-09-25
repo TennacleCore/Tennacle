@@ -532,7 +532,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   about 21 blocks around the team's spawn point and off outside it. Level with the spawn it switched at 20.1
   to 21.9 blocks going north, east, south and southeast (a square would have ranged from 15 to 21); 9 blocks
   above it, at 19 to 20 out, as a sphere puts it; falling off the edge turned it off 18 blocks out. The older
-  claims were 12 blocks (2017) and 5 around the bed (guides). It works without a bed (our play).
+  claims were 12 blocks (2017) and 5 around the bed (guides). It works without a bed (our play). A circle
+  fitted to the 13 crossings level with the spawn centers 0.3 blocks from the spawn, radius 20.9, each
+  within 0.6 of it: the spawn point is the center, not the bed.
 - **The window** (captured 2026-09-24, Solo, twice: once with every upgrade bought by the host's modifiers,
   once from scratch). Upgrades in slots 10-12 and 19-21: Sharpened Swords (iron sword), Reinforced Armor
   (iron chestplate), Maniac Miner (golden pickaxe), then the forge (furnace), Heal Pool (beacon) and Cushioned
@@ -583,8 +585,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   queued at once fired at 0, +30.1 and +60.5 s while the intruder stood still inside.
 - Trigger area: not the Heal Pool's sphere. On Sky Rise (2026-09-25) a trap fired with the intruder standing
   still 24.4 blocks north of the owners' spawn, and a walk-in set one off between 23 and 25 blocks out, where
-  the Heal Pool ends at 21 on that side; on Harvest a sprint in set one off between 21.4 and 19.0. Most likely
-  a per-map base area; its shape, and the order with several intruders: CAPTURE.
+  the Heal Pool ends at 21 on that side; on Harvest a sprint in set one off between 21.4 and 19.0. That fits
+  a 21-block sphere around a point 3 blocks toward the middle from the spawn, perhaps the bed (our guess),
+  or a per-map base area. Its center and shape, and the order with several intruders: CAPTURE.
 
 ## 8. Death and respawn
 
