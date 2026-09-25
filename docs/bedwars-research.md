@@ -366,16 +366,16 @@ with identical numbers; every forge level bought one at a time and left to fill,
   (our play). The carry limit below stops split copies too; standing still does not (our play).
 - **Carry limit** (our play): past a threshold you stop picking up generated iron or gold, the items the
   forge made that nobody has picked up yet, the same items its cap counts. It covers iron and gold only, and
-  never items anyone dropped. Captured 2026-09-24 (Solo, Lucky Rush, every forge level bought): generated iron
-  still went in while you held 512 and not at 513, gold at 64 and not at 65, one item per pickup, while the
-  forge kept spawning beside you. Nothing is said: the `You didn't pick up any more Iron because you have too
-  much on you!` line in the string catalog never came.
+  never items anyone dropped. Captured 2026-09-24 (Solo, Lucky Rush, every forge level bought): the last
+  pickup takes you to 513 iron or 65 gold (one still goes in at 512 and at 64), then nothing more while the
+  forge keeps spawning beside you. Nothing is said: the `You didn't pick up any more Iron because you have
+  too much on you!` line in the string catalog never came.
 - **Despawn**: generated items that nobody picks up vanish 300 s after they spawn (vanilla's 6000-tick item
   age), and they never merged in that capture.
 - **Standing still** (our play): after 30 s without moving you stop picking up items until you move: every
-  item on the ground, generated or dropped. Split copies still reach you. The iron carry limit above is not
-  this rule: gold kept going in for 108 s after iron stopped. Gold's 65 fits the same pattern; a run that
-  keeps moving past 64 gold would confirm it.
+  item on the ground, generated or dropped. Split copies still reach you. Neither carry limit above is this
+  rule: gold kept going in for 108 s after iron stopped, and at 65 gold two emeralds lying on the same block
+  as two gold ingots went in while the gold did not (cap, Lucky Rush).
 - **Provenance**: generator XP and several achievements need each item tagged with where it came from.
 
 ### 5.4 What a generator capture has to separate
