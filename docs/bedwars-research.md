@@ -247,9 +247,11 @@ identical numbers; every forge level bought one at a time and left to fill):
 - Iron per second is 3 per period, so the levels give iron +42%, +89%, +89% and +143%, not +50/+100/+200
   (the rates measured over whole stretches agree within 2%); gold gains +37% at Iron Forge, +119% at Golden
   and nothing after. Molten iron runs at the start boost's speed.
-- The start boost lasts 600 ticks: gold switches from 126 to 276 at 0:30. The first iron and gold appear
-  within half a second of `Protect your bed`. The boost fills the forge to 64 iron before it stops; after
-  that the cap is 48.
+- The start boost lasts 600 ticks. With the forge kept empty through it (Sky Rise, 2026-09-25) iron came 3
+  every 21 ticks until +578, then at +598 both iron and gold spawned on the spot and switched to 3 every 51
+  and 1 every 276; gold ran every 126 before. The first iron and gold appear 4 to 12 ticks after `Protect
+  your bed`. A forge nobody empties fills to 64 iron during the boost and stops; after it the cap is 48.
+  Sky Rise matched Lucky Rush and Deadwood: all three are in the 8TEAMS_FAST pool.
 - Caps grow 8 iron and 2 gold per level. A capped forge restarts as soon as an item leaves: a pickup, or the
   5-minute despawn.
 - Emerald Forge adds an emerald spawner: 1300 ticks (65 s) at Emerald Forge, 701 (35 s) at Molten, as
@@ -271,11 +273,15 @@ identical numbers; every forge level bought one at a time and left to fill):
   and 65/50/35 (8 teams) or 55/40/27 (4 teams).
 - **Measured** (cap, Solo, 2026-09-24): diamonds every 601, 451 and 226 ticks at tiers I, II and III, that
   is 30, 22.5 and 11.25 s plus one tick each; Solo emeralds every 1001 ticks at tier II (50 s plus one). The
-  first diamond came about a second after the start, with no wait. Tier II and III lines at 6:00 and 18:00
+  first diamond came 8 to 24 ticks after the start, with no wait. Tier II and III lines at 6:00 and 18:00
   (diamond) and 12:00 and 24:00 (emerald). While a generator is capped its countdown keeps restarting with
   no spawn: 4 diamonds and 2 emeralds, the Solo caps. Emeralds at tiers I and III: CAPTURE.
 - NamuWiki's timing is self-consistent with the capture: the first Solo emerald lands at 0:31, and at an
-  emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds at a tier-up: CAPTURE.
+  emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds do the same (cap, Sky
+  Rise 2026-09-25): the first diamond 8 ticks after the start, then every 601, and one on the spot with the
+  Tier II line.
+- Item spawns reached the client from 85 blocks away (Sky Rise), so a generator across the island is still
+  measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
   numeral; bold aqua `Diamond` or bold dark green `Emerald`; yellow `Spawns in ` + red number + yellow
   ` seconds` (singular form exists). Offsets, spin speed, update cadence: CAPTURE.
