@@ -528,13 +528,16 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   45:00 dragon.
 - A purchase is broadcast to the team (cap): green `<player> purchased `, gold upgrade name. Traps use the
   same line.
-- Heal Pool (cap, Doubles on Sky Rise 2026-09-25): Regeneration I with no timeout, on inside a sphere of
-  about 21 blocks around the team's spawn point and off outside it. Level with the spawn it switched at 20.1
-  to 21.9 blocks going north, east, south and southeast (a square would have ranged from 15 to 21); 9 blocks
-  above it, at 19 to 20 out, as a sphere puts it; falling off the edge turned it off 18 blocks out. The older
-  claims were 12 blocks (2017) and 5 around the bed (guides). It works without a bed (our play). A circle
-  fitted to the 13 crossings level with the spawn centers 0.3 blocks from the spawn, radius 20.9, each
-  within 0.6 of it: the spawn point is the center, not the bed.
+- Heal Pool (cap, Doubles on Sky Rise and Amazon 2026-09-25): Regeneration I while the player's feet are
+  within 21 blocks of the team's spawn point, a sphere, removed outside it. It is sent with duration 32767,
+  which a 1.8 client shows as `**:**`. On Amazon, 27 changes from 12 blocks below the spawn to 17 above came
+  on at 20.92 blocks or less and went off at 21.11 or more from the spawn teleport point. That point
+  separates them best of any center within 4 blocks; its block center and the eye height do not separate
+  them at all, and the bed is 15 blocks away. Sky Rise agrees: a circle through its 13 crossings level with
+  the spawn centers 0.3 blocks from it, radius 20.9. The check runs once a second, every change landing on
+  the same tick of a 20-tick beat. While inside, the effect is sent again 246 ticks after each entry, which
+  changes nothing on screen. It works without a bed (our play). The older claims were 12 blocks (2017) and 5
+  around the bed (guides).
 - **The window** (captured 2026-09-24, Solo, twice: once with every upgrade bought by the host's modifiers,
   once from scratch). Upgrades in slots 10-12 and 19-21: Sharpened Swords (iron sword), Reinforced Armor
   (iron chestplate), Maniac Miner (golden pickaxe), then the forge (furnace), Heal Pool (beacon) and Cushioned
@@ -796,8 +799,9 @@ bought, each tier), and each resource in a stretch gets one line:
    look), buy one of each cheap item (purchase lines and sounds), then try a lower armor tier, a worse sword
    and a purchase with a full inventory; the upgrades window before anything is bought; the same windows in
    a 3s or 4s game for those prices.
-4. **With a party** (Doubles): the forge split at 1, 2, 3 and 4 blocks; each trap, with the partner
-   walking in from different sides and once after Magic Milk; Counter-Offensive and Heal Pool edges.
+4. **With a party** (Doubles): the forge split, the Heal Pool and the Miner Fatigue and Blindness traps are
+   captured (2026-09-25). Left: Counter-Offensive (who counts as near the base), the Reveal Trap, and a
+   walk-in after Magic Milk.
 5. **Deaths**: with the bed standing (titles, sounds, where you wait), attacking at timed moments after a
    respawn (invincibility length), a void death with and without a hitter, a final death, going AFK.
 6. **Beds**: break an enemy bed, lose your own, try to break your own.
