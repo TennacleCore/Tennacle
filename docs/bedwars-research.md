@@ -259,7 +259,10 @@ identical numbers; every forge level bought one at a time and left to fill):
 - A purchase restarts the forge at once: iron and gold spawned within a second of every forge line unless
   the forge was full, and an emerald came 0.06 to 1.8 s after both the Emerald Forge and the Molten Forge
   line, in two games. Whether it is one emerald on the spot or just a fresh timer: session 2b.
-- Other pools and modes: CAPTURE. Whether the SLOW pool means a slower forge is still open.
+- **The SLOW pool** (cap, Amazon, Solo, 2026-09-25): the forge has one iron spawner, not three. It dropped 1
+  iron every 21 ticks through the boost and 1 every 51 after it, a third of a FAST-pool forge; gold ran the
+  same (126, then 276). One map so far. NamuWiki lists Rooftop as slow in Solo although the map file puts it
+  in the FAST pool; the Rooftop game had the host's modifiers on, so its forge is unread. Other modes: CAPTURE.
 
 ### 5.2 Diamond and emerald generators
 
@@ -280,6 +283,12 @@ identical numbers; every forge level bought one at a time and left to fill):
   emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds do the same (cap, Sky
   Rise 2026-09-25): the first diamond 8 ticks after the start, then every 601, and one on the spot with the
   Tier II line.
+- **First mid emeralds** (cap, Solo on Rooftop and Amazon, 2026-09-25): all four emerald generators spawned
+  their first emerald 606 to 617 ticks after the start (0:30.3 to 0:30.9), then every 1301; Amazon's came at
+  +609. The Emerald II line brought one on the spot. Before that first emerald the countdown already counts to
+  the second one: at 0:26 it read 70 s, due at +1910, and the second came at +1911. First diamonds came 8 to
+  27 ticks after the start on four maps. The mid generators don't feel team upgrades, so Rooftop's count
+  despite its modifiers; its tier lines came on time at 6:00 and 12:00.
 - Item spawns reached the client from 85 blocks away (Sky Rise), so a generator across the island is still
   measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
