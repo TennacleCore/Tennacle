@@ -194,7 +194,11 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
 - **Above the top**: more than one block above the limit for over 30 s starts damage that grows; the timer
   decays and resets on death (off 2026-05).
 - **No-place zones** are per-map boxes over spawns, base interiors and shopkeepers. Refusal line (cap):
-  `You can't place blocks here!`. Box sizes are map data; whether generators have their own: CAPTURE.
+  `You can't place blocks here!`. Box sizes are map data. Generators have their own (cap, Lucky Rush
+  2026-09-24): refused at least 3 blocks out around a diamond generator and up to 3 above it; over the base,
+  refused out to 10 to 13 blocks from the forge toward the middle and at y 76. Other placements that failed
+  came back as air with no line. Those tests stayed inside the 132-block radius and below the height limit,
+  so the radius's shape is still open.
 - **Breaking**: only player-placed blocks. Refusal line (cap): `You can only break blocks placed by a
   player!`. Plants outside protected areas break without drops (off 2022).
 - **Void**: below the minimum build limit a player cannot drop items or open the inventory (wiki), which
@@ -217,14 +221,40 @@ drops a block's item, 0.2 up and at most 0.1 each way across.
   first 30 s; speed comes from 1 to 3 spawn nodes per team. A player measured about twice those rates,
   possibly inside the boost window. Most maps are fast today (Fandom: every 4-team map, 79 of 103
   Solo/Doubles maps).
-- **Gold rate**: no source. Claimed ratios run from 4 to 16 iron per gold. CAPTURE.
+- **Gold rate**: no source. Claimed ratios run from 4 to 16 iron per gold. Measured below: 16 to 1 at base.
 - **Caps**: 48 iron and 16 gold near the forge (wiki, several sources); the very first fill reaches 64
-  iron (wiki). Forge upgrades raise the caps since 2023-05 (off); the values: CAPTURE. The cap counts
-  resources lying near the generator; items thrown in by players do not.
-- **Forge upgrades**: +50%, +100%, then emeralds, then +200% of iron and gold. The island emerald interval
-  (wiki says 65 s at Emerald Forge and 35 s at Molten in Solo/Doubles) disagrees with the +200% lore:
-  CAPTURE.
+  iron (wiki). Forge upgrades raise the caps since 2023-05 (off). The cap counts resources lying near the
+  generator; items thrown in by players do not. Measured below.
+- **Forge upgrades**: +50%, +100%, then emeralds, then +200% of iron and gold (the lore). Measured below:
+  less than that, and gold stops at Golden Forge.
 - An eliminated team's forge keeps producing at its level.
+
+**Measured** (cap, 2026-09-24: Solo on Lucky Rush twice and Deadwood, both in the 8TEAMS_FAST pool, with
+identical numbers; every forge level bought one at a time and left to fill):
+
+| Forge level | Iron period | Iron/s | Gold period | Gold/s | Iron cap | Gold cap |
+|---|---|---|---|---|---|---|
+| none | 51 ticks | 1.18 | 276 ticks | 0.072 | 48 (64 on the first fill) | 16 |
+| first 30 s | 21 | 2.86 | 126 | 0.159 | | |
+| Iron Forge | 36 | 1.67 | 201 | 0.10 | 56 | 18 |
+| Golden Forge | 27 | 2.22 | 126 | 0.159 | 64 | 20 |
+| Emerald Forge | 27 | 2.22 | 126 | 0.159 | 72 | 22 |
+| Molten Forge | 21 | 2.86 | 126 | 0.159 | 80 | 24 |
+
+- The forge is three iron spawners and one gold spawner on one point, each dropping one item per period.
+  With no upgrade the three iron spawners fire together, 3 iron at once; once a level changes their period
+  they drift apart and items come one at a time (at Iron Forge, 3 per 36 ticks spaced 9 apart).
+- Iron per second is 3 per period, so the levels give iron +42%, +89%, +89% and +143%, not +50/+100/+200
+  (the rates measured over whole stretches agree within 2%); gold gains +37% at Iron Forge, +119% at Golden
+  and nothing after. Molten iron runs at the start boost's speed.
+- The start boost lasts 600 ticks: gold switches from 126 to 276 at 0:30. The first iron and gold appear
+  within half a second of `Protect your bed`. The boost fills the forge to 64 iron before it stops; after
+  that the cap is 48.
+- Caps grow 8 iron and 2 gold per level. A capped forge restarts as soon as an item leaves: a pickup, or the
+  5-minute despawn.
+- Emerald Forge adds an emerald spawner: 1300 ticks (65 s) at Emerald Forge, 701 (35 s) at Molten, as
+  NamuWiki says. It held at most 3; the emerald cap: CAPTURE.
+- Other pools and modes: CAPTURE. Whether the SLOW pool means a slower forge is still open.
 
 ### 5.2 Diamond and emerald generators
 
@@ -235,10 +265,14 @@ drops a block's item, 0.2 up and at most 0.1 each way across.
 | Emerald, 3s/4s | 55 s | 40 s | 27.4 s | | 5 or 6 |
 
 - Intervals are NamuWiki's; 11.2 s and 27.4 s are whole ticks (224, 548). 2026 client mods use 30/23/12
-  and 65/50/35 (8 teams) or 55/40/27 (4 teams). Close enough to build on; exact ticks: CAPTURE.
+  and 65/50/35 (8 teams) or 55/40/27 (4 teams).
+- **Measured** (cap, Solo, 2026-09-24): diamonds every 601, 451 and 226 ticks at tiers I, II and III, that
+  is 30, 22.5 and 11.25 s plus one tick each; Solo emeralds every 1001 ticks at tier II (50 s plus one). The
+  first diamond came about a second after the start, with no wait. Tier II and III lines at 6:00 and 18:00
+  (diamond) and 12:00 and 24:00 (emerald). While a generator is capped its countdown keeps restarting with
+  no spawn: 4 diamonds and 2 emeralds, the Solo caps. Emeralds at tiers I and III: CAPTURE.
 - NamuWiki's timing is self-consistent with the capture: the first Solo emerald lands at 0:31, and at an
-  emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds at a tier-up and the
-  first diamond: CAPTURE.
+  emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds at a tier-up: CAPTURE.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
   numeral; bold aqua `Diamond` or bold dark green `Emerald`; yellow `Spawns in ` + red number + yellow
   ` seconds` (singular form exists). Offsets, spin speed, update cadence: CAPTURE.
@@ -612,12 +646,13 @@ www.hypixel.net           yellow
 | 2026-08-20 Solo x3 | pregame and in-game sidebars, team letters and colors, Diamond II at 6:00 and Emerald II at 12:00, countdown and cancel lines, join and quit lines, start banner, purchase and not-enough lines, deposit lines, death, void and final-kill lines, bed destruction and elimination lines, the ender chest dump, respawn countdown, invincibility loss, kill loot lines, the tier-up line, a trap set-off, the team upgrade broadcast, reward lines, the end summary |
 | hypixelbf (Bed Rush Duel) | titles and fade timings for countdown, death, respawn, bed destroyed, victory, defeat and AFK; the bed-clock board; the countdown, bed and kill sounds |
 | hpxlbw | damage and armor values in a BedWars game, with enchanted armor |
-| 2026-09-24 Solo, Lucky Rush, no modifiers (`capture-bedwars.js`) | purchases and refusals with their sounds, the affordable and owned looks, the upgrades window from scratch, a trap going off, all four forge levels bought, Emerald II and III, 327 block placements |
+| 2026-09-24 Solo, Lucky Rush, no modifiers (`capture-bedwars.js`) | purchases and refusals with their sounds, the affordable and owned looks, the upgrades window from scratch, a trap going off, Emerald II and III, 327 block placements and the zones they hit |
+| 2026-09-24 Solo, Lucky Rush and Deadwood, no modifiers (`capture-bedwars.js`) | the forge at every level (periods, caps, the start boost), the carry limit, diamond intervals at all three tiers, Emerald II, generator caps and despawn |
 | 2026-09-24 Solo, Deadwood (`capture-bedwars.js`) | every shop window at Solo prices, the upgrades window (all bought), the Tracker Shop and Hotbar Manager, the shopkeepers' name tags, Red's leather color, that Hypixel sends advancing world time stamps, and how generator items spawn. It was a private game with the host's modifiers on, so its generator timings and caps are not Hypixel's defaults |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
-preset. Nothing yet covers hologram cadence, pickups, potion effects, purchases, most sounds, dragons or the
-late game.
+preset. Nothing yet covers hologram cadence, the forge split, most potion effects, most sounds, other
+modes and pools, dragons or the late game.
 
 ### 12.1 A string catalog that matches the wire
 
