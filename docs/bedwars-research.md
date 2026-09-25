@@ -360,9 +360,10 @@ with identical numbers; every forge level bought one at a time and left to fill,
 - **Forge splitting**: when a player picks up forge iron or gold, every teammate of theirs close by gets a
   full copy, not a share. It works at any team's forge, and only ever within a team: a Red and a Blue player
   at the same forge never split (our play). Iron and gold only: diamonds and emeralds never split, whether a
-  forge or a diamond or emerald generator made them (our play). Treated as intended. Measured (cap, Doubles on Sky Rise 2026-09-25): you got a copy standing within about 2.4
-  blocks of the item your teammate picked up (55 times) and never from 2.5 blocks on (106 times), so a
-  radius of about 2.5, counted from the item (our play).
+  forge or a diamond or emerald generator made them (our play). Treated as intended. Measured (cap, Doubles
+  on Sky Rise 2026-09-25): you got a copy standing within about 2.4 blocks of the item your teammate picked
+  up (55 times) and never from 2.5 blocks on (106 times), so a radius of about 2.5, counted from the item
+  (our play). The carry limit below stops split copies too; standing still does not (our play).
 - **Carry limit** (our play): past a threshold you stop picking up generated iron or gold, the items the
   forge made that nobody has picked up yet, the same items its cap counts. It covers iron and gold only, and
   never items anyone dropped. Captured 2026-09-24 (Solo, Lucky Rush, every forge level bought): generated iron
@@ -371,10 +372,10 @@ with identical numbers; every forge level bought one at a time and left to fill,
   much on you!` line in the string catalog never came.
 - **Despawn**: generated items that nobody picks up vanish 300 s after they spawn (vanilla's 6000-tick item
   age), and they never merged in that capture.
-- **Standing still** (our play): after 30 s standing in a generator without moving you stop picking up its
-  generated items until you move; dropped items are unaffected. The iron carry limit above is not this rule:
-  gold kept going in for 108 s after iron stopped. Gold's 65 fits the same pattern; a run that keeps moving
-  past 64 gold would confirm it.
+- **Standing still** (our play): after 30 s without moving you stop picking up items until you move: every
+  item on the ground, generated or dropped. Split copies still reach you. The iron carry limit above is not
+  this rule: gold kept going in for 108 s after iron stopped. Gold's 65 fits the same pattern; a run that
+  keeps moving past 64 gold would confirm it.
 - **Provenance**: generator XP and several achievements need each item tagged with where it came from.
 
 ### 5.4 What a generator capture has to separate
@@ -711,7 +712,8 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   by up to 2.5. Ashfire puts the bed 11 blocks from the spawn, so the spawn is not the center: the Heal Pool
   centers on the spawn, the traps on the bed. Sky Rise's triggers 23 to 24 blocks north of the spawn fit a
   bed about 11 blocks toward the middle there too. A trap that comes off cooldown fires at once on an
-  intruder already inside (30.03 s after the previous one). The order with several intruders: CAPTURE.
+  intruder already inside (30.03 s after the previous one). With several intruders a trap takes only one
+  (our play). Which one is not known; ours takes the first to enter the sphere.
 
 ## 8. Death and respawn
 
