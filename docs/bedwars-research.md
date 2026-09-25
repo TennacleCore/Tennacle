@@ -234,7 +234,9 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   0.88 s after passing y 0: a slow sink in a falling water column at y -0.96, fast falls as deep as -48.
 - **Liquids**: the water bucket is single use and its source can only be blocked (off v1.4). Water flows as
   in vanilla (cap, Waterfall: a step every 5 ticks, over the island's edge and straight down past the
-  floor), except that a flow update into a team's base region is cancelled (our play).
+  floor), except that a flow update into a team's base region is cancelled (our play; on Rooftop four sources
+  at a base's edge never spread toward it). The bucket leaves nothing behind: the slot empties (cap, 87
+  uses).
 
 ## 5. Economy
 
@@ -513,7 +515,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 |---|---|---|
 | Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws) | measured already (Polyp `hypixel`, without the slowness and the arrow); left: the deflect credit rule |
 | TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`); left: the spread, beds |
-| Bridge Egg | lays a wool bridge along its path (team color presumably); a direct hit knocks back; counts for void credit | length (a hedged 35 blocks from 2017), width, cadence |
+| Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. Measured (cap, 66 throws, 2026-09-25): the egg flies as a vanilla egg for at most 30 ticks; the bridge trails it by about 5 ticks, a block below its path, about 2 wide (3 where a diagonal steps), in the thrower's team wool, with a `mob.chicken.plop` (volume 1, pitch 1.0) at a laid block each step. A full flight lays 34 to 37 blocks, about 80 wool; an egg that hits something stops sooner | none |
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
 | Compact Pop-up Tower | builds a one-layer wool tower facing the placer, 2-tall doorway, ladder; returns to the inventory if placed badly; not below the build limit | the block layout and build timing |
