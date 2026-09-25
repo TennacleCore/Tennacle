@@ -536,7 +536,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note). Captured (Sky Rise 2026-09-25, 56 bedbugs): health 8, named `<Team> Silverfish` in the team color with the team word bold, ambient potion swirls of color 9776938: Strength II and Resistance I, two parts to one (the damage confirms the Strength II). The thrower reads green `Your creature will fight for you for 15 seconds.` An invisible armor stand that follows it 1.38 below shows `[■■■■■]`, dark gray brackets, the squares in the team color. Both go 15.05 to 15.14 s after the spawn. It walks like a vanilla silverfish (0.14 blocks a tick) and hits every 20 ticks with vanilla knockback (0.3608 up from standing). Its hits respect armor: of the 169 hurts we took while a bedbug was alive, 139 fit exactly 2.8 before armor, a vanilla silverfish's 1 times Strength II's 3.6 scaled for Easy difficulty (x / 2 + 1), then vanilla armor (13: leather over diamond legs and boots) and Protection IV's random 10 to 20. Most of the rest were bigger than a bedbug can deal. With armor ignored none fit (`research/bedwars/creature_damage.py`). The armor test (cap, Deadwood 2026-09-25): leather without Protection took 2.02 a hit, vanilla's 2.02; with Protection IV, leather, chainmail, iron and diamond took 0.89, 0.74, 0.66 and 0.55 against vanilla's 0.81, 0.72, 0.63 and 0.54. 72 of 74 fit, counting the helmet's Protection I from the purchase (Reinforced Armor, below). Death line `<a> was killed by <b>'s Bedbug.`, the owner's part in the owner's color | targeting |
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players. Captured (Sky Rise 2026-09-25, ours and an enemy's): health 20 (our four hits took it to 18.5, 11, 3.5 and dead); ambient potion swirls of color 5134171 (two parts Weakness to one of Slowness). Green `Your creature will fight for you for 240 seconds.` An invisible armor stand 0.94 above it counts down in 0.1 s steps, `240.0s [■■■■■■■■■■]`: the time in the owner's team color, dark gray brackets, then one square per 2 health left in the team color and the rest gray (health 18.5 showed 9 and 1, 11 showed 5 and 5, 3.5 showed 1 and 9). The count drops its leading zero (`.1s`, `.0s`, `-.0s`) and the golem goes at 240.1 s. It swings every tick while in reach (status 4 and `mob.irongolem.throw` at volume 1, pitch 1.0), and a hit lands every 9 ticks on a target that stays in reach (31 of 79 gaps; vanilla's hurt window would give 10), with vanilla knockback plus the golem's 0.4 throw: 0.4 across and 0.7608 up from standing, 0.8 when rising. Its damage respects armor: 78 of 79 hits on us fit exactly vanilla's golem roll, 7 + nextInt(15), scaled for Easy difficulty (x / 2 + 1, so 4.5 to 11.5), then vanilla armor and Protection IV's random 10 to 20. 56 of the hits came in leather (armor 7), 23 after we bought diamond (armor 13), and the mean fell from 1.98 to 1.54. With armor ignored 5 of 79 fit; on Normal, 47 (`research/bedwars/creature_damage.py`). An armor test (cap, Deadwood 2026-09-25: diamond legs and boots at Protection II, III and IV, hits under a golden apple's Absorption left out) fit all 29, averaging 2.84, 2.45 and 1.59 a hit against vanilla's 2.92, 2.46 and 1.54; with armor ignored, 1. It moved at a median 0.15 to 0.16 blocks a tick (few samples). Death line `<a> was killed by <b>'s Dream Defender.` | targeting, range |
 | Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
-| Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
+| Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` with `liquid.water` (volume 0.7, pitch 2.0) when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
 | Sponge | not vanilla's (cap, 18 sponges, 2026-09-25): placed with the normal sound, then from 5 ticks after, every 8 ticks for 4 steps, it clears the next ring of a 9 x 9 x 9 cube around itself (ring k at step k, the cube's shell k blocks out), with `random.wood_click` at volume 0.5 and pitch bytes 110, 116, 123, 129, and `cloud` x4 (spread 0.08, speed 0.04, long-distance) at the ring's open cells. One step after the last it vanishes with `game.player.swim.splash` (volume 0.6, pitch 2.0), 37 ticks after it went down. While it is active the cube takes no water flowing in, like a base region, so water placed beside it turns still at once and stays that way until a neighbor changes: one stayed floating over a hole dug under it even after the sponge was gone (our play, cap) | none |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | done: Polyp's `hypixel` preset has Hypixel's pearls, with a BedWars variant for the sounds (our play) | none |
 | Invisibility | hides armor and nametag from enemies; a teammate sees the armor and the nametag but not the body (our play); held items stay visible; footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows. Captured (Sky Rise 2026-09-25): the effect is Invisibility amplifier 1 for 600 ticks. An enemy who drank it had all four armor slots sent empty in the tick of the drink, while his held wool still showed after. He left `footstep` x1 at his feet plus 0.1 (spread 0.3, 0, 0.3, speed 1, long-distance) as he walked, 1 to 25 ticks apart; a drinker is sent their own footsteps too. Our first hit on him sent the armor back in the tick of the hurt. A drinker who takes damage loses the effect in that tick and reads red `You took damage and lost your invisibility!` | none |
@@ -758,15 +758,18 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   `<player> reconnected.`, the death state, the countdown from 10, and yellow `You will respawn because you
   still have a bed!` 0.14 s after the first count.
 - **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. The warning reads bold red `You will
-  be afk-ed in ` + bold yellow `10 seconds` + bold red `!` (cap, in game); the candidate kick lines are
+  be afk-ed in ` + bold yellow `10 seconds` + bold red `!` (cap, in game), then `note.pling` (volume 1,
+  pitch 1.0) every 2 ticks until the player moves, up to 10 s (cap, 14 warnings); the candidate kick lines
+  are
   `You were kicked for inactivity!` and `<name> was kicked for being AFK!`.
   The red `You are AFK` title in our logs belongs to the main lobby, before a move to Limbo.
 - Death lines (cap) color names by team with gray text and a period: `<a> was killed by <b>.`,
   `<a> was knocked into the void by <b>.`, `<a> fell into the void.`, and `<a> died.` for a fall with no
   attacker. Kill-message cosmetics swap the verb (dozens of variants seen). A bow kill reads `<a> was shot
   by <b>.` and a fireball kill `<a> was killed by <b>.` (cap). Each arrow hit tells the shooter gray `<a> is
-  on ` red `18.1 ` gray `HP!`. Other players see the dead one leave the tab list at the death, again every
-  second while they wait, and come back at the respawn.
+  on ` red `18.1 ` gray `HP!`, with `random.successful_hit` (volume 1, pitch 1.0; cap, 32 hits). Other
+  players see the dead one leave the tab list at the death, again every second while they wait, and come
+  back at the respawn.
 
 ## 9. Beds
 
@@ -818,11 +821,20 @@ www.hypixel.net           yellow
   sent again on every kill.
 - **Chat**: Solo chat is global; team modes default to team chat with `/shout` on a 60 s cooldown. A
   captured Solo line reads `[49✫] [PINK] [VIP+] <name>: <message>` (level, team tag, rank).
-- **Titles**: the duel capture has the countdown digits, death, respawn, bed destroyed, victory, defeat and
-  AFK with their fade timings. BedWars' own death and respawn titles are in section 8 (cap); the rest:
-  CAPTURE.
-- **Sounds** (Bed Rush Duel capture): the countdown's `note.hat`, the two bed sounds (section 9), and
-  `random.orb` at volume 1 to the killer on every kill, void knock-offs included. Everything else: CAPTURE.
+- **Titles** (cap, every title in nine BedWars captures, `research/bedwars/titles_sounds.py`): each is
+  written up with its feature. The countdown digits (fade 0/20/20), `YOU DIED!` over the respawn count
+  (0/30/0), `RESPAWNED!` (5/30/5), `TRAP TRIGGERED!`, `ALARM!!!`, `BED DESTROYED!` over `You will no longer
+  respawn!` or `All beds have been destroyed!` (5/35/10), `Sudden Death` (10/30/10), and `VICTORY!` and
+  `GAME OVER!` (0/100/0). `You are AFK` over `Move around to return to the lobby.` belongs to the lobby.
+- **Sounds** (cap, the same nine captures): the game's own are written up with their features: `note.hat`
+  (countdown), `note.pling` (purchases, the alarm, the AFK warning), `mob.endermen.portal` (refusals, traps),
+  `random.orb` (kills), `random.chestclosed` (deposits), `mob.wither.death` (a lost bed, Bed Gone),
+  `mob.enderdragon.growl` (a broken bed, dragons), `mob.chicken.plop` (bridge egg, pop-up tower),
+  `random.wood_click` and `game.player.swim.splash` (sponge), `mob.irongolem.throw` (Dream Defender),
+  `liquid.water` (Magic Milk wearing off) and `random.successful_hit` (arrow hits). Everything else is
+  vanilla: steps, digging and placing, hurts, bows, explosions, eating and drinking, chests, water, mob
+  noises. Cosmetics add `random.pop` at volume 1 (an animated head between Amazon's shopkeepers) and
+  fireworks, and some sounds come with an empty name, which a 1.8 client plays as nothing.
 
 ## 11. Stats and progression
 
