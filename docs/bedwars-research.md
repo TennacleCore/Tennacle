@@ -254,6 +254,9 @@ identical numbers; every forge level bought one at a time and left to fill):
   5-minute despawn.
 - Emerald Forge adds an emerald spawner: 1300 ticks (65 s) at Emerald Forge, 701 (35 s) at Molten, as
   NamuWiki says. It held at most 3; the emerald cap: CAPTURE.
+- A purchase restarts the forge at once: iron and gold spawned within a second of every forge line unless
+  the forge was full, and an emerald came 0.06 to 1.8 s after both the Emerald Forge and the Molten Forge
+  line, in two games. Whether it is one emerald on the spot or just a fresh timer: session 2b.
 - Other pools and modes: CAPTURE. Whether the SLOW pool means a slower forge is still open.
 
 ### 5.2 Diamond and emerald generators
@@ -716,28 +719,34 @@ board, so normal play fills the table map by map. The sessions below cover what 
 They keep the tool's checklist numbers, and run in private games with every modifier off, since a modifier
 changes the very numbers being measured.
 
-1. **Forge from the start** (Solo first, then a four-team mode; a map from each pool). From the start, stand
-   beside your forge without touching it until it stops spawning: the boost, the base interval, items per
-   spawn and the cap. The claim that the first fill reaches 64 iron shows as the most lying before a spawn.
-   Pick up about ten and watch it restart, to see whether its timer kept running through the stop.
-2. **Mid generators**: stay within 20 blocks of a diamond generator across 6:00 and an emerald one across
-   12:00, and across 18:00 and 24:00 when a game lasts. Leave one untouched until it stops, for its cap. The
-   countdown tells whether the timer runs while capped: a restart with no spawn means it does.
+1. **Start boost and first spawns** (per map and mode). From `Protect your bed`, stand on your forge and keep
+   collecting for 45 s, so it never fills: the boost's speed and exactly when it ends, and the first iron and
+   gold. Then step off and let it fill, for the cap. Where a diamond generator is within about 45 blocks of
+   your island, its first spawn shows too.
+2. **Mid generators**: at the start, head for the middle until an emerald generator's countdown is in sight;
+   its first step down dates the next spawn even if you never see one. Stay near a diamond generator across
+   6:00 and 18:00 and an emerald one across 12:00 and 24:00, and leave one untouched until it stops, for its
+   cap. A countdown that restarts with no spawn means the timer runs while capped.
    - **2b. Forge upgrades, then the carry limit** (all four levels cost 20 diamonds in Solo/Doubles, 40 in
-     3s/4s): buy the levels one at a time and leave the forge alone after each until it stops, for each
-     level's speed and cap. With every level bought, stand in the forge and pick up until `You didn't pick up
-     any more` appears, for iron and for gold.
+     3s/4s): at your forge, buy the levels one at a time and leave it alone after each until it stops, for
+     each level's speed and cap and the first emerald after Emerald Forge and Molten Forge. With every level
+     bought, stand in the forge and pick up until you can't, for iron and for gold.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
      diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
 
-Reading the summary:
-- `cap  stopped at N generated lying xK; spawned with up to M lying (at T)`: spawning stopped K times with N
-  of its own items lying there; M is the most lying when it still spawned. N = M + items per spawn is a clean
-  cap. An M above N, early in the game, is an overfill during the boost.
-- `lying beside them at a stop: D dropped`: other items there at the time, which the cap does not count.
-- `resumed +Tt after a pickup; on the old grid A of B`: on the grid means the timer kept running while
-  capped.
-- A generator farther than 24 blocks from you is never read as stopped, only as out of view.
+Reading the summary: each generator is split into stretches (the start boost, each forge level your team
+bought, each tier), and each resource in a stretch gets one line:
+- `first +Nt`: its first spawn, N ticks after the stretch began (the start, the boost's end at 0:30, the
+  purchase line, the tier line). `first seen` means you were over 48 blocks away, so it may have come earlier.
+- `64 in 22 spawns (per spawn 3 x21, 1 x1)`: items and spawns; several at once means spawners firing
+  together.
+- `2.77/s, 3 per 21.7t`: the rate over the stretches where it kept spawning, and the period it implies for
+  the forge's spawners (three for iron, one for the rest). `every 201t` when there were too few spawns for a
+  rate.
+- `stopped at 56 lying, most before a spawn 55`: spawning stopped with 56 generated items lying there, and
+  the most it still spawned with was 55: the cap. Stops count only while you were within 24 blocks.
+- `first step 21 s at 0:10: the next spawn due +613t, came +613t`: the countdown's first step down, and the
+  spawn it foretold.
 
 ### 13.2 Everything else
 
