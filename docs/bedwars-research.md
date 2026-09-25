@@ -583,11 +583,13 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   the intruder still inside). On Harvest (Doubles, 2026-09-25) they fired 60 to 67 s apart only because the
   owner bought them one at a time, after each trigger. Confirmed on Sky Rise (Doubles, 2026-09-25): three
   queued at once fired at 0, +30.1 and +60.5 s while the intruder stood still inside.
-- Trigger area: not the Heal Pool's sphere. On Sky Rise (2026-09-25) a trap fired with the intruder standing
-  still 24.4 blocks north of the owners' spawn, and a walk-in set one off between 23 and 25 blocks out, where
-  the Heal Pool ends at 21 on that side; on Harvest a sprint in set one off between 21.4 and 19.0. That fits
-  a 21-block sphere around a point 3 blocks toward the middle from the spawn, perhaps the bed (our guess),
-  or a per-map base area. Its center and shape, and the order with several intruders: CAPTURE.
+- Trigger area (cap, Ashfire Doubles 2026-09-25): a sphere of radius 12 around the bed. Six walk-ins from the
+  north (at the bed's height, 3.5 and 7.5 blocks above), east, south and west fit a sphere centered within
+  half a block of the bed's head block, radius 12.0, every edge point within 0.2 of it; a flat circle misses
+  by up to 2.5. Ashfire puts the bed 11 blocks from the spawn, so the spawn is not the center: the Heal Pool
+  centers on the spawn, the traps on the bed. Sky Rise's triggers 23 to 24 blocks north of the spawn fit a
+  bed about 11 blocks toward the middle there too. A trap that comes off cooldown fires at once on an
+  intruder already inside (30.03 s after the previous one). The order with several intruders: CAPTURE.
 
 ## 8. Death and respawn
 
