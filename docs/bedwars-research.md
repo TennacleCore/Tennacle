@@ -149,7 +149,10 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   vanilla living sound at volume 5. From Sudden Death the board counts `More Dragons in 5:00` (cap): the
   second dragons come 5 real minutes later, whatever the event speed. At 4x the board went from Sudden Death
   straight to `Game End in 2:30` and showed `More Dragons in 2:30` only after the game had ended, so a 4x game
-  never reaches them. The wave itself: CAPTURE (a normal-speed game past 45:00).
+  never reaches them. The wave (cap, Sky Rise 2026-09-25, normal speed, at 45:00): per team the same
+  `SUDDEN DEATH: +1 <Team> Dragon!` line and a new dragon 15 blocks over its spawn point, one
+  `mob.enderdragon.growl` at the player, then dark purple bold `MORE DRAGONS HAVE SPAWNED!` in chat, all in
+  one tick. No title.
 - Game End at 50:00 (cap, 2026-09-25, twice at 4x event speed, one against one with both alive): the board
   counts `Game End in` down to 0:01, then with no warning or draw line the end summary names one winner and
   the other reads red bold `GAME OVER!` (0/100/0). The team with the most players still alive wins (our
@@ -192,7 +195,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   emeralds green), gray `into `, aqua `Team Chest` or light purple `Ender Chest`, gray `! `, dark gray
   `(131 Total)`: the chest's count of that item. The sound is `random.chestclosed` (volume 1, pitch 1.0) at
   the depositor's feet, not the chest (cap). A single bow is refused with red `You need at least 2 items of
-  this type to deposit!` (cap); a single resource deposits.
+  this type to deposit!` (cap); a single resource deposits. Shears get red `You can't deposit this item!`
+  (cap).
 
 | Mode | Bases | Diamond gens | Emerald gens |
 |---|---|---|---|
@@ -228,7 +232,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   2026-09-25. Those tests stayed inside the 132-block radius and below the height limit.
   The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
   the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. Height (cap): Sky Rise took wool
-  at y 90 (map file 91); Waterfall placed at y 100 and refused 101, its map file's number, with red `Build
+  at y 90 and refused 91 (map file 91), a water bucket included; Waterfall placed at y 100 and refused 101,
+  its map file's number, with red `Build
   height limit reached!` and no sound. The file's maxBuild is the first height refused.
 - **Breaking**: only player-placed blocks. Refusal line (cap): `You can only break blocks placed by a
   player!`. Inside a generator's area it is red `You can't break blocks here!` (cap, Waterfall's emerald
@@ -243,7 +248,9 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   2026-09-25) water placed just outside the protected box over a team's spawn flooded the base floor and ran
   around the bed, but never into the box. Water cannot be placed inside that box either: the server sends
   air back, the bucket stays and no line prints (18 tries), where a block gets `You can't place blocks here!`.
-  A placed bucket leaves nothing behind: the slot empties (cap, 87 uses).
+  A placed bucket leaves nothing behind: the slot empties (cap, 87 uses). On Sky Rise a bucket emptied into
+  -86,74,-29, about 11 blocks from our spawn point, got red `You can't empty buckets here!` (cap, twice):
+  air back and the bucket kept. Water went in at -86,77,-30. That zone's extent: not mapped.
 
 ## 5. Economy
 
@@ -523,14 +530,15 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 |---|---|---|
 | Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws) | measured already (Polyp `hypixel`, without the slowness and the arrow). The deflector gets the kill, being the fireball's owner from then on (our play) | none |
 | TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`): it is primed as placed, needs no lighting, and never breaks beds, which count as map blocks (our play) | none |
-| Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. The rule is below (Bridge Egg, exactly) | none |
-| Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
-| Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
+| Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. The rule is below (Bridge Egg, exactly). A throw within 1 s of the last is refused with red `Please wait 1.0s to use that again`, whatever is left (cap: refused at 0.65 and 0.90 s, thrown at 1.00 s) | none |
+| Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note). Captured (Sky Rise 2026-09-25, 56 bedbugs): health 8, named `<Team> Silverfish` in the team color with the team word bold, ambient potion swirls of color 9776938 (two parts Strength to one of Resistance). The thrower reads green `Your creature will fight for you for 15 seconds.` An invisible armor stand that follows it 1.38 below shows `[■■■■■]`, dark gray brackets, the squares in the team color. Both go 15.05 to 15.14 s after the spawn. It walks like a vanilla silverfish (0.14 blocks a tick) and hits every 20 ticks with vanilla knockback (0.3608 up from standing). Through leather with Protection IV each of 18 hits from full health was 0.0538 x (25 - k) for the random k of 10 to 20, so 1.87 before armor. Death line `<a> was killed by <b>'s Bedbug.`, the owner's part in the owner's color | targeting |
+| Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players. Captured (Sky Rise 2026-09-25, ours and an enemy's): health 20 (our four hits took it to 18.5, 11, 3.5 and dead); ambient potion swirls of color 5134171 (two parts Weakness to one of Slowness). Green `Your creature will fight for you for 240 seconds.` An invisible armor stand 0.94 above it counts down in 0.1 s steps, `240.0s [■■■■■■■■■■]`: the time in the owner's team color, dark gray brackets, then one square per 2 health left in the team color and the rest gray (health 18.5 showed 9 and 1, 11 showed 5 and 5, 3.5 showed 1 and 9). The count drops its leading zero (`.1s`, `.0s`, `-.0s`) and the golem goes at 240.1 s. It swings every tick while in reach (status 4 and `mob.irongolem.throw` at volume 1, pitch 1.0), and a hit lands every 9 ticks on a target that stays in reach (31 of 79 gaps; vanilla's hurt window would give 10), with vanilla knockback plus the golem's 0.4 throw: 0.4 across and 0.7608 up from standing, 0.8 when rising. Damage through leather with Protection IV, from full health: 0.77 to 3.17 over 12 hits. That is under the 1.01 minimum of vanilla's 7 to 21 roll on Normal and inside the same roll on Easy (4.5 to 11.5 before armor). It moved at a median 0.15 to 0.16 blocks a tick (few samples). Death line `<a> was killed by <b>'s Dream Defender.` | targeting, range |
 | Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
 | Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
 | Sponge | not vanilla's (cap, 18 sponges, 2026-09-25): placed with the normal sound, then from 5 ticks after, every 8 ticks for 4 steps, it clears the next ring of a 9 x 9 x 9 cube around itself (ring k at step k, the cube's shell k blocks out), with `random.wood_click` at volume 0.5 and pitch bytes 110, 116, 123, 129, and `cloud` x4 (spread 0.08, speed 0.04, long-distance) at the ring's open cells. One step after the last it vanishes with `game.player.swim.splash` (volume 0.6, pitch 2.0), 37 ticks after it went down. While it is active the cube takes no water flowing in, like a base region, so water placed beside it turns still at once and stays that way until a neighbor changes: one stayed floating over a hole dug under it even after the sponge was gone (our play, cap) | none |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | done: Polyp's `hypixel` preset has Hypixel's pearls, with a BedWars variant for the sounds (our play) | none |
-| Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows | per-viewer equipment packets, particle rate |
+| Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows. Captured (Sky Rise 2026-09-25): the effect is Invisibility amplifier 1 for 600 ticks. An enemy who drank it had all four armor slots sent empty in the tick of the drink, while his held wool still showed after. He left `footstep` x1 at his feet plus 0.1 (spread 0.3, 0, 0.3, speed 1, long-distance) as he walked, 1 to 25 ticks apart; a drinker is sent their own footsteps too. Our first hit on him sent the armor back in the tick of the hurt. A drinker who takes damage loses the effect in that tick and reads red `You took damage and lost your invisibility!` | the nametag, what a teammate sees |
+| Speed II, Jump V | (cap, 2026-09-25) Speed amplifier 1 and Jump Boost amplifier 4, 900 ticks each with particles shown. 15 s after the drink the server sends the effect again at 600 ticks, and removes it 45 s after the drink (four drinks) | none |
 | Golden Apple | vanilla 1.8 (our play) | a capture to confirm the effects and eat time |
 
 #### Bridge Egg, exactly
@@ -737,7 +745,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - **Spectating**: eliminated players spectate with a compass, a settings item, Play Again and Return to
   Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
-  death, final when bedless. `<player> disconnected.` (cap).
+  death, final when bedless. `<player> disconnected.` (cap). Back in (cap, Sky Rise 2026-09-25):
+  `<player> reconnected.`, the death state, the countdown from 10, and yellow `You will respawn because you
+  still have a bed!` 0.14 s after the first count.
 - **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. The warning reads bold red `You will
   be afk-ed in ` + bold yellow `10 seconds` + bold red `!` (cap, in game); the candidate kick lines are
   `You were kicked for inactivity!` and `<name> was kicked for being AFK!`.
@@ -834,6 +844,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Waterfall, a private game with Max Team Upgrades on (`capture-bedwars.js`) | the Reveal and Counter-Offensive traps going off, Magic Milk's length, shop refusals, the void kill, the kill credit window, respawn invincibility, Bed Gone, Sudden Death and its dragons, the win, the tab text, water flow, the height limit, Emerald III and the forge's emerald cap. Its forges were maxed by the modifier, so their rates are not the defaults |
 | 2026-09-25 Solo, Babylon, Lightstone and Amazon, the first two with Max Team Upgrades on (`capture-bedwars.js`) | Magic Milk against a Miner Fatigue trap, breaking a bed and losing yours, a final death and `GAME OVER!`, Amazon's slow forge again |
 | 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
+| 2026-09-25 Solo, Sky Rise, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | bedbugs and Dream Defenders, ours and an enemy's; invisibility from both sides; the second dragons at 45:00; the bridge egg cooldown; the rejoin respawn; the bucket, deposit and height refusals; Speed II and Jump V. Its 1 s respawns are the modifier's |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
 preset. Nothing yet covers other modes and pools, most potion effects or most sounds.
@@ -940,13 +951,10 @@ bought, each tier), and each resource in a stretch gets one line:
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
    captured (2026-09-25). AFK is not being tested.
 6. **Beds**: captured (2026-09-25).
-7. **Utilities**: the bridge egg and pop-up tower are settled (2026-09-25). Left: a bedbug and a Dream
-   Defender (health, damage, lifetime), a sponge dropped in water (the clearing, its particles and sound), a
-   golden apple eaten (eat time, effects), two TNT placed together and TNT against a bed behind one layer of
-   wool. TNT and fireball physics are already measured.
-8. **Late game**: Bed Gone, Sudden Death and Game End are captured (2026-09-25; the last two at 4x event
-   speed). Left: the second dragons, which need a normal-speed game past 45:00 (event speed does not bring
-   them sooner).
+7. **Utilities**: the bridge egg, pop-up tower, sponge, bedbug and Dream Defender are settled (2026-09-25).
+   Left: a golden apple eaten, to confirm vanilla. TNT and fireball physics are already measured, and TNT
+   never breaks beds (our play).
+8. **Late game**: Bed Gone, Sudden Death, the second dragons and Game End are captured (2026-09-25).
 9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
    modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
 
