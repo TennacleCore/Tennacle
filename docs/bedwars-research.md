@@ -357,9 +357,10 @@ with identical numbers; every forge level bought one at a time and left to fill,
 
 ### 5.3 Pickup
 
-- **Forge splitting**: when a teammate picks up forge iron or gold, every teammate close by gets a full
-  copy, not a share. Iron and gold only, never diamonds, emeralds or forge emeralds, never enemies. Treated
-  as intended. Measured (cap, Doubles on Sky Rise 2026-09-25): you got a copy standing within about 2.4
+- **Forge splitting**: when a player picks up forge iron or gold, every teammate of theirs close by gets a
+  full copy, not a share. It works at any team's forge, and only ever within a team: a Red and a Blue player
+  at the same forge never split (our play). Iron and gold only: diamonds and emeralds never split, whether a
+  forge or a diamond or emerald generator made them (our play). Treated as intended. Measured (cap, Doubles on Sky Rise 2026-09-25): you got a copy standing within about 2.4
   blocks of the item your teammate picked up (55 times) and never from 2.5 blocks on (106 times), so a
   radius of about 2.5, counted from the item (our play).
 - **Carry limit** (our play): past a threshold you stop picking up generated iron or gold, the items the
