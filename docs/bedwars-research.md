@@ -572,12 +572,18 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Blindness Trap: Blindness and Slowness on the intruder for 8 s.
 - Counter-Offensive: Speed II and Jump Boost II for 15 s to teammates near the base.
 - Reveal (Alarm) Trap: strips invisibility, announces the intruder's name and team.
-- Miner Fatigue Trap: Mining Fatigue for 8 s. Level disputed (I, III, "-80%").
+- Miner Fatigue Trap: Mining Fatigue I for 8 s (cap, 160 ticks, particles shown; the I, III or "-80%" dispute
+  is over). The intruder gets only the effect: no chat, title or sound.
 - Set-off (cap): bold red `Miner Fatigue Trap was set off!` in chat, the title red `TRAP TRIGGERED!` over
   `Your Miner Fatigue Trap has been set off!`, and `mob.endermen.portal` (the window bullets above have the
   timings).
 - Two traps go off 30 s apart (cap, Lucky Rush 2026-09-24: the second fired 30.05 s after the first, with
-  the intruder still inside). Trigger area and the order with several intruders: CAPTURE.
+  the intruder still inside). On Harvest in Doubles (2026-09-25) they fired 60 to 67 s apart, with the
+  intruder inside or back in for seconds each time; how that game's traps were queued decides whether the
+  gap differs there.
+- Trigger area: the one clean entry (Harvest, sprinting in) fired within 0.6 s of crossing 21 blocks from the
+  owners' spawn point (21.4 half a second before, 19.0 when it landed), the Heal Pool's sphere. The order
+  with several intruders: CAPTURE.
 
 ## 8. Death and respawn
 
