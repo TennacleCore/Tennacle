@@ -81,9 +81,9 @@ Hypixel balances BedWars around 1.8 combat for every client version (off, v1.10)
 | Gray | **S** | dark_gray |
 
 Order and letters are cap (Gray is S because G is taken). Chat tags read `[RED]`, `[PINK]` (cap); the rest
-follow the pattern. Leather dye RGB per team changed twice in 2026 for Pink and Green: CAPTURE. Captured:
-Red `#FF0000`, Blue `#0000FF`, Aqua `#00FFFF`, Gray `#808080`. 1.8 clients render every bed red; 1.12+ see
-team-colored beds (wiki).
+follow the pattern. Leather RGB per team, all captured and carried by Canvas's `Tint.LEATHER_OF`: Red
+`#FF0000`, Blue `#0000FF`, Green `#48CC18`, Yellow `#FFFF00`, White `#FFFFFF`, Aqua `#00FFFF`, Gray `#808080`,
+Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (wiki).
 
 ## 3. Match flow
 
@@ -172,10 +172,10 @@ team-colored beds (wiki).
 - **Shopkeepers** (cap): both are blacksmith villagers with no name of their own. Armor stands above them
   read aqua `ITEM SHOP` over yellow bold `RIGHT CLICK`, and in Solo aqua `SOLO` and `UPGRADES` over `RIGHT
   CLICK`, lines 0.25 to 0.28 apart. Doubles prints `TEAM` in place of `SOLO` (cap).
-- **Team chest**: shared. Enemy access after the bed breaks (off 2017) or only after elimination (a
-  recreation string). An enemy's chest with their bed standing refuses with red `You cannot open this Chest
-  as the <Team> has not been eliminated!`, the team in its color (cap): the line names elimination. After
-  the bed but before the elimination: CAPTURE.
+- **Team chest**: shared. Other teams cannot open it until the owning team is fully eliminated, every
+  member final-killed (our play; the 2017 claim of access once the bed breaks is stale). Until then it
+  refuses with red `You cannot open this Chest as the <Team> has not been eliminated!`, the team in its
+  color (cap).
 - **Ender chest**: personal, the same contents from any ender chest on the map.
 - **Punch to deposit**: punching a chest with resources in hand deposits the held stack; sneak-punch
   deposits every stack of that item; nearby players hear it (off 2024-12, 2025-01). Chat (cap): gray
@@ -224,8 +224,8 @@ team-colored beds (wiki).
   down (cap, twelve falls). On Waterfall all five of ours died on the same tick of a 20-tick beat, 0.08 to
   0.88 s after passing y 0: a slow sink in a falling water column at y -0.96, fast falls as deep as -48.
 - **Liquids**: the water bucket is single use and its source can only be blocked (off v1.4). Water flows as
-  in vanilla (cap, Waterfall): a step every 5 ticks, over the island's edge and straight down past the
-  floor.
+  in vanilla (cap, Waterfall: a step every 5 ticks, over the island's edge and straight down past the
+  floor), except that a flow update into a team's base region is cancelled (our play).
 
 ## 5. Economy
 
@@ -507,7 +507,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
 | Compact Pop-up Tower | builds a one-layer wool tower facing the placer, 2-tall doorway, ladder; returns to the inventory if placed badly; not below the build limit | the block layout and build timing |
-| Magic Milk | no trap triggers for 30 s (cap: 30.1 s from the end of the drink to red `Your Magic Milk wore off!`); cleared on death; keeps other effects | whether defenders are still alerted |
+| Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap: 30.1 s after the drink); cleared on death; keeps other effects | none |
 | Sponge | a temporary block that soaks water | lifetime, radius, quantity |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | landing measured (Polyp, 130 throws); left: the safe-spot search, any cooldown |
 | Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows | per-viewer equipment packets, particle rate |
@@ -854,8 +854,7 @@ bought, each tier), and each resource in a stretch gets one line:
 3. **Shop sweep**: the Solo windows and the refusals are captured (2026-09-24, 2026-09-25). Left: a worse
    sword, the upgrades window before anything is bought, and the same windows in a 3s or 4s game for those
    prices.
-4. **With a party**: the forge split, the Heal Pool and every trap are captured (2026-09-25). Left: an
-   intruder with Magic Milk walking into your base, seen from your side.
+4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
 5. **Deaths**: the respawn, respawn invincibility, the void kill and the credit window are captured
    (2026-09-25). Left: your own final death, going AFK.
 6. **Beds**: break an enemy bed and lose your own to a player (breaking your own is captured).
