@@ -218,9 +218,11 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   decays and resets on death (off 2026-05).
 - **No-place zones** are per-map boxes over spawns, base interiors and shopkeepers. Refusal line (cap):
   `You can't place blocks here!`. Box sizes are map data. Generators have their own (cap, Lucky Rush
-  2026-09-24): refused at least 3 blocks out around a diamond generator and up to 3 above it; over the base,
-  refused out to 10 to 13 blocks from the forge toward the middle and at y 76. Other placements that failed
-  came back as air with no line. Those tests stayed inside the 132-block radius and below the height limit.
+  2026-09-24): refused at least 3 blocks out around a diamond generator and up to 3 above it. Over the base,
+  blocks were refused 5.8 and 7.2 blocks from the forge but went down from 6.6, so the zone is a box, not a
+  radius; 27 of the 28 refusals printed the line. An earlier reading here (refused out to 13 blocks and at y
+  76, silently) came from pop-up tower clicks, which the capture tool counted as refused placements until
+  2026-09-25. Those tests stayed inside the 132-block radius and below the height limit.
   The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
   the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. Height (cap): Sky Rise took wool
   at y 90 (map file 91); Waterfall placed at y 100 and refused 101, its map file's number, with red `Build
