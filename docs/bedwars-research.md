@@ -640,7 +640,8 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Reinforced Armor (cap, Deadwood 2026-09-25): each tier re-sends the armor with the new Protection 0.3 to
   0.4 s after the purchase. At tier I the helmet's new enchant reached the client only at the next respawn,
   yet it protected from the purchase: 13 of 13 bedbug hits in between fit Protection I on four pieces, 8 of
-  13 on three. Tiers II to IV re-sent all four at once.
+  13 on three. Tiers II to IV re-sent all four at once. The tier I helmet is a Hypixel bug, recorded here
+  and not reproduced: ours sends all four pieces at every tier.
 - A purchase is broadcast to the team (cap): green `<player> purchased `, gold upgrade name. Traps use the
   same line.
 - Heal Pool (cap, Doubles on Sky Rise and Amazon 2026-09-25): Regeneration I while the player's feet are
@@ -852,7 +853,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Waterfall, a private game with Max Team Upgrades on (`capture-bedwars.js`) | the Reveal and Counter-Offensive traps going off, Magic Milk's length, shop refusals, the void kill, the kill credit window, respawn invincibility, Bed Gone, Sudden Death and its dragons, the win, the tab text, water flow, the height limit, Emerald III and the forge's emerald cap. Its forges were maxed by the modifier, so their rates are not the defaults |
 | 2026-09-25 Solo, Babylon, Lightstone and Amazon, the first two with Max Team Upgrades on (`capture-bedwars.js`) | Magic Milk against a Miner Fatigue trap, breaking a bed and losing yours, a final death and `GAME OVER!`, Amazon's slow forge again |
 | 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
-| 2026-09-25 Solo, Deadwood twice, private games with `Respawn Time: 1 Second`, the first also with Max Team Upgrades (`capture-bedwars.js`) | Dream Defender and bedbug damage against every armor tier and Protection level, Reinforced Armor's helmet lag, effect re-sends |
+| 2026-09-25 Solo, Deadwood twice, private games with `Respawn Time: 1 Second`, the first also with Max Team Upgrades (`capture-bedwars.js`) | Dream Defender and bedbug damage against every armor tier and Protection level, the Reinforced Armor helmet bug, effect re-sends |
 | 2026-09-25 Doubles, Ironclad, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the golden apple, the fireball's cooldown line, a trap bought with an intruder inside, the Heal Pool's 30 s re-send |
 | 2026-09-25 Solo, Sky Rise, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | bedbugs and Dream Defenders, ours and an enemy's; invisibility from both sides; the second dragons at 45:00; the bridge egg cooldown; the rejoin respawn; the bucket, deposit and height refusals; Speed II and Jump V. Its 1 s respawns are the modifier's |
 
