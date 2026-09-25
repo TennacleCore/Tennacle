@@ -197,8 +197,10 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
   `You can't place blocks here!`. Box sizes are map data. Generators have their own (cap, Lucky Rush
   2026-09-24): refused at least 3 blocks out around a diamond generator and up to 3 above it; over the base,
   refused out to 10 to 13 blocks from the forge toward the middle and at y 76. Other placements that failed
-  came back as air with no line. Those tests stayed inside the 132-block radius and below the height limit,
-  so the radius's shape is still open.
+  came back as air with no line. Those tests stayed inside the 132-block radius and below the height limit.
+  The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
+  the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. That run went one way
+  only, so circle or square is still open, and so is the height limit (placed up to y 73 of 91).
 - **Breaking**: only player-placed blocks. Refusal line (cap): `You can only break blocks placed by a
   player!`. Plants outside protected areas break without drops (off 2022).
 - **Void**: below the minimum build limit a player cannot drop items or open the inventory (wiki), which
