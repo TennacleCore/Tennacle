@@ -128,8 +128,8 @@ clients render every bed red; 1.12+ see team-colored beds (wiki).
 
 - The sidebar shows only the next event, one line: white `<Event> in `, green `M:SS` (cap). It redraws at
   least once a second.
-- Tier-up chat (cap): aqua `Diamond Generators`, yellow `have been upgraded to Tier`, red numeral. The
-  emerald and tier III lines were not reached: CAPTURE.
+- Tier-up chat (cap): aqua `Diamond Generators`, yellow `have been upgraded to Tier`, red numeral; the
+  emerald and tier III lines follow it (cap, 2026-09-24).
 - Bed Gone: all beds go at once. Candidate text from the string catalog (12.1): a red
   `All beds will be destroyed in 5 minutes!` warning, then `All beds have been destroyed!`, plain and bold
   red (likely chat and title). Confirm, with the sounds: CAPTURE.
@@ -283,7 +283,8 @@ with identical numbers; every forge level bought one at a time and left to fill,
   is 30, 22.5 and 11.25 s plus one tick each; Solo emeralds every 1001 ticks at tier II (50 s plus one). The
   first diamond came 8 to 24 ticks after the start, with no wait. Tier II and III lines at 6:00 and 18:00
   (diamond) and 12:00 and 24:00 (emerald). While a generator is capped its countdown keeps restarting with
-  no spawn: 4 diamonds and 2 emeralds, the Solo caps. Emeralds at tiers I and III: CAPTURE.
+  no spawn: 4 diamonds and 2 emeralds, the Solo caps. Solo emeralds at tier I every 1301 ticks (65 s plus
+  one, Rooftop); at tier III: CAPTURE.
 - NamuWiki's timing is self-consistent with the capture: the first Solo emerald lands at 0:31, and at an
   emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds do the same (cap, Sky
   Rise 2026-09-25): the first diamond 8 ticks after the start, then every 601, and one on the spot with the
@@ -461,7 +462,6 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   into that slot.
 - Rotating Items tab: one to three rotating items weekly from a pool of about 30. Defer.
 - Chat (cap): `You purchased <Shop Name>`, `You don't have enough Iron! Need 3 more!`.
-  Purchase sounds: CAPTURE.
 
 ### 6.3 Special items
 
