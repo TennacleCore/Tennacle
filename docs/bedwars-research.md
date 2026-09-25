@@ -229,24 +229,26 @@ drops a block's item, 0.2 up and at most 0.1 each way across.
   less than that, and gold stops at Golden Forge.
 - An eliminated team's forge keeps producing at its level.
 
-**Measured** (cap, 2026-09-24: Solo on Lucky Rush twice and Deadwood, both in the 8TEAMS_FAST pool, with
-identical numbers; every forge level bought one at a time and left to fill):
+**Measured** (cap, 2026-09-24 and 25: Solo on Lucky Rush, Deadwood and Sky Rise, all in the 8TEAMS_FAST pool,
+with identical numbers; every forge level bought one at a time and left to fill, on Lucky Rush and Sky Rise):
 
 | Forge level | Iron period | Iron/s | Gold period | Gold/s | Iron cap | Gold cap |
 |---|---|---|---|---|---|---|
 | none | 51 ticks | 1.18 | 276 ticks | 0.072 | 48 (64 on the first fill) | 16 |
 | first 30 s | 21 | 2.86 | 126 | 0.159 | | |
 | Iron Forge | 36 | 1.67 | 201 | 0.10 | 56 | 18 |
-| Golden Forge | 27 | 2.22 | 126 | 0.159 | 64 | 20 |
-| Emerald Forge | 27 | 2.22 | 126 | 0.159 | 72 | 22 |
+| Golden Forge | 21 | 2.86 | 126 | 0.159 | 64 | 20 |
+| Emerald Forge | 21 | 2.86 | 126 | 0.159 | 72 | 22 |
 | Molten Forge | 21 | 2.86 | 126 | 0.159 | 80 | 24 |
 
 - The forge is three iron spawners and one gold spawner on one point, each dropping one item per period.
   With no upgrade the three iron spawners fire together, 3 iron at once; once a level changes their period
   they drift apart and items come one at a time (at Iron Forge, 3 per 36 ticks spaced 9 apart).
-- Iron per second is 3 per period, so the levels give iron +42%, +89%, +89% and +143%, not +50/+100/+200
-  (the rates measured over whole stretches agree within 2%); gold gains +37% at Iron Forge, +119% at Golden
-  and nothing after. Molten iron runs at the start boost's speed.
+- Iron per second is 3 per period, so Iron Forge gives iron +42% and Golden Forge +143%, not +50 and +100;
+  gold gains +37% and +119%. From Golden Forge on, iron and gold run at the start boost's speed, and neither
+  Emerald nor Molten Forge speeds them further: Molten brings faster emeralds and the bigger cap only. Golden
+  and Emerald read 21 on Lucky Rush and Sky Rise alike (an earlier 27 was a rate over 8 items; grouped by
+  cycle, the same spawns give 21).
 - The start boost lasts 600 ticks. With the forge kept empty through it (Sky Rise, 2026-09-25) iron came 3
   every 21 ticks until +578, then at +598 both iron and gold spawned on the spot and switched to 3 every 51
   and 1 every 276; gold ran every 126 before. The first iron and gold appear 4 to 12 ticks after `Protect
@@ -258,7 +260,7 @@ identical numbers; every forge level bought one at a time and left to fill):
   NamuWiki says. It held at most 3; the emerald cap: CAPTURE.
 - A purchase restarts the forge at once: iron and gold spawned within a second of every forge line unless
   the forge was full, and an emerald came 0.06 to 1.8 s after both the Emerald Forge and the Molten Forge
-  line, in two games. Whether it is one emerald on the spot or just a fresh timer: session 2b.
+  line, in three games. Whether it is one emerald on the spot or just a fresh timer: session 2b.
 - **The SLOW pool** (cap, Amazon, Solo, 2026-09-25): the forge has one iron spawner, not three. It dropped 1
   iron every 21 ticks through the boost and 1 every 51 after it, a third of a FAST-pool forge; gold ran the
   same (126, then 276). One map so far. NamuWiki lists Rooftop as slow in Solo although the map file puts it
@@ -743,8 +745,9 @@ changes the very numbers being measured.
    6:00 and 18:00 and an emerald one across 12:00 and 24:00, and leave one untouched until it stops, for its
    cap. A countdown that restarts with no spawn means the timer runs while capped.
    - **2b. Forge upgrades, then the carry limit** (all four levels cost 20 diamonds in Solo/Doubles, 40 in
-     3s/4s): at your forge, buy the levels one at a time and leave it alone after each until it stops, for
-     each level's speed and cap and the first emerald after Emerald Forge and Molten Forge. With every level
+     3s/4s): at your forge, buy the levels one at a time; after each, pick everything up, then leave it
+     alone until it stops, for each level's speed and cap and the first emerald after Emerald Forge and
+     Molten Forge. Emptying it first matters: a full forge refills only as fast as old items despawn. With every level
      bought, stand in the forge and pick up until you can't, for iron and for gold.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
      diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
@@ -757,7 +760,7 @@ bought, each tier), and each resource in a stretch gets one line:
   together.
 - `2.77/s, 3 per 21.7t`: the rate over the stretches where it kept spawning, and the period it implies for
   the forge's spawners (three for iron, one for the rest). `every 201t` when there were too few spawns for a
-  rate.
+  rate. A stretch spent at its cap is paced by items leaving, not by the forge.
 - `stopped at 56 lying, most before a spawn 55`: spawning stopped with 56 generated items lying there, and
   the most it still spawned with was 55: the cap. Stops count only while you were within 24 blocks.
 - `first step 21 s at 0:10: the next spawn due +613t, came +613t`: the countdown's first step down, and the
