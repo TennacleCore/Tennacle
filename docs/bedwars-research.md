@@ -428,7 +428,7 @@ obsidian. The Solo/Doubles column matches the live shop item for item, price and
 | | Bridge Egg | 1 | 1 emerald |
 | | Magic Milk | 1 | 4 gold |
 | | Sponge | 4 (3s/4s: 4 or 6, conflict) | 2 gold (3) |
-| | Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
+| | Compact Pop-up Tower | 1 | 24 iron |
 | Quick Buy | Tracker, per enemy team | | 2 emerald, unlocks once every enemy bed is gone |
 
 Price history is dense (chainmail, bedbug, water and sponge all changed on 2023-05-03; ladders, arrows,
@@ -520,7 +520,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. The rule is below (Bridge Egg, exactly) | none |
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
-| Compact Pop-up Tower | builds a one-layer wool tower facing the placer, 2-tall doorway, ladder; returns to the inventory if placed badly; not below the build limit | the block layout and build timing |
+| Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
 | Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
 | Sponge | a temporary block that soaks water | lifetime, radius, quantity |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | landing measured (Polyp, 130 throws); left: the safe-spot search, any cooldown |
@@ -529,8 +529,10 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 
 #### Bridge Egg, exactly
 
-Fitted on 95 eggs and 2,300 wool packets (cap, 2026-09-25); the rule reproduces 95% of full three-block packets,
-the rest sitting on a cell boundary or on a cell that was not air.
+Fitted on 95 eggs and 2,300 wool packets (cap, 2026-09-25). With one fixed 5-tick delay and nothing tuned per
+packet, the rule reproduces 92% of full three-block packets exactly, and 95% of shorter ones fall inside it. The
+misses sit on cell boundaries, where the spawn packet's 1/32-block rounding of the start decides, or on cells
+that were not air. Packets that seemed to fit a 6-tick delay all arrived late in a tick: the delay is 5.
 
 - **Flight**: a vanilla 1.8 egg. Each tick it moves by its motion, then the motion is multiplied by 0.99 and y
   loses 0.03; it leaves at the vanilla throw speed of 1.5. The velocity packets every 10 ticks
@@ -557,8 +559,12 @@ Fitted on 19 builds (cap, 2026-09-24): after turning each to one frame, the clea
   after the click. Each placed block plays `mob.chicken.plop` at volume 0.8, pitch byte 50 (0.79x), at the
   block's corner plus 0.5 along the horizontal axis across the tower's facing (z for a tower facing along x,
   x for one facing along z).
-- **Frame**: P is the block the chest would have gone into. `f` counts forward along the placer's facing, `r` to
-  the placer's right and `h` up from P. The door faces the placer; the ladder column is P itself.
+- **Frame**: P is the block the chest would have gone into, and the tower takes the facing the chest would
+  have been placed with (our play): the doorway faces where the chest's front would, toward the placer. `f`
+  counts forward, away from the placer, `r` to the placer's right and `h` up from P; the ladder column is P
+  itself. Three facings were captured; the fourth is the same turned.
+- **Push**: a player standing where a block goes is pushed (our play). Nine pushes in the captures measured
+  0.64 to 0.69 in all, 0.48 to 0.67 of it upward; which way it points: CAPTURE (those logs have no positions).
 - **Blueprint** (team wool unless a ladder):
   - `h = -1 to 3`, the walls: (f, r) = (-2, -1), (-2, 1), (-1, -2), (-1, 2), (0, -2), (0, 2), (1, -1),
     (1, 0), (1, 1), plus (-2, 0) at `h = 2 and 3` only: the doorway is (-2, 0) at `h = 0 and 1`. At `h = -1`
@@ -1104,7 +1110,8 @@ Each of these was read in the code, not just reported:
 | Team upgrades | Tennacle | team state consulted on hit, equip, purchase and spawn; stamping enchants for the glint; Haste, Heal Pool, forge rate |
 | Traps | Tennacle | a per-team queue fired on base-region entry, the four effects, the alarm, Magic Milk's immunity window |
 | Tiers and the death outfit | Tennacle | armor and tool tiers as seat state read by kit factories, tools down a tier before the respawn, resources to the killer, the ender chest to the forge at a final death |
-| Special items | Tennacle, Polyp hooks | bridge egg (a trail behavior on a tagged egg, its wool marked placed), bedbug, Dream Defender, pop-up tower, sponge, Magic Milk, water bucket (the blocks-and-stuff fluids module), TNT placement marked handled |
+| Structure builds | Grotto or Tennacle | one builder for every block-laying item: a build is a stream of (cell, block) placements a tick with the shared rules (air only, marked placed, build limits and protected zones, a sound per block, a push for a player in the cell). The pop-up tower feeds it a blueprint turned to the chest's facing, two cells a tick; the bridge egg the cells under its path, 5 ticks late; later builders plug in the same way |
+| Special items | Tennacle, Polyp hooks | bridge egg and pop-up tower (through structure builds), bedbug, Dream Defender, sponge, Magic Milk, water bucket (the blocks-and-stuff fluids module), TNT placement marked handled |
 | Mobs | new | silverfish and golem with goals, team targeting, a lifetime, damage through Polyp's attack pipeline, credit to the owner |
 | Armor hiding | Polyp | a per-viewer equipment filter for invisible players |
 | Knockback credit | Grotto | `KillCredit` off knockback; projectile to shooter, TNT to igniter |
