@@ -62,7 +62,9 @@ Hypixel balances BedWars around 1.8 combat for every client version (off, v1.10)
 - **Private games** (MVP++ only) expose modifiers, which read as a ready list of rule knobs: bed
   instabreak, disable block protection, event time multiplier, health buff, low gravity, max team
   upgrades, one hit one kill, respawn time (1, 5 or 10 s), speed, no diamonds, no emeralds (API
-  `privategames` object).
+  `privategames` object). `Event Times: 4x - Fastest` (cap) runs every event at a quarter of its time: tiers
+  at 1:30, 3:00, 4:30 and 6:00, Bed Gone 7:30, Sudden Death 10:00, Game End 12:30. The Bed Gone warning still
+  comes 5 real minutes early, and generator and forge rates are untouched.
 - **Challenges**: 30 opt-in rule restrictions for core modes (no team upgrades, no utilities, slow
   generator, knockback stick only, no swords, archer only, no sprint, capped resources, and so on), plus 9
   from 2026. Also rule-shaped; a later concern.
@@ -143,12 +145,15 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   rest, then flies the whole map at about a block a tick (90% of steps under 1.34, peak 2.2) between y 66
   and 120, taking map and placed blocks alike: 5,900 blocks went in two and a half minutes. Four hits landed
   while a dragon was 7 to 11 blocks away, each knocking 0.4 up and 0.4 to 1.36 across. Its own growl is the
-  vanilla living sound at volume 5. The 45:00 dragons: CAPTURE.
-- Game End at 50:00: draws exist and award neither a win nor a loss (off 2025-09-02), but the rule when
-  several teams are alive is disputed (draw, shared win, a picked winner): CAPTURE. The catalog carries
-  bold red `GAME OVER!`, bold yellow `DRAW!`, `It's a draw.`, a yellow
-  `At this rate, a draw will happen in N minutes!` warning and a `Draw in M:SS` label, which suggests the
-  last board entry reads Draw rather than Game End in at least one mode.
+  vanilla living sound at volume 5. No 45:00 dragons came in two games at 4x event speed (their 11:15
+  there; the games ended at 12:30): each team kept its one dragon.
+- Game End at 50:00 (cap, 2026-09-25, twice at 4x event speed, one against one with both alive): the board
+  counts `Game End in` down to 0:01, then with no warning or draw line the end summary names one winner and
+  the other reads red bold `GAME OVER!` (0/100/0). The team with the most players still alive wins (our
+  play); with the same count the rule is unknown: the host won both, once as Gray and once as Red, with no
+  kills either side. Draws exist and award neither a win nor a loss (off 2025-09-02). The catalog carries bold
+  yellow `DRAW!`, `It's a draw.`, a yellow `At this rate, a draw will happen in N minutes!` warning and a
+  `Draw in M:SS` label; none appeared.
 
 ### 3.4 Winning and rewards
 
@@ -183,7 +188,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   `Deposited `, `x13 Iron Ingot ` in the item's color (iron and wool white, gold gold, diamonds aqua,
   emeralds green), gray `into `, aqua `Team Chest` or light purple `Ender Chest`, gray `! `, dark gray
   `(131 Total)`: the chest's count of that item. The sound is `random.chestclosed` (volume 1, pitch 1.0) at
-  the depositor's feet, not the chest (cap).
+  the depositor's feet, not the chest (cap). A single bow is refused with red `You need at least 2 items of
+  this type to deposit!` (cap); a single resource deposits.
 
 | Mode | Bases | Diamond gens | Emerald gens |
 |---|---|---|---|
@@ -204,8 +210,10 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   NamuWiki's list and the 2020 map-admin list, yet all six are 8TEAMS_FAST, and Fandom calls every four-team
   map fast iron while 38 are 4TEAMS_SLOW. Either the pool means something else (SLOW eight-team maps are
   bigger, median radius 130.5 against 117.5, though the four-team pools barely differ) or the lists are stale
-  since Hypixel standardized speeds in 2023. One game on a map from each pool, in the same mode, settles it;
-  if the pool is the forge speed, the file gives every map's class.
+  since Hypixel standardized speeds in 2023. Settled (cap, Solo, 2026-09-25): the pool is not the forge
+  speed. Glacier, in 8TEAMS_FAST, has the slow one-spawner forge the lists give it, and Bio-Hazard, in
+  8TEAMS_SLOW, the fast three-spawner one; Amazon (SLOW) is slow. So the file gives no forge class, and the
+  community lists were right about Glacier.
 - **Above the top**: more than one block above the limit for over 30 s starts damage that grows; the timer
   decays and resets on death (off 2026-05).
 - **No-place zones** are per-map boxes over spawns, base interiors and shopkeepers. Refusal line (cap):
@@ -284,12 +292,13 @@ with identical numbers; every forge level bought one at a time and left to fill,
   modifier stopped with 3 emeralds lying, its iron and gold at the usual Molten 80 and 24).
 - A purchase restarts the forge at once: iron and gold spawned within a second of every forge line unless
   the forge was full, and an emerald came 0.06 to 1.8 s after both the Emerald Forge and the Molten Forge
-  line, in three games. Whether it is one emerald on the spot or just a fresh timer: session 2b.
-- **The SLOW pool** (cap, Amazon, Solo, 2026-09-25): the forge has one iron spawner, not three. It dropped 1
-  iron every 21 ticks through the boost and 1 every 51 after it, a third of a FAST-pool forge; gold ran the
-  same (126, then 276). One map so far. NamuWiki lists Rooftop as slow in Solo although the map file puts it
-  in the FAST pool; the Rooftop game ran with the host's Max Team Upgrades modifier, which maxes the forge,
-  so that forge is unread, as are the Ashfire, Amazon Doubles and Waterfall forges (the same modifier). Other
+  line, in three games. In a fourth (Bio-Hazard, 2026-09-25) none came at the Emerald Forge line, the first
+  1301 ticks after it, with the forge holding 64 iron (the Golden cap) when bought; Molten's came at +23t.
+- **Slow forges** (cap, Solo, 2026-09-25: Amazon twice and Glacier): one iron spawner, not three. It dropped
+  1 iron every 21 ticks through the boost and 1 every 51 after it, a third of a fast forge; gold ran the same
+  (126, then 276). The pool does not tell a slow forge (above). NamuWiki lists Rooftop as slow in Solo; the
+  Rooftop game ran with the host's Max Team Upgrades modifier, which maxes the forge, so that forge is unread,
+  as are the Ashfire, Amazon Doubles, Waterfall, Babylon and Lightstone forges (the same modifier). Other
   modes: CAPTURE.
 
 ### 5.2 Diamond and emerald generators
@@ -665,8 +674,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
   death, final when bedless. `<player> disconnected.` (cap).
-- **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. Candidate text: bold
-  `You will be afk-ed in 10 seconds!`, `You were kicked for inactivity!`, `<name> was kicked for being AFK!`.
+- **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. The warning reads bold red `You will
+  be afk-ed in ` + bold yellow `10 seconds` + bold red `!` (cap, in game); the candidate kick lines are
+  `You were kicked for inactivity!` and `<name> was kicked for being AFK!`.
   The red `You are AFK` title in our logs belongs to the main lobby, before a move to Limbo.
 - Death lines (cap) color names by team with gray text and a period: `<a> was killed by <b>.`,
   `<a> was knocked into the void by <b>.`, `<a> fell into the void.`, and `<a> died.` for a fall with no
@@ -758,6 +768,8 @@ www.hypixel.net           yellow
 | 2026-09-24 Solo, Lucky Rush and Deadwood, no modifiers (`capture-bedwars.js`) | the forge at every level (periods, caps, the start boost), the carry limit, diamond intervals at all three tiers, Emerald II, generator caps and despawn |
 | 2026-09-24 Solo, Deadwood (`capture-bedwars.js`) | every shop window at Solo prices, the upgrades window (all bought), the Tracker Shop and Hotbar Manager, the shopkeepers' name tags, Red's leather color, that Hypixel sends advancing world time stamps, and how generator items spawn. It was a private game with the host's modifiers on, so its generator timings and caps are not Hypixel's defaults |
 | 2026-09-25 Solo, Waterfall, a private game with Max Team Upgrades on (`capture-bedwars.js`) | the Reveal and Counter-Offensive traps going off, Magic Milk's length, shop refusals, the void kill, the kill credit window, respawn invincibility, Bed Gone, Sudden Death and its dragons, the win, the tab text, water flow, the height limit, Emerald III and the forge's emerald cap. Its forges were maxed by the modifier, so their rates are not the defaults |
+| 2026-09-25 Solo, Babylon, Lightstone and Amazon, the first two with Max Team Upgrades on (`capture-bedwars.js`) | Magic Milk against a Miner Fatigue trap, breaking a bed and losing yours, a final death and `GAME OVER!`, Amazon's slow forge again |
+| 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
 preset. Nothing yet covers other modes and pools, most potion effects or most sounds.
@@ -866,8 +878,8 @@ bought, each tier), and each resource in a stretch gets one line:
 6. **Beds**: captured (2026-09-25).
 7. **Utilities**: a bridge egg, a pop-up tower, a bedbug and a Dream Defender; two TNT placed together;
    TNT against a bed behind one layer of wool. TNT and fireball physics are already measured.
-8. **Late game**: Bed Gone and Sudden Death are captured (2026-09-25). Left: a game past 45:00 (the second
-   dragons) and one to 50:00 with two teams alive (Game End). A private game gets there on schedule.
+8. **Late game**: Bed Gone, Sudden Death and Game End are captured (2026-09-25; the last two at 4x event
+   speed).
 9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
    modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
 
