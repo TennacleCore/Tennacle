@@ -341,7 +341,8 @@ with identical numbers; every forge level bought one at a time and left to fill,
   apart above the block stand's highest point: the countdown at 2.0, the name at 2.38, the tier at 2.75. The
   block turns one and a half times one way and back, 60 ticks each way, fastest mid-swing at 14° a tick,
   rising 0.43 blocks on one sweep and sinking on the other, with a move packet every tick. The countdown
-  renames once a second.
+  renames once a second. An emerald generator's display is the same (cap, Amazon 2026-09-25): the same line
+  heights, swing and rise.
 - Items near a generator count toward its cap until carried away.
 
 ### 5.3 Pickup
@@ -524,7 +525,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
 | Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
 | Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
-| Sponge | a temporary block that soaks water; unlike vanilla's, it shows particles where it is clearing and plays a sound (our play) | lifetime, the area and timing of the clearing, its particles and sound |
+| Sponge | not vanilla's (cap, 18 sponges, 2026-09-25): placed with the normal sound, then from 5 ticks after, every 8 ticks for 4 steps, it clears the next ring of a 9 x 9 x 9 cube around itself (ring k at step k, the cube's shell k blocks out), with `random.wood_click` at volume 0.5 and pitch bytes 110, 116, 123, 129, and `cloud` x4 (spread 0.08, speed 0.04, long-distance) at the ring's open cells. One step after the last it vanishes with `game.player.swim.splash` (volume 0.6, pitch 2.0), 37 ticks after it went down. Water placed beside an active sponge turned still at once and never spread; one stayed floating over a hole dug under it even after the sponge was gone | none |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | landing measured (Polyp, 130 throws); left: the safe-spot search, any cooldown |
 | Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows | per-viewer equipment packets, particle rate |
 | Golden Apple | vanilla 1.8 effects per the community | effects and eat time |
@@ -634,7 +635,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   the spawn centers 0.3 blocks from it, radius 20.9. The check runs once a second, every change landing on
   the same tick of a 20-tick beat. While inside, the effect is sent again 246 ticks after each entry, which
   changes nothing on screen. It works without a bed (our play). The older claims were 12 blocks (2017) and 5
-  around the bed (guides). Its particles: CAPTURE (the tool logs particles since 2026-09-25).
+  around the bed (guides). Its particles (cap, Amazon 2026-09-25): `happyVillager` x39 at the team's spawn
+  point, spread 10.5 on every axis, speed 0, long-distance, every 12 ticks, two identical packets each time.
+  Every team's pool shows to anyone in range.
 - **The window** (captured 2026-09-24, Solo, twice: once with every upgrade bought by the host's modifiers,
   once from scratch). Upgrades in slots 10-12 and 19-21: Sharpened Swords (iron sword), Reinforced Armor
   (iron chestplate), Maniac Miner (golden pickaxe), then the forge (furnace), Heal Pool (beacon) and Cushioned
