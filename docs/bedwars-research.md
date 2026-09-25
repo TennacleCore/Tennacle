@@ -287,8 +287,9 @@ with identical numbers; every forge level bought one at a time and left to fill,
 - **The SLOW pool** (cap, Amazon, Solo, 2026-09-25): the forge has one iron spawner, not three. It dropped 1
   iron every 21 ticks through the boost and 1 every 51 after it, a third of a FAST-pool forge; gold ran the
   same (126, then 276). One map so far. NamuWiki lists Rooftop as slow in Solo although the map file puts it
-  in the FAST pool; the Rooftop game sped its forge up with a modifier, so that forge is unread. Other modes:
-  CAPTURE.
+  in the FAST pool; the Rooftop game ran with the host's Max Team Upgrades modifier, which maxes the forge,
+  so that forge is unread, as are the Ashfire, Amazon Doubles and Waterfall forges (the same modifier). Other
+  modes: CAPTURE.
 
 ### 5.2 Diamond and emerald generators
 
@@ -314,7 +315,8 @@ with identical numbers; every forge level bought one at a time and left to fill,
   their first emerald 606 to 617 ticks after the start (0:30.3 to 0:30.9), then every 1301; Amazon's came at
   +609. The Emerald II line brought one on the spot. Before that first emerald the countdown already counts to
   the second one: at 0:26 it read 70 s, due at +1910, and the second came at +1911. First diamonds came 8 to
-  27 ticks after the start on four maps. Rooftop's one modifier sped up the forge only.
+  27 ticks after the start on four maps. Max Team Upgrades leaves the mid generators alone: their tiers ran
+  at the usual 601, 451, 1301 and 1001 ticks under it.
 - Item spawns reached the client from 85 blocks away (Sky Rise), so a generator across the island is still
   measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
