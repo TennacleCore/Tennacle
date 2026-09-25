@@ -569,7 +569,7 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Queue of three, first in first out. The next trap costs 1, 2 or 4 diamonds by how many are queued.
   One trap fires per intruder entering the base. They never fire once the bed is gone, and since 2025-09
   cannot be bought then. A queued trap can be removed by its buyer, without a refund.
-- Blindness Trap: Blindness and Slowness on the intruder for 8 s.
+- Blindness Trap: Blindness II for 8 s and Slowness I for 5 s on the intruder (cap, 2026-09-25).
 - Counter-Offensive: Speed II and Jump Boost II for 15 s to teammates near the base.
 - Reveal (Alarm) Trap: strips invisibility, announces the intruder's name and team.
 - Miner Fatigue Trap: Mining Fatigue I for 8 s (cap, 160 ticks, particles shown; the I, III or "-80%" dispute
@@ -579,10 +579,12 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   timings).
 - Two traps go off 30 s apart (cap, Lucky Rush 2026-09-24: the second fired 30.05 s after the first, with
   the intruder still inside). On Harvest (Doubles, 2026-09-25) they fired 60 to 67 s apart only because the
-  owner bought them one at a time, after each trigger.
-- Trigger area: the one clean entry (Harvest, sprinting in) fired within 0.6 s of crossing 21 blocks from the
-  owners' spawn point (21.4 half a second before, 19.0 when it landed), the Heal Pool's sphere. The order
-  with several intruders: CAPTURE.
+  owner bought them one at a time, after each trigger. Confirmed on Sky Rise (Doubles, 2026-09-25): three
+  queued at once fired at 0, +30.1 and +60.5 s while the intruder stood still inside.
+- Trigger area: not the Heal Pool's sphere. On Sky Rise (2026-09-25) a trap fired with the intruder standing
+  still 24.4 blocks north of the owners' spawn, and a walk-in set one off between 23 and 25 blocks out, where
+  the Heal Pool ends at 21 on that side; on Harvest a sprint in set one off between 21.4 and 19.0. Most likely
+  a per-map base area; its shape, and the order with several intruders: CAPTURE.
 
 ## 8. Death and respawn
 
