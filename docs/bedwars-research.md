@@ -386,7 +386,7 @@ at once:
 - **Mode and map.** Forge speed is set per map and can differ between modes on the same map (the map admin
   in 2020: some maps are slow in Solo and medium in Doubles); four-team forges gained an extra item per
   spawn in 2017. Emerald generator counts (2 or 3 in 3s/4s) and generator caps vary by map.
-- **Time.** The forge runs faster for the first 30 s (the map admin, 2020; unmeasured). Diamond and emerald
+- **Time.** The forge runs at Golden Forge speed for the first 30 s (measured, 5.1). Diamond and emerald
   generators change interval at each tier (6, 12, 18 and 24 minutes). Each generator's first spawn after the
   start is its own number: the first Solo emerald lands at 0:31, not after a full 65 s.
 - **Upgrades.** Each forge level changes both the speed and the cap (2023-05); Emerald Forge adds emeralds.
