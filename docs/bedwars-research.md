@@ -439,7 +439,7 @@ table above is the newest documented.
 - A lower armor tier than yours is refused with red `You already have a higher tier item.` and no sound; the
   tier you own with red `You've already purchased this item!` and `mob.endermen.portal` (cap, 2026-09-25).
 - Since 2023, a bought sword replaces the sword in your selected hotbar slot if it is better, and a better
-  sword picked up replaces your current one.
+  sword picked up replaces your current one. A worse sword than yours can still be bought (our play).
 - Armor can be bought with a full inventory. Other purchases are refused: red `Purchase Failed! Your
   inventory is full!` with `mob.endermen.portal` (cap, wool).
 - Pressing drop on a permanent item moves it to its Hotbar Manager slot; permanent items cannot go in
@@ -665,7 +665,7 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
   death, final when bedless. `<player> disconnected.` (cap).
-- **AFK**: 4 minutes then a 10 s warning in 2017; today: CAPTURE. Candidate text: bold
+- **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. Candidate text: bold
   `You will be afk-ed in 10 seconds!`, `You were kicked for inactivity!`, `<name> was kicked for being AFK!`.
   The red `You are AFK` title in our logs belongs to the main lobby, before a move to Limbo.
 - Death lines (cap) color names by team with gray text and a period: `<a> was killed by <b>.`,
@@ -678,8 +678,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 ## 9. Beds
 
 - Enemy beds break by hand with no tool; your own bed cannot be broken: red `You can't destroy your own bed!`
-  in chat, no sound, both halves sent again (cap). With Haste II from Max Team Upgrades a bed broke 0.2 s
-  after the first swing, both halves at once (cap); the time without Haste: CAPTURE.
+  in chat, no sound, both halves sent again (cap). A bed breaks at the client's own break speed, with no
+  timer of the server's (our play): with Haste II from Max Team Upgrades it went 0.2 s after the first swing,
+  both halves at once (cap).
 - Chat (cap): bold `BED DESTRUCTION > `, the team's bed in its color, gray `was destroyed by`, the breaker
   in their color, `!`. Your own team reads `Your Bed was destroyed by <player>!`. Cosmetics swap the verb.
 - Titles for the losing team (duel capture, and BedWars 2026-09-25): a clearing title, then 5/35/10 red
@@ -857,13 +858,12 @@ bought, each tier), and each resource in a stretch gets one line:
 
 ### 13.2 Everything else
 
-3. **Shop sweep**: the Solo windows and the refusals are captured (2026-09-24, 2026-09-25). Left: a worse
-   sword, the upgrades window before anything is bought, and the same windows in a 3s or 4s game for those
-   prices.
+3. **Shop sweep**: the Solo windows and the refusals are captured (2026-09-24, 2026-09-25). Left: the
+   upgrades window before anything is bought, and the same windows in a 3s or 4s game for those prices.
 4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
-   captured (2026-09-25). Left: going AFK.
-6. **Beds**: captured (2026-09-25). Left: an enemy bed broken without Haste, for the break time.
+   captured (2026-09-25). AFK is not being tested.
+6. **Beds**: captured (2026-09-25).
 7. **Utilities**: a bridge egg, a pop-up tower, a bedbug and a Dream Defender; two TNT placed together;
    TNT against a bed behind one layer of wool. TNT and fireball physics are already measured.
 8. **Late game**: Bed Gone and Sudden Death are captured (2026-09-25). Left: a game past 45:00 (the second
