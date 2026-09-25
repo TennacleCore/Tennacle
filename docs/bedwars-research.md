@@ -250,9 +250,13 @@ drops a block's item, 0.2 up and at most 0.1 each way across.
   copy, not a share. Iron and gold only, never diamonds, emeralds or forge emeralds, never enemies. Treated
   as intended. Radius (players say 1 to 3 blocks) and the exact rule: CAPTURE.
 - **Carry limit** (our play): past a threshold you stop picking up generated iron or gold, the items the
-  forge made that nobody has picked up yet, the same items its cap counts, with `You didn't pick up any more
-  Iron because you have too much on you!`. It covers iron and gold only, and never items anyone dropped.
-  The thresholds: CAPTURE (section 13.1, session 2b).
+  forge made that nobody has picked up yet, the same items its cap counts. It covers iron and gold only, and
+  never items anyone dropped. Captured 2026-09-24 (Solo, Lucky Rush, every forge level bought): generated iron
+  still went in while you held 512 and not at 513, gold at 64 and not at 65, one item per pickup, while the
+  forge kept spawning beside you. Nothing is said: the `You didn't pick up any more Iron because you have too
+  much on you!` line in the string catalog never came.
+- **Despawn**: generated items that nobody picks up vanish 300 s after they spawn (vanilla's 6000-tick item
+  age), and they never merged in that capture.
 - **Provenance**: generator XP and several achievements need each item tagged with where it came from.
 
 ### 5.4 What a generator capture has to separate
@@ -271,7 +275,7 @@ at once:
   threw there do not count (the 2022 fix), so a capture has to tell generated items from dropped ones.
 - **What you hold.** Past a threshold you stop picking up generated iron and gold, the same not yet picked up
   items the cap counts; dropped items always pick up, and diamonds and emeralds have no limit (our play).
-  The iron and gold thresholds: CAPTURE.
+  The thresholds are 512 iron and 64 gold (section 5.3).
 
 We will use some of Hypixel's maps as they are, so each map's own numbers matter, not only the rules. Every
 game played through the capture tool adds that map's record (section 13.1).
