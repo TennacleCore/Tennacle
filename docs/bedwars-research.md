@@ -64,7 +64,8 @@ Hypixel balances BedWars around 1.8 combat for every client version (off, v1.10)
   upgrades, one hit one kill, respawn time (1, 5 or 10 s), speed, no diamonds, no emeralds (API
   `privategames` object). `Event Times: 4x - Fastest` (cap) runs every event at a quarter of its time: tiers
   at 1:30, 3:00, 4:30 and 6:00, Bed Gone 7:30, Sudden Death 10:00, Game End 12:30. The Bed Gone warning still
-  comes 5 real minutes early, and generator and forge rates are untouched.
+  comes 5 real minutes early, the second dragons 5 real minutes after Sudden Death, and generator and forge
+  rates are untouched.
 - **Challenges**: 30 opt-in rule restrictions for core modes (no team upgrades, no utilities, slow
   generator, knockback stick only, no swords, archer only, no sprint, capped resources, and so on), plus 9
   from 2026. Also rule-shaped; a later concern.
@@ -112,7 +113,7 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 - Starting kit: wooden sword and compass; full team-dyed leather armor, unbreakable, helmet with Aqua
   Affinity I (off, v0.4; comm 2020). The compass is only given if a Hotbar Manager slot holds it.
 - The XP bar shows BedWars level progress in game (off, v1.6).
-- Spawn protection at the start: CAPTURE.
+- Spawn protection at the start: assumed 3 s, like respawn invincibility (our play; not worth a capture).
 
 ### 3.3 Timeline (core modes)
 
@@ -145,8 +146,10 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   rest, then flies the whole map at about a block a tick (90% of steps under 1.34, peak 2.2) between y 66
   and 120, taking map and placed blocks alike: 5,900 blocks went in two and a half minutes. Four hits landed
   while a dragon was 7 to 11 blocks away, each knocking 0.4 up and 0.4 to 1.36 across. Its own growl is the
-  vanilla living sound at volume 5. No 45:00 dragons came in two games at 4x event speed (their 11:15
-  there; the games ended at 12:30): each team kept its one dragon.
+  vanilla living sound at volume 5. From Sudden Death the board counts `More Dragons in 5:00` (cap): the
+  second dragons come 5 real minutes later, whatever the event speed. At 4x the board went from Sudden Death
+  straight to `Game End in 2:30` and showed `More Dragons in 2:30` only after the game had ended, so a 4x game
+  never reaches them. The wave itself: CAPTURE (a normal-speed game past 45:00).
 - Game End at 50:00 (cap, 2026-09-25, twice at 4x event speed, one against one with both alive): the board
   counts `Game End in` down to 0:01, then with no warning or draw line the end summary names one winner and
   the other reads red bold `GAME OVER!` (0/100/0). The team with the most players still alive wins (our
@@ -518,17 +521,17 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 
 | Item | Documented behavior | Still needs a capture |
 |---|---|---|
-| Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws) | measured already (Polyp `hypixel`, without the slowness and the arrow); left: the deflect credit rule |
-| TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`); left: the spread, beds |
+| Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws) | measured already (Polyp `hypixel`, without the slowness and the arrow). The deflector gets the kill, being the fireball's owner from then on (our play) | none |
+| TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`): it is primed as placed, needs no lighting, and never breaks beds, which count as map blocks (our play) | none |
 | Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. The rule is below (Bridge Egg, exactly) | none |
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
 | Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
 | Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
 | Sponge | not vanilla's (cap, 18 sponges, 2026-09-25): placed with the normal sound, then from 5 ticks after, every 8 ticks for 4 steps, it clears the next ring of a 9 x 9 x 9 cube around itself (ring k at step k, the cube's shell k blocks out), with `random.wood_click` at volume 0.5 and pitch bytes 110, 116, 123, 129, and `cloud` x4 (spread 0.08, speed 0.04, long-distance) at the ring's open cells. One step after the last it vanishes with `game.player.swim.splash` (volume 0.6, pitch 2.0), 37 ticks after it went down. While it is active the cube takes no water flowing in, like a base region, so water placed beside it turns still at once and stays that way until a neighbor changes: one stayed floating over a hole dug under it even after the sponge was gone (our play, cap) | none |
-| Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | landing measured (Polyp, 130 throws); left: the safe-spot search, any cooldown |
+| Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | done: Polyp's `hypixel` preset has Hypixel's pearls, with a BedWars variant for the sounds (our play) | none |
 | Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows | per-viewer equipment packets, particle rate |
-| Golden Apple | vanilla 1.8 effects per the community | effects and eat time |
+| Golden Apple | vanilla 1.8 (our play) | a capture to confirm the effects and eat time |
 
 #### Bridge Egg, exactly
 
@@ -592,7 +595,7 @@ Explosions, as documented:
 | Wool, clay, planks, ladder | breaks | breaks (clay was disputed; see below) |
 | Anything in or under water | protected | protected |
 | Map blocks | never | never |
-| Beds | CAPTURE | CAPTURE |
+| Beds | never: map blocks (our play) | never |
 
 **Explosives are the most settled part of BedWars.** Polyp's `hypixel` preset (and its `bedwars()` variant,
 `HYPIXEL_BEDWARS`) was fitted on our own Hypixel captures: TNT fuse 50 ticks detonating at the feet and lit on
@@ -931,8 +934,8 @@ bought, each tier), and each resource in a stretch gets one line:
 
 ### 13.2 Everything else
 
-3. **Shop sweep**: the Solo windows and the refusals are captured (2026-09-24, 2026-09-25). Left: the
-   upgrades window before anything is bought, and the same windows in a 3s or 4s game for those prices.
+3. **Shop sweep**: the Solo windows, the upgrades window from scratch and the refusals are captured
+   (2026-09-24, 2026-09-25). Left: the same windows in a 3s or 4s game, for those prices.
 4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
    captured (2026-09-25). AFK is not being tested.
@@ -942,7 +945,8 @@ bought, each tier), and each resource in a stretch gets one line:
    golden apple eaten (eat time, effects), two TNT placed together and TNT against a bed behind one layer of
    wool. TNT and fireball physics are already measured.
 8. **Late game**: Bed Gone, Sudden Death and Game End are captured (2026-09-25; the last two at 4x event
-   speed).
+   speed). Left: the second dragons, which need a normal-speed game past 45:00 (event speed does not bring
+   them sooner).
 9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
    modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
 
