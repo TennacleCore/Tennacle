@@ -314,8 +314,21 @@ with identical numbers; every forge level bought one at a time and left to fill,
   1 iron every 21 ticks through the boost and 1 every 51 after it, a third of a fast forge; gold ran the same
   (126, then 276). The pool does not tell a slow forge (above). NamuWiki lists Rooftop as slow in Solo; the
   Rooftop game ran with the host's Max Team Upgrades modifier, which maxes the forge, so that forge is unread,
-  as are the Ashfire, Amazon Doubles, Waterfall, Babylon and Lightstone forges (the same modifier). Other
-  modes: CAPTURE.
+  as are the Ashfire, Amazon Doubles, Waterfall, Babylon and Lightstone forges (the same modifier).
+- **Four-team forges** (cap, 2026-09-25: 3s on Lasagne and 4s on Relic, private games whose only modifier was
+  the 1 s respawn, every level bought in turn): slower spawners than Solo's, with Solo's caps.
+
+| Forge level | Iron period | Gold period | Iron cap | Gold cap |
+|---|---|---|---|---|
+| none | 61 ticks | 151 ticks | 48 (64 on the first fill) | 16 |
+| first 30 s | 31 | 76 | | |
+| Iron Forge | 45 | 113 | 56 | 18 |
+| Golden, Emerald and Molten Forge | 31 | 76 | 64, 72, 80 | 20, 22, 24 |
+
+  Relic's forge drops 5 iron a wave and Lasagne's 3, so Relic runs 1.64 iron a second with no upgrade and
+  3.2 from Golden Forge on, Lasagne 0.98 and 1.94. Relic is in 4TEAMS_SLOW and Lasagne is not in the map
+  file: the pool does not tell the speed here either. The forge's emeralds come faster than Solo's: 1101
+  ticks (55 s, three spawns) at Emerald Forge and 541 (27 s) at Molten.
 
 ### 5.2 Diamond and emerald generators
 
@@ -343,6 +356,8 @@ with identical numbers; every forge level bought one at a time and left to fill,
   the second one: at 0:26 it read 70 s, due at +1910, and the second came at +1911. First diamonds came 8 to
   27 ticks after the start on four maps. Max Team Upgrades leaves the mid generators alone: their tiers ran
   at the usual 601, 451, 1301 and 1001 ticks under it.
+- Four-team mid generators (cap, Relic 4s 2026-09-25): diamonds every 601, 451 and 226 ticks as in Solo,
+  emeralds every 801 at tier II (40 s plus one), with the tier lines at the Solo times.
 - Item spawns reached the client from 85 blocks away (Sky Rise), so a generator across the island is still
   measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
@@ -403,8 +418,10 @@ game played through the capture tool adds that map's record (section 13.1).
 
 Prices are Solo/Doubles, with 3s/4s in parentheses where it differs. 4v4 uses the 3s/4s prices and sells no
 obsidian. The Solo/Doubles column matches the live shop item for item, price and quantity (a Solo game,
-2026-09-24; every window is in `research/bedwars/shop-windows-2026-09-24.txt`). The 3s/4s prices still need a
-3s or 4s game.
+2026-09-24; every window is in `research/bedwars/shop-windows-2026-09-24.txt`). A 3s and a 4s game (Lasagne,
+Relic, 2026-09-25) confirmed TNT at 8 gold and the water bucket at 3, and 23 more Quick Buy items at the Solo
+price. The diamond sword and sponge at 3s/4s prices, and the items those games did not show, are still from
+the docs.
 
 | Tab | Item | Qty | Price |
 |---|---|---|---|
@@ -533,8 +550,8 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws). A launch within 0.5 s of the last is refused with red `Please wait 0.5s to use that again` (cap, Ironclad: refused at 0.20 and 0.40 s, launched at 0.60 s) | measured already (Polyp `hypixel`, without the slowness and the arrow). The deflector gets the kill, being the fireball's owner from then on (our play) | none |
 | TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`): it is primed as placed, needs no lighting, and never breaks beds, which count as map blocks (our play) | none |
 | Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. The rule is below (Bridge Egg, exactly). A throw within 1 s of the last is refused with red `Please wait 1.0s to use that again`, whatever is left (cap: refused at 0.65 and 0.90 s, thrown at 1.00 s) | none |
-| Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note). Captured (Sky Rise 2026-09-25, 56 bedbugs): health 8, named `<Team> Silverfish` in the team color with the team word bold, ambient potion swirls of color 9776938: Strength II and Resistance I, two parts to one (the damage confirms the Strength II). The thrower reads green `Your creature will fight for you for 15 seconds.` An invisible armor stand that follows it 1.38 below shows `[■■■■■]`, dark gray brackets, the squares in the team color. Both go 15.05 to 15.14 s after the spawn. It walks like a vanilla silverfish (0.14 blocks a tick) and hits every 20 ticks with vanilla knockback (0.3608 up from standing). Its hits respect armor: of the 169 hurts we took while a bedbug was alive, 139 fit exactly 2.8 before armor, a vanilla silverfish's 1 times Strength II's 3.6 scaled for Easy difficulty (x / 2 + 1), then vanilla armor (13: leather over diamond legs and boots) and Protection IV's random 10 to 20. Most of the rest were bigger than a bedbug can deal. With armor ignored none fit (`research/bedwars/creature_damage.py`). The armor test (cap, Deadwood 2026-09-25): leather without Protection took 2.02 a hit, vanilla's 2.02; with Protection IV, leather, chainmail, iron and diamond took 0.89, 0.74, 0.66 and 0.55 against vanilla's 0.81, 0.72, 0.63 and 0.54. 72 of 74 fit, counting the helmet's Protection I from the purchase (Reinforced Armor, below). Death line `<a> was killed by <b>'s Bedbug.`, the owner's part in the owner's color | targeting |
-| Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players. Captured (Sky Rise 2026-09-25, ours and an enemy's): health 20 (our four hits took it to 18.5, 11, 3.5 and dead); ambient potion swirls of color 5134171 (two parts Weakness to one of Slowness). Green `Your creature will fight for you for 240 seconds.` An invisible armor stand 0.94 above it counts down in 0.1 s steps, `240.0s [■■■■■■■■■■]`: the time in the owner's team color, dark gray brackets, then one square per 2 health left in the team color and the rest gray (health 18.5 showed 9 and 1, 11 showed 5 and 5, 3.5 showed 1 and 9). The count drops its leading zero (`.1s`, `.0s`, `-.0s`) and the golem goes at 240.1 s. It swings every tick while in reach (status 4 and `mob.irongolem.throw` at volume 1, pitch 1.0), and a hit lands every 9 ticks on a target that stays in reach (31 of 79 gaps; vanilla's hurt window would give 10), with vanilla knockback plus the golem's 0.4 throw: 0.4 across and 0.7608 up from standing, 0.8 when rising. Its damage respects armor: 78 of 79 hits on us fit exactly vanilla's golem roll, 7 + nextInt(15), scaled for Easy difficulty (x / 2 + 1, so 4.5 to 11.5), then vanilla armor and Protection IV's random 10 to 20. 56 of the hits came in leather (armor 7), 23 after we bought diamond (armor 13), and the mean fell from 1.98 to 1.54. With armor ignored 5 of 79 fit; on Normal, 47 (`research/bedwars/creature_damage.py`). An armor test (cap, Deadwood 2026-09-25: diamond legs and boots at Protection II, III and IV, hits under a golden apple's Absorption left out) fit all 29, averaging 2.84, 2.45 and 1.59 a hit against vanilla's 2.92, 2.46 and 1.54; with armor ignored, 1. It moved at a median 0.15 to 0.16 blocks a tick (few samples). Death line `<a> was killed by <b>'s Dream Defender.` | targeting, range |
+| Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note). Captured (Sky Rise 2026-09-25, 56 bedbugs): health 8, named `<Team> Silverfish` in the team color with the team word bold, ambient potion swirls of color 9776938: Strength II and Resistance I, two parts to one (the damage confirms the Strength II). The thrower reads green `Your creature will fight for you for 15 seconds.` An invisible armor stand that follows it 1.38 below shows `[■■■■■]`, dark gray brackets, the squares in the team color. Both go 15.05 to 15.14 s after the spawn. It walks like a vanilla silverfish (0.14 blocks a tick) and hits every 20 ticks with vanilla knockback (0.3608 up from standing). Its hits respect armor: of the 169 hurts we took while a bedbug was alive, 139 fit exactly 2.8 before armor, a vanilla silverfish's 1 times Strength II's 3.6 scaled for Easy difficulty (x / 2 + 1), then vanilla armor (13: leather over diamond legs and boots) and Protection IV's random 10 to 20. Most of the rest were bigger than a bedbug can deal. With armor ignored none fit (`research/bedwars/creature_damage.py`). The armor test (cap, Deadwood 2026-09-25): leather without Protection took 2.02 a hit, vanilla's 2.02; with Protection IV, leather, chainmail, iron and diamond took 0.89, 0.74, 0.66 and 0.55 against vanilla's 0.81, 0.72, 0.63 and 0.54. 72 of 74 fit, counting the helmet's Protection I from the purchase (Reinforced Armor, below). Death line `<a> was killed by <b>'s Bedbug.`, the owner's part in the owner's color. It targets every team but the owner's (our play) | none |
+| Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players. Captured (Sky Rise 2026-09-25, ours and an enemy's): health 20 (our four hits took it to 18.5, 11, 3.5 and dead); ambient potion swirls of color 5134171 (two parts Weakness to one of Slowness). Green `Your creature will fight for you for 240 seconds.` An invisible armor stand 0.94 above it counts down in 0.1 s steps, `240.0s [■■■■■■■■■■]`: the time in the owner's team color, dark gray brackets, then one square per 2 health left in the team color and the rest gray (health 18.5 showed 9 and 1, 11 showed 5 and 5, 3.5 showed 1 and 9). The count drops its leading zero (`.1s`, `.0s`, `-.0s`) and the golem goes at 240.1 s. It swings every tick while in reach (status 4 and `mob.irongolem.throw` at volume 1, pitch 1.0), and a hit lands every 9 ticks on a target that stays in reach (31 of 79 gaps; vanilla's hurt window would give 10), with vanilla knockback plus the golem's 0.4 throw: 0.4 across and 0.7608 up from standing, 0.8 when rising. Its damage respects armor: 78 of 79 hits on us fit exactly vanilla's golem roll, 7 + nextInt(15), scaled for Easy difficulty (x / 2 + 1, so 4.5 to 11.5), then vanilla armor and Protection IV's random 10 to 20. 56 of the hits came in leather (armor 7), 23 after we bought diamond (armor 13), and the mean fell from 1.98 to 1.54. With armor ignored 5 of 79 fit; on Normal, 47 (`research/bedwars/creature_damage.py`). An armor test (cap, Deadwood 2026-09-25: diamond legs and boots at Protection II, III and IV, hits under a golden apple's Absorption left out) fit all 29, averaging 2.84, 2.45 and 1.59 a hit against vanilla's 2.92, 2.46 and 1.54; with armor ignored, 1. It moved at a median 0.15 to 0.16 blocks a tick (few samples). Death line `<a> was killed by <b>'s Dream Defender.` It targets every team but the owner's (our play) | range |
 | Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
 | Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` with `liquid.water` (volume 0.7, pitch 2.0) when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
 | Sponge | not vanilla's (cap, 18 sponges, 2026-09-25): placed with the normal sound, then from 5 ticks after, every 8 ticks for 4 steps, it clears the next ring of a 9 x 9 x 9 cube around itself (ring k at step k, the cube's shell k blocks out), with `random.wood_click` at volume 0.5 and pitch bytes 110, 116, 123, 129, and `cloud` x4 (spread 0.08, speed 0.04, long-distance) at the ring's open cells. One step after the last it vanishes with `game.player.swim.splash` (volume 0.6, pitch 2.0), 37 ticks after it went down. While it is active the cube takes no water flowing in, like a base region, so water placed beside it turns still at once and stays that way until a neighbor changes: one stayed floating over a hole dug under it even after the sponge was gone (our play, cap) | none |
@@ -626,7 +643,7 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 
 | Upgrade | Effect | Solo/Doubles | 3s/4s and 4v4 |
 |---|---|---|---|
-| Sharpened Swords | Sharpness I on all swords and axes | 4 | 8 |
+| Sharpened Swords | Sharpness I on all swords and axes; Sharpness II as a rotating tier | 4, 16 | 8, 32 |
 | Reinforced Armor I-IV | Protection I to IV on all armor | 2, 4, 8, 16 | 5, 10, 20, 30 |
 | Maniac Miner I-II | Haste I, Haste II | 2, 4 | 4, 6 |
 | Forge I-IV | +50%, +100%, emeralds, +200% | 2, 4, 6, 8 | 4, 8, 12, 16 |
@@ -635,6 +652,10 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 
 - Dragon Buff (5, a second dragon) was retired on 2025-01-29 for Cushioned Boots and the automatic
   45:00 dragon.
+- Sharpened Swords' Tier 2, Sharpness II, is a rotating item: its lore adds dark gray italic `Tier 2 is a
+  Rotating Item!`. It first showed in the capture of 2026-09-25 14:21 UTC and in every one after, never
+  before, so it came with that week's rotation. The other 3s/4s upgrade prices in the table match the live
+  window (cap, Lasagne and Relic 2026-09-25).
 - Maniac Miner II arrives as Haste II for 72000 ticks, removed and sent again every second (cap,
   2026-09-25, from the Max Team Upgrades modifier).
 - Reinforced Armor (cap, Deadwood 2026-09-25): each tier re-sends the armor with the new Protection 0.3 to
@@ -812,8 +833,9 @@ W White: ✓ YOU            gray YOU on your own row
 www.hypixel.net           yellow
 ```
 
-  Four-team boards add `Kills:`, `Final Kills:` and `Beds Broken:`: CAPTURE. Tennacle's bedfight board is
-  this shape already (`Boards.hypixel`).
+  Four-team boards (cap, Relic 4s 2026-09-25) list the four teams, a blank line, then `Kills: `, `Final
+  Kills: ` and `Beds Broken: ` each with a green count, a blank line and the site line. Tennacle's bedfight
+  board is this shape already (`Boards.hypixel`).
 - **Tab**: entries are a bold team letter and the name in team color, with health as a yellow number;
   kills, final kills and beds broken since 2021. In game (cap, 2026-09-25) the header is aqua `You are
   playing on ` + yellow bold `MC.HYPIXEL.NET`, and the footer aqua `Kills: `, `Final Kills: ` and `Beds
@@ -865,6 +887,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Waterfall, a private game with Max Team Upgrades on (`capture-bedwars.js`) | the Reveal and Counter-Offensive traps going off, Magic Milk's length, shop refusals, the void kill, the kill credit window, respawn invincibility, Bed Gone, Sudden Death and its dragons, the win, the tab text, water flow, the height limit, Emerald III and the forge's emerald cap. Its forges were maxed by the modifier, so their rates are not the defaults |
 | 2026-09-25 Solo, Babylon, Lightstone and Amazon, the first two with Max Team Upgrades on (`capture-bedwars.js`) | Magic Milk against a Miner Fatigue trap, breaking a bed and losing yours, a final death and `GAME OVER!`, Amazon's slow forge again |
 | 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
+| 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
 | 2026-09-25 Solo, Deadwood twice, private games with `Respawn Time: 1 Second`, the first also with Max Team Upgrades (`capture-bedwars.js`) | Dream Defender and bedbug damage against every armor tier and Protection level, the Reinforced Armor helmet bug, effect re-sends |
 | 2026-09-25 Doubles, Ironclad, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the golden apple, the fireball's cooldown line, a trap bought with an intruder inside, the Heal Pool's 30 s re-send |
 | 2026-09-25 Solo, Sky Rise, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | bedbugs and Dream Defenders, ours and an enemy's; invisibility from both sides; the second dragons at 45:00; the bridge egg cooldown; the rejoin respawn; the bucket, deposit and height refusals; Speed II and Jump V. Its 1 s respawns are the modifier's |
@@ -969,7 +992,8 @@ bought, each tier), and each resource in a stretch gets one line:
 ### 13.2 Everything else
 
 3. **Shop sweep**: the Solo windows, the upgrades window from scratch and the refusals are captured
-   (2026-09-24, 2026-09-25). Left: the same windows in a 3s or 4s game, for those prices.
+   (2026-09-24, 2026-09-25), and the 3s/4s upgrades and Quick Buy prices (2026-09-25). Left: the diamond
+   sword and sponge in a 3s or 4s shop.
 4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
    captured (2026-09-25). AFK is not being tested.
