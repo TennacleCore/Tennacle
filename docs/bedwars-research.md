@@ -428,7 +428,7 @@ obsidian. The Solo/Doubles column matches the live shop item for item, price and
 | | Bridge Egg | 1 | 1 emerald |
 | | Magic Milk | 1 | 4 gold |
 | | Sponge | 4 (3s/4s: 4 or 6, conflict) | 2 gold (3) |
-| | Compact Pop-up Tower | 1 | 24 iron |
+| | Compact Pop-up Tower | returns to the inventory if placed badly; not below the build limit. The build is below (Compact Pop-up Tower, exactly) | none |
 | Quick Buy | Tracker, per enemy team | | 2 emerald, unlocks once every enemy bed is gone |
 
 Price history is dense (chainmail, bedbug, water and sponge all changed on 2023-05-03; ladders, arrows,
@@ -517,7 +517,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 |---|---|---|
 | Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws) | measured already (Polyp `hypixel`, without the slowness and the arrow); left: the deflect credit rule |
 | TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`); left: the spread, beds |
-| Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. Measured (cap, 66 throws, 2026-09-25): the egg flies as a vanilla egg for at most 30 ticks; the bridge trails it by about 5 ticks, a block below its path, about 2 wide (3 where a diagonal steps), in the thrower's team wool, with a `mob.chicken.plop` (volume 1, pitch 1.0) at a laid block each step. A full flight lays 34 to 37 blocks, about 80 wool; an egg that hits something stops sooner. Thrown straight up (Babylon) it laid a column 3 wool a level to y 105 and was removed near y 107; straight down, columns reached y 55 and the eggs were removed near y 52. Thrown at eye level inside an enemy base, eggs were removed after 3 to 11 ticks, still laying wool beside the bed | Babylon's build limits (not in the map file) |
+| Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. The rule is below (Bridge Egg, exactly) | none |
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
 | Compact Pop-up Tower | builds a one-layer wool tower facing the placer, 2-tall doorway, ladder; returns to the inventory if placed badly; not below the build limit | the block layout and build timing |
@@ -526,6 +526,49 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | landing measured (Polyp, 130 throws); left: the safe-spot search, any cooldown |
 | Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows | per-viewer equipment packets, particle rate |
 | Golden Apple | vanilla 1.8 effects per the community | effects and eat time |
+
+#### Bridge Egg, exactly
+
+Fitted on 95 eggs and 2,300 wool packets (cap, 2026-09-25); the rule reproduces 95% of full three-block packets,
+the rest sitting on a cell boundary or on a cell that was not air.
+
+- **Flight**: a vanilla 1.8 egg. Each tick it moves by its motion, then the motion is multiplied by 0.99 and y
+  loses 0.03; it leaves at the vanilla throw speed of 1.5. The velocity packets every 10 ticks
+  match this to the fourth decimal. It is removed after 30 ticks, on hitting a player or a block, or on
+  leaving the build limits, and no wool goes outside the build limits (our play).
+- **Wool**: every tick, for the position (x, y, z) the egg had 5 ticks earlier, the thrower's team wool goes
+  into each air block among `floor(x + dx), floor(y - 1.5), floor(z + dz)` for (dx, dz) in (0, 0), (±0.5, 0),
+  (0, ±0.5). That is the block under the egg plus its x neighbor and its z neighbor on the sides the egg is
+  nearer: an L of three, fewer where a cell is already wool. A straight throw leaves a bridge two wide, a
+  diagonal one steps between two and three, and a vertical throw builds a column three blocks a level.
+- **Start and end**: the first wool is the egg's position one tick into its flight, laid about 6 ticks after the
+  throw, so the bridge begins about 1.5 blocks from the thrower. Wool keeps going down for about 4 ticks after
+  the egg is removed. A full flight lays 34 to 37 blocks, about 80 wool.
+- **Sound**: `mob.chicken.plop` at volume 1, pitch 1.0, at each laid block's corner.
+
+#### Compact Pop-up Tower, exactly
+
+Fitted on 19 builds (cap, 2026-09-24): after turning each to one frame, the clean ones match the blueprint at 96 to
+100 of the 100 blocks above the floor; the rest were cells that were already solid.
+
+- **Use**: right-clicking a block face spends one tower. No chest is placed: the clicked block is sent back as it
+  was. From the next tick the server places the blueprint two cells a tick, bottom layer first, 110 cells in 55
+  ticks (2.75 s). A cell that is not air is skipped but still takes its slot, so every build ends 55 ticks
+  after the click. Each placed block plays `mob.chicken.plop` at volume 0.8, pitch byte 50 (0.79x), at the
+  block's corner plus 0.5 along the horizontal axis across the tower's facing (z for a tower facing along x,
+  x for one facing along z).
+- **Frame**: P is the block the chest would have gone into. `f` counts forward along the placer's facing, `r` to
+  the placer's right and `h` up from P. The door faces the placer; the ladder column is P itself.
+- **Blueprint** (team wool unless a ladder):
+  - `h = -1 to 3`, the walls: (f, r) = (-2, -1), (-2, 1), (-1, -2), (-1, 2), (0, -2), (0, 2), (1, -1),
+    (1, 0), (1, 1), plus (-2, 0) at `h = 2 and 3` only: the doorway is (-2, 0) at `h = 0 and 1`. At `h = -1`
+    P itself is wool; at `h = 0 to 4` it is a ladder on the back wall, facing the door.
+  - `h = 4`, the platform (30): r = -2, 0 and 2 for f = -3 to 2; r = -1 and 1 for f = -2 to 1; (-2, ±3) and
+    (1, ±3). P is the ladder.
+  - `h = 5`, the railing (18): f = -3 and f = 2 for r = -2 to 2, and r = ±3 for f = -2 to 1.
+  - `h = 6`, the crenels (10): (-3, -2), (-3, 0), (-3, 2), (2, -2), (2, 0), (2, 2), (-2, ±3) and (1, ±3).
+- **Order**: layer by layer from `h = -1` up (10, 10, 10, 11, 11, 30, 18, 10 cells). Within a layer the cells go
+  from the lowest world x to the highest, whichever way the tower faces (three facings seen).
 
 Explosions, as documented:
 
