@@ -314,6 +314,10 @@ with identical numbers; every forge level bought one at a time and left to fill,
   much on you!` line in the string catalog never came.
 - **Despawn**: generated items that nobody picks up vanish 300 s after they spawn (vanilla's 6000-tick item
   age), and they never merged in that capture.
+- **Standing still** (our play): after 30 s standing in a generator without moving you stop picking up its
+  generated items until you move; dropped items are unaffected. The iron carry limit above is not this rule:
+  gold kept going in for 108 s after iron stopped. Gold's 65 fits the same pattern; a run that keeps moving
+  past 64 gold would confirm it.
 - **Provenance**: generator XP and several achievements need each item tagged with where it came from.
 
 ### 5.4 What a generator capture has to separate
@@ -566,8 +570,8 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Set-off (cap): bold red `Miner Fatigue Trap was set off!` in chat, the title red `TRAP TRIGGERED!` over
   `Your Miner Fatigue Trap has been set off!`, and `mob.endermen.portal` (the window bullets above have the
   timings).
-- Trigger area, the gap between two traps (30 s, until the effect ends, or none), and ordering with several
-  intruders: CAPTURE.
+- Two traps go off 30 s apart (cap, Lucky Rush 2026-09-24: the second fired 30.05 s after the first, with
+  the intruder still inside). Trigger area and the order with several intruders: CAPTURE.
 
 ## 8. Death and respawn
 
