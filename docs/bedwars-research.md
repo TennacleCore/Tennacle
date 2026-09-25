@@ -530,7 +530,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 
 | Item | Documented behavior | Still needs a capture |
 |---|---|---|
-| Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws) | measured already (Polyp `hypixel`, without the slowness and the arrow). The deflector gets the kill, being the fireball's owner from then on (our play) | none |
+| Fireball | right-click launch, 0.5 s cooldown; no teammate damage; no fire on players; cannot break end stone; can be deflected by a hit or an arrow and the deflector gets the kill; hurts its thrower; the thrower gets Slowness II for 20 ticks, and an arrow of theirs spawns with it along its line at 1.5 (cap, 3 of 3 throws). A launch within 0.5 s of the last is refused with red `Please wait 0.5s to use that again` (cap, Ironclad: refused at 0.20 and 0.40 s, launched at 0.60 s) | measured already (Polyp `hypixel`, without the slowness and the arrow). The deflector gets the kill, being the fireball's owner from then on (our play) | none |
 | TNT | ignites when placed; custom knockback; full damage and knockback to the user; stacked TNT spreads out; a red particle above a carrier's head | measured already (fuse 50 ticks, Polyp `hypixel`): it is primed as placed, needs no lighting, and never breaks beds, which count as map blocks (our play) | none |
 | Bridge Egg | lays a wool bridge along its path; a direct hit knocks back; counts for void credit. The rule is below (Bridge Egg, exactly). A throw within 1 s of the last is refused with red `Please wait 1.0s to use that again`, whatever is left (cap: refused at 0.65 and 0.90 s, thrown at 1.00 s) | none |
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note). Captured (Sky Rise 2026-09-25, 56 bedbugs): health 8, named `<Team> Silverfish` in the team color with the team word bold, ambient potion swirls of color 9776938: Strength II and Resistance I, two parts to one (the damage confirms the Strength II). The thrower reads green `Your creature will fight for you for 15 seconds.` An invisible armor stand that follows it 1.38 below shows `[■■■■■]`, dark gray brackets, the squares in the team color. Both go 15.05 to 15.14 s after the spawn. It walks like a vanilla silverfish (0.14 blocks a tick) and hits every 20 ticks with vanilla knockback (0.3608 up from standing). Its hits respect armor: of the 169 hurts we took while a bedbug was alive, 139 fit exactly 2.8 before armor, a vanilla silverfish's 1 times Strength II's 3.6 scaled for Easy difficulty (x / 2 + 1), then vanilla armor (13: leather over diamond legs and boots) and Protection IV's random 10 to 20. Most of the rest were bigger than a bedbug can deal. With armor ignored none fit (`research/bedwars/creature_damage.py`). Death line `<a> was killed by <b>'s Bedbug.`, the owner's part in the owner's color | targeting |
@@ -541,7 +541,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | done: Polyp's `hypixel` preset has Hypixel's pearls, with a BedWars variant for the sounds (our play) | none |
 | Invisibility | hides armor and nametag from enemies; a teammate sees the armor and the nametag but not the body (our play); held items stay visible; footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows. Captured (Sky Rise 2026-09-25): the effect is Invisibility amplifier 1 for 600 ticks. An enemy who drank it had all four armor slots sent empty in the tick of the drink, while his held wool still showed after. He left `footstep` x1 at his feet plus 0.1 (spread 0.3, 0, 0.3, speed 1, long-distance) as he walked, 1 to 25 ticks apart; a drinker is sent their own footsteps too. Our first hit on him sent the armor back in the tick of the hurt. A drinker who takes damage loses the effect in that tick and reads red `You took damage and lost your invisibility!` | none |
 | Speed II, Jump V | (cap, 2026-09-25) Speed amplifier 1 and Jump Boost amplifier 4, 900 ticks each with particles shown. 15 s after the drink the server sends the effect again at 600 ticks, and removes it 45 s after the drink (four drinks) | none |
-| Golden Apple | vanilla 1.8 (our play) | a capture to confirm the effects and eat time |
+| Golden Apple | vanilla 1.8 (our play), confirmed (cap, Ironclad 2026-09-25, two eats): 32 ticks to eat (1.61 and 1.63 s), `random.burp` at volume 0.5, then Absorption I for 2400 ticks and Regeneration II for 100, particles shown | none |
 
 #### Bridge Egg, exactly
 
@@ -646,8 +646,8 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   separates them best of any center within 4 blocks; its block center and the eye height do not separate
   them at all, and the bed is 15 blocks away. Sky Rise agrees: a circle through its 13 crossings level with
   the spawn centers 0.3 blocks from it, radius 20.9. The check runs once a second, every change landing on
-  the same tick of a 20-tick beat. While inside, the effect is sent again 246 ticks after each entry, which
-  changes nothing on screen. It works without a bed (our play). The older claims were 12 blocks (2017) and 5
+  the same tick of a 20-tick beat. While inside, the effect is sent again 246 ticks after each entry, then
+  every 30 s (cap, Ironclad: ten times, 30.03 to 30.08 s apart), which changes nothing on screen. It works without a bed (our play). The older claims were 12 blocks (2017) and 5
   around the bed (guides). Its particles (cap, Amazon 2026-09-25): `happyVillager` x39 at the team's spawn
   point, spread 10.5 on every axis, speed 0, long-distance, every 12 ticks, two identical packets each time.
   Every team's pool shows to anyone in range.
@@ -712,8 +712,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   by up to 2.5. Ashfire puts the bed 11 blocks from the spawn, so the spawn is not the center: the Heal Pool
   centers on the spawn, the traps on the bed. Sky Rise's triggers 23 to 24 blocks north of the spawn fit a
   bed about 11 blocks toward the middle there too. A trap that comes off cooldown fires at once on an
-  intruder already inside (30.03 s after the previous one). With several intruders a trap takes only one
-  (our play). Which one is not known; ours takes the first to enter the sphere.
+  intruder already inside (30.03 s after the previous one), and one bought with an intruder inside fired
+  0.48 s after the purchase (cap, Ironclad). With several intruders a trap takes only one (our play). Which
+  one is not known; ours takes the first to enter the sphere.
 
 ## 8. Death and respawn
 
@@ -847,6 +848,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Waterfall, a private game with Max Team Upgrades on (`capture-bedwars.js`) | the Reveal and Counter-Offensive traps going off, Magic Milk's length, shop refusals, the void kill, the kill credit window, respawn invincibility, Bed Gone, Sudden Death and its dragons, the win, the tab text, water flow, the height limit, Emerald III and the forge's emerald cap. Its forges were maxed by the modifier, so their rates are not the defaults |
 | 2026-09-25 Solo, Babylon, Lightstone and Amazon, the first two with Max Team Upgrades on (`capture-bedwars.js`) | Magic Milk against a Miner Fatigue trap, breaking a bed and losing yours, a final death and `GAME OVER!`, Amazon's slow forge again |
 | 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
+| 2026-09-25 Doubles, Ironclad, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the golden apple, the fireball's cooldown line, a trap bought with an intruder inside, the Heal Pool's 30 s re-send |
 | 2026-09-25 Solo, Sky Rise, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | bedbugs and Dream Defenders, ours and an enemy's; invisibility from both sides; the second dragons at 45:00; the bridge egg cooldown; the rejoin respawn; the bucket, deposit and height refusals; Speed II and Jump V. Its 1 s respawns are the modifier's |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
@@ -954,9 +956,8 @@ bought, each tier), and each resource in a stretch gets one line:
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
    captured (2026-09-25). AFK is not being tested.
 6. **Beds**: captured (2026-09-25).
-7. **Utilities**: the bridge egg, pop-up tower, sponge, bedbug and Dream Defender are settled (2026-09-25).
-   Left: a golden apple eaten, to confirm vanilla. TNT and fireball physics are already measured, and TNT
-   never breaks beds (our play).
+7. **Utilities**: the bridge egg, pop-up tower, sponge, bedbug, Dream Defender and golden apple are settled
+   (2026-09-25). TNT and fireball physics are already measured, and TNT never breaks beds (our play).
 8. **Late game**: Bed Gone, Sudden Death, the second dragons and Game End are captured (2026-09-25).
 9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
    modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
