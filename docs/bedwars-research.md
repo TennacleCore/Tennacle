@@ -157,7 +157,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   with kill counts, then reward lines and a replay link. Titles `VICTORY!` / `DEFEAT!` hold 200 ticks in
   the duel capture. In BedWars (cap, 2026-09-25) the last final kill's line, the summary block, gold bold
   `VICTORY!` (0/100/0, empty subtitle) and `TEAM ELIMINATED >` arrive in that order within 11 ms; the replay
-  line follows 5.2 s later, and a private game prints no rewards. `DEFEAT!`: CAPTURE.
+  line follows 5.2 s later, and a private game prints no rewards. The player whose final death ended the game
+  read red bold `GAME OVER!` the same way (cap), and was sent to the lobby 5.9 s later.
 - XP (off, since 2025-06-30): win +100 Solo/Doubles, +50 3s/4s, +25 4v4 and Dreams; +15 a minute played;
   +5 for the first kill on each player; +10 per final kill; +15 per bed; +2 per diamond and +3 per emerald
   picked up from a map generator. Captured lines: `+15 Bed Wars XP (Time Played)`, `(First Kill)`,
@@ -507,7 +508,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Bedbug | snowball that spawns a silverfish where it lands, 15 s by the lore (20 s in a 2018 beta note) | count, health, damage, targeting, lifetime |
 | Dream Defender | iron golem for 4 minutes, reduced health, damage respects armor, your own bows cannot hurt it, sees invisible players | health, damage, speed, range |
 | Compact Pop-up Tower | builds a one-layer wool tower facing the placer, 2-tall doorway, ladder; returns to the inventory if placed badly; not below the build limit | the block layout and build timing |
-| Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap: 30.0 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says); cleared on death; keeps other effects | none |
+| Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap) | none |
 | Sponge | a temporary block that soaks water | lifetime, radius, quantity |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | landing measured (Polyp, 130 throws); left: the safe-spot search, any cooldown |
 | Invisibility | hides armor and nametag from enemies (teammates still see armor, held items stay visible); footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows | per-viewer equipment packets, particle rate |
@@ -656,7 +657,7 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   the victim's last hurt read `was knocked into the void by`, five at 10.77 to 16.9 s read `fell into the
   void.`
 - **Final kills**: a death with the bed gone eliminates. Bold aqua ` FINAL KILL!` follows the death line;
-  the victim reads `You have been eliminated!`; the last member out prints
+  the victim reads red `You have been eliminated!`; the last member out prints
   `TEAM ELIMINATED > <Team> Team has been eliminated!` (cap). Just before the final-kill line the victim's
   ender chest is dumped into their team's forge:
   `Contents of <player>'s Ender Chest have been dropped into their fountain.` (cap).
@@ -677,15 +678,20 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 ## 9. Beds
 
 - Enemy beds break by hand with no tool; your own bed cannot be broken: red `You can't destroy your own bed!`
-  in chat, no sound, both halves sent again (cap). Break time: CAPTURE.
+  in chat, no sound, both halves sent again (cap). With Haste II from Max Team Upgrades a bed broke 0.2 s
+  after the first swing, both halves at once (cap); the time without Haste: CAPTURE.
 - Chat (cap): bold `BED DESTRUCTION > `, the team's bed in its color, gray `was destroyed by`, the breaker
   in their color, `!`. Your own team reads `Your Bed was destroyed by <player>!`. Cosmetics swap the verb.
-- Titles for the losing team (duel capture): `BED DESTROYED!` / `You will no longer respawn!`.
+- Titles for the losing team (duel capture, and BedWars 2026-09-25): a clearing title, then 5/35/10 red
+  `BED DESTROYED!` over plain `You will no longer respawn!`, beside `BED DESTRUCTION > Your Bed was <verb> by
+  <player>!` in chat.
 - Sounds (Bed Rush Duel capture): the losing side hears `mob.wither.death`, the breaker
   `mob.enderdragon.growl`, volume 1 and pitch 1.0, right after the chat line and the titles. MineMen's bed
   fight capture (2026-09-07) plays the same pair, and its growl sits on the enemy bed 45 blocks from the
   listener: both sounds play at the bed. Bed fight does the same since 2026-09-24 (it had played the growl to
-  everyone at their own position, the losers included).
+  everyone at their own position, the losers included). In Hypixel BedWars (cap, 2026-09-25) each plays at
+  the listener's own block instead: the growl at the breaker's and the wither death at the victim's, both
+  about 4.5 blocks from the bed, like the Bed Gone and Sudden Death sounds.
 - Rewards: `+24 tokens! (Bed Destroyed)` and `+15 Bed Wars XP (Bed Break)` (cap).
 - 1.14+ clients sometimes see a broken bed come back (the sneak eye height failing a server check, per
   players). Worth a test on our side.
@@ -855,14 +861,13 @@ bought, each tier), and each resource in a stretch gets one line:
    sword, the upgrades window before anything is bought, and the same windows in a 3s or 4s game for those
    prices.
 4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
-5. **Deaths**: the respawn, respawn invincibility, the void kill and the credit window are captured
-   (2026-09-25). Left: your own final death, going AFK.
-6. **Beds**: break an enemy bed and lose your own to a player (breaking your own is captured).
+5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
+   captured (2026-09-25). Left: going AFK.
+6. **Beds**: captured (2026-09-25). Left: an enemy bed broken without Haste, for the break time.
 7. **Utilities**: a bridge egg, a pop-up tower, a bedbug and a Dream Defender; two TNT placed together;
    TNT against a bed behind one layer of wool. TNT and fireball physics are already measured.
 8. **Late game**: Bed Gone and Sudden Death are captured (2026-09-25). Left: a game past 45:00 (the second
-   dragons), one to 50:00 with two teams alive (Game End), and a `DEFEAT!`. A private game gets there on
-   schedule.
+   dragons) and one to 50:00 with two teams alive (Game End). A private game gets there on schedule.
 9. **Modern client** (optional): invisibility particles, bed colors, the dragon boss bar. There is no
    modern-protocol capture proxy for Hypixel yet; the existing tools are 1.8.9.
 
