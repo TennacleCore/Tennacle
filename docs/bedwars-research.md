@@ -242,49 +242,51 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
     down as well as up, 7 x 7 x 7. Blocks go in and break 4 out, 4 up and 4 down; breaks under a generator
     are refused to 3 down. Diamond and emerald generators on Ashfire, Amazon and Ambush agree, and so do the
     forges on all 25 maps (one stray placement 3 up on Lucky Rush).
-  - Each base keeps a box around its spawn point, sized per map (below). The forge's cube sits 3 to 6 blocks
-    behind the spawn and sticks out of the box. Measured at our own base on each map; every base on a map is
-    taken as the same box turned with it.
+  - Each base keeps a box centered on its spawn block, sized per map (below). The forge's cube sits 3 to 6
+    blocks behind the spawn and sticks out of the box. A map's bases can be flipped copies of each other (our
+    play; Playground's two probed bases have their item shops on opposite sides), and a centered box is the
+    same either way.
   - Each shopkeeper keeps a column 1 block out around it (3 x 3), from 5 below its feet to 5 above; blocks go
     in 2 out and 6 up. Where a shopkeeper stands inside the base box only the part sticking out shows.
   - Earlier (Lucky Rush 2026-09-24): over the base, blocks were refused 5.8 and 7.2 blocks from the forge but
     went down from 6.6, so the zone is a box, not a radius. A reading of refusals out to 13 blocks and at y 76
     came from pop-up tower clicks, which the capture tool counted as placements until 2026-09-25.
 
-  Base boxes, counted from the spawn block while facing away from the forge. Size is back-to-front x across x
-  up. An open side is one whose last refusal is known but no success one past it, so the box reaches at least
-  that far.
+  Base boxes: how far each reaches from the spawn block, the same both ways, facing away from the forge.
+  Every axis the captures closed on both sides (70 of 75) is centered on the spawn block. The five sides
+  marked were never closed and take the opposite side's reach; no success falls inside the result.
 
-  | Map | Back to front | Left to right | Down to up | Size | Open |
+  | Map | Back and front | Left and right | Down and up | Size | Taken from the opposite side |
   |---|---|---|---|---|---|
-  | Amazon | ±6 | -7 to +8 | -2 to +4 | 13 x 16 x 7 | left, bottom |
-  | Ambush | ±5 | ±6 | ±5 | 11 x 13 x 11 | |
-  | Ashfire | ±5 | ±5 | ±5 | 11 x 11 x 11 | |
-  | Babylon | ±6 | ±6 | ±6 | 13 x 13 x 13 | |
-  | Bio-Hazard | ±6 | ±6 | ±4 | 13 x 13 x 9 | left; the floor is 5 down |
-  | Crogorm | -3 to +5 | ±4 | ±4 | 9 x 9 x 9 | back, inside the forge's cube; left |
-  | Deadwood | ±5 | -4 to +5 | ±3 | 11 x 10 x 7 | left |
-  | Dockyard | ±9 | ±4 | ±5 | 19 x 9 x 11 | |
-  | Dragonstar | ±5 | ±5 | -5 to +6 | 11 x 11 x 12 | bottom; the floor is 7 down |
-  | Gateway | ±7 | ±5 | ±6 | 15 x 11 x 13 | top |
-  | Glacier | -6 to +8 | ±6 | ±4 | 15 x 13 x 9 | back, inside the forge's cube |
-  | Harvest | ±8 | ±7 | ±4 | 17 x 15 x 9 | |
-  | Impere | ±6 | ±6 | ±4 | 13 x 13 x 9 | |
-  | Lightstone | ±5 | ±6 | ±14 | 11 x 13 x 29 | |
-  | Lucky Rush | ±6 | -7 to +2 | ±7 | 13 x 10 x 15 | right |
-  | Mirage | ±8 | ±8 | ±6 | 17 x 17 x 13 | |
-  | Playground | -6 to +7 | -4 to +7 | -6 to +11 | 14 x 12 x 18 | back, left, bottom |
-  | Rooftop | ±7 | ±6 | ±4 | 15 x 13 x 9 | |
-  | Rooted | ±7 | ±9 | ±4 | 15 x 19 x 9 | |
-  | Sanctum | ±6 | ±6 | -6 to +7 | 13 x 13 x 14 | bottom; the floor is 8 down |
-  | Scorched Sands | ±7 | ±8 | ±6 | 15 x 17 x 13 | |
-  | Serenity | ±7 | ±6 | ±5 | 15 x 13 x 11 | |
-  | Silver Birch | ±8 | -2 to +6 | ±8 | 17 x 9 x 17 | left |
-  | Solace | ±5 | ±4 | ±5 | 11 x 9 x 11 | |
-  | Waterfall | ±5 | ±5 | ±5 | 11 x 11 x 11 | |
+  | Amazon | 6 | 8 | 4 | 13 x 17 x 9 | |
+  | Ambush | 5 | 6 | 5 | 11 x 13 x 11 | |
+  | Ashfire | 5 | 5 | 5 | 11 x 11 x 11 | |
+  | Babylon | 6 | 6 | 6 | 13 x 13 x 13 | |
+  | Bio-Hazard | 6 | 6 | 4 | 13 x 13 x 9 | bottom, where the floor is 5 down |
+  | Crogorm | 5 | 4 | 4 | 11 x 9 x 9 | |
+  | Deadwood | 5 | 5 | 3 | 11 x 11 x 7 | |
+  | Dockyard | 9 | 4 | 5 | 19 x 9 x 11 | |
+  | Dragonstar | 5 | 5 | 6 | 11 x 11 x 13 | bottom: refused 5 down, the floor 7 down |
+  | Gateway | 7 | 5 | 6 | 15 x 11 x 13 | |
+  | Glacier | 8 | 6 | 4 | 17 x 13 x 9 | back: refused 6 back, allowed 9 back |
+  | Harvest | 8 | 7 | 4 | 17 x 15 x 9 | |
+  | Impere | 6 | 6 | 4 | 13 x 13 x 9 | |
+  | Lightstone | 5 | 6 | 14 | 11 x 13 x 29 | |
+  | Lucky Rush | 6 | 7 | 7 | 13 x 15 x 15 | |
+  | Mirage | 8 | 8 | 6 | 17 x 17 x 13 | |
+  | Playground | 7 | 7 | 11 | 15 x 15 x 23 | bottom: refused 6 down |
+  | Rooftop | 7 | 6 | 4 | 15 x 13 x 9 | |
+  | Rooted | 7 | 9 | 4 | 15 x 19 x 9 | |
+  | Sanctum | 6 | 6 | 7 | 13 x 13 x 15 | bottom: refused 6 down, the floor 8 down |
+  | Scorched Sands | 7 | 8 | 6 | 15 x 17 x 13 | |
+  | Serenity | 7 | 6 | 5 | 15 x 13 x 11 | |
+  | Silver Birch | 8 | 6 | 8 | 17 x 13 x 17 | |
+  | Solace | 5 | 4 | 5 | 11 x 9 x 11 | |
+  | Waterfall | 5 | 5 | 5 | 11 x 11 x 11 | |
 
-  Every refusal and success around each spawn fits its box but 3 cells on Impere and 1 each on Babylon and
-  Crogorm. Ambush's box comes from two bases in two games, each pinning the side the other left open.
+  Each box merges every base probed on its map: two bases on Ambush, Bio-Hazard, Deadwood, Playground,
+  Sanctum and Silver Birch, the same base twice on five more. Every refusal and success fits its box but 3
+  cells on Impere and 1 each on Babylon and Crogorm.
 
   The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
   the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. Height (cap): Sky Rise took
@@ -952,6 +954,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
 | 2026-09-26 Solo on Ashfire, Amazon, Ambush and Babylon, private games with `Respawn Time: 1 Second`, Disable Block Protection and Max Team Upgrades (`capture-bedwars.js`) | the generator cube, four base regions, the shopkeeper columns, breaks refused in zones, the floor line |
 | 2026-09-26 Solo on the 22 other maps in rotation, the same modifiers (`capture-bedwars.js`) | every base box, the forge cube and shopkeeper columns on each, a bucket judged by the block clicked |
+| 2026-09-26 Solo on 11 of those maps again, the same modifiers (`capture-bedwars.js`) | the base box sides the first pass left open, a second base on five maps, one of them flipped |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
