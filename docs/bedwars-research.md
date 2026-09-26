@@ -164,10 +164,12 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 - Game End at 50:00 (cap, 2026-09-25, twice at 4x event speed, one against one with both alive): the board
   counts `Game End in` down to 0:01, then with no warning or draw line the end summary names one winner and
   the other reads red bold `GAME OVER!` (0/100/0). The team with the most players still alive wins (our
-  play); with the same count the rule is unknown: the host won both, once as Gray and once as Red, with no
-  kills either side. Draws exist and award neither a win nor a loss (off 2025-09-02). The catalog carries bold
-  yellow `DRAW!`, `It's a draw.`, a yellow `At this rate, a draw will happen in N minutes!` warning and a
-  `Draw in M:SS` label; none appeared.
+  play); with the same count Hypixel's pick looks arbitrary: the host won both, once as Gray and once as Red,
+  with no kills either side. Draws exist and award neither a win nor a loss (off 2025-09-02). The catalog
+  carries bold yellow `DRAW!`, `It's a draw.`, a yellow `At this rate, a draw will happen in N minutes!`
+  warning and a `Draw in M:SS` label; none appeared. Ours breaks a tie between the teams with the most alive
+  on final kills, then on beds broken; still tied, it is a draw between them and the rest lose. Both captured
+  ties would have been draws.
 
 ### 3.4 Winning and rewards
 
@@ -808,8 +810,9 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   centers on the spawn, the traps on the bed. Sky Rise's triggers 23 to 24 blocks north of the spawn fit a
   bed about 11 blocks toward the middle there too. A trap that comes off cooldown fires at once on an
   intruder already inside (30.03 s after the previous one), and one bought with an intruder inside fired
-  0.48 s after the purchase (cap, Ironclad). With several intruders a trap takes only one (our play). Which
-  one is not known; ours takes the first to enter the sphere.
+  0.48 s after the purchase (cap, Ironclad). With several intruders a trap takes only one (our play), and
+  Hypixel's pick looks arbitrary. Ours takes the intruder closest to the bed when it fires, skipping Magic
+  Milk drinkers, with a tie going to whoever entered first.
 
 ## 8. Death and respawn
 
