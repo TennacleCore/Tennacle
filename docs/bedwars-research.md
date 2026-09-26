@@ -241,12 +241,13 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
     down as well as up, 7 x 7 x 7. Blocks go in and break 4 out, 4 up and 4 down; breaks under a generator
     are refused to 3 down. Diamond and emerald generators on Ashfire, Amazon and Ambush agree, and so do the
     forges.
-  - Each base keeps a box around its spawn point, sized per map. Counted from the spawn block: Amazon x -8
-    to +7, y -2 to +4, z -6 to +6 (16 x 7 x 13); Ambush x and z 6 and 5 each way, y 0 to +5 (13 x 6 x 11);
-    Ashfire 5 every way (11 x 11 x 11); Babylon 6 every way (13 x 13 x 13). With the generator cubes and the
-    shopkeepers set aside, one box fits every placement and break on Amazon and Ambush, and all but 5 and 4
-    cells, beside a shopkeeper or the forge, on Ashfire and Babylon. The forge's cube sits 3.5 to 5.5 blocks
-    from the spawn and sticks out of the box.
+  - Each base keeps a box around its spawn point, sized per map. Counted from the spawn block: Amazon x -8 to
+    +7, y -2 to +4, z -6 to +6 (16 x 7 x 13); Ambush x and z 6 and 5 each way, y 0 to +5 (13 x 6 x 11, its
+    bottom untested); Ashfire 5 every way (11 x 11 x 11); Babylon 6 every way (13 x 13 x 13). With the
+    generator cubes and the shopkeepers set aside, one box fits every placement and break on Amazon and
+    Ambush, and all but 5 and 4 cells, beside a shopkeeper or the forge, on Ashfire and Babylon. The forge's
+    cube sits 3.5 to 5.5 blocks from the spawn and sticks out of the box. Measured at our own base on each
+    map; every base on a map is taken as the same box turned to face the middle.
   - Each shopkeeper keeps a column 1 block out around it (3 x 3), refused up to 5 above it and, on Ashfire,
     down to 5 below; blocks go in 2 out and 6 up (Ashfire and Babylon; Amazon's and Ambush's shopkeepers
     stand inside the base box).
@@ -274,7 +275,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   air back, the bucket stays and no line prints (18 tries), where a block gets `You can't place blocks here!`.
   A placed bucket leaves nothing behind: the slot empties (cap, 87 uses). On Sky Rise a bucket emptied into
   -86,74,-29, about 11 blocks from our spawn point, got red `You can't empty buckets here!` (cap, twice):
-  air back and the bucket kept. Water went in at -86,77,-30. That zone's extent: not mapped.
+  air back and the bucket kept. Water went in at -86,77,-30. The zone a bucket is refused in is
+  the no-build zone (our play).
 
 ## 5. Economy
 
