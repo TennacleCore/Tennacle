@@ -1031,7 +1031,8 @@ spawning stopped and what lay there, and how it resumed after a pickup; each gen
 lines; the carry limit; the forge split by distance; placements against the map file's radius and height;
 each named armor stand with its names and update cadence; one dump per window title with lore, enchants,
 HideFlags, Unbreakable and leather color; effects by amplifier and duration; sounds beside the nearest chat or
-title line. Each game also appends a line to `captures/generators.jsonl`, and `node capture-bedwars.js
+title line. Each game also appends a line to `captures/generators.jsonl` as you leave its world (before
+2026-09-26, only at the disconnect, so a crash lost the connection's games), and `node capture-bedwars.js
 --table` prints every game so far, one block per map and mode.
 
 1.8 wire facts the tool had to get right, verified in MCP-919 and paper_source_1.8.8: armor stands spawn as
