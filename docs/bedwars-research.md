@@ -234,15 +234,22 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 - **No-place zones** are boxes; refusal line (cap) `You can't place blocks here!`, with no sound. Measured
   2026-09-26 (cap, Solo on Ashfire, Amazon, Ambush and Babylon, the host's Disable Block Protection and Max
   Team Upgrades on; the zones held with that modifier; `research/bedwars/zones.py` draws them):
-  - Every generator keeps the same box, the forge included: 3 blocks out each way from the generator's item
-    block and 3 up, 7 x 7 x 4. Blocks go in 4 out and 4 up, and the level below is open. Diamond and emerald
-    generators on Ashfire, Amazon and Ambush agree, and so do the forges where probed, Babylon's on every
-    side.
-  - Each base has a region around its spawn point, sized per map. Amazon's runs from 8 blocks -x to 7 +x, 2
-    down to 4 up and 6 each way along z, counted from the spawn block, with blocks going in one past every
-    face: 16 x 7 x 13, nothing placed inside. Ambush's is 11 deep along z (5 each way). The forge's box sits
-    3.5 to 5.5 blocks from the spawn and sticks out of the region. The probes on Ashfire and Babylon were too
-    loose to give a box.
+  - Placing and breaking are refused alike inside a zone: red `You can't place blocks here!` and red `You
+    can't break blocks here!`. With the modifier on map blocks break outside the zones, so a break can find
+    an edge a placement cannot reach.
+  - Every generator keeps a cube, the forge included: 3 blocks out each way from the generator's item block,
+    down as well as up, 7 x 7 x 7. Blocks go in and break 4 out, 4 up and 4 down; breaks under a generator
+    are refused to 3 down. Diamond and emerald generators on Ashfire, Amazon and Ambush agree, and so do the
+    forges.
+  - Each base keeps a box around its spawn point, sized per map. Counted from the spawn block: Amazon x -8
+    to +7, y -2 to +4, z -6 to +6 (16 x 7 x 13); Ambush x and z 6 and 5 each way, y 0 to +5 (13 x 6 x 11);
+    Ashfire 5 every way (11 x 11 x 11); Babylon 6 every way (13 x 13 x 13). With the generator cubes and the
+    shopkeepers set aside, one box fits every placement and break on Amazon and Ambush, and all but 5 and 4
+    cells, beside a shopkeeper or the forge, on Ashfire and Babylon. The forge's cube sits 3.5 to 5.5 blocks
+    from the spawn and sticks out of the box.
+  - Each shopkeeper keeps a column 1 block out around it (3 x 3), refused up to 5 above it and, on Ashfire,
+    down to 5 below; blocks go in 2 out and 6 up (Ashfire and Babylon; Amazon's and Ambush's shopkeepers
+    stand inside the base box).
   - Earlier (Lucky Rush 2026-09-24): over the base, blocks were refused 5.8 and 7.2 blocks from the forge but
     went down from 6.6, so the zone is a box, not a radius. A reading of refusals out to 13 blocks and at y 76
     came from pop-up tower clicks, which the capture tool counted as placements until 2026-09-25.
@@ -908,7 +915,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Waterfall, a private game with Max Team Upgrades on (`capture-bedwars.js`) | the Reveal and Counter-Offensive traps going off, Magic Milk's length, shop refusals, the void kill, the kill credit window, respawn invincibility, Bed Gone, Sudden Death and its dragons, the win, the tab text, water flow, the height limit, Emerald III and the forge's emerald cap. Its forges were maxed by the modifier, so their rates are not the defaults |
 | 2026-09-25 Solo, Babylon, Lightstone and Amazon, the first two with Max Team Upgrades on (`capture-bedwars.js`) | Magic Milk against a Miner Fatigue trap, breaking a bed and losing yours, a final death and `GAME OVER!`, Amazon's slow forge again |
 | 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
-| 2026-09-26 Solo on Ashfire, Amazon, Ambush and Babylon, private games with `Respawn Time: 1 Second`, Disable Block Protection and Max Team Upgrades (`capture-bedwars.js`) | the generator and forge no-place box, Amazon's and Ambush's base regions, the floor line |
+| 2026-09-26 Solo on Ashfire, Amazon, Ambush and Babylon, private games with `Respawn Time: 1 Second`, Disable Block Protection and Max Team Upgrades (`capture-bedwars.js`) | the generator cube, four base regions, the shopkeeper columns, breaks refused in zones, the floor line |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
