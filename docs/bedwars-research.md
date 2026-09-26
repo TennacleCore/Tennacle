@@ -1081,9 +1081,10 @@ changes the very numbers being measured. Status 2026-09-26: 1, 2 and 2b are sett
      not a rule: a level that stops before its periods show, or never starts (the boost's first fill of 64
      iron over no upgrade's 48), has the tool say to pick some up, and a stop off the logged cap says so.
      With every level bought, stand in the forge and pick up until you can't, for iron and for gold.
-     The tool holds your forge to the ones in the table as you play and says in chat how each level compares,
-     where each resource stopped, and what to do once all the level's caps are in (iron and gold, and
-     emeralds from Emerald Forge on). A forge with the spawner count and no-upgrade periods of one logged
+     The tool walks you through it in chat, holding your forge to the ones in the table: what it measured in
+     gray, what to do next in yellow (let it fill, pick some up, buy the next level, leave), a finished forge
+     in green, and the wait where the table has the numbers. A level is done once all its caps are in (iron
+     and gold, and emeralds from Emerald Forge on). A forge with the spawner count and no-upgrade periods of one logged
      through Molten Forge is taken to need no upgrade bought, an inference from the maps logged; its
      no-upgrade caps are still read on every map.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
