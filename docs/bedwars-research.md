@@ -370,7 +370,11 @@ with identical numbers; every forge level bought one at a time and left to fill,
   5-minute despawn.
 - Emerald Forge adds an emerald spawner: 1300 ticks (65 s) at Emerald Forge, 701 (35 s) at Molten, as
   NamuWiki says. The cap is 3 (cap, Waterfall 2026-09-25: a Molten forge from the Max Team Upgrades
-  modifier stopped with 3 emeralds lying, its iron and gold at the usual Molten 80 and 24).
+  modifier stopped with 3 emeralds lying, its iron and gold at the usual Molten 80 and 24), and 2 at Emerald
+  Forge (cap, 2026-09-26: Orchestra, Sky Rise and Amazon, every level bought in turn; each level's iron and
+  gold caps matched the table on all three, slow forges and fast). A forge that fills as an old item
+  despawns spawns in the same tick, and the spawn can reach the client before the item leaves, so a count
+  taken at the spawn reads one high (Sky Rise's 73 against 72).
 - A purchase restarts the forge at once: iron and gold spawned within a second of every forge line unless
   the forge was full, and an emerald came 0.06 to 1.8 s after both the Emerald Forge and the Molten Forge
   line, in three games. In a fourth (Bio-Hazard, 2026-09-25) none came at the Emerald Forge line, the first
