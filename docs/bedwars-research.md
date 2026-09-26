@@ -255,7 +255,7 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
     came from pop-up tower clicks, which the capture tool counted as placements until 2026-09-25.
 
   Base boxes: how far each reaches from the spawn block, the same both ways, facing away from the forge.
-  Every axis the captures closed on both sides (70 of 75) is centered on the spawn block. The five sides
+  Every axis the captures closed on both sides (76 of 81) is centered on the spawn block. The five sides
   marked were never closed and take the opposite side's reach; no success falls inside the result.
 
   | Map | Back and front | Left and right | Down and up | Size | Taken from the opposite side |
@@ -273,6 +273,7 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   | Glacier | 8 | 6 | 4 | 17 x 13 x 9 | back: refused 6 back, allowed 9 back |
   | Harvest | 8 | 7 | 4 | 17 x 15 x 9 | |
   | Impere | 6 | 6 | 4 | 13 x 13 x 9 | |
+  | Ironclad | 5 | 9 | 6 | 11 x 19 x 13 | |
   | Lightstone | 5 | 6 | 14 | 11 x 13 x 29 | |
   | Lucky Rush | 6 | 7 | 7 | 13 x 15 x 15 | |
   | Mirage | 8 | 8 | 6 | 17 x 17 x 13 | |
@@ -283,6 +284,7 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   | Scorched Sands | 7 | 8 | 6 | 15 x 17 x 13 | |
   | Serenity | 7 | 6 | 5 | 15 x 13 x 11 | |
   | Silver Birch | 8 | 6 | 8 | 17 x 13 x 17 | |
+  | Sky Rise | 7 | 7 | 5 | 15 x 15 x 11 | |
   | Solace | 5 | 4 | 5 | 11 x 9 x 11 | |
   | Waterfall | 5 | 5 | 5 | 11 x 11 x 11 | |
 
@@ -969,6 +971,7 @@ www.hypixel.net           yellow
 | 2026-09-26 Solo on the 22 other maps in rotation, the same modifiers (`capture-bedwars.js`) | every base box, the forge cube and shopkeeper columns on each, a bucket judged by the block clicked |
 | 2026-09-26 Solo on 11 of those maps again, the same modifiers (`capture-bedwars.js`) | the base box sides the first pass left open, a second base on five maps, one of them flipped |
 | 2026-09-26 Solo on Scorched Sands, Crogorm and Rooted, a walk to the middle (`capture-bedwars.js`) | the mid generators' holograms, where the world files had them missing or wrong |
+| 2026-09-26 Solo on Ironclad and Sky Rise, `Respawn Time: 1 Second` only (`capture-bedwars.js`) | their base boxes, the last two maps in rotation without one, and Ironclad's second base |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1296,8 +1299,10 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
 - The forge usually stands on a 3 x 3 slab platform (20 of 25 captured maps).
 - Hypixel's pregame room, a 25 x 10 x 25 box over the middle, is still in every world.
 - Spawn, forge and shopkeepers are not in the worlds. Our captures give them for 30 maps, and they sit the
-  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots, and the item shop
-  and upgrades trade places (Deadwood, Amazon, Playground).
+  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots. On 10 maps where
+  both hands were captured the item shop and upgrades also trade places; on Impere they stay put. A base the
+  captures saw keeps its own positions, one of the same hand copies it, and an uncaptured map's flipped
+  copies trade. All 45 captured bases come out exactly.
 
 `gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
 builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
