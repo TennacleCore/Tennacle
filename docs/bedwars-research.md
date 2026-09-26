@@ -972,6 +972,7 @@ www.hypixel.net           yellow
 | 2026-09-26 Solo on 11 of those maps again, the same modifiers (`capture-bedwars.js`) | the base box sides the first pass left open, a second base on five maps, one of them flipped |
 | 2026-09-26 Solo on Scorched Sands, Crogorm and Rooted, a walk to the middle (`capture-bedwars.js`) | the mid generators' holograms, where the world files had them missing or wrong |
 | 2026-09-26 Solo on Ironclad and Sky Rise, `Respawn Time: 1 Second` only (`capture-bedwars.js`) | their base boxes, the last two maps in rotation without one, and Ironclad's second base |
+| 2026-09-26 Solo on Gateway, `Respawn Time: 1 Second` only (`capture-bedwars.js`) | the forge at every level, bought in turn, as on Sky Rise and Ironclad; Gateway's Gray base, a flipped copy whose shopkeepers trade places |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1061,6 +1062,9 @@ changes the very numbers being measured. Status 2026-09-26: 1, 2 and 2b are sett
      alone until it stops, for each level's speed and cap and the first emerald after Emerald Forge and
      Molten Forge. Emptying it first matters: a full forge refills only as fast as old items despawn. With every level
      bought, stand in the forge and pick up until you can't, for iron and for gold.
+     The tool holds your forge to the ones in the table as you play and says in chat how each level compares
+     and what to do next. A forge with the spawner count and no-upgrade periods of one logged through Molten
+     Forge needs no upgrade bought; on a fast forge that shows about 45 s in.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
      diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
 
@@ -1292,17 +1296,18 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   20 of 23 captured maps. Otherwise, and wherever a capture exists, the captured base fixes where the order
   starts.
 - Every generator stands on a diamond or emerald block with open air above, usually a lone one. Items appear
-  2.5 above that block (the median of 125 captured generators). Copies of a generator can differ in height
-  (Sky Rise, Rooted). Where a capture saw a generator's hologram, the block under it decides: 110 holograms on
+  2.5 above that block (the median of 151 captured generators). Copies of a generator can differ in height
+  (Sky Rise, Rooted). Where a capture saw a generator's hologram, the block under it decides: 119 holograms on
   25 maps, every one matched. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other
   emerald blocks, so only their holograms found them.
-- The forge usually stands on a 3 x 3 slab platform (20 of 25 captured maps).
+- The forge usually stands on a 3 x 3 slab platform (23 of 31 captured maps). Orchestra's does not, and its
+  bases guessed from one sat about 20 blocks off until a capture placed them.
 - Hypixel's pregame room, a 25 x 10 x 25 box over the middle, is still in every world.
-- Spawn, forge and shopkeepers are not in the worlds. Our captures give them for 30 maps, and they sit the
-  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots. On 10 maps where
+- Spawn, forge and shopkeepers are not in the worlds. Our captures give them for 31 maps, and they sit the
+  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots. On 11 maps where
   both hands were captured the item shop and upgrades also trade places; on Impere they stay put. A base the
   captures saw keeps its own positions, one of the same hand copies it, and an uncaptured map's flipped
-  copies trade. All 45 captured bases come out exactly.
+  copies trade. All 47 captured bases come out exactly.
 
 `gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
 builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
