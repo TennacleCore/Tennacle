@@ -1052,10 +1052,11 @@ changes the very numbers being measured. Status 2026-09-26: 1, 2 and 2b are sett
 5.2, whose spawners and timers are the same on every map but the forge's spawner count, which any game shows
 (5.1); 2c is settled on 25 maps (section 4).
 
-1. **Start boost and first spawns** (per map and mode). From `Protect your bed`, stand on your forge and keep
-   collecting for 45 s, so it never fills: the boost's speed and exactly when it ends, and the first iron and
-   gold. Then step off and let it fill, for the cap. Where a diamond generator is within about 45 blocks of
-   your island, its first spawn shows too.
+1. **Start boost and first spawns** (per map and mode). From `Protect your bed`, leave your forge alone: the
+   boost's speed and the first iron and gold show in its spawns, the first fill stops at its cap (64 iron so
+   far), and gold, well under its own cap, still marks exactly when the boost ends. When the tool says to pick
+   some up, empty the forge, then let it fill again for no upgrade's caps. Where a diamond generator is within
+   about 45 blocks of your island, its first spawn shows too.
 2. **Mid generators**: at the start, head for the middle until an emerald generator's countdown is in sight;
    its first step down dates the next spawn even if you never see one. Stay near a diamond generator across
    6:00 and 18:00 and an emerald one across 12:00 and 24:00, and leave one untouched until it stops, for its
@@ -1070,9 +1071,10 @@ changes the very numbers being measured. Status 2026-09-26: 1, 2 and 2b are sett
      iron over no upgrade's 48), has the tool say to pick some up, and a stop off the logged cap says so.
      With every level bought, stand in the forge and pick up until you can't, for iron and for gold.
      The tool holds your forge to the ones in the table as you play and says in chat how each level compares,
-     where it stopped and what to do next. A forge with the spawner count and no-upgrade periods of one
-     logged through Molten Forge is taken to need no upgrade bought, an inference from the maps logged; on a
-     fast forge that shows about 45 s in.
+     where each resource stopped, and what to do once all the level's caps are in (iron and gold, and
+     emeralds from Emerald Forge on). A forge with the spawner count and no-upgrade periods of one logged
+     through Molten Forge is taken to need no upgrade bought, an inference from the maps logged; its
+     no-upgrade caps are still read on every map.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
      diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
 
