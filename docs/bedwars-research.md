@@ -1271,9 +1271,51 @@ Each of these was read in the code, not just reported:
 | Placed blocks | Grotto or Tennacle | the per-game placed set as a module explosion rules can read; reserved zones; `FieldFns` factories for placed-only and blast-proof glass |
 | Stats outcomes | Grotto, Tennacle | wins, losses, streaks, final kills; XP and levels |
 | Filling queue | Tennacle | N teams, solos merged, a minimum and a countdown that cancels; team chat and `/shout` |
-| Map keys | Barnacle, Bloom | `bedwars:generator` (forges grouped by team, mid generators ungrouped), `bedwars:shop`, `bedwars:upgrades`, `bedwars:base`, protected zones; Bloom cannot yet author a payload on a point marker |
+| Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
 | Team names | Canvas, Tennacle | a name and letter per team, so Pink and Gray print as captured |
+
+### 15.4 Hypixel's maps as arenas
+
+The map archive (`Desktop/Hypixel Map Archive/!Hypixel Maps/Bedwars`) holds 67 Solo/Doubles, 60
+Triples/Quads and 6 4v4 maps, plus seasonal and other modes. Each is a bare 1.8 world: region files and a
+stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do give (`map_scan.py`,
+`map_markers.py` in `research/bedwars/`):
+
+- One bed per team on every map (8, 4 or 2). Lighthouse carries 4 extra; the 8 farthest out are the bases.
+- Teams go round the map clockwise in Hypixel's order (R B G Y A W P S; R B G Y on four-team maps). Where a
+  map colors each base with a few accent blocks, those name the teams, and they matched the team played on
+  20 of 23 captured maps. Otherwise, and wherever a capture exists, the captured base fixes where the order
+  starts.
+- Every generator stands on a lone diamond or emerald block with open air above. Items appear 2.5 above that
+  block (129 captured generators). Copies of a generator can differ in height (Sky Rise).
+- The forge usually stands on a 3 x 3 slab platform (20 of 25 captured maps).
+- Hypixel's pregame room, a 25 x 10 x 25 box over the middle, is still in every world.
+- Spawn, forge and shopkeepers are not in the worlds. Our captures give them for 30 maps, and they sit the
+  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots, and the item shop
+  and upgrades trade places (Deadwood, Amazon, Playground).
+
+`gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
+builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
+being team ordinals in Hypixel's order:
+
+| Key | Shape | Group |
+|---|---|---|
+| `grotto:spawn` | pos, facing the bed | team |
+| `bedwars:bed` | region, both blocks | team |
+| `bedwars:forge`, `bedwars:shop`, `bedwars:upgrades` | point | team |
+| `bedwars:base` | region, where captured | team |
+| `team` | data, `display` in the team's color | team |
+| `bedwars:diamond`, `bedwars:emerald` | point, where items appear | none |
+| `bedwars:build` | region, the build radius square from the floor to the height | none |
+| `bedwars:height`, `bedwars:floor`, `bedwars:void` | limit y: highest and lowest placeable, the kill plane at 0 | none |
+| `bedwars:lobby` | region, the pregame room to clear at the start | none |
+
+Arenas are tagged `bedwars`, `bedwars-solo` and `bedwars-doubles`, and the output defaults to `build/`, since
+the worlds are Hypixel's. All 67 Solo/Doubles maps are converted (2026-09-26): 27 from captures, 35 with
+spawn, forge and shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita
+v2, Crypt, Slumber). The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
+check. Sign text, heads, banner patterns, flower pot contents and entities do not survive the conversion.
 
 ## 16. Decisions for you
 
