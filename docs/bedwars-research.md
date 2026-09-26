@@ -168,8 +168,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   with no kills either side. Draws exist and award neither a win nor a loss (off 2025-09-02). The catalog
   carries bold yellow `DRAW!`, `It's a draw.`, a yellow `At this rate, a draw will happen in N minutes!`
   warning and a `Draw in M:SS` label; none appeared. Ours breaks a tie between the teams with the most alive
-  on final kills, then on beds broken; still tied, it is a draw between them and the rest lose. Both captured
-  ties would have been draws.
+  on final kills, then beds broken, then total kills; still tied, it is a draw between them and the rest
+  lose. Both captured ties would have been draws.
 
 ### 3.4 Winning and rewards
 
