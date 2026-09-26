@@ -373,9 +373,13 @@ with identical numbers; every forge level bought one at a time and left to fill,
   1301 ticks after it, with the forge holding 64 iron (the Golden cap) when bought; Molten's came at +23t.
 - **Slow forges** (cap, Solo, 2026-09-25: Amazon twice and Glacier): one iron spawner, not three. It dropped
   1 iron every 21 ticks through the boost and 1 every 51 after it, a third of a fast forge; gold ran the same
-  (126, then 276). The pool does not tell a slow forge (above). NamuWiki lists Rooftop as slow in Solo; the
-  Rooftop game ran with the host's Max Team Upgrades modifier, which maxes the forge, so that forge is unread,
-  as are the Ashfire, Amazon Doubles, Waterfall, Babylon and Lightstone forges (the same modifier).
+  (126, then 276). The pool does not tell a slow forge (above). The start boost runs every spawner at 21
+  ticks, Max Team Upgrades or not, so any game's first 15 s of iron counts its forge's spawners
+  (`research/bedwars/forge_class.py`, every game on a map agreeing, 2026-09-24 to 26). One spawner:
+  Amazon, Ashfire, Dragonstar, Glacier, Rooftop (as NamuWiki says), Solace and Waterfall. Three: Ambush,
+  Babylon, Bio-Hazard, Crogorm, Deadwood, Dockyard, Gateway, Harvest, Impere, Ironclad, Lightstone, Lucky
+  Rush, Mirage, Playground, Rooted, Sanctum, Scorched Sands, Serenity, Silver Birch and Sky Rise. Doubles
+  matched Solo on the six maps played in both.
 - **Four-team forges** (cap, 2026-09-25: 3s on Lasagne and 4s on Relic, private games whose only modifier was
   the 1 s respawn, every level bought in turn): slower spawners than Solo's, with Solo's caps.
 
@@ -1027,7 +1031,9 @@ Every game played through the tool is a generator sample. Generators spawn wheth
 the diamond and emerald holograms count down to anyone in range, and the map and mode come off the pregame
 board, so normal play fills the table map by map. The sessions below cover what normal play cannot show.
 They keep the tool's checklist numbers, and run in private games with every modifier off, since a modifier
-changes the very numbers being measured.
+changes the very numbers being measured. Status 2026-09-26: 1, 2 and 2b are settled on the maps in 5.1 and
+5.2, whose spawners and timers are the same on every map but the forge's spawner count, which any game shows
+(5.1); 2c is settled on 25 maps (section 4).
 
 1. **Start boost and first spawns** (per map and mode). From `Protect your bed`, stand on your forge and keep
    collecting for 45 s, so it never fills: the boost's speed and exactly when it ends, and the first iron and
