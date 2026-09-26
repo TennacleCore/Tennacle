@@ -312,8 +312,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   inside the zone gets red `You can't empty buckets here!`, air back and the bucket kept, even when the water
   would land outside it (cap): 13 of Babylon's 18 refusals on 2026-09-25 aimed above its box from the top
   layer, and 9 at Playground's front face on 2026-09-26 aimed out of it, where wool went into the same cells.
-  Clicked outside, every bucket went in. Untested: a bucket clicked outside a zone that would fill a cell
-  inside one. A placed bucket leaves nothing behind: the slot empties (cap, 87 uses).
+  Clicked outside, a bucket goes in even when its water lands inside the zone (our play). A placed bucket
+  leaves nothing behind: the slot empties (cap, 87 uses).
 
 ## 5. Economy
 
