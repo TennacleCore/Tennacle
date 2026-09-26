@@ -232,28 +232,60 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 - **Above the top**: more than one block above the limit for over 30 s starts damage that grows; the timer
   decays and resets on death (off 2026-05).
 - **No-place zones** are boxes; refusal line (cap) `You can't place blocks here!`, with no sound. Measured
-  2026-09-26 (cap, Solo on Ashfire, Amazon, Ambush and Babylon, the host's Disable Block Protection and Max
-  Team Upgrades on; the zones held with that modifier; `research/bedwars/zones.py` draws them):
+  2026-09-26 (cap, Solo private games on 25 maps, the host's Disable Block Protection and Max Team Upgrades
+  on; the zones held with that modifier; `research/bedwars/zones.py` draws them, `zones_fit.py` and
+  `base_boxes.py` fit them):
   - Placing and breaking are refused alike inside a zone: red `You can't place blocks here!` and red `You
     can't break blocks here!`. With the modifier on map blocks break outside the zones, so a break can find
     an edge a placement cannot reach.
   - Every generator keeps a cube, the forge included: 3 blocks out each way from the generator's item block,
     down as well as up, 7 x 7 x 7. Blocks go in and break 4 out, 4 up and 4 down; breaks under a generator
     are refused to 3 down. Diamond and emerald generators on Ashfire, Amazon and Ambush agree, and so do the
-    forges.
-  - Each base keeps a box around its spawn point, sized per map. Counted from the spawn block: Amazon x -8 to
-    +7, y -2 to +4, z -6 to +6 (16 x 7 x 13); Ambush x and z 6 and 5 each way, y 0 to +5 (13 x 6 x 11, its
-    bottom untested); Ashfire 5 every way (11 x 11 x 11); Babylon 6 every way (13 x 13 x 13). With the
-    generator cubes and the shopkeepers set aside, one box fits every placement and break on Amazon and
-    Ambush, and all but 5 and 4 cells, beside a shopkeeper or the forge, on Ashfire and Babylon. The forge's
-    cube sits 3.5 to 5.5 blocks from the spawn and sticks out of the box. Measured at our own base on each
-    map; every base on a map is taken as the same box turned to face the middle.
-  - Each shopkeeper keeps a column 1 block out around it (3 x 3), refused up to 5 above it and, on Ashfire,
-    down to 5 below; blocks go in 2 out and 6 up (Ashfire and Babylon; Amazon's and Ambush's shopkeepers
-    stand inside the base box).
+    forges on all 25 maps (one stray placement 3 up on Lucky Rush).
+  - Each base keeps a box around its spawn point, sized per map (below). The forge's cube sits 3 to 6 blocks
+    behind the spawn and sticks out of the box. Measured at our own base on each map; every base on a map is
+    taken as the same box turned with it.
+  - Each shopkeeper keeps a column 1 block out around it (3 x 3), from 5 below its feet to 5 above; blocks go
+    in 2 out and 6 up. Where a shopkeeper stands inside the base box only the part sticking out shows.
   - Earlier (Lucky Rush 2026-09-24): over the base, blocks were refused 5.8 and 7.2 blocks from the forge but
     went down from 6.6, so the zone is a box, not a radius. A reading of refusals out to 13 blocks and at y 76
     came from pop-up tower clicks, which the capture tool counted as placements until 2026-09-25.
+
+  Base boxes, counted from the spawn block while facing away from the forge. Size is back-to-front x across x
+  up. An open side is one whose last refusal is known but no success one past it, so the box reaches at least
+  that far.
+
+  | Map | Back to front | Left to right | Down to up | Size | Open |
+  |---|---|---|---|---|---|
+  | Amazon | ±6 | -7 to +8 | -2 to +4 | 13 x 16 x 7 | left, bottom |
+  | Ambush | ±5 | ±6 | ±5 | 11 x 13 x 11 | |
+  | Ashfire | ±5 | ±5 | ±5 | 11 x 11 x 11 | |
+  | Babylon | ±6 | ±6 | ±6 | 13 x 13 x 13 | |
+  | Bio-Hazard | ±6 | ±6 | ±4 | 13 x 13 x 9 | left; the floor is 5 down |
+  | Crogorm | -3 to +5 | ±4 | ±4 | 9 x 9 x 9 | back, inside the forge's cube; left |
+  | Deadwood | ±5 | -4 to +5 | ±3 | 11 x 10 x 7 | left |
+  | Dockyard | ±9 | ±4 | ±5 | 19 x 9 x 11 | |
+  | Dragonstar | ±5 | ±5 | -5 to +6 | 11 x 11 x 12 | bottom; the floor is 7 down |
+  | Gateway | ±7 | ±5 | ±6 | 15 x 11 x 13 | top |
+  | Glacier | -6 to +8 | ±6 | ±4 | 15 x 13 x 9 | back, inside the forge's cube |
+  | Harvest | ±8 | ±7 | ±4 | 17 x 15 x 9 | |
+  | Impere | ±6 | ±6 | ±4 | 13 x 13 x 9 | |
+  | Lightstone | ±5 | ±6 | ±14 | 11 x 13 x 29 | |
+  | Lucky Rush | ±6 | -7 to +2 | ±7 | 13 x 10 x 15 | right |
+  | Mirage | ±8 | ±8 | ±6 | 17 x 17 x 13 | |
+  | Playground | -6 to +7 | -4 to +7 | -6 to +11 | 14 x 12 x 18 | back, left, bottom |
+  | Rooftop | ±7 | ±6 | ±4 | 15 x 13 x 9 | |
+  | Rooted | ±7 | ±9 | ±4 | 15 x 19 x 9 | |
+  | Sanctum | ±6 | ±6 | -6 to +7 | 13 x 13 x 14 | bottom; the floor is 8 down |
+  | Scorched Sands | ±7 | ±8 | ±6 | 15 x 17 x 13 | |
+  | Serenity | ±7 | ±6 | ±5 | 15 x 13 x 11 | |
+  | Silver Birch | ±8 | -2 to +6 | ±8 | 17 x 9 x 17 | left |
+  | Solace | ±5 | ±4 | ±5 | 11 x 9 x 11 | |
+  | Waterfall | ±5 | ±5 | ±5 | 11 x 11 x 11 | |
+
+  Every refusal and success around each spawn fits its box but 3 cells on Impere and 1 each on Babylon and
+  Crogorm. Ambush's box comes from two bases in two games, each pinning the side the other left open.
+
   The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
   the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. Height (cap): Sky Rise took
   wool at y 90 and refused 91 (map file 91), a water bucket included; Waterfall placed at y 100 and refused
@@ -271,12 +303,13 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   in vanilla (cap, Waterfall: a step every 5 ticks, over the island's edge and straight down past the
   floor), except that a flow update into a team's base region is cancelled (our play). On Babylon (cap,
   2026-09-25) water placed just outside the protected box over a team's spawn flooded the base floor and ran
-  around the bed, but never into the box. Water cannot be placed inside that box either: the server sends
-  air back, the bucket stays and no line prints (18 tries), where a block gets `You can't place blocks here!`.
-  A placed bucket leaves nothing behind: the slot empties (cap, 87 uses). On Sky Rise a bucket emptied into
-  -86,74,-29, about 11 blocks from our spawn point, got red `You can't empty buckets here!` (cap, twice):
-  air back and the bucket kept. Water went in at -86,77,-30. The zone a bucket is refused in is
-  the no-build zone (our play).
+  around the bed, but never into the box. The zone a bucket is refused in is the no-build zone (our play),
+  but a bucket is judged by the block clicked, where a block is judged by the cell it fills. Clicking a block
+  inside the zone gets red `You can't empty buckets here!`, air back and the bucket kept, even when the water
+  would land outside it (cap): 13 of Babylon's 18 refusals on 2026-09-25 aimed above its box from the top
+  layer, and 9 at Playground's front face on 2026-09-26 aimed out of it, where wool went into the same cells.
+  Clicked outside, every bucket went in. Untested: a bucket clicked outside a zone that would fill a cell
+  inside one. A placed bucket leaves nothing behind: the slot empties (cap, 87 uses).
 
 ## 5. Economy
 
@@ -918,6 +951,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Babylon, Lightstone and Amazon, the first two with Max Team Upgrades on (`capture-bedwars.js`) | Magic Milk against a Miner Fatigue trap, breaking a bed and losing yours, a final death and `GAME OVER!`, Amazon's slow forge again |
 | 2026-09-25 Solo, Glacier and Bio-Hazard, with `Event Times: 4x - Fastest` (`capture-bedwars.js`) | the pools against forge speed, forge upgrades on Bio-Hazard, Bed Gone, Sudden Death and Game End with nobody dead, the deposit minimum, the AFK warning |
 | 2026-09-26 Solo on Ashfire, Amazon, Ambush and Babylon, private games with `Respawn Time: 1 Second`, Disable Block Protection and Max Team Upgrades (`capture-bedwars.js`) | the generator cube, four base regions, the shopkeeper columns, breaks refused in zones, the floor line |
+| 2026-09-26 Solo on the 22 other maps in rotation, the same modifiers (`capture-bedwars.js`) | every base box, the forge cube and shopkeeper columns on each, a bucket judged by the block clicked |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
