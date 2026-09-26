@@ -1277,11 +1277,9 @@ Each of these was read in the code, not just reported:
 
 ## 16. Decisions for you
 
-1. **Which mode first.** My recommendation is a two-team cut on the bed fight skeleton, shaped like Bed
-   Wars Duel or 4v4. It exercises every new system (generators, both shops, upgrades, traps, the timeline,
-   NPCs, holograms) while items 1, 7 and 8 of 15.2 wait. Solo and Doubles follow once the empty-team
-   start, the filling queue and N-row boards land. The captured board is 8-team Solo, so the look work
-   carries over.
+1. **Which mode first.** Decided 2026-09-26: the five core modes from the start, on the downloaded maps.
+   Items 1, 6, 7 and 8 of 15.2 therefore come before the first game: the empty-team start, team names, the
+   filling queue, boards and summaries for any team count, and map types by team count.
 2. **Parity target.** Exact Hypixel as the `hypixel` look (captured copy, `Hypixel.bedwars()` mechanics),
    plus the house look, with the numbers as rules so `/rules` shows them.
 3. **Holograms.** Rely on Via's text-display emulation for 1.8, or send armor stands natively by viewer
@@ -1291,8 +1289,8 @@ Each of these was read in the code, not just reported:
 5. **One type per team size, or a capacity rule.** Exact marker counts force a type per map shape today.
 6. **What a first cut leaves out.** My suggestion: Dreams, rotating items, cosmetics, challenges, quests,
    tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
-7. **Captures.** Which sessions from section 13 to run first. The late-game ones are the hardest to get
-   without private games.
+7. **Captures.** Done 2026-09-26. The one optional pass left, each map's diamond and emerald generators,
+   is moot where the downloaded maps carry them.
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
 
