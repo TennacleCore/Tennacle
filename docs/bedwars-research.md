@@ -383,7 +383,9 @@ with identical numbers; every forge level bought one at a time and left to fill,
   Amazon, Ashfire, Dragonstar, Glacier, Rooftop (as NamuWiki says), Solace and Waterfall. Three: Ambush,
   Babylon, Bio-Hazard, Crogorm, Deadwood, Dockyard, Gateway, Harvest, Impere, Ironclad, Lightstone, Lucky
   Rush, Mirage, Playground, Rooted, Sanctum, Scorched Sands, Serenity, Silver Birch and Sky Rise. Doubles
-  matched Solo on the six maps played in both.
+  matched Solo on the six maps played in both. Orchestra (2026-09-26) has one too; its Iron Forge dropped 1
+  iron every 36 ticks and gold every 201, a fast forge's periods on one spawner. The table's stop there at
+  23 iron is the connection, which went quiet 21 s before it dropped, not a cap.
 - **Four-team forges** (cap, 2026-09-25: 3s on Lasagne and 4s on Relic, private games whose only modifier was
   the 1 s respawn, every level bought in turn): slower spawners than Solo's, with Solo's caps.
 
@@ -1060,14 +1062,16 @@ changes the very numbers being measured. Status 2026-09-26: 1, 2 and 2b are sett
    - **2b. Forge upgrades, then the carry limit** (all four levels cost 20 diamonds in Solo/Doubles, 40 in
      3s/4s): at your forge, buy the levels one at a time and leave each alone until it stops, for each
      level's speed and cap and the first emerald after Emerald Forge and Molten Forge. The forge need not be
-     emptied first: a purchase raises the cap by 8 iron and 2 gold, and the few spawns up to it give the
-     level's periods and its cap (Gateway, 2026-09-26, on a full forge: Iron and Golden Forge read 8 to 11 s
-     after buying, Emerald Forge at its second emerald). The one forge that never spawns is one over its
-     level's cap from the start, the boost's first fill of 64 iron against 48 with no upgrade; pick some up.
+     emptied first: the spawns up to the raised cap give the level's periods and its cap (Gateway,
+     2026-09-26, on a full forge: Iron and Golden Forge read 8 to 11 s after buying, Emerald Forge at its
+     second emerald). Every cap logged so far rose 8 iron and 2 gold a level, which is what those forges did,
+     not a rule: a level that stops before its periods show, or never starts (the boost's first fill of 64
+     iron over no upgrade's 48), has the tool say to pick some up, and a stop off the logged cap says so.
      With every level bought, stand in the forge and pick up until you can't, for iron and for gold.
      The tool holds your forge to the ones in the table as you play and says in chat how each level compares,
      where it stopped and what to do next. A forge with the spawner count and no-upgrade periods of one
-     logged through Molten Forge needs no upgrade bought; on a fast forge that shows about 45 s in.
+     logged through Molten Forge is taken to need no upgrade bought, an inference from the maps logged; on a
+     fast forge that shows about 45 s in.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
      diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
 
