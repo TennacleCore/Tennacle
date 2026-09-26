@@ -57,6 +57,20 @@ tasks.named<Sync>("installDist") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+// Hypixel's archived BedWars worlds plus the research markers, as arenas. The worlds are Hypixel's, so the
+// output defaults under build/ and stays out of git
+tasks.register<JavaExec>("bedwarsMaps") {
+    description = "Builds BedWars arenas from -Parchive (Hypixel's map zips) and -Pmarkers; -Pout, -Pmaps optional"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "tennacle.dev.BedwarsMaps"
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    val archive = providers.gradleProperty("archive")
+    val markers = providers.gradleProperty("markers")
+    val out = providers.gradleProperty("out").orElse(layout.buildDirectory.dir("bedwars-maps").map { it.asFile.path })
+    val maps = providers.gradleProperty("maps").orElse("")
+    argumentProviders.add(CommandLineArgumentProvider { listOf(archive.get(), markers.get(), out.get(), maps.get()) })
+}
+
 tasks.test {
     useJUnitPlatform()
     maxHeapSize = "2g" // one shared headless server across 50+ classes; gradle's 512m default runs out near the end

@@ -1,0 +1,238 @@
+package tennacle.dev;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import io.github.term4.barnacle.ArenaBuilder;
+import io.github.term4.barnacle.marker.DataMarker;
+import io.github.term4.barnacle.marker.LimitMarker;
+import io.github.term4.barnacle.marker.Marker;
+import io.github.term4.barnacle.marker.PointMarker;
+import io.github.term4.barnacle.marker.PosMarker;
+import io.github.term4.barnacle.marker.RegionMarker;
+import io.github.term4.bloom.mapmaking.LegacyAnvil;
+import io.github.term4.bloom.mapmaking.Teams;
+import io.github.term4.canvas.theme.Tint;
+import io.github.term4.grotto.Markers;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.BlockVec;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+/**
+ * Hypixel's archived BedWars worlds as arenas: each world through Bloom's pre-1.13 reader, with the markers
+ * {@code research/bedwars/map_markers.py} wrote for it. The worlds are Hypixel's, so the output stays out of git.
+ * <p>Args: the archive folder, a folder of marker files, the output folder, then optionally map names to limit
+ * the run to, comma separated. {@code gradlew bedwarsMaps -Parchive=... -Pmarkers=... [-Pout=...] [-Pmaps=...]}
+ */
+public final class BedwarsMaps {
+
+    /** Hypixel's order round the map; the group is the ordinal, as on every arena here. */
+    private static final List<String> TEAMS = List.of("Red", "Blue", "Green", "Yellow", "Aqua", "White", "Pink", "Gray");
+    private static final Map<String, String> DISPLAY = Map.of("Red", "red", "Blue", "blue", "Green", "green",
+            "Yellow", "yellow", "Aqua", "aqua", "White", "white", "Pink", "light_purple", "Gray", "dark_gray");
+    /** Items appear this far above a generator's block (the captured median). */
+    private static final double GENERATOR_RISE = 2.5;
+    private static final String[] TAGS = {"bedwars", "bedwars-solo", "bedwars-doubles"};
+
+    private BedwarsMaps() {}
+
+    public static void main(String[] args) throws IOException {
+        if (args.length < 3) {
+            System.err.println("usage: BedwarsMaps <archive dir> <marker dir> <out dir> [map,map,...]");
+            System.exit(2);
+        }
+        Set<String> only = args.length > 3 && !args[3].isBlank() ? Set.of(args[3].split(",")) : null;
+        MinecraftServer.init();
+        int written = convert(Path.of(args[0]), Path.of(args[1]), Path.of(args[2]), only);
+        System.out.println(written + " arenas in " + Path.of(args[2]).toAbsolutePath());
+        System.exit(0);
+    }
+
+    /** Every marker file's map that the archive holds, or only those named; needs an initialized server. */
+    static int convert(Path archive, Path markers, Path out, @Nullable Set<String> only) throws IOException {
+        Files.createDirectories(out);
+        int written = 0;
+        try (Stream<Path> files = Files.list(markers)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
+                JsonObject map;
+                try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                    map = new Gson().fromJson(reader, JsonObject.class);
+                }
+                String name = map.get("map").getAsString();
+                if (only != null && !only.contains(name)) continue;
+                Path zip = find(archive, name + ".zip");
+                if (zip == null) {
+                    System.out.println(name + ": no " + name + ".zip under " + archive);
+                    continue;
+                }
+                String id = "bedwars-" + name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+                byte[] arena = build(id, map, world(zip));
+                Files.write(out.resolve(id + ".bncl"), arena);
+                written++;
+                System.out.println(name + ": " + id + ".bncl, " + arena.length / 1024 + " KB, " + provenance(map));
+            }
+        }
+        return written;
+    }
+
+    private static byte[] world(Path zip) throws IOException {
+        Path temp = Files.createTempDirectory("bedwars-map");
+        try (ZipFile archive = new ZipFile(zip.toFile())) {
+            String root = null;
+            for (ZipEntry entry : archive.stream().toList()) {
+                int at = entry.getName().indexOf("region/");
+                if (at >= 0) {
+                    root = entry.getName().substring(0, at);
+                    break;
+                }
+            }
+            if (root == null) throw new IOException(zip + " holds no region/ folder");
+            for (ZipEntry entry : archive.stream().toList()) {
+                if (entry.isDirectory() || !entry.getName().startsWith(root)) continue;
+                Path target = temp.resolve(entry.getName().substring(root.length())).normalize();
+                if (!target.startsWith(temp)) throw new IOException("entry outside the world: " + entry.getName());
+                Files.createDirectories(target.getParent());
+                try (InputStream in = archive.getInputStream(entry)) {
+                    Files.copy(in, target);
+                }
+            }
+            if (!LegacyAnvil.isLegacy(temp)) throw new IOException(zip + " is not a pre-1.13 world");
+            return LegacyAnvil.toPolar(temp);
+        } finally {
+            try (Stream<Path> paths = Files.walk(temp)) {
+                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+            }
+        }
+    }
+
+    private static byte[] build(String id, JsonObject map, byte[] world) {
+        JsonObject lobby = object(map, "lobby");
+        ArenaBuilder builder = new ArenaBuilder(id).name(map.get("map").getAsString()).authors("Hypixel")
+                .tags(TAGS).time(6000).world(world).user(CompoundBinaryTag.builder()
+                        .put("bedwars", CompoundBinaryTag.builder().putString("source", provenance(map)).build()).build());
+        if (lobby != null) {
+            Vec spawn = vec(lobby.getAsJsonArray("spawn"));
+            builder.spawn(new Pos(spawn.x(), spawn.y(), spawn.z(), 180, 0));
+            builder.marker(new RegionMarker("bedwars:lobby", "", "", block(lobby.getAsJsonArray("min")), block(lobby.getAsJsonArray("max"))));
+        }
+        for (Marker marker : markers(map)) builder.marker(marker);
+        return builder.build();
+    }
+
+    private static List<Marker> markers(JsonObject map) {
+        List<Marker> out = new ArrayList<>();
+        JsonObject box = object(map, "base box");
+        for (JsonElement element : map.getAsJsonArray("bases")) {
+            JsonObject base = element.getAsJsonObject();
+            if (base.get("team").isJsonNull()) continue;
+            String team = base.get("team").getAsString();
+            String group = String.valueOf(TEAMS.indexOf(team) + 1);
+            JsonObject bed = base.getAsJsonObject("bed");
+            BlockVec head = block(bed.getAsJsonArray("head")), foot = block(bed.getAsJsonArray("foot"));
+            out.add(new RegionMarker("bedwars:bed", group, "", head, foot));
+            out.add(new DataMarker(Teams.KEY, group, "", teamLook(team), 1));
+            Vec spawn = base.has("spawn") ? vec(base.getAsJsonArray("spawn")) : null;
+            Vec forge = base.has("forge") ? vec(base.getAsJsonArray("forge")) : null;
+            if (spawn != null) {
+                // players come in facing their bed
+                double dx = head.blockX() + 0.5 - spawn.x(), dz = head.blockZ() + 0.5 - spawn.z();
+                float yaw = (float) Math.toDegrees(-Math.atan2(dx, dz));
+                out.add(new PosMarker(Markers.SPAWN.id(), group, "", new Pos(spawn.x(), spawn.y(), spawn.z(), yaw, 0)));
+            }
+            if (forge != null) out.add(new PointMarker("bedwars:forge", group, "", forge));
+            if (base.has("item shop")) out.add(new PointMarker("bedwars:shop", group, "", standing(vec(base.getAsJsonArray("item shop")))));
+            if (base.has("upgrades")) out.add(new PointMarker("bedwars:upgrades", group, "", standing(vec(base.getAsJsonArray("upgrades")))));
+            if (box != null && spawn != null && forge != null) out.add(baseBox(group, spawn, forge, box));
+        }
+        JsonObject generators = map.getAsJsonObject("generator blocks");
+        for (String kind : List.of("diamond", "emerald")) {
+            for (JsonElement element : generators.getAsJsonArray(kind)) {
+                BlockVec at = block(element.getAsJsonArray());
+                out.add(new PointMarker("bedwars:" + kind, "", "", new Vec(at.blockX() + 0.5, at.blockY() + GENERATOR_RISE, at.blockZ() + 0.5)));
+            }
+        }
+        JsonObject build = object(map, "build");
+        if (build != null) {
+            int min = build.get("minBuild").getAsInt(), max = build.get("maxBuild").getAsInt(), radius = build.get("buildRadius").getAsInt();
+            // the map file's maxBuild is the first height refused
+            out.add(new LimitMarker("bedwars:height", "", "", null, (double) (max - 1), null));
+            out.add(new LimitMarker("bedwars:floor", "", "", null, (double) min, null));
+            if (radius > 0) {
+                out.add(new RegionMarker("bedwars:build", "", "", new BlockVec(-(radius - 1), min, -(radius - 1)),
+                        new BlockVec(radius - 1, max - 1, radius - 1)));
+            }
+        }
+        out.add(new LimitMarker("bedwars:void", "", "", null, 0.0, null));
+        return out;
+    }
+
+    // centered on the spawn block, reach back and front along the forge's line, left and right across it
+    private static RegionMarker baseBox(String group, Vec spawn, Vec forge, JsonObject box) {
+        int along = box.get("back and front").getAsInt(), across = box.get("left and right").getAsInt();
+        int up = box.get("down and up").getAsInt();
+        boolean alongX = Math.abs(forge.x() - spawn.x()) >= Math.abs(forge.z() - spawn.z());
+        int rx = alongX ? along : across, rz = alongX ? across : along;
+        BlockVec center = new BlockVec(spawn.blockX(), spawn.blockY(), spawn.blockZ());
+        return new RegionMarker("bedwars:base", group, "", center.sub(rx, up, rz), center.add(rx, up, rz));
+    }
+
+    private static CompoundBinaryTag teamLook(String team) {
+        String display = DISPLAY.get(team);
+        Tint.parse(display); // a name Canvas would refuse fails the run, not the first match
+        return CompoundBinaryTag.builder().putString("display", display).build();
+    }
+
+    // the shop anchors were read off the name holograms, a fraction above the shopkeeper's feet
+    private static Vec standing(Vec hologram) {
+        return new Vec(hologram.x(), Math.floor(hologram.y() + 0.01), hologram.z());
+    }
+
+    private static String provenance(JsonObject map) {
+        String bases = map.getAsJsonArray("bases").asList().stream()
+                .map(b -> b.getAsJsonObject().get("source").getAsString().split("[:,]")[0]).distinct().sorted()
+                .reduce((a, b) -> a + "/" + b).orElse("none");
+        JsonObject generators = map.getAsJsonObject("generator source");
+        return "bases " + bases + "; teams " + map.get("team source").getAsString().split(":")[0]
+                + "; diamond " + generators.get("diamond").getAsString() + "; emerald " + generators.get("emerald").getAsString()
+                + (object(map, "base box") != null ? "; base box captured" : "; no base box");
+    }
+
+    private static JsonObject object(JsonObject parent, String key) {
+        JsonElement value = parent.get(key);
+        return value == null || value.isJsonNull() ? null : value.getAsJsonObject();
+    }
+
+    private static Vec vec(JsonArray values) {
+        return new Vec(values.get(0).getAsDouble(), values.get(1).getAsDouble(), values.get(2).getAsDouble());
+    }
+
+    private static BlockVec block(JsonArray values) {
+        return new BlockVec(values.get(0).getAsInt(), values.get(1).getAsInt(), values.get(2).getAsInt());
+    }
+
+    private static Path find(Path dir, String fileName) throws IOException {
+        try (Stream<Path> files = Files.walk(dir)) {
+            return files.filter(f -> f.getFileName().toString().equals(fileName)).findFirst().orElse(null);
+        }
+    }
+}
