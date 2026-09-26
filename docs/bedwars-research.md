@@ -593,8 +593,14 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   Diamond Armor lore reads `...which you will always crush with.` (sic).
 - Opening the shop and switching tabs play no sound.
 - Quick Buy is 21 per-player slots, stored as item ids (API `favourites_2`); shift-click adds or removes.
-  The default layout is disputed (a 21-item 2023 template against a 14-item 2021 API default): CAPTURE on
-  a fresh account.
+  The default fills all 21, the same in every mode (wiki, the Fandom page's shop mock-up):
+
+  | Slots | | | | | | | |
+  |---|---|---|---|---|---|---|---|
+  | 19-25 | Wool | Stone Sword | Permanent Chainmail Armor | Wooden Pickaxe | Bow | Speed II Potion | TNT |
+  | 28-34 | Oak Wood Planks | Iron Sword | Permanent Iron Armor | Permanent Shears | Arrow | Invisibility Potion | Water Bucket |
+  | 37-43 | Golden Apple | Jump V Potion | Blast-Proof Glass | End Stone | Wooden Axe | Bow (Power I) | Bow (Power I, Punch I) |
+
 - **Tracker Shop** (`Purchase Enemy Tracker`, 4 rows): one wool per enemy team in its color from slot 10,
   named `Track Team <Team>` (red while locked), lore `Purchase tracking upgrade for your`, `compass which will
   track each player`, `on a specific team until you die.`, `Cost: 2 Emeralds` and red `Unlocks when all enemy
