@@ -383,8 +383,12 @@ with identical numbers; every forge level bought one at a time and left to fill,
   Amazon, Ashfire, Dragonstar, Glacier, Rooftop (as NamuWiki says), Solace and Waterfall. Three: Ambush,
   Babylon, Bio-Hazard, Crogorm, Deadwood, Dockyard, Gateway, Harvest, Impere, Ironclad, Lightstone, Lucky
   Rush, Mirage, Playground, Rooted, Sanctum, Scorched Sands, Serenity, Silver Birch and Sky Rise. Doubles
-  matched Solo on the six maps played in both. Orchestra (2026-09-26) has one too; its Iron Forge dropped 1
-  iron every 36 ticks and gold every 201, a fast forge's periods on one spawner. The table's stop there at
+  matched Solo on the six maps played in both. Orchestra has one too, and is the one slow forge bought
+  through Molten Forge (cap, Solo, 2026-09-26, the 1 s respawn only): a fast forge's periods on one spawner
+  at every level (iron 51, 36, then 21 from Golden Forge on; gold 276, 201, then 126; emeralds 1302 at
+  Emerald Forge) and a fast forge's caps (48, 56, 64, 72 and 80 iron; 16, 18, 20, 22 and 24 gold). Its
+  Molten Forge showed one emerald; the 701-tick period and a cap of 3 emeralds come from the Max Team
+  Upgrades games, whose slow forges also stop at 80 iron and 24 gold. An earlier Orchestra record's stop at
   23 iron is the connection, which went quiet 21 s before it dropped, not a cap.
 - **Four-team forges** (cap, 2026-09-25: 3s on Lasagne and 4s on Relic, private games whose only modifier was
   the 1 s respawn, every level bought in turn): slower spawners than Solo's, with Solo's caps.
@@ -1033,7 +1037,10 @@ each named armor stand with its names and update cadence; one dump per window ti
 HideFlags, Unbreakable and leather color; effects by amplifier and duration; sounds beside the nearest chat or
 title line. Each game also appends a line to `captures/generators.jsonl` as you leave its world (before
 2026-09-26, only at the disconnect, so a crash lost the connection's games), and `node capture-bedwars.js
---table` prints every game so far, one block per map and mode.
+--table` prints every game so far, one block per map and mode. A record's `period` is the lowest gap many
+spawns share, since a wait at the cap or a missed spawn only lengthens one; the median it used before read
+Orchestra's Golden and Molten Forge iron as 41.8 and 31.5 where the spawns ran 21, and that record was
+corrected from its own spawns (the table before it is `generators.jsonl.before-orchestra-period-fix`).
 
 1.8 wire facts the tool had to get right, verified in MCP-919 and paper_source_1.8.8: armor stands spawn as
 object 78 through `spawn_entity`, not `spawn_entity_living`; the effect packet's particle flag means shown,
