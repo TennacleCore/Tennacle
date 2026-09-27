@@ -1365,10 +1365,17 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   diamonds stand at 57.5 out on both axes over nothing in the archived world, whose islands the live map
   has and the archive lacks; Aquarium's emeralds drop at y 96.5, away from the blocks the search took;
   Holmgang has two more diamonds at z -11.5 and 12.5; three of Serenity's diamonds had been put over
-  blocks 11 above their drop points. Forges are placed by hand, base by base: Glacier's sit on block edges
-  (x -86.0) and Amazon's on corners, Katsu's drop at 76.656, Deadwood's between 66.125 and 66.3125, one of
-  Waterfall's half a block under the rest, and Temple's east forge 0.31 off a turned copy of its north
-  one. A base no capture saw takes the layout most captured bases share (2026-09-27).
+  blocks 11 above their drop points.
+- Forges are placed by hand. Most drop 0.5 over their slab (116 of 155 captured bases), and every base of
+  eight maps 1.0 over it; Glacier's sit on block edges (x -86.0) and Amazon's on corners, base after base.
+  A few drift: one of Waterfall's drops half a block under the rest, Jurassic's east forge half a block
+  under its north one, Temple's north forge 0.31 off a turned copy of its east one, and Deadwood's (66.125
+  to 66.3125) and Katsu's (76.656) sit off the half-block grid. The arenas standardize them (decided
+  2026-09-27): every base of a map takes one layout against its bed, the captured one on the half-block
+  grid that most bases share, then the one 0.5 over its floor, snapped to the grid where none is on it.
+  That moves 10 captured forges, Deadwood's to 66.0 and Katsu's to 76.5 among them. A captured base's own
+  forge tells its hand (Lucky Rush's sit 2 blocks aside, mirrored base to base), and an uncaptured base's
+  blocks against the captured ones' tell its hand, however slight the difference.
 
 `gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
 builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
