@@ -1439,7 +1439,11 @@ Each of these was read in the code, not just reported:
 
 1. **Empty teams abort the match.** `LastStanding.requireAllSeated` decides `aborted` when any team has
    nobody present or reserved at GO, and an 8-team lobby starts with empty teams. They should start out,
-   bed gone, with a minimum team count.
+   bed gone, with a minimum team count. Done 2026-09-27: `LastStanding.requireSeatedAt(phase, teams)` starts
+   them out as `NEVER_ARRIVED`, and bed fight's `Beds` takes their beds away without a fall. A last-standing
+   game never plays with fewer than two teams, whatever its minimum: one team has nobody to fight (the
+   user's rule). The fix found `Phases.onEnter` keeping only the last action a phase was given, which had
+   switched the seated check off in bed fight and in bridge under minemen.
 2. **Every TNT placement would print `You can't place blocks here!`.** Polyp primes TNT by cancelling the
    placement (`ExplosionSystem`), and `Refusals` reads any cancelled placement not marked `handled` as a
    refusal.
@@ -1482,7 +1486,7 @@ Each of these was read in the code, not just reported:
 | Mobs | new | silverfish and golem with goals, team targeting, a lifetime, damage through Polyp's attack pipeline, credit to the owner |
 | Armor hiding | Polyp | a per-viewer equipment filter for invisible players |
 | Knockback credit | Grotto | `KillCredit` off knockback; projectile to shooter, TNT to igniter |
-| Empty-team start | Grotto | unseated teams out at GO, with a minimum |
+| Empty-team start | Grotto | done 2026-09-27: unseated teams out at GO, two teams at least |
 | Placed blocks | Grotto or Tennacle | the per-game placed set as a module explosion rules can read; reserved zones; `FieldFns` factories for placed-only and blast-proof glass |
 | Stats outcomes | Grotto, Tennacle | kills, deaths, final kills, final deaths, beds broken and lost, wins, losses and streaks; no XP or levels (decision 6) |
 | Filling queue | Tennacle | N teams, solos merged, a minimum and a countdown that cancels; team chat and `/shout` |
