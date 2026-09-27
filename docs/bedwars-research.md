@@ -111,7 +111,10 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   protect your bed, destroy the enemy beds and collect Iron, Gold, Emerald and Diamond for upgrades, then
   the closing bar.
 - Starting kit: wooden sword and compass; full team-dyed leather armor, unbreakable, helmet with Aqua
-  Affinity I (off, v0.4; comm 2020). The compass is only given if a Hotbar Manager slot holds it.
+  Affinity I (off, v0.4; comm 2020). The compass, green `Compass ` + gray `(Right Click)`, always comes in
+  inventory slot 17, the main inventory's top right (cap: 298 sends in 25 sessions, the other 2 re-sending
+  it to the hotbar slot a player had moved it to); the Hotbar Manager has no compass category. Right-clicking
+  it opens the compass menu (6.2).
 - The XP bar shows BedWars level progress in game (off, v1.6).
 - Spawn protection at the start: assumed 3 s, like respawn invincibility (our play; not worth a capture).
 
@@ -699,6 +702,10 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   hardened clay (172) whatever the team; the wool lore says it turns into your team's color. The Permanent
   Diamond Armor lore reads `...which you will always crush with.` (sic).
 - Opening the shop and switching tabs play no sound.
+- Every tab click opens a new window 30 to 60 ms later, the open tab's own icon included; a purchase
+  updates the open window in place, sending the cursor and the changed inventory slots (cap, 2026-09-27).
+  Four single clicks 100 ms apart bought four wool, and the double click the client adds after two quick
+  clicks bought nothing.
 - Quick Buy is 21 per-player slots, stored as item ids (API `favourites_2`); shift-click adds or removes.
   The default fills all 21, the same in every mode (wiki, the Fandom page's shop mock-up):
 
@@ -708,10 +715,51 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   | 28-34 | Oak Wood Planks | Iron Sword | Permanent Iron Armor | Permanent Shears | Arrow | Invisibility Potion | Water Bucket |
   | 37-43 | Golden Apple | Jump V Potion | Blast-Proof Glass | End Stone | Wooden Axe | Bow (Power I) | Bow (Power I, Punch I) |
 
+- **Adding to Quick Buy** (cap, 2026-09-27): shift-clicking an item in a category tab opens a 6-row `Adding
+  to Quick Buy...`. Slot 4 shows the item with its cost and description, the lines after them replaced by a
+  blank and yellow `Adding item to Quick Slot!`; slots 19-25, 28-34 and 37-43 show the player's Quick Buy,
+  each item's lore cut to yellow `Click to replace!` and each empty slot the red pane `Empty slot!` with
+  yellow `Click to set!`. Names keep their affordable or unaffordable color. Clicking a slot plays
+  `note.pling`, with no chat, and reopens the Quick Buy page with the item in it, its lore now ending aqua
+  `Shift Click to remove from Quick Buy!` over the purchase line. Any click on an empty slot of the Quick Buy
+  page says red `This is an empty Quick Buy slot!` and aqua `Shift Click on an item in the rest of the shop
+  to fill it!` with `mob.endermen.portal`.
 - **Tracker Shop** (`Purchase Enemy Tracker`, 4 rows): one wool per enemy team in its color from slot 10,
   named `Track Team <Team>` (red while locked), lore `Purchase tracking upgrade for your`, `compass which will
   track each player`, `on a specific team until you die.`, `Cost: 2 Emeralds` and red `Unlocks when all enemy
-  beds are destroyed!`; slot 31 is an arrow named green `Go Back`, lore `To Quick Buy`.
+  beds are destroyed!`; slot 31 is an arrow named green `Go Back`, lore `To Quick Buy`, or `To Tracker &
+  Communication` when opened from the compass. It lists only the teams still in the game, one in a
+  two-player game, and a locked tracker says red `Not all enemy beds are destroyed yet!` and closes the
+  window (cap, 2026-09-27).
+- **Compass menu** (cap, 2026-09-27): right-clicking the compass opens a 3-row `Tracker & Communication`. In
+  Solo it holds the Tracker Shop alone (compass, slot 13); in Doubles green `Quick Communications` (emerald,
+  slot 11, lore `Send highlighted chat messages to` / `your teammates!`, a blank, yellow `Click to open!`)
+  and the Tracker Shop (slot 15, the tracker lore and `Click to open!`). Quick Communications goes by mode,
+  not by who is on the team: Doubles showed it to a player alone on their team. Only modes with more than
+  one player a team have it (our play).
+- **Quick Communications** (5 rows): green-named messages, `Hello ( ﾟ◡ﾟ)/!` and `I'm coming back to base!`
+  (books), `I'm defending!` (iron bars), `I'm attacking!` (iron sword), `I'm collecting resources!` (diamond)
+  and `I have resources!` (chest) in slots 10-15; `Thank You!` and `Get back to base!` (books), `Please
+  defend!` (iron bars), `Let's attack!` (iron sword), `We need resources!` (diamond) and `Player incoming!!`
+  (feather) in 20-25. Each ends in a blank and yellow `Click to send!`, the attack ones after gray `You will
+  be able to select the Team.`, the resource ones after `You will be able to select the` / `Resource.`. Slot
+  40 is `Go Back`, `To Tracker & Communication`.
+  - Sending closes the window and gives the team green bold `TEAM > `, the sender's ranked name, white `: `
+    and the message in green: the item's name less one trailing `!` (`Player incoming!`, `Thank You`), with
+    `random.orb` at volume 1, pitch 1.0.
+  - An attack or resource message closes the window and opens a 4-row `Select an option: ` (trailing space)
+    0.1 to 0.15 s later. For teams, a wool per enemy team from slot 10, named green `I'm attacking ` or
+    `Let's attack ` + the team's name in upper case, bold, in its color; for resources, a diamond, iron
+    ingot, gold ingot and emerald in slots 10, 12, 14 and 16, named green `We need `, `I'm collecting ` or
+    `I have ` + aqua `DIAMOND`, white `IRON`, gold `GOLD` or dark green `EMERALD`, bold. Their lore: gray
+    `Click to send the message: "` + the message + gray `"` / `to your teammates!`, a blank, yellow `Click
+    to send!`. Slot 31 is `Go Back`, `To Quick Communications`.
+  - Most messages also aim the compass: the sender reads a green line, with `random.orb`, just before the
+    team line. `Targeting your base on the compass now!` for coming back, defending, get back and please
+    defend; `Targeting Gray on the compass now!`, all green, for attacking a team; `Targeting ` + `Diamond `
+    in the resource's color, bold, + `on the compass now!` for every resource message. Let's attack sent
+    none (once), nor do Hello, Thank You and Player incoming. Where the compass then points is not
+    captured: the tool did not log the spawn position packet a 1.8 compass follows until after this game.
 - **Hotbar Manager** (6 rows, API `favorite_slots`): slots 10-17 hold the categories to drag, Blocks, Melee,
   Pickaxe, Axe, Shears, Ranged, Potions and Utility (tools split in three, no armor), each with the lore `Drag
   this to a hotbar slot below to`, `favor that slot when purchasing an`, `item in this category or on spawn.`
@@ -719,11 +767,13 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   hotbar slots, each showing its category's icon with `<Category> items will prioritize this slot!` and yellow
   `Click to remove!`; slot 48 is `Go Back`, slot 50 a barrier named red `Reset to Default`, lore `Reset your
   hotbar to the default.` The slots apply on purchase and on spawn; number keys over an item buy it straight
-  into that slot.
+  into that slot. Clicking a category puts it on the cursor, clicks outside the window keep it there, and
+  closing the window clears it (cap, 2026-09-27).
 - Rotating Items tab: one to three rotating items weekly from a pool of about 30. Defer. The week of
   2026-09-25 (cap): Block Shuffler, an Enderman spawn egg whose lore reads `Spawn an Enderman to shuffle
   most` / `nearby player-placed blocks!` (2 gold in Doubles, 6 in 4s), and Sharpened Swords II, which points
-  to the upgrades window.
+  to the upgrades window. Both were still there on 2026-09-27, the Block Shuffler at 2 gold in Solo too;
+  slot 49 is a paper, green `What are Rotating Items?`, saying such items may be replaced at any time.
 - Chat (cap): `You purchased <Shop Name>`, `You don't have enough Iron! Need 3 more!`.
 
 ### 6.3 Special items
@@ -878,10 +928,14 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
 - Buying broadcasts green `<player> purchased ` + gold `<upgrade>` to the team, with `note.pling` as in the
   item shop; an unaffordable click says red `You don't have enough resources to unlock that upgrade!` with
   `mob.endermen.portal`. Clicking again 200 ms after the last click got red `Clicking too fast!` with the
-  same sound (cap, once, Holmgang). A queued trap fills its queue slot as green `Trap #1: Miner Fatigue Trap` with its
-  description, `The first enemy to walk into your` / `base will trigger this trap!` and yellow `Right Click to
-  remove! ` + dark gray `(No refund)`; removing it says red `Removed ` + gold `Miner Fatigue Trap` + red
-  ` from the queue!`.
+  same sound (cap, Holmgang), and so did two clicks 101 ms after the last, each closing the window (cap,
+  Deadwood 2026-09-27), while clicks 299 ms and more apart went through. Only clicks on upgrades and traps
+  count: faster clicks on the panes and the empty queue slots said nothing, and the item shop has no such
+  limit (6.2). A purchase or a trap removal reopens the window about 0.2 s after the click, where the item
+  shop updates in place (cap, 2026-09-27). A queued trap fills its queue slot as green `Trap #1: Miner
+  Fatigue Trap` with its description, `The first enemy to walk into your` / `base will trigger this trap!`,
+  gray `Queued by: ` + the buyer's name in aqua, and yellow `Right Click to remove! ` + dark gray `(No
+  refund)`; removing it says red `Removed ` + gold `Miner Fatigue Trap` + red ` from the queue!`.
 - A trap going off (cap): the title red `TRAP TRIGGERED!` over `Your Miner Fatigue Trap has been set off!`
   (fade 5, stay 35, fade out 10, after a 0/5/0 reset), bold red `Miner Fatigue Trap was set off!` in chat and
   `mob.endermen.portal` at volume 8, pitch byte 0, all in one tick.
@@ -1083,6 +1137,7 @@ www.hypixel.net           yellow
 | 2026-09-27 4s on Terminal, Aquarium, Archway, Artemis, Fort Doon and Invasion, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | the 4s forge, each map's 3s one with 5 spawners; Terminal's generators, two emerald ones stacked over the middle; three more bases |
 | 2026-09-27 4s on every four-team map in rotation, `Disable Block Protection` and `Max Team Upgrades` (`capture-bedwars.js` with its zone check) | every four-team base box; the diamond and emerald caps at every generator, Catalyst's in a second game too; Lasagne's, Shipment's and Tengshe's build limits; the radius a circle; Fort Doon's floor; Molten Forge's emerald cap |
 | 2026-09-27 4s on Jurassic and Temple, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | their three-point forges in 4s: the two extra spawners drop at the gold point |
+| 2026-09-27 Solo on Sky Rise and Doubles on Serenity and Deadwood, private games with `Respawn Time: 1 Second`, `Event Times: 4x - Fastest` and Disable Block Protection, the first two also Max Team Upgrades (`capture-bedwars.js`) | adding to Quick Buy, the compass menu in Solo and Doubles, every Quick Communications message and its compass line, the locked tracker, the Hotbar Manager's cursor, the upgrades window reopening and `Clicking too fast!` closing it, the queued trap's buyer, the compass's inventory slot |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1220,7 +1275,9 @@ bought, each tier), and each resource in a stretch gets one line:
 ### 13.2 Everything else
 
 3. **Shop sweep**: the Solo windows, the upgrades window from scratch and the refusals are captured
-   (2026-09-24, 2026-09-25), and every 3s/4s tab with the upgrades (2026-09-25).
+   (2026-09-24, 2026-09-25), and every 3s/4s tab with the upgrades (2026-09-25). Quick Buy editing, the
+   compass menu and Quick Communications followed (2026-09-27). Still open: where a tracker or a message
+   points the compass, which the tool logs from 2026-09-27 on.
 4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
    captured (2026-09-25). AFK is not being tested.
@@ -1399,7 +1456,7 @@ Each of these was read in the code, not just reported:
 | Timeline | Tennacle or Barnacle | named events at offsets from LIVE, alarms re-armed on rule change, `next()` for the board, a hook per event; bed fight's bed alarm becomes one entry |
 | Generators | Tennacle or Barnacle | spawn points from markers; interval, tier, cap and pickup delay per resource; forge rate as team state; tiers from the timeline; the forge split on pickup |
 | Holograms | Canvas | per-viewer multi-line text with ticking lines; a text display, with Via's armor-stand emulation or a native armor-stand path for legacy viewers |
-| Shop screens | Canvas, Tennacle | catalog pages, lore colored by what the viewer can afford, purchases through a currency transaction, Quick Buy and Hotbar Manager in `PlayerPrefs`, the upgrades screen writing team state |
+| Shop screens | Canvas, Tennacle | catalog pages, lore colored by what the viewer can afford, purchases through a currency transaction, Quick Buy (with its slot picker) and Hotbar Manager in `PlayerPrefs`, the upgrades screen writing team state, the compass menu with the tracker and Quick Communications, and a per-player compass target |
 | Currency | Polyp | count; take all or nothing, reporting the shortfall for "Need N more!"; give with an overflow policy in the era's add order |
 | NPCs | Tennacle | shopkeepers from markers (villager or `Ghost`), facing the nearest player, immune to hits and blasts, a click opens a screen. No `PlayerEntityInteractEvent` handler exists in any repo yet |
 | Team upgrades | Tennacle | team state consulted on hit, equip, purchase and spawn; stamping enchants for the glint; Haste, Heal Pool, forge rate |
