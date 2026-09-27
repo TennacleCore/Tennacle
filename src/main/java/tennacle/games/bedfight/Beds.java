@@ -6,6 +6,7 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.flow.Phases;
+import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.roster.Team;
 import net.minestom.server.codec.Codec;
@@ -107,6 +108,13 @@ public final class Beds implements GameModule {
             Refusals.handled(e); // cancelled to take the whole bed at once, not to turn them away
             if (stands(game, owner)) broke(owner, breaker, pos);
         });
+        LastStanding standing = game.module(LastStanding.class);
+        if (standing != null) {
+            // a side nobody sat on at GO never had its bed in play: no fall to tell
+            standing.onOut((g, seat, player, cause) -> {
+                if (cause.kind() == LastStanding.Kind.NEVER_ARRIVED && stands(game, seat.team())) clear(seat.team());
+            });
+        }
         game.state().alarms().register(FALL_ALARM, (tick, payload) -> fall());
         game.rules().watch(DESTROY, (scope, value) -> rearm());
         Phases phases = game.module(Phases.class);
@@ -173,10 +181,14 @@ public final class Beds implements GameModule {
         return game.roster().teams().stream().map(Team::id).filter(id -> stands(game, id)).toList();
     }
 
-    // the cells go with the bed: what stands there next is a placed block, nobody's objective
     private void erase(String team) {
-        game.state().set(Scope.team(team), STANDS, false);
+        clear(team);
         for (java.util.function.Consumer<String> action : fell) action.accept(team);
+    }
+
+    // the cells go with the bed: what stands there next is a placed block, nobody's objective
+    private void clear(String team) {
+        game.state().set(Scope.team(team), STANDS, false);
         cells.entrySet().removeIf(cell -> {
             if (!cell.getValue().equals(team)) return false;
             game.shard().setBlock(cell.getKey(), Block.AIR);
