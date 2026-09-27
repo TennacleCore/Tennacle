@@ -420,10 +420,11 @@ with identical numbers; every forge level bought one at a time and left to fill,
   Aquarium bought through Molten Forge): 3 spawners on every map, Relic and Holmgang included, on the
   four-team timing above, stopping at 48 iron and 16 gold with no upgrade. The boost ends before a 3s forge
   fills: about 60 iron by 0:30. A 4s forge is the same map's 3s forge with 5 spawners: the same timing and
-  caps on all eight maps played in both (Aquarium, Archway, Artemis, Fort Doon, Holmgang, Invasion, Relic
-  and Terminal, 2026-09-25 and 27), so the other 4s maps are taken to run that way (our play). Jurassic's
-  and Temple's 3s forges drop iron from three points a block or two apart, with one gold, each wave landing
-  over about 2 ticks; their 4s forges are worth a game of their own.
+  caps on all ten maps played in both (Aquarium, Archway, Artemis, Fort Doon, Holmgang, Invasion, Jurassic,
+  Relic, Temple and Terminal, 2026-09-25 and 27), so the other 4s maps are taken to run that way (our play).
+  Jurassic's and Temple's forges drop iron from three points a block apart and gold at the middle one (half
+  a block under it on Temple), each wave landing over about 2 ticks. In 3s each point has one spawner; in 4s
+  the two extra spawners drop at the gold point.
 
 ### 5.2 Diamond and emerald generators
 
@@ -1001,6 +1002,7 @@ www.hypixel.net           yellow
 | 2026-09-26 Solo on every map in rotation and Doubles on Crogorm, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every forge's spawner count, boost and no-upgrade timing and caps; every level on Orchestra, Amazon and Sky Rise; the Emerald Forge emerald cap; six more bases; Crogorm seating its teams by mode |
 | 2026-09-27 3s on every map in rotation, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every 3s forge's spawners and no-upgrade caps; every level on Aquarium, whose Emerald Forge emeralds outlast any cap; 32 more bases; Jurassic's and Temple's three-point forges |
 | 2026-09-27 4s on Terminal, Aquarium, Archway, Artemis, Fort Doon and Invasion, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | the 4s forge, each map's 3s one with 5 spawners; Terminal's generators, two emerald ones stacked over the middle; three more bases |
+| 2026-09-27 4s on Jurassic and Temple, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | their three-point forges in 4s: the two extra spawners drop at the gold point |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1065,7 +1067,8 @@ more, packets land a few ticks early or late, and a forge's first wave can come 
 Orchestra's Golden and Molten Forge iron as 41.8 and 31.5 where the spawns ran 21, and the lowest shared gap
 read Terminal's 4s boost as 27 where it ran 31 (2026-09-27); both records were corrected from their own
 spawns (the tables before are `generators.jsonl.before-orchestra-period-fix` and
-`generators.jsonl.before-terminal-boost-fix`).
+`generators.jsonl.before-terminal-boost-fix`). A botched first Temple 4s game is out of the table
+(`generators.jsonl.before-temple-retry-drop`).
 
 1.8 wire facts the tool had to get right, verified in MCP-919 and paper_source_1.8.8: armor stands spawn as
 object 78 through `spawn_entity`, not `spawn_entity_living`; the effect packet's particle flag means shown,
@@ -1340,21 +1343,32 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   teams (our play). They matched the team played on 20 of 23 captured maps; on Ashfire, Babylon and Crogorm
   Hypixel's Solo sat one or two bases off them, and Crogorm's Doubles followed them (2026-09-26). Elsewhere
   the captured base fixes where the order starts.
-- Every generator stands on a diamond or emerald block with open air above, usually a lone one. Items appear
-  2.5 above that block (the median of 221 captured generators), though a block lower on many maps
-  (Terminal's 1.5 above); the arenas use 2.5 everywhere for now. Copies of a generator can differ in height
-  (Sky Rise, Rooted). Where a capture saw a generator's hologram, the block under it decides: 128 holograms on
-  27 maps, every one matched. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other
-  emerald blocks, so only their holograms found them. Terminal and Relic stack two emerald generators over
-  their middle, 8 and 7 blocks apart, each with its own hologram (2026-09-27).
+- Every generator stands on a diamond or emerald block with open air above, usually a lone one; Carapace's
+  lower emerald stands on glass. Its items drop over the middle of the block, 1.5, 2 or 2.5 above it by map
+  (Terminal 1.5, Ashfire 2), and its "Diamond" or "Emerald" line stands 2.97 above the drop point (95/32 on
+  the 1.8 wire, 88 of 88 captured). Copies of a generator can differ in height (Sky Rise, Rooted), each at
+  its map's rise. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other emerald blocks.
+  Terminal and Relic stack two emerald generators over their middle, 8 and 7 blocks apart, each with its
+  own hologram (2026-09-27).
 - The forge usually stands on a 3 x 3 slab platform (23 of 31 captured maps). Orchestra's does not, and its
   bases guessed from one sat about 20 blocks off until a capture placed them.
 - Hypixel's pregame room, a 25 x 10 x 25 box over the middle, is still in every world.
 - Spawn, forge and shopkeepers are not in the worlds. Our captures give them for 31 maps, and they sit the
-  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots. On 16 maps where
+  same way against every base's bed, forges to within half a block. A flipped copy of a base mirrors the shopkeeper spots. On 16 maps where
   both hands were captured the item shop and upgrades also trade places; on Impere they stay put. A base the
   captures saw keeps its own positions, one of the same hand copies it, and an uncaptured map's flipped
   copies trade. All 53 captured bases come out exactly.
+- Items drop where the captures saw them, to the 1/32 block the 1.8 wire carries (`spawn_points.py`: a
+  forge or generator drops 0.2 up and at most 0.1 across). A generator's point is its drops', else its
+  hologram's less 2.97, else a turned copy of one over a block of the kind at the same rise; a map no
+  capture saw gets 2.5 above the block (assumed). The drops corrected four maps' generators: Orchestra's
+  diamonds stand at 57.5 out on both axes over nothing in the archived world, whose islands the live map
+  has and the archive lacks; Aquarium's emeralds drop at y 96.5, away from the blocks the search took;
+  Holmgang has two more diamonds at z -11.5 and 12.5; three of Serenity's diamonds had been put over
+  blocks 11 above their drop points. Forges are placed by hand, base by base: Glacier's sit on block edges
+  (x -86.0) and Amazon's on corners, Katsu's drop at 76.656, Deadwood's between 66.125 and 66.3125, one of
+  Waterfall's half a block under the rest, and Temple's east forge 0.31 off a turned copy of its north
+  one. A base no capture saw takes the layout most captured bases share (2026-09-27).
 
 `gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
 builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
@@ -1364,10 +1378,12 @@ being team ordinals in Hypixel's order:
 |---|---|---|
 | `grotto:spawn` | pos, facing the bed | team |
 | `bedwars:bed` | region, both blocks | team |
-| `bedwars:forge`, `bedwars:shop`, `bedwars:upgrades` | point | team |
+| `bedwars:forge` | point, where gold drops | team |
+| `bedwars:forge-iron` | point, where iron drops; payload: how many of each mode's spawners drop there, keyed `solo`, `doubles`, `3v3v3v3`, `4v4v4v4` | team |
+| `bedwars:shop`, `bedwars:upgrades` | point | team |
 | `bedwars:base` | region, where captured | team |
 | `team` | data, `display` in the team's color | team |
-| `bedwars:diamond`, `bedwars:emerald` | point, where items appear | none |
+| `bedwars:diamond`, `bedwars:emerald` | point, where items drop | none |
 | `bedwars:build` | region, the build radius square from the floor to the height | none |
 | `bedwars:height`, `bedwars:floor`, `bedwars:void` | limit y: highest and lowest placeable, the kill plane at 0 | none |
 | `bedwars:lobby` | region, the pregame room to clear at the start | none |
@@ -1378,7 +1394,7 @@ worlds are Hypixel's. All 67 Solo/Doubles maps are converted: 28 from captures, 
 shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
 Slumber). So are all 60 Triples/Quads maps (2026-09-27): 27 from captures, 31 guessed, and none found on
 Daolong and Obelisk, all without a base box until their zone round; Tengshe, in rotation, is not in the
-archive, and Terminal's emerald generators were not found. The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
+archive. The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
 check. Sign text, heads, banner patterns, flower pot contents and entities do not survive the conversion.
 
 ## 16. Decisions for you
@@ -1396,8 +1412,9 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 6. **What a first cut leaves out.** My suggestion: Dreams, rotating items, cosmetics, challenges, quests,
    tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
 7. **Captures.** Solo/Doubles are done (2026-09-26), and 3s forges (2026-09-27); 4s forges are each map's
-   3s one with 5 spawners on the eight maps played in both, and are taken to be on the rest (our play),
-   Jurassic and Temple worth a 4s game each. Left, on the maps in rotation: the 3s/4s zone round (base
+   3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). A
+   walk past every base and generator would make the copied forge and generator points exact. Left, on the
+   maps in rotation: the 3s/4s zone round (base
    boxes, generator and shopkeeper zones), 4v4's forges and zones, and the four-team mid generator caps (8
    diamonds and 5 or 6 emeralds are the wiki's). Maps out of rotation stay on assumptions until they
    return, since their build limits and generators cannot be captured before then (our play).
