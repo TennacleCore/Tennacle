@@ -225,7 +225,9 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   while its distance is under the radius, and Rooftop, Sky Rise and Ironclad stop at their file's 120, 123
   and 131 (cap, 2026-09-25 to 27). The area is that circle at every height, with one height limit across the
   whole map (our play). Elsewhere the edge falls between whole numbers, and each arena takes the simplest
-  number between the last block placed and the first refused. On Shipment no one circle round 0,0 takes
+  number between the last block placed and the first refused. No way of measuring makes every radius whole:
+  the one that fits every map gives whole numbers on 5 of the 11 probed, and Temple's edge falls between
+  100.18 and 100.25. On Shipment no one circle round 0,0 takes
   both its south edge (114.44 to 114.53) and its west (114.76 to 114.86), though one centered up to a block
   off 0,0 would; its arena keeps 0,0 and grows to take every block placed, 114.8 (decided 2026-09-27: expand
   where the probes disagree), which only the south refusal contradicts. The captures give
@@ -1437,11 +1439,10 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   captured generators: 139 of 220 diamond and 101 of 154 emerald ones. The captures had 1.5 on Ambush,
   Artemis, Build Site, Carapace, Deadwood, Frogiton, Harvest, Harvesting, Impere, Infinite, Ironclad,
   Lasagne, Lost Temple, Relic, Rooted, Sanctum, Silver Birch, Terminal and Whiskers (emeralds on Fort Doon
-  and Katsu too), 2 on Ashfire, and 2.5 elsewhere; the markers keep each captured point. A drop the map
-  set at one height lands at another where a column stacks one more block: one of Aquarium's four diamond
-  generators has two blocks, so its drop sits 1.5 over its top where the others sit 2.5, and the standard
-  puts its drop a block higher than theirs. Copies of a generator can differ in height (Sky Rise, Rooted),
-  each over its own block. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other emerald blocks.
+  and Katsu too), 2 on Ashfire, and 2.5 elsewhere; the markers keep each captured point. A generator's turned
+  copies keep one height where the captures drop them at one: one of Aquarium's four diamond generators
+  stands on two blocks, yet all four drop at 83.5, and so they stay. Copies the captures set at different
+  heights keep theirs (Sky Rise's and Rooted's pairs), each over its own block. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other emerald blocks.
   Terminal and Relic stack two emerald generators over their middle, 8 and 7 blocks apart, each with its
   own hologram (2026-09-27).
 - The forge usually stands on a 3 x 3 slab platform (23 of 31 captured maps). The archive's Orchestra has
@@ -1505,8 +1506,9 @@ being team ordinals in Hypixel's order:
 | `bedwars:lobby` | region, the pregame room to clear at the start | none |
 
 Arenas are tagged `bedwars` and by their team count: `bedwars-solo` and `bedwars-doubles` for 8 teams,
-`bedwars-3v3v3v3` and `bedwars-4v4v4v4` for 4, `bedwars-4v4` for 2. The output defaults to `build/`, since the
-worlds are Hypixel's.
+`bedwars-3v3v3v3` and `bedwars-4v4v4v4` for 4, `bedwars-4v4` for 2. They live in `arenas/bedwars/`, where the
+other modes' map pools, which read `arenas/` alone, never load them. Hypixel allows their use while we claim
+no creation or rights in them (2026-09-27): each names Hypixel as its author, and the folder's README says so.
 
 A map no capture recorded is a guess throughout (decided 2026-09-27): nothing on it is taken as right, not
 even the rules that held on every map captured, and its arena carries `bedwars-guessed` so a rotation can
@@ -1516,7 +1518,7 @@ Solo/Doubles, 33 Triples/Quads and all 6 4v4 maps. The recorded maps still need:
 
 | Map | Needs a capture |
 |---|---|
-| Mirage, Sanctum, Serenity | emerald generators: where they stand, found only from their blocks |
+| Mirage, Sanctum, Serenity | emerald generators: where they stand, found only from their blocks (Mirage's put at y 50, far under its bases) |
 
 All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
 shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
@@ -1527,25 +1529,29 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 
 ## 16. Decisions for you
 
-1. **Which mode first.** Decided 2026-09-26: the five core modes from the start, on the downloaded maps.
-   Items 1, 6, 7 and 8 of 15.2 therefore come before the first game: the empty-team start, team names, the
+1. **Which mode first.** Decided 2026-09-26: the core modes from the start, on the downloaded maps; since
+   2026-09-27 Solo, Doubles, 3s and 4s, with 4v4 out for the foreseeable future, as are Dreams. Items 1, 6,
+   7 and 8 of 15.2 therefore come before the first game: the empty-team start, team names, the
    filling queue, boards and summaries for any team count, and map types by team count.
 2. **Parity target.** Decided 2026-09-27: the first pass is the Hypixel look alone, named `hypixel` as the
    look and the preset (captured copy, `Hypixel.bedwars()` mechanics, the numbers as rules so `/rules` shows
    them); a house look comes later. Final kill, bed break and kill lines already exist in bed fight's
    hypixel preset, and kill credit timing is in section 8.
-3. **Holograms.** Rely on Via's text-display emulation for 1.8, or send armor stands natively by viewer
-   protocol. Via is less work; native gives exact line spacing.
+3. **Holograms.** Decided 2026-09-27: armor stands sent natively by viewer protocol, unless Via's
+   text-display emulation proves exact for 1.8, in which case Via.
 4. **Where generators and the timeline live.** Decided 2026-09-27: Tennacle or Barnacle, not Grotto.
    Grotto stays general game-building tools, grown only where BedWars needs something general.
-5. **One type per team size, or a capacity rule.** Exact marker counts force a type per map shape today.
+5. **One type per team size, or a capacity rule.** Decided 2026-09-27: one general type. Team size and
+   generator counts are rules with each mode's defaults (1 a team in Solo, 2 in Doubles, 3 in 3s, 4 in 4s,
+   each on the maps for its team count), changeable like bridge's rules and never prevented. Exact marker
+   counts force a type per map shape today (15.2).
 6. **What a first cut leaves out.** Decided 2026-09-27: Dreams, rotating items and cosmetics. Open:
    challenges, quests, tokens and the Slumber Hotel (my suggestion leaves them out too); stats in, XP and
    levels later.
 7. **Captures.** Solo/Doubles are done (2026-09-26), and the four-team maps in rotation (2026-09-27):
    3s forges, base boxes, mid generator caps and the build limits the file lacks; 4s forges are each map's
    3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
-   the recorded maps' gaps (15.4); 4v4's forges and zones; every guessed map, when it returns to rotation.
+   the recorded maps' gaps (15.4); every guessed map, when it returns to rotation.
    A walk past every base and generator would make the copied forge and generator points exact.
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
