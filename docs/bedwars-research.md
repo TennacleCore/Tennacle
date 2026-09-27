@@ -741,7 +741,8 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   white ` - Distance: ` + green bold `<n>m`, in whole meters (1 to 43 seen). The first went out 0.55 s
   after the purchase. The action bar shows whatever the player holds, and the compass keeps its name. In
   38 of 56 seconds a second action bar followed within a tick, the same or a meter off. Before a tracker
-  the compass points at the game world's spawn, -344, 4, 1326 on Sky Rise, far off the map.
+  the compass points at the nearest teammate in team modes (our play); in Solo, with no teammate, at the
+  game world's spawn, -344, 4, 1326 on Sky Rise, far off the map (cap).
 - **Compass menu** (cap, 2026-09-27): right-clicking the compass opens a 3-row `Tracker & Communication`. In
   Solo it holds the Tracker Shop alone (compass, slot 13); in Doubles green `Quick Communications` (emerald,
   slot 11, lore `Send highlighted chat messages to` / `your teammates!`, a blank, yellow `Click to open!`)
