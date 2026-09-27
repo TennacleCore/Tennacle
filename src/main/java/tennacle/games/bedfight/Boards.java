@@ -45,8 +45,7 @@ final class Boards {
         return Frames.hypixel("Bed Wars", "Bed Rush Duel", null, b -> b
                 .line((g, me) -> clockLine(g, "Time Left: "))
                 .blank()
-                .line((g, me) -> sideLine(g, teamAt(g, 0), me, BED_LOUD, GONE_LOUD), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
-                .line((g, me) -> sideLine(g, teamAt(g, 1), me, BED_LOUD, GONE_LOUD), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
+                .rows(Boards::sides, (g, me, i) -> sideLine(g, teamAt(g, i), me, BED_LOUD, GONE_LOUD), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .ownBlank()
                 .own((g, me) -> Frames.hypixelRow("Kills: ", kills(g, me)), BedFight.KILLS));
     }
@@ -56,8 +55,7 @@ final class Boards {
         return Frames.minemen("Bed Fight", b -> b
                 .line((g, me) -> clockLine(g, "Bed gone in "))
                 .blank()
-                .line((g, me) -> sideLine(g, teamAt(g, 0), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
-                .line((g, me) -> sideLine(g, teamAt(g, 1), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
+                .rows(Boards::sides, (g, me, i) -> sideLine(g, teamAt(g, i), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .ownBlank()
                 .own((g, me) -> Frames.minemenRow("Kills: ", kills(g, me)), BedFight.KILLS));
     }
@@ -65,8 +63,7 @@ final class Boards {
     private static void rows(Scoreboard b) {
         b.line((g, me) -> clockLine(g, "Bed gone in ")) // no watched key: a clock is the board's own timer to refresh
                 .blank()
-                .line((g, me) -> sideLine(g, teamAt(g, 0), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
-                .line((g, me) -> sideLine(g, teamAt(g, 1), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD);
+                .rows(Boards::sides, (g, me, i) -> sideLine(g, teamAt(g, i), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD);
     }
 
     private static int kills(Game game, Player viewer) {
@@ -109,6 +106,10 @@ final class Boards {
         LastStanding standing = game.module(LastStanding.class);
         int alive = standing != null ? standing.standing(team) : 0;
         return alive > 0 ? Component.text(alive, NamedTextColor.GREEN) : gone;
+    }
+
+    private static int sides(Game game) {
+        return game.roster().teams().size();
     }
 
     private static String teamAt(Game game, int index) {
