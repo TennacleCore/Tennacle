@@ -1468,7 +1468,10 @@ Each of these was read in the code, not just reported:
    which the duels keep blue-first. They had authored only the display color, which left armor and wool
    on the ordinal default: Red's would have been blue.
 7. **Two-team assumptions**: bed fight's board has two side rows, `Queues` pairs exactly two equal sides,
-   `Summary` compares two sides, and the hypixel look says "won the Duel!".
+   `Summary` compares two sides, and the hypixel look says "won the Duel!". The board lists every side since
+   2026-09-27 (Grotto's `Scoreboard` rows render per viewer). The versus card and "won the Duel!" stay the
+   duels' own: BedWars ends with its captured block (the winners' line, then `1st Killer` to `3rd Killer`)
+   and `VICTORY!` or `GAME OVER!` with no subtitle, built with the mode. The filling queue is still to come.
 8. **Marker counts are exact**, so one game type cannot serve both 4- and 8-team maps.
 9. **Invisibility hides nothing but the body.** Polyp's `Invisibility` sets the entity flag; armor stays
    visible to everyone, and no per-viewer equipment filter exists.
