@@ -13,6 +13,7 @@ import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.bloom.mapmaking.LegacyAnvil;
 import io.github.term4.bloom.mapmaking.Teams;
+import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Markers;
 import net.kyori.adventure.nbt.BinaryTagTypes;
@@ -53,7 +54,7 @@ public final class BedwarsMaps {
 
     /** Hypixel's order round the map; the group is the ordinal, as on every arena here. */
     private static final List<String> TEAMS = List.of("Red", "Blue", "Green", "Yellow", "Aqua", "White", "Pink", "Gray");
-    private static final Map<String, String> DISPLAY = Map.of("Red", "red", "Blue", "blue", "Green", "green",
+    private static final Map<String, String> COLOR = Map.of("Red", "red", "Blue", "blue", "Green", "green",
             "Yellow", "yellow", "Aqua", "aqua", "White", "white", "Pink", "light_purple", "Gray", "dark_gray");
     private static final Map<Integer, List<String>> TAGS = Map.of(
             8, List.of("bedwars", "bedwars-solo", "bedwars-doubles"),
@@ -229,10 +230,11 @@ public final class BedwarsMaps {
         return out.build();
     }
 
+    // base, not display: every role a kit reads (armor, wool) follows the team, never the ordinal default
     private static CompoundBinaryTag teamLook(String team) {
-        String display = DISPLAY.get(team);
-        Tint.parse(display); // a name Canvas would refuse fails the run, not the first match
-        return CompoundBinaryTag.builder().putString("display", display).build();
+        String color = COLOR.get(team);
+        Tint.parse(color); // a name Canvas would refuse fails the run, not the first match
+        return CompoundBinaryTag.builder().putString(Livery.BASE, color).build();
     }
 
     // the shop anchors were read off the name holograms, a fraction above the shopkeeper's feet

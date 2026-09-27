@@ -8,12 +8,16 @@ import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
+import io.github.term4.bloom.mapmaking.Teams;
+import io.github.term4.canvas.theme.Livery;
 import io.github.term4.grotto.Markers;
+import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.nbt.BinaryTagIO;
 import net.kyori.adventure.nbt.BinaryTagTypes;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.minestom.server.coordinate.BlockVec;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.Instance;
@@ -131,7 +135,9 @@ class BedwarsMapsTest extends HeadlessServerTest {
         assertEquals(new BlockVec(14, 66, -1), base.boxes().getFirst().max());
         DataMarker look = arena.marker(MarkerKey.data("team"), "2");
         assertNotNull(look);
-        assertEquals("blue", look.payload().getString("display"));
+        assertEquals("blue", look.payload().getString(Livery.BASE));
+        Livery blue = new Livery(Teams.of(arena, "2").values()).over(Livery.ordinal("2"));
+        assertEquals(NamedTextColor.BLUE, blue.get(Team.DISPLAY).named(), "the arena's color, not the ordinal's red");
         assertEquals(new Vec(0.5, 65, -3.5), arena.marker(MarkerKey.point("bedwars:shop"), "1").point());
         assertEquals(List.of(new Vec(8.5, 66, 8.5)),
                 arena.markers(MarkerKey.point("bedwars:diamond")).stream().map(PointMarker::point).toList());
