@@ -1373,9 +1373,23 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   to 66.3125) and Katsu's (76.656) sit off the half-block grid. The arenas standardize them (decided
   2026-09-27): every base of a map takes one layout against its bed, the captured one on the half-block
   grid that most bases share, then the one 0.5 over its floor, snapped to the grid where none is on it.
-  That moves 10 captured forges, Deadwood's to 66.0 and Katsu's to 76.5 among them. A captured base's own
-  forge tells its hand (Lucky Rush's sit 2 blocks aside, mirrored base to base), and an uncaptured base's
-  blocks against the captured ones' tell its hand, however slight the difference.
+  That moves 10 captured forges; every other captured forge and generator point goes in as captured, and
+  `research/bedwars/spawn-points-2026-09-27.json` holds every drop seen. A captured base's own forge tells
+  its hand (Lucky Rush's sit 2 blocks aside, mirrored base to base), and an uncaptured base's blocks against
+  the captured ones' tell its hand, however slight the difference.
+
+  | Map | Base | Captured drop point | Arena |
+  |---|---|---|---|
+  | Deadwood | Red | -29.5, 66.125, -98.5 | y 66.0 |
+  | Deadwood | Blue | 30.5, 66.1875, -98.5 | y 66.0 |
+  | Deadwood | Green | 99.5, 66.1875, -29.5 | y 66.0 |
+  | Deadwood | Yellow | 99.5, 66.3125, 30.5 | y 66.0 |
+  | Deadwood | Pink | -98.5, 66.1875, 30.5 | y 66.0 |
+  | Deadwood | Gray | -98.5, 66.1875, -29.5 | y 66.0 |
+  | Waterfall | Gray | -76.5, 65.5, -31.5 | y 66.0 |
+  | Jurassic | Blue | gold 79.5, 67.5, 10.5; iron at z 9.5, 10.5 and 11.5, y 67.5 | y 68.0 |
+  | Katsu | Red | 0.5, 76.65625, -93.5 | y 76.5 |
+  | Temple | Red | gold 0.5, 62.5, -73.8125; iron at x -0.5, 0.5 and 1.5, y 63.0, z -73.8125 | z -73.5 |
 
 `gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
 builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
