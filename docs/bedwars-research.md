@@ -1476,7 +1476,10 @@ Each of these was read in the code, not just reported:
    2026-09-27 (Grotto's `Scoreboard` rows render per viewer). The versus card and "won the Duel!" stay the
    duels' own: BedWars ends with its captured block (the winners' line, then `1st Killer` to `3rd Killer`)
    and `VICTORY!` or `GAME OVER!` with no subtitle, built with the mode. The filling queue is still to come.
-8. **Marker counts are exact**, so one game type cannot serve both 4- and 8-team maps.
+8. **Marker counts are exact**, so one game type cannot serve both 4- and 8-team maps. Done 2026-09-27: a
+   type can expect one marker for each team (`GameType.expectEachTeam`), however many teams the map seats,
+   and the launch and the map pool read the same check; bed fight's beds use it. Team size as a rule still
+   needs a seat cap per team (decision 5).
 9. **Invisibility hides nothing but the body.** Polyp's `Invisibility` sets the entity flag; armor stays
    visible to everyone, and no per-viewer equipment filter exists.
 
@@ -1630,7 +1633,7 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 5. **One type per team size, or a capacity rule.** Decided 2026-09-27: one general type. Team size and
    generator counts are rules with each mode's defaults (1 a team in Solo, 2 in Doubles, 3 in 3s, 4 in 4s,
    each on the maps for its team count), changeable like bridge's rules and never prevented. Exact marker
-   counts force a type per map shape today (15.2).
+   counts forced a type per map shape until a type could expect a marker for each team (15.2).
 6. **What a first cut leaves out.** Decided 2026-09-27: everything but the game and its stats. The stats
    are kills, deaths, final kills, final deaths, beds broken, beds lost and the like; out are Dreams,
    rotating items, cosmetics, challenges, quests, tokens, the Slumber Hotel, XP and levels.
