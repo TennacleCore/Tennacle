@@ -416,6 +416,12 @@ with identical numbers; every forge level bought one at a time and left to fill,
   ticks (55 s, three spawns) at Emerald Forge and 541 (27 s) at Molten. On Aquarium (3s, 2026-09-27) the
   Emerald Forge's emeralds kept coming every 1101 ticks until the oldest despawned at 5 minutes, 6 lying at
   most, so any cap is above 6; a Solo Emerald Forge stops at 2.
+- **Every 3s map in rotation** (cap, 2026-09-27: a private game on each of 29 with only the 1 s respawn,
+  Aquarium bought through Molten Forge): 3 spawners on every map, Relic and Holmgang included, on the
+  four-team timing above, stopping at 48 iron and 16 gold with no upgrade. The boost ends before a 3s forge
+  fills: about 60 iron by 0:30. In 4s the same maps run 5 spawners (Relic and Holmgang, 2026-09-25), and the
+  other 4s maps are taken to as well (our play). Jurassic's and Temple's forges drop iron from three points
+  a block or two apart, with one gold; each wave lands over about 2 ticks.
 
 ### 5.2 Diamond and emerald generators
 
@@ -991,6 +997,7 @@ www.hypixel.net           yellow
 | 2026-09-26 Solo on Ironclad and Sky Rise, `Respawn Time: 1 Second` only (`capture-bedwars.js`) | their base boxes, the last two maps in rotation without one, and Ironclad's second base |
 | 2026-09-26 Solo on Gateway, `Respawn Time: 1 Second` only (`capture-bedwars.js`) | the forge at every level, bought in turn, as on Sky Rise and Ironclad; Gateway's Gray base, a flipped copy whose shopkeepers trade places |
 | 2026-09-26 Solo on every map in rotation and Doubles on Crogorm, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every forge's spawner count, boost and no-upgrade timing and caps; every level on Orchestra, Amazon and Sky Rise; the Emerald Forge emerald cap; six more bases; Crogorm seating its teams by mode |
+| 2026-09-27 3s on every map in rotation, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every 3s forge's spawners and no-upgrade caps; every level on Aquarium, whose Emerald Forge emeralds outlast any cap; 32 more bases; Jurassic's and Temple's three-point forges |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1356,10 +1363,13 @@ being team ordinals in Hypixel's order:
 | `bedwars:height`, `bedwars:floor`, `bedwars:void` | limit y: highest and lowest placeable, the kill plane at 0 | none |
 | `bedwars:lobby` | region, the pregame room to clear at the start | none |
 
-Arenas are tagged `bedwars`, `bedwars-solo` and `bedwars-doubles`, and the output defaults to `build/`, since
-the worlds are Hypixel's. All 67 Solo/Doubles maps are converted (2026-09-26): 27 from captures, 35 with
-spawn, forge and shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita
-v2, Crypt, Slumber). The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
+Arenas are tagged `bedwars` and by their team count: `bedwars-solo` and `bedwars-doubles` for 8 teams,
+`bedwars-3v3v3v3` and `bedwars-4v4v4v4` for 4, `bedwars-4v4` for 2. The output defaults to `build/`, since the
+worlds are Hypixel's. All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
+shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
+Slumber). So are all 60 Triples/Quads maps (2026-09-27): 27 from captures, 31 guessed, and none found on
+Daolong and Obelisk, all without a base box until their zone round; Tengshe, in rotation, is not in the
+archive, and Terminal's emerald generators were not found. The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
 check. Sign text, heads, banner patterns, flower pot contents and entities do not survive the conversion.
 
 ## 16. Decisions for you
@@ -1376,13 +1386,11 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 5. **One type per team size, or a capacity rule.** Exact marker counts force a type per map shape today.
 6. **What a first cut leaves out.** My suggestion: Dreams, rotating items, cosmetics, challenges, quests,
    tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
-7. **Captures.** Solo/Doubles are done (2026-09-26): every map in rotation has its bases, build limits and
-   forge. Left for 3s/4s and 4v4, the maps in rotation: the zone round (base boxes, generator and
-   shopkeeper zones), each forge's spawner count and no-upgrade caps, one full ladder per four-team forge
-   type (Lasagne's 3 spawners lack Iron Forge's gold cap and Emerald Forge's emerald timing; Relic's 5 read
-   Golden and Emerald Forge from noisy stretches), and the four-team mid generator caps (8 diamonds and 5
-   or 6 emeralds are the wiki's). Maps out of rotation stay on assumptions until they return, since their
-   build limits and generators cannot be captured before then (our play).
+7. **Captures.** Solo/Doubles are done (2026-09-26), and 3s forges (2026-09-27); 4s forges are taken to
+   run 5 spawners on every map (our play). Left, on the maps in rotation: the 3s/4s zone round (base
+   boxes, generator and shopkeeper zones), 4v4's forges and zones, and the four-team mid generator caps (8
+   diamonds and 5 or 6 emeralds are the wiki's). Maps out of rotation stay on assumptions until they
+   return, since their build limits and generators cannot be captured before then (our play).
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
 
