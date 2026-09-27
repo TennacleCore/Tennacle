@@ -198,9 +198,12 @@ class BridgeRoundTest extends HeadlessServerTest {
         assertNotNull(bridge);
         Game game = Matches.launch(bridge, Matches.platformFor("minemen"), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ClockRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "ClockBlue");
         try {
             red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
             assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player)); // a side that never arrives aborts the game at GO
             for (int i = 0; i < 3; i++) MinecraftServer.getSchedulerManager().processTick();
             assertTrue(Match.opening(game), "still counting in");
             assertEquals(-1L, game.state().get(Scope.GAME, TimeLimit.AT), "the clock has not started");
@@ -210,6 +213,7 @@ class BridgeRoundTest extends HeadlessServerTest {
         } finally {
             game.end(Outcome.aborted());
             red.player.remove();
+            blue.player.remove();
         }
     }
 

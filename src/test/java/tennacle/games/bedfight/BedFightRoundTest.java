@@ -118,6 +118,22 @@ class BedFightRoundTest extends HeadlessServerTest {
     }
 
     @Test
+    void aMissingSideAbortsAtGo() {
+        Game game = Matches.launch(Matches.mode("bedfight"), Matches.platformFor(null), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "LoneRed");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            tickUntil(game, "the countdown ran out", () -> game.status() != Game.Status.OPEN || game.decided() != null);
+            assertEquals(Outcome.aborted(), game.status() == Game.Status.OPEN ? game.decided() : game.outcome(),
+                    "blue never arrived");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+        }
+    }
+
+    @Test
     void aBrokenBedMakesTheNextDeathTheLast() {
         Mode bedfight = Matches.mode("bedfight");
         Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
