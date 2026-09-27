@@ -220,23 +220,32 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   festival versions, no 4v4 maps. Medians: eight-team radius 121.5, four-team 103, both built from y 62 or 63
   up to 96, about 32 blocks of height; Fandom's pages agree. 11 rows have radius -1, and Temple's has no limits
   at all (-1, 0, -1); the arenas leave out what a row lacks. The file has no protected areas around bases and
-  generators. The radius is a circle round 0,0 through block coordinates: a block goes in while its distance,
-  the square root of x squared plus z squared, is under it (cap, 2026-09-25 to 27). Rooftop, Sky Rise and
-  Ironclad stop at their file's 120, 123 and 131, and Rooftop and Lasagne took blocks well past where a
-  square's edge would be (the square was our play). The captures give the maps the file lacks (2026-09-27):
+  generators. The radius is round, not square: Rooftop and Lasagne took blocks well past where a square's
+  edge would be (the square was our play). Measured flat from 0,0 through block coordinates, a block goes in
+  while its distance is under the radius, and Rooftop, Sky Rise and Ironclad stop at their file's 120, 123
+  and 131 (cap, 2026-09-25 to 27). Elsewhere the flat edge falls between whole numbers, and on Shipment no
+  one flat circle takes both its south edge (114.44 to 114.53) and its west (114.76 to 114.86). A sphere
+  with a whole radius, like the file's, fits every map: a block goes in while its distance from a point over
+  0,0 at about island height is under it. Shipment then takes 115 with the point at y 70, Jurassic 100,
+  Temple 101, Tengshe 114, Babylon and Silver Birch 136. Placing at one spot on the edge at the bottom of the
+  build range and again at the top would tell the two apart, since a sphere refuses the top one closer in.
+  Until then the arenas keep the flat circle, each at the simplest number between the last block placed and
+  the first refused; Shipment's 114.8 only its south refusal contradicts. The captures give the limits the
+  file lacks (2026-09-27):
 
-  | Map | Floor | Height, first refused | Radius |
+  | Map | Floor | Height, first refused | Flat radius |
   |---|---|---|---|
   | Lasagne | 61 | 91 | 121 |
-  | Shipment | 67 | 101 or 102: placed at 100, refused at 102 | 114.5: placed to 114.44, refused from 114.53 |
-  | Tengshe | 64 | 101 | 113.6: placed to 113.53, refused from 113.60 |
-  | Silver Birch | 73 | | |
+  | Shipment | 67 | 102 | 114.8: the south edge 114.44 to 114.53, the west 114.76 to 114.86 |
+  | Tengshe | 64 | 101 | 113.6: 113.53 to 113.60 |
+  | Temple | 43 | 106 | 100.2: 100.18 to 100.25 |
+  | Babylon | 55 | 108 | 135.6: 135.53 to 135.95 |
+  | Silver Birch | 73 | 115 | 135.2: 135.16 to 135.35 |
+  | Jurassic | the file's 64 | the file's 95 | 99.41: 99.41 to 99.46 |
+  | Waterfall | the file's 58 | the file's 101 | 99: 98.68 to 99.37 |
 
-  Shipment's and Tengshe's radii fall between whole numbers, so their arenas take the simplest number between
-  the last block placed and the first refused. The file is wrong about one floor: Fort Doon's is 68 in play,
-  not the file's 42 (refused at 66 and 67 under the base, 2026-09-27). Every other captured limit agrees with
-  the file. Unknown in rotation: Temple's three limits, Jurassic's and Waterfall's radius (-1), Babylon's three
-  and Silver Birch's height and radius.
+  The file is wrong about one floor: Fort Doon's is 68 in play, not the file's 42 (refused at 66 and 67
+  under the base, 2026-09-27). Every other captured limit agrees with the file.
 - **Pools**: the file puts every map in `BEDWARS_8TEAMS_FAST`, `BEDWARS_8TEAMS_SLOW`, `BEDWARS_4TEAMS_FAST`
   or `BEDWARS_4TEAMS_SLOW` (50, 33, 37 and 38 maps). FAST and SLOW do not match the forge speeds the
   community lists: Airshow, Glacier, Orchestra, Speedway, Waterfall and Solace are slow iron in both
@@ -293,6 +302,7 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   | Lightstone | 5 | 6 | 14 | 11 x 13 x 29 | |
   | Lucky Rush | 6 | 7 | 7 | 13 x 15 x 15 | |
   | Mirage | 8 | 8 | 6 | 17 x 17 x 13 | |
+  | Orchestra | 5 | 9 | 4 | 11 x 19 x 9 | on Orchestra v2, the live build (2026-09-27) |
   | Playground | 7 | 7 | 11 | 15 x 15 x 23 | bottom: refused 6 down |
   | Rooftop | 7 | 6 | 4 | 15 x 13 x 9 | |
   | Rooted | 7 | 9 | 4 | 15 x 19 x 9 | |
@@ -501,7 +511,8 @@ with identical numbers; every forge level bought one at a time and left to fill,
   first diamond came 8 to 24 ticks after the start, with no wait. Tier II and III lines at 6:00 and 18:00
   (diamond) and 12:00 and 24:00 (emerald). While a generator is capped its countdown keeps restarting with
   no spawn: 4 diamonds and 2 emeralds, the Solo caps. Solo emeralds at tier I every 1301 ticks (65 s plus
-  one, Rooftop) and at tier III every 701 (35 s plus one, Waterfall, 31 spawns).
+  one, Rooftop) and at tier III every 701 (35 s plus one, Waterfall, 31 spawns). Every Solo/Doubles
+  generator stops at 4 diamonds or 2 emeralds, on every map (our play).
 - NamuWiki's timing is self-consistent with the capture: the first Solo emerald lands at 0:31, and at an
   emerald tier-up the pending timer resets and an emerald spawns at once. Diamonds do the same (cap, Sky
   Rise 2026-09-25): the first diamond 8 ticks after the start, then every 601, and one on the spot with the
@@ -1189,7 +1200,8 @@ on the maps in 5.2, whose timers are the same everywhere; 2c on 25 maps (section
      generator full: a countdown restart watched in view with nothing dropped since its step before (the
      countdown redraws once a second, so a restart shows up to a second after its drop), a four-team
      emerald from Emerald II. On a map the file lacks it asks for the height, floor and radius too, then
-     says to leave for the next map.
+     says to leave for the next map. It gives the radius as the number between the farthest block placed
+     and the nearest refused, measured flat from 0,0.
 
 Reading the summary: each generator is split into stretches (the start boost, each forge level your team
 bought, each tier), and each resource in a stretch gets one line:
@@ -1426,8 +1438,8 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   its map's rise. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other emerald blocks.
   Terminal and Relic stack two emerald generators over their middle, 8 and 7 blocks apart, each with its
   own hologram (2026-09-27).
-- The forge usually stands on a 3 x 3 slab platform (23 of 31 captured maps). Orchestra's does not, and its
-  bases guessed from one sat about 20 blocks off until a capture placed them.
+- The forge usually stands on a 3 x 3 slab platform (23 of 31 captured maps). The archive's Orchestra has
+  none: it is an older build, and the live map is the archive's Orchestra v2, whose forges stand on slabs.
 - Hypixel's pregame room, a 25 x 10 x 25 box over the middle, is still in every world.
 - Spawn, forge and shopkeepers are not in the worlds. Our captures give them for 31 maps, and they sit the
   same way against every base's bed, forges to within half a block. A flipped copy of a base mirrors the shopkeeper spots. On 16 maps where
@@ -1438,8 +1450,9 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   forge or generator drops 0.2 up and at most 0.1 across). A generator's point is its drops', else its
   hologram's less 2.97, else a turned copy of one over a block of the kind at the same rise; a map no
   capture saw gets 2.5 above the block (assumed). The drops corrected four maps' generators: Orchestra's
-  diamonds stand at 57.5 out on both axes over nothing in the archived world, whose islands the live map
-  has and the archive lacks; Aquarium's emeralds drop at y 96.5, away from the blocks the search took;
+  diamonds stand at 57.5 out on both axes, where the archive's Orchestra has nothing and its Orchestra v2
+  has the islands, so v2 is the live build and its arena plays as Orchestra (2026-09-27); Aquarium's emeralds
+  drop at y 96.5, away from the blocks the search took;
   Holmgang has two more diamonds at z -11.5 and 12.5; three of Serenity's diamonds had been put over
   blocks 11 above their drop points.
 - Forges are placed by hand. Most drop 0.5 over their slab (116 of 155 captured bases), and every base of
@@ -1497,14 +1510,10 @@ Solo/Doubles, 33 Triples/Quads and all 6 4v4 maps. The recorded maps still need:
 
 | Map | Needs a capture |
 |---|---|
-| Ambush, Dockyard, Lightstone, Mirage, Sanctum, Serenity | emerald generators |
-| Silver Birch | emerald generators; build height and radius |
-| Orchestra | a world with its diamond generators' islands; emerald generators; base box |
-| Babylon | build floor, height and radius |
-| Temple | build floor, height and radius |
-| Waterfall, Jurassic | build radius (-1 in the map file) |
-| Shipment | height: 101 or 102 |
- All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
+| Mirage, Sanctum, Serenity | emerald generators: their drop height, 2.5 over the block assumed |
+| Shipment | radius: no one flat circle round 0,0 takes its south and west edges (section 4) |
+
+All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
 shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
 Slumber). So are all 60 Triples/Quads maps (2026-09-27): 27 from captures, 31 guessed, and none found on
 Daolong and Obelisk, the 27 in rotation with a base box from their zone round; Tengshe, in rotation, is not
@@ -1528,7 +1537,8 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 7. **Captures.** Solo/Doubles are done (2026-09-26), and the four-team maps in rotation (2026-09-27):
    3s forges, base boxes, mid generator caps and the build limits the file lacks; 4s forges are each map's
    3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
-   the recorded maps' gaps (15.4); 4v4's forges and zones; every guessed map, when it returns to rotation.
+   the recorded maps' gaps (15.4); whether the build radius is flat or a sphere (section 4); 4v4's forges
+   and zones; every guessed map, when it returns to rotation.
    A walk past every base and generator would make the copied forge and generator points exact.
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
