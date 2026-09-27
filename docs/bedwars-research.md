@@ -1375,8 +1375,14 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 5. **One type per team size, or a capacity rule.** Exact marker counts force a type per map shape today.
 6. **What a first cut leaves out.** My suggestion: Dreams, rotating items, cosmetics, challenges, quests,
    tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
-7. **Captures.** Done 2026-09-26. The one optional pass left, each map's diamond and emerald generators,
-   is moot where the downloaded maps carry them.
+7. **Captures.** Solo/Doubles are done (2026-09-26): every map in rotation has its bases, build limits and
+   forge. Left for 3s/4s and 4v4, the maps in rotation: the zone round (base boxes, generator and
+   shopkeeper zones), each forge's spawner count and no-upgrade caps, one full ladder per four-team forge
+   type (Lasagne's 3 spawners lack Iron Forge's gold cap and Emerald Forge's emerald timing; Relic's 5 read
+   Golden and Emerald Forge from noisy stretches), and the four-team mid generator caps (8 diamonds and 5
+   or 6 emeralds are the wiki's). Optional: a Doubles game on Ashfire and Babylon, whose Solo seating
+   disagrees with their colors, as Crogorm's did. Maps out of rotation stay on assumptions until they
+   return, since their build limits and generators cannot be captured before then (our play).
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
 
