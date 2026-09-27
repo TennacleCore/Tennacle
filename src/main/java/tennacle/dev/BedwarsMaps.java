@@ -52,7 +52,10 @@ public final class BedwarsMaps {
             "Yellow", "yellow", "Aqua", "aqua", "White", "white", "Pink", "light_purple", "Gray", "dark_gray");
     /** Items appear this far above a generator's block (the captured median). */
     private static final double GENERATOR_RISE = 2.5;
-    private static final String[] TAGS = {"bedwars", "bedwars-solo", "bedwars-doubles"};
+    private static final Map<Integer, List<String>> TAGS = Map.of(
+            8, List.of("bedwars", "bedwars-solo", "bedwars-doubles"),
+            4, List.of("bedwars", "bedwars-3v3v3v3", "bedwars-4v4v4v4"),
+            2, List.of("bedwars", "bedwars-4v4"));
 
     private BedwarsMaps() {}
 
@@ -128,7 +131,8 @@ public final class BedwarsMaps {
     private static byte[] build(String id, JsonObject map, byte[] world) {
         JsonObject lobby = object(map, "lobby");
         ArenaBuilder builder = new ArenaBuilder(id).name(map.get("map").getAsString()).authors("Hypixel")
-                .tags(TAGS).time(6000).world(world).user(CompoundBinaryTag.builder()
+                .tags(TAGS.getOrDefault(map.get("teams").getAsInt(), List.of("bedwars")).toArray(String[]::new))
+                .time(6000).world(world).user(CompoundBinaryTag.builder()
                         .put("bedwars", CompoundBinaryTag.builder().putString("source", provenance(map)).build()).build());
         if (lobby != null) {
             Vec spawn = vec(lobby.getAsJsonArray("spawn"));

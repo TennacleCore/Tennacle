@@ -109,7 +109,7 @@ class BedwarsMapsTest extends HeadlessServerTest {
 
         assertEquals(1, BedwarsMaps.convert(archive, markers, out, Set.of("Test Map")));
         Arena arena = Arena.read(out.resolve("bedwars-test-map.bncl"));
-        assertEquals(List.of("bedwars", "bedwars-solo", "bedwars-doubles"), arena.meta().tags());
+        assertEquals(List.of("bedwars", "bedwars-4v4"), arena.meta().tags(), "two teams play 4v4");
 
         assertEquals(Set.of("1", "2"), arena.groups(Markers.SPAWN));
         PosMarker red = arena.marker(Markers.SPAWN, "1");
