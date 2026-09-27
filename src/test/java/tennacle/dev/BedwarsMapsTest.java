@@ -87,10 +87,13 @@ class BedwarsMapsTest extends HeadlessServerTest {
              "bases": [
               {"team": "Red", "bed": {"head": [3, 65, 3], "foot": [3, 65, 2], "facing": "south"},
                "spawn": [3.5, 65, -3.5], "forge": [3.5, 65, -6.5], "item shop": [0.5, 65.16, -3.5],
-               "upgrades": [6.5, 65.16, -3.5], "source": "captured"},
+               "upgrades": [6.5, 65.16, -3.5], "source": "captured",
+               "forge iron": [{"at": [2.5, 65.5, -6.5], "spawners": {"4v4": 1}}, {"at": [3.5, 65, -6.5], "spawners": {"4v4": 3}}]},
               {"team": "Blue", "bed": {"head": [12, 65, 3], "foot": [12, 65, 2], "facing": "south"},
                "spawn": [12.5, 65, -3.5], "forge": [12.5, 65, -6.5], "item shop": [9.5, 65.16, -3.5],
-               "upgrades": [15.5, 65.16, -3.5], "source": "captured"}],
+               "upgrades": [15.5, 65.16, -3.5], "source": "captured",
+               "forge iron": [{"at": [12.5, 65, -6.5], "spawners": {"4v4": 4}}]}],
+             "generator points": {"diamond": [[8.5, 66.0, 8.5]], "emerald": []},
              "generator blocks": {"diamond": [[8, 64, 8]], "emerald": []},
              "generator source": {"diamond": "lone blocks", "emerald": "none found"}}
             """;
@@ -126,8 +129,12 @@ class BedwarsMapsTest extends HeadlessServerTest {
         assertNotNull(look);
         assertEquals("blue", look.payload().getString("display"));
         assertEquals(new Vec(0.5, 65, -3.5), arena.marker(MarkerKey.point("bedwars:shop"), "1").point());
-        assertEquals(List.of(new Vec(8.5, 66.5, 8.5)),
+        assertEquals(List.of(new Vec(8.5, 66, 8.5)),
                 arena.markers(MarkerKey.point("bedwars:diamond")).stream().map(PointMarker::point).toList());
+        List<PointMarker> iron = arena.markers(MarkerKey.point("bedwars:forge-iron")).stream()
+                .filter(m -> m.group().equals("1")).toList();
+        assertEquals(List.of(new Vec(2.5, 65.5, -6.5), new Vec(3.5, 65, -6.5)), iron.stream().map(PointMarker::point).toList());
+        assertEquals(3, iron.get(1).payload().getInt("4v4"));
         assertEquals(79.0, arena.markers(MarkerKey.limit("bedwars:height")).getFirst().y());
         assertEquals(60.0, arena.markers(MarkerKey.limit("bedwars:floor")).getFirst().y());
         assertEquals(1, arena.markers(MarkerKey.limit("bedwars:void")).size());

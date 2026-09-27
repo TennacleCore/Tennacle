@@ -50,8 +50,6 @@ public final class BedwarsMaps {
     private static final List<String> TEAMS = List.of("Red", "Blue", "Green", "Yellow", "Aqua", "White", "Pink", "Gray");
     private static final Map<String, String> DISPLAY = Map.of("Red", "red", "Blue", "blue", "Green", "green",
             "Yellow", "yellow", "Aqua", "aqua", "White", "white", "Pink", "light_purple", "Gray", "dark_gray");
-    /** Items appear this far above a generator's block (the captured median). */
-    private static final double GENERATOR_RISE = 2.5;
     private static final Map<Integer, List<String>> TAGS = Map.of(
             8, List.of("bedwars", "bedwars-solo", "bedwars-doubles"),
             4, List.of("bedwars", "bedwars-3v3v3v3", "bedwars-4v4v4v4"),
@@ -164,15 +162,21 @@ public final class BedwarsMaps {
                 out.add(new PosMarker(Markers.SPAWN.id(), group, "", new Pos(spawn.x(), spawn.y(), spawn.z(), yaw, 0)));
             }
             if (forge != null) out.add(new PointMarker("bedwars:forge", group, "", forge));
+            if (base.has("forge iron")) {
+                for (JsonElement point : base.getAsJsonArray("forge iron")) {
+                    JsonObject iron = point.getAsJsonObject();
+                    out.add(new PointMarker("bedwars:forge-iron", group, "", vec(iron.getAsJsonArray("at")),
+                            spawners(iron.getAsJsonObject("spawners")), 1));
+                }
+            }
             if (base.has("item shop")) out.add(new PointMarker("bedwars:shop", group, "", standing(vec(base.getAsJsonArray("item shop")))));
             if (base.has("upgrades")) out.add(new PointMarker("bedwars:upgrades", group, "", standing(vec(base.getAsJsonArray("upgrades")))));
             if (box != null && spawn != null && forge != null) out.add(baseBox(group, spawn, forge, box));
         }
-        JsonObject generators = map.getAsJsonObject("generator blocks");
+        JsonObject generators = map.getAsJsonObject("generator points");
         for (String kind : List.of("diamond", "emerald")) {
             for (JsonElement element : generators.getAsJsonArray(kind)) {
-                BlockVec at = block(element.getAsJsonArray());
-                out.add(new PointMarker("bedwars:" + kind, "", "", new Vec(at.blockX() + 0.5, at.blockY() + GENERATOR_RISE, at.blockZ() + 0.5)));
+                out.add(new PointMarker("bedwars:" + kind, "", "", vec(element.getAsJsonArray())));
             }
         }
         JsonObject build = object(map, "build");
@@ -198,6 +202,15 @@ public final class BedwarsMaps {
         int rx = alongX ? along : across, rz = alongX ? across : along;
         BlockVec center = new BlockVec(spawn.blockX(), spawn.blockY(), spawn.blockZ());
         return new RegionMarker("bedwars:base", group, "", center.sub(rx, up, rz), center.add(rx, up, rz));
+    }
+
+    // how many of each mode's spawners drop iron at the point, keyed as the arena's bedwars-<mode> tags
+    private static CompoundBinaryTag spawners(JsonObject modes) {
+        CompoundBinaryTag.Builder out = CompoundBinaryTag.builder();
+        for (Map.Entry<String, JsonElement> mode : modes.entrySet()) {
+            out.putInt(mode.getKey().toLowerCase(Locale.ROOT), mode.getValue().getAsInt());
+        }
+        return out.build();
     }
 
     private static CompoundBinaryTag teamLook(String team) {
