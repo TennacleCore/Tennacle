@@ -387,13 +387,19 @@ with identical numbers; every forge level bought one at a time and left to fill,
   Amazon, Ashfire, Dragonstar, Glacier, Rooftop (as NamuWiki says), Solace and Waterfall. Three: Ambush,
   Babylon, Bio-Hazard, Crogorm, Deadwood, Dockyard, Gateway, Harvest, Impere, Ironclad, Lightstone, Lucky
   Rush, Mirage, Playground, Rooted, Sanctum, Scorched Sands, Serenity, Silver Birch and Sky Rise. Doubles
-  matched Solo on the six maps played in both. Orchestra has one too, and is the one slow forge bought
-  through Molten Forge (cap, Solo, 2026-09-26, the 1 s respawn only): a fast forge's periods on one spawner
-  at every level (iron 51, 36, then 21 from Golden Forge on; gold 276, 201, then 126; emeralds 1302 at
-  Emerald Forge) and a fast forge's caps (48, 56, 64, 72 and 80 iron; 16, 18, 20, 22 and 24 gold). Its
-  Molten Forge showed one emerald; the 701-tick period and a cap of 3 emeralds come from the Max Team
-  Upgrades games, whose slow forges also stop at 80 iron and 24 gold. An earlier Orchestra record's stop at
-  23 iron is the connection, which went quiet 21 s before it dropped, not a cap.
+  matched Solo on the six maps played in both. Orchestra has one too. Two slow forges were bought through
+  Molten Forge (cap, Solo, 2026-09-26, the 1 s respawn only: Orchestra twice, Amazon once), and both ran a
+  fast forge's periods on one spawner at every level (iron 51, 36, then 21 from Golden Forge on; gold 276,
+  201, then 126; emeralds 1302 at Emerald Forge and 701 at Molten) with a fast forge's caps (48, 56, 64, 72
+  and 80 iron; 16, 18, 20, 22 and 24 gold; 2 and 3 emeralds). An earlier Orchestra record's stop at 23 iron
+  is the connection, which went quiet 21 s before it dropped, not a cap.
+- **Every Solo/Doubles map in rotation** (cap, 2026-09-26: a private game on each of the 27 with only the
+  1 s respawn, Crogorm in Doubles): each forge's spawner count matched the list above, its boost and
+  no-upgrade timing matched the logged forge with as many spawners, and with no upgrade it stopped at 48
+  iron and 16 gold; every fast forge's boost filled to 64 first. The upgrades were bought on Gateway,
+  Ironclad, Sky Rise, Orchestra and Amazon; the other maps take their levels from those. One Dragonstar game
+  read 46 iron where the server held the forge full (its gold kept coming, its iron did not), a count 2
+  short; the next Dragonstar game read 48.
 - **Four-team forges** (cap, 2026-09-25: 3s on Lasagne and 4s on Relic, private games whose only modifier was
   the 1 s respawn, every level bought in turn): slower spawners than Solo's, with Solo's caps.
 
@@ -983,6 +989,7 @@ www.hypixel.net           yellow
 | 2026-09-26 Solo on Scorched Sands, Crogorm and Rooted, a walk to the middle (`capture-bedwars.js`) | the mid generators' holograms, where the world files had them missing or wrong |
 | 2026-09-26 Solo on Ironclad and Sky Rise, `Respawn Time: 1 Second` only (`capture-bedwars.js`) | their base boxes, the last two maps in rotation without one, and Ironclad's second base |
 | 2026-09-26 Solo on Gateway, `Respawn Time: 1 Second` only (`capture-bedwars.js`) | the forge at every level, bought in turn, as on Sky Rise and Ironclad; Gateway's Gray base, a flipped copy whose shopkeepers trade places |
+| 2026-09-26 Solo on every map in rotation and Doubles on Crogorm, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every forge's spawner count, boost and no-upgrade timing and caps; every level on Orchestra, Amazon and Sky Rise; the Emerald Forge emerald cap; six more bases; Crogorm seating its teams by mode |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1059,9 +1066,9 @@ Every game played through the tool is a generator sample. Generators spawn wheth
 the diamond and emerald holograms count down to anyone in range, and the map and mode come off the pregame
 board, so normal play fills the table map by map. The sessions below cover what normal play cannot show.
 They keep the tool's checklist numbers, and run in private games with every modifier off, since a modifier
-changes the very numbers being measured. Status 2026-09-26: 1, 2 and 2b are settled on the maps in 5.1 and
-5.2, whose spawners and timers are the same on every map but the forge's spawner count, which any game shows
-(5.1); 2c is settled on 25 maps (section 4).
+changes the very numbers being measured. Status 2026-09-26: 1 and 2b are settled on every Solo/Doubles map
+in rotation, each forge read to its no-upgrade caps and five bought through Molten Forge (5.1); 2 is settled
+on the maps in 5.2, whose timers are the same everywhere; 2c on 25 maps (section 4).
 
 1. **Start boost and first spawns** (per map and mode). From `Protect your bed`, leave your forge alone: the
    boost's speed and the first iron and gold show in its spawns, the first fill stops at its cap (64 iron so
@@ -1316,7 +1323,9 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
 - Teams go round the map clockwise in Hypixel's order (R B G Y A W P S; R B G Y on four-team maps). Where a
   map colors each base with a few accent blocks, those name the teams, and they matched the team played on
   20 of 23 captured maps. Otherwise, and wherever a capture exists, the captured base fixes where the order
-  starts.
+  starts. Crogorm seats its teams by mode: three Solo games put Gray at the base its colors mark White, and a
+  Doubles game put Red at the Red base, as the colors say (2026-09-26). Where captures disagree, the one the
+  colors agree with sets the order, so Crogorm's arena follows its colors.
 - Every generator stands on a diamond or emerald block with open air above, usually a lone one. Items appear
   2.5 above that block (the median of 151 captured generators). Copies of a generator can differ in height
   (Sky Rise, Rooted). Where a capture saw a generator's hologram, the block under it decides: 119 holograms on
@@ -1326,10 +1335,10 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   bases guessed from one sat about 20 blocks off until a capture placed them.
 - Hypixel's pregame room, a 25 x 10 x 25 box over the middle, is still in every world.
 - Spawn, forge and shopkeepers are not in the worlds. Our captures give them for 31 maps, and they sit the
-  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots. On 11 maps where
+  same way against every base's bed. A flipped copy of a base mirrors the shopkeeper spots. On 16 maps where
   both hands were captured the item shop and upgrades also trade places; on Impere they stay put. A base the
   captures saw keeps its own positions, one of the same hand copies it, and an uncaptured map's flipped
-  copies trade. All 47 captured bases come out exactly.
+  copies trade. All 53 captured bases come out exactly.
 
 `gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
 builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
