@@ -43,9 +43,11 @@ import java.util.zip.ZipFile;
 
 /**
  * Hypixel's archived BedWars worlds as arenas: each world through Bloom's pre-1.13 reader, with the markers
- * {@code research/bedwars/map_markers.py} wrote for it. The worlds are Hypixel's, so the output stays out of git.
- * <p>Args: the archive folder, a folder of marker files, the output folder, then optionally map names to limit
- * the run to, comma separated. {@code gradlew bedwarsMaps -Parchive=... -Pmarkers=... [-Pout=...] [-Pmaps=...]}
+ * {@code research/bedwars/map_markers.py} wrote for it. The worlds are Hypixel's and each arena names them as its
+ * author; we claim no part of them.
+ * <p>Args: the archive folder, a folder of marker files, the output folder ({@code arenas/bedwars} by default),
+ * then optionally map names to limit the run to, comma separated.
+ * {@code gradlew bedwarsMaps -Parchive=... -Pmarkers=... [-Pout=...] [-Pmaps=...]}
  */
 public final class BedwarsMaps {
 

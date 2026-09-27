@@ -66,7 +66,7 @@ tasks.register<JavaExec>("bedwarsMaps") {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
     val archive = providers.gradleProperty("archive")
     val markers = providers.gradleProperty("markers")
-    val out = providers.gradleProperty("out").orElse(layout.buildDirectory.dir("bedwars-maps").map { it.asFile.path })
+    val out = providers.gradleProperty("out").orElse(layout.projectDirectory.dir("arenas/bedwars").asFile.path)
     val maps = providers.gradleProperty("maps").orElse("")
     argumentProviders.add(CommandLineArgumentProvider { listOf(archive.get(), markers.get(), out.get(), maps.get()) })
 }
