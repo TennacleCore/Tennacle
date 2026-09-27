@@ -1461,7 +1461,12 @@ Each of these was read in the code, not just reported:
    "minigames never drop" fold intact.
 6. **Pink and Gray print wrong.** `Palette.name` takes the display color's name, so they print "Light
    Purple" and "Dark Gray" with letters L and D; the capture shows `P Pink` and `S Gray`. The default
-   ordinals also lead with blue and end with dark purple and gold, not R B G Y A W P S.
+   ordinals also lead with blue and end with dark purple and gold, not R B G Y A W P S. Done 2026-09-27:
+   `Palette` prints light purple as PINK and dark gray as GRAY with letter S, from a table of BedWars'
+   names. The BedWars arenas author each team's color as its livery base, in Hypixel's order from 1 Red
+   to 8 Gray, so their names, armor and wool follow the captured color and never the ordinal default,
+   which the duels keep blue-first. They had authored only the display color, which left armor and wool
+   on the ordinal default: Red's would have been blue.
 7. **Two-team assumptions**: bed fight's board has two side rows, `Queues` pairs exactly two equal sides,
    `Summary` compares two sides, and the hypixel look says "won the Duel!".
 8. **Marker counts are exact**, so one game type cannot serve both 4- and 8-team maps.
@@ -1492,7 +1497,7 @@ Each of these was read in the code, not just reported:
 | Filling queue | Tennacle | N teams, solos merged, a minimum and a countdown that cancels; team chat and `/shout` |
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
-| Team names | Canvas, Tennacle | a name and letter per team, so Pink and Gray print as captured |
+| Team names | Tennacle | done 2026-09-27: Pink and Gray print as captured, and every team role follows the arena's color |
 
 ### 15.4 Hypixel's maps as arenas
 
@@ -1575,7 +1580,7 @@ being team ordinals in Hypixel's order:
 | `bedwars:forge-iron` | point, where iron drops; payload: how many of each mode's spawners drop there, keyed `solo`, `doubles`, `3v3v3v3`, `4v4v4v4` | team |
 | `bedwars:shop`, `bedwars:upgrades` | point | team |
 | `bedwars:base` | region, where captured | team |
-| `team` | data, `display` in the team's color | team |
+| `team` | data, `base` in the team's color, which every role (name, armor, wool) falls back to | team |
 | `bedwars:diamond`, `bedwars:emerald` | point, where items drop | none |
 | `bedwars:radius` | data, `radius`: a block goes in while its distance from 0,0 is under it | none |
 | `bedwars:height`, `bedwars:floor`, `bedwars:void` | limit y: highest and lowest placeable, the kill plane at 0 | none |
