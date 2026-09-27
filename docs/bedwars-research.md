@@ -94,7 +94,11 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 
 - Players wait in a pregame area away from the bases and are teleported to their base at the start.
 - Board (cap): date and server id, `Map: <name>`, `Players: n/8`, `Waiting...` or `Starting in 20s`,
-  `Mode: Solo`, `Version: v1.11.2`, site line. Title BED WARS.
+  `Mode: Solo`, `Version: v1.11.2`, site line. Title BED WARS. `Starting in` counts down a second at a time.
+  Hypixel threads emoji characters through every board line, pregame and in game, which a 1.8 client draws
+  as nothing; ours leaves them out.
+- Boss bar (cap, public): a wither named yellow bold `Playing `, white bold `BED WARS `, yellow bold `on `
+  and bold `MC.HYPIXEL.NET`, that last word turning aqua, white and green about every 0.3 s.
 - Join and quit lines: `<name> has joined (7/8)!`, `<name> has quit!` (cap). Other players' names are
   obfuscated in pregame since 2024-08-28 (off).
 - Countdown (cap): at the threshold `The game starts in 20 seconds!`, then 10, 5, 4, 3, 2, 1. The number
@@ -105,8 +109,20 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 - Parties share a team; a party member leaving in pregame sends the party back to the lobby (off).
 - A public queue and a private game differ (our play). Public: no team choice, the names of players outside
   your party hidden (a party no bigger than the mode's team size), and nothing about teams shown until the
-  game has filled. Private, every capture so far: the Team Selector and everyone's names. We join a waiting
-  game on the map, as Hypixel does (decided 2026-09-27); the public pregame awaits a capture.
+  game has filled. Private: the Team Selector and everyone's names. We join a waiting game on the map, as
+  Hypixel does (decided 2026-09-27).
+- Public pregame (cap, 2026-09-27: Solo on Deadwood alone, Doubles on Rooftop with a party of two):
+  - Names: you and your party show as yourselves, the join line aqua (`Term4 has joined (6/16)!`, the
+    party joining together). Everyone else gets a random string of letters and digits, a fresh one each,
+    under the obfuscation code: gray obfuscated `mnDmjLi has joined (6/8)!` in chat, and a tab entry named
+    `§kmnDmjLi`. No team shows anywhere until the start.
+  - The countdown began one player short of full both times, about a second after the join that made it:
+    at 7 of 8 in Solo and 15 of 16 in Doubles. Filling up mid-count shortened nothing (16 of 16 at 14 s
+    left, 8 of 8 at 1 s).
+  - The count: chat at 20, 10 and 5 to 1, each with `note.hat` at volume 20; titles at 10 (green) and 5 to 1,
+    with an empty title sent each second from 9 to 6. The board reads `Starting in Ns` throughout.
+  - At the start the real names replace the random ones in the tab, the team board appears, and the party
+    shares a team (both on Aqua).
 - Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
 
 ### 3.2 Start
