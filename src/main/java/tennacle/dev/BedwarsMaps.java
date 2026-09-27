@@ -139,7 +139,9 @@ public final class BedwarsMaps {
         if (map.has("needs capture")) {
             for (JsonElement need : map.getAsJsonArray("needs capture")) needs.add(StringBinaryTag.stringBinaryTag(need.getAsString()));
         }
-        ArenaBuilder builder = new ArenaBuilder(id).name(map.get("map").getAsString()).authors("Hypixel")
+        // the archive keeps some maps' live builds under another name (Orchestra v2 plays as Orchestra)
+        String name = (map.has("played as") ? map.get("played as") : map.get("map")).getAsString();
+        ArenaBuilder builder = new ArenaBuilder(id).name(name).authors("Hypixel")
                 .tags(tags.toArray(String[]::new))
                 .time(6000).world(world).user(CompoundBinaryTag.builder().put("bedwars", CompoundBinaryTag.builder()
                         .putString("source", provenance(map)).putString("status", guessed ? "guessed" : "captured")
