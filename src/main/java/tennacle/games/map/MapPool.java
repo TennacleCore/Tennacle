@@ -134,16 +134,14 @@ public final class MapPool implements Maps {
     private @Nullable String wants(Arena arena) {
         GameType serving = type;
         if (serving == null) return null;
-        for (Map.Entry<io.github.term4.barnacle.marker.MarkerKey<?>, Integer> expect : serving.expects().entrySet()) {
-            int found = arena.markers(expect.getKey()).size();
-            if (found != expect.getValue()) {
-                return expect.getValue() + " " + expect.getKey().id() + " (it has " + found + ")";
-            }
+        String unmet = serving.unmet(arena);
+        if (unmet != null) return unmet;
+        for (io.github.term4.barnacle.marker.MarkerKey<?> expected : serving.expects().keySet()) {
             // the count is not the whole contract: every limit in play is a height plane, and a rule that reads
             // one unpinned throws from module install - a map with the right count then fails EVERY launch
-            for (io.github.term4.barnacle.marker.Marker marker : arena.markers(expect.getKey())) {
+            for (io.github.term4.barnacle.marker.Marker marker : arena.markers(expected)) {
                 if (marker instanceof io.github.term4.barnacle.marker.LimitMarker limit && limit.y() == null) {
-                    return expect.getKey().id() + " with y pinned (/marker limit " + expect.getKey().id() + " y=<n>)";
+                    return expected.id() + " with y pinned (/marker limit " + expected.id() + " y=<n>)";
                 }
             }
         }

@@ -10,7 +10,6 @@ import tennacle.games.matchmaking.Duels;
 import tennacle.games.Flags;
 import tennacle.games.matchmaking.Parties;
 import tennacle.looks.Look;
-import io.github.term4.grotto.roster.Team;
 import tennacle.looks.Palette;
 import tennacle.looks.Presentation;
 import tennacle.games.Presets;
@@ -147,7 +146,7 @@ public final class BedFight {
                 .slots(SlotLayout.groups(Markers.SPAWN, Parties.MAX)) // a party shares its marker
                 .teams(a -> Palette.teams(a, Markers.SPAWN, DEFAULTS))
                 .expect(Markers.SPAWN, 2)
-                .expect(BED, 2)
+                .expectEachTeam(BED)
                 .expect(DEFENSE, 2)
                 .expect(BUILD, 1)
                 .expect(HEIGHT, 1)
@@ -189,18 +188,6 @@ public final class BedFight {
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
         KitLayouts.editable("bedfight", KIT);
-        // Beds keys its cells by team id, so a bed authored under any other group never breaks and the side is
-        // unkillable - the count check alone cannot see that
-        arena.requires(a -> {
-            java.util.Set<String> teams = new java.util.HashSet<>();
-            for (Team team : Palette.teams(a, Markers.SPAWN, DEFAULTS)) teams.add(team.id());
-            for (String group : a.groups(BED)) {
-                if (!teams.contains(group)) {
-                    return "its '" + group + "' bed under a spawn group (the spawns are " + String.join(", ", teams) + ")";
-                }
-            }
-            return null;
-        });
                 // a map whose authored tints do not parse throws at launch, taking the whole mode with it
         arena.requires(a -> {
             Palette.teams(a, Markers.SPAWN, DEFAULTS);
