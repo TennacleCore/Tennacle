@@ -103,6 +103,10 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   seconds also title the digit (5 and 4 yellow, 3 to 1 red; fade 0, stay 20, out 20) and play `note.hat`
   at volume 20, pitch 1.0 each second (Bed Rush Duel capture).
 - Parties share a team; a party member leaving in pregame sends the party back to the lobby (off).
+- A public queue and a private game differ (our play). Public: no team choice, the names of players outside
+  your party hidden (a party no bigger than the mode's team size), and nothing about teams shown until the
+  game has filled. Private, every capture so far: the Team Selector and everyone's names. We join a waiting
+  game on the map, as Hypixel does (decided 2026-09-27); the public pregame awaits a capture.
 - Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
 
 ### 3.2 Start
