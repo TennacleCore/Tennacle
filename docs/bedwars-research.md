@@ -492,7 +492,7 @@ with identical numbers; every forge level bought one at a time and left to fill,
 |---|---|---|---|---|---|
 | Diamond (all modes) | 30 s | 23 s | 11.2 s | 4 | 8 |
 | Emerald, Solo/Doubles | 65 s | 50 s | 35 s | 2 | |
-| Emerald, 3s/4s | 55 s | 40 s | 27.4 s | | 6, or 4 with three generators (our play) |
+| Emerald, 3s/4s | 55 s | 40 s | 27.4 s | | 6 |
 
 - Intervals are NamuWiki's; 11.2 s and 27.4 s are whole ticks (224, 548). 2026 client mods use 30/23/12
   and 65/50/35 (8 teams) or 55/40/27 (4 teams).
@@ -519,9 +519,9 @@ with identical numbers; every forge level bought one at a time and left to fill,
   vanish 300.4 to 300.8 s after they drop, so at tier I no more than 6 lie there and a four-team emerald
   cap can only show from tier II.
 - **Four-team caps on every map in rotation** (cap, 4s on all 28, 2026-09-27): diamonds stop at 8 and
-  emeralds at 6 at every generator read, at tier II or III, Catalyst's three emerald generators included.
-  Our play: four-team diamonds always stop at 8, and a map with three emerald generators stops each at 4;
-  Catalyst, the only such map in rotation, stopped each at 6, so the 4 stands for the maps out of rotation.
+  emeralds at 6 at every generator read, at tier II or III. Catalyst's three emerald generators stop at 6
+  each too, read at tier II in two games and at tier III in the second. Four-team diamonds always stop at 8
+  (our play).
 - Item spawns reached the client from 85 blocks away (Sky Rise), so a generator across the island is still
   measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
@@ -1070,7 +1070,7 @@ www.hypixel.net           yellow
 | 2026-09-26 Solo on every map in rotation and Doubles on Crogorm, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every forge's spawner count, boost and no-upgrade timing and caps; every level on Orchestra, Amazon and Sky Rise; the Emerald Forge emerald cap; six more bases; Crogorm seating its teams by mode |
 | 2026-09-27 3s on every map in rotation, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every 3s forge's spawners and no-upgrade caps; every level on Aquarium, whose Emerald Forge emeralds outlast any cap; 32 more bases; Jurassic's and Temple's three-point forges |
 | 2026-09-27 4s on Terminal, Aquarium, Archway, Artemis, Fort Doon and Invasion, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | the 4s forge, each map's 3s one with 5 spawners; Terminal's generators, two emerald ones stacked over the middle; three more bases |
-| 2026-09-27 4s on every four-team map in rotation, `Disable Block Protection` and `Max Team Upgrades` (`capture-bedwars.js` with its zone check) | every four-team base box; the diamond and emerald caps at every generator; Lasagne's, Shipment's and Tengshe's build limits; the radius a circle; Fort Doon's floor; Molten Forge's emerald cap |
+| 2026-09-27 4s on every four-team map in rotation, `Disable Block Protection` and `Max Team Upgrades` (`capture-bedwars.js` with its zone check) | every four-team base box; the diamond and emerald caps at every generator, Catalyst's in a second game too; Lasagne's, Shipment's and Tengshe's build limits; the radius a circle; Fort Doon's floor; Molten Forge's emerald cap |
 | 2026-09-27 4s on Jurassic and Temple, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | their three-point forges in 4s: the two extra spawners drop at the gold point |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
