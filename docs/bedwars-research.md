@@ -731,7 +731,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   Communication` when opened from the compass. It lists only the teams still in the game, one in a
   two-player game, and a locked tracker says red `Not all enemy beds are destroyed yet!` and closes the
   window (cap, 2026-09-27). A bought tracker points the compass at the nearest player on the tracked team
-  (our play).
+  and shows that player's name and distance above the hotbar (our play).
 - **Compass menu** (cap, 2026-09-27): right-clicking the compass opens a 3-row `Tracker & Communication`. In
   Solo it holds the Tracker Shop alone (compass, slot 13); in Doubles green `Quick Communications` (emerald,
   slot 11, lore `Send highlighted chat messages to` / `your teammates!`, a blank, yellow `Click to open!`)
