@@ -413,7 +413,9 @@ with identical numbers; every forge level bought one at a time and left to fill,
   3.2 from Golden Forge on, Lasagne 0.98 and 1.94. Holmgang (4s, 2026-09-25) runs like Relic: 5 a wave,
   61 and 31 ticks, gold 151 and 76. Relic and Holmgang are in 4TEAMS_SLOW and Lasagne is not in the map
   file: the pool does not tell the speed here either. The forge's emeralds come faster than Solo's: 1101
-  ticks (55 s, three spawns) at Emerald Forge and 541 (27 s) at Molten.
+  ticks (55 s, three spawns) at Emerald Forge and 541 (27 s) at Molten. On Aquarium (3s, 2026-09-27) the
+  Emerald Forge's emeralds kept coming every 1101 ticks until the oldest despawned at 5 minutes, 6 lying at
+  most, so any cap is above 6; a Solo Emerald Forge stops at 2.
 
 ### 5.2 Diamond and emerald generators
 
@@ -1320,11 +1322,10 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
 
 - One bed per team on every map (8, 4 or 2). Lighthouse carries 4 extra; the 8 farthest out are the bases.
 - Teams go round the map clockwise in Hypixel's order (R B G Y A W P S; R B G Y on four-team maps). Where a
-  map colors each base with a few accent blocks, those name the teams, and they matched the team played on
-  20 of 23 captured maps. Otherwise, and wherever a capture exists, the captured base fixes where the order
-  starts. Crogorm seats its teams by mode: three Solo games put Gray at the base its colors mark White, and a
-  Doubles game put Red at the Red base, as the colors say (2026-09-26). Where captures disagree, the one the
-  colors agree with sets the order, so Crogorm's arena follows its colors.
+  map colors each base with a few accent blocks running once round in team order, those colors seat its
+  teams (our play). They matched the team played on 20 of 23 captured maps; on Ashfire, Babylon and Crogorm
+  Hypixel's Solo sat one or two bases off them, and Crogorm's Doubles followed them (2026-09-26). Elsewhere
+  the captured base fixes where the order starts.
 - Every generator stands on a diamond or emerald block with open air above, usually a lone one. Items appear
   2.5 above that block (the median of 151 captured generators). Copies of a generator can differ in height
   (Sky Rise, Rooted). Where a capture saw a generator's hologram, the block under it decides: 119 holograms on
@@ -1380,9 +1381,8 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
    shopkeeper zones), each forge's spawner count and no-upgrade caps, one full ladder per four-team forge
    type (Lasagne's 3 spawners lack Iron Forge's gold cap and Emerald Forge's emerald timing; Relic's 5 read
    Golden and Emerald Forge from noisy stretches), and the four-team mid generator caps (8 diamonds and 5
-   or 6 emeralds are the wiki's). Optional: a Doubles game on Ashfire and Babylon, whose Solo seating
-   disagrees with their colors, as Crogorm's did. Maps out of rotation stay on assumptions until they
-   return, since their build limits and generators cannot be captured before then (our play).
+   or 6 emeralds are the wiki's). Maps out of rotation stay on assumptions until they return, since their
+   build limits and generators cannot be captured before then (our play).
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
 
