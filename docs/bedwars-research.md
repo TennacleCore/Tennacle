@@ -729,9 +729,19 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   track each player`, `on a specific team until you die.`, `Cost: 2 Emeralds` and red `Unlocks when all enemy
   beds are destroyed!`; slot 31 is an arrow named green `Go Back`, lore `To Quick Buy`, or `To Tracker &
   Communication` when opened from the compass. It lists only the teams still in the game, one in a
-  two-player game, and a locked tracker says red `Not all enemy beds are destroyed yet!` and closes the
-  window (cap, 2026-09-27). A bought tracker points the compass at the nearest player on the tracked team
-  and shows that player's name and distance above the hotbar (our play).
+  two-player game. Once every enemy bed is gone the last lore line turns red `You don't have enough
+  Emeralds!`, or yellow `Click to purchase!` under a green name (cap, 2026-09-27). Every click closes the
+  window, with no sound: a locked tracker says red `Not all enemy beds are destroyed yet!`, an unaffordable
+  one red `You don't have enough Emeralds!`, and a purchase green `You purchased ` + gold `Red Tracking`,
+  then red `You will lose ability to track this team when you die!`.
+- **Tracking** (cap, 2026-09-27): a bought tracker points the compass at the nearest player on the tracked
+  team (our play). Once a second, in one tick, the server sends the compass target, that player's block
+  (their position floored: 7 of 10 hurts on them landed in the block last sent, the rest one block off
+  mid-fight), and the action bar white `Tracking: ` + the player's name in bold in their team's color +
+  white ` - Distance: ` + green bold `<n>m`, in whole meters (1 to 43 seen). The first went out 0.55 s
+  after the purchase. The action bar shows whatever the player holds, and the compass keeps its name. In
+  38 of 56 seconds a second action bar followed within a tick, the same or a meter off. Before a tracker
+  the compass points at the game world's spawn, -344, 4, 1326 on Sky Rise, far off the map.
 - **Compass menu** (cap, 2026-09-27): right-clicking the compass opens a 3-row `Tracker & Communication`. In
   Solo it holds the Tracker Shop alone (compass, slot 13); in Doubles green `Quick Communications` (emerald,
   slot 11, lore `Send highlighted chat messages to` / `your teammates!`, a blank, yellow `Click to open!`)
@@ -1139,6 +1149,7 @@ www.hypixel.net           yellow
 | 2026-09-27 4s on every four-team map in rotation, `Disable Block Protection` and `Max Team Upgrades` (`capture-bedwars.js` with its zone check) | every four-team base box; the diamond and emerald caps at every generator, Catalyst's in a second game too; Lasagne's, Shipment's and Tengshe's build limits; the radius a circle; Fort Doon's floor; Molten Forge's emerald cap |
 | 2026-09-27 4s on Jurassic and Temple, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | their three-point forges in 4s: the two extra spawners drop at the gold point |
 | 2026-09-27 Solo on Sky Rise and Doubles on Serenity and Deadwood, private games with `Respawn Time: 1 Second`, `Event Times: 4x - Fastest` and Disable Block Protection, the first two also Max Team Upgrades (`capture-bedwars.js`) | adding to Quick Buy, the compass menu in Solo and Doubles, every Quick Communications message and its compass line, the locked tracker, the Hotbar Manager's cursor, the upgrades window reopening and `Clicking too fast!` closing it, the queued trap's buyer, the compass's inventory slot |
+| 2026-09-27 Solo on Sky Rise, a private game with `Respawn Time: 1 Second` and `Event Times: 4x - Fastest` (`capture-bedwars.js`, logging the compass target) | the tracker bought after the last enemy bed broke: its refusal and purchase lines, the readout above the hotbar and the compass following the tracked player |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1277,9 +1288,8 @@ bought, each tier), and each resource in a stretch gets one line:
 
 3. **Shop sweep**: the Solo windows, the upgrades window from scratch and the refusals are captured
    (2026-09-24, 2026-09-25), and every 3s/4s tab with the upgrades (2026-09-25). Quick Buy editing, the
-   compass menu and Quick Communications followed (2026-09-27). A tracker points at the nearest player on
-   its team (our play); where a message points the compass is uncaptured, and the tool logs it from
-   2026-09-27 on.
+   compass menu and Quick Communications followed (2026-09-27), then the tracker's purchase, readout and
+   compass target. Where a quick-comms message points the compass is uncaptured.
 4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
    captured (2026-09-25). AFK is not being tested.
