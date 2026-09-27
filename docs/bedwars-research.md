@@ -1123,7 +1123,8 @@ www.hypixel.net           yellow
   Star glyphs change at 1000/2000/3000/4000 per the current parsers; Fandom says x100. Colors for 7
   prestiges disagree between sources.
 - **Per-player settings** worth persisting: Quick Buy layout, Hotbar Manager slots.
-- Achievements, quests, cosmetics, Slumber Hotel, tokens shop: out of scope for a first cut.
+- The first pass keeps the stats alone (decision 6): no XP, levels, prestiges, achievements, quests,
+  cosmetics, Slumber Hotel or tokens shop.
 
 ## 12. What we have captured already
 
@@ -1151,6 +1152,7 @@ www.hypixel.net           yellow
 | 2026-09-27 4s on Jurassic and Temple, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | their three-point forges in 4s: the two extra spawners drop at the gold point |
 | 2026-09-27 Solo on Sky Rise and Doubles on Serenity and Deadwood, private games with `Respawn Time: 1 Second`, `Event Times: 4x - Fastest` and Disable Block Protection, the first two also Max Team Upgrades (`capture-bedwars.js`) | adding to Quick Buy, the compass menu in Solo and Doubles, every Quick Communications message and its compass line, the locked tracker, the Hotbar Manager's cursor, the upgrades window reopening and `Clicking too fast!` closing it, the queued trap's buyer, the compass's inventory slot |
 | 2026-09-27 Solo on Sky Rise, a private game with `Respawn Time: 1 Second` and `Event Times: 4x - Fastest` (`capture-bedwars.js`, logging the compass target) | the tracker bought after the last enemy bed broke: its refusal and purchase lines, the readout above the hotbar and the compass following the tracked player |
+| 2026-09-27 Doubles on Mirage, Sanctum and Serenity, private games with `Respawn Time: 1 Second`, `Event Times: 4x - Fastest`, Disable Block Protection and Max Team Upgrades (`capture-bedwars.js`) | the three maps' emerald generators, the recorded maps' last gap |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
 | 2026-09-25 3s on Lasagne and 4s on Relic, private games with `Respawn Time: 1 Second` (`capture-bedwars.js`) | the four-team forge at every level, mid generators in 4s, the 3s/4s upgrades and Quick Buy prices, the rotating Sharpness II, the four-team board, the tool deposit refusal |
@@ -1482,7 +1484,7 @@ Each of these was read in the code, not just reported:
 | Knockback credit | Grotto | `KillCredit` off knockback; projectile to shooter, TNT to igniter |
 | Empty-team start | Grotto | unseated teams out at GO, with a minimum |
 | Placed blocks | Grotto or Tennacle | the per-game placed set as a module explosion rules can read; reserved zones; `FieldFns` factories for placed-only and blast-proof glass |
-| Stats outcomes | Grotto, Tennacle | wins, losses, streaks, final kills; XP and levels |
+| Stats outcomes | Grotto, Tennacle | kills, deaths, final kills, final deaths, beds broken and lost, wins, losses and streaks; no XP or levels (decision 6) |
 | Filling queue | Tennacle | N teams, solos merged, a minimum and a countdown that cancels; team chat and `/shout` |
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
@@ -1584,11 +1586,9 @@ A map no capture recorded is a guess throughout (decided 2026-09-27): nothing on
 even the rules that held on every map captured, and its arena carries `bedwars-guessed` so a rotation can
 leave it out. Every arena's `bedwars` data holds its status and what still needs a capture. Recorded: 28
 Solo/Doubles and 27 Triples/Quads maps (Tengshe is recorded but not in the archive). Guessed: 39
-Solo/Doubles, 33 Triples/Quads and all 6 4v4 maps. The recorded maps still need:
-
-| Map | Needs a capture |
-|---|---|
-| Mirage, Sanctum, Serenity | emerald generators: where they stand, found only from their blocks (Mirage's put at y 50, far under its bases) |
+Solo/Doubles, 33 Triples/Quads and all 6 4v4 maps. The recorded maps need nothing more: Mirage's,
+Sanctum's and Serenity's emerald generators were the last gap, captured 2026-09-27. Mirage's stand at y
+50.5, 17 blocks under its bases, where their blocks had put them.
 
 All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
 shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
@@ -1615,16 +1615,17 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
    generator counts are rules with each mode's defaults (1 a team in Solo, 2 in Doubles, 3 in 3s, 4 in 4s,
    each on the maps for its team count), changeable like bridge's rules and never prevented. Exact marker
    counts force a type per map shape today (15.2).
-6. **What a first cut leaves out.** Decided 2026-09-27: Dreams, rotating items and cosmetics. Open:
-   challenges, quests, tokens and the Slumber Hotel (my suggestion leaves them out too); stats in, XP and
-   levels later.
+6. **What a first cut leaves out.** Decided 2026-09-27: everything but the game and its stats. The stats
+   are kills, deaths, final kills, final deaths, beds broken, beds lost and the like; out are Dreams,
+   rotating items, cosmetics, challenges, quests, tokens, the Slumber Hotel, XP and levels.
 7. **Captures.** Solo/Doubles are done (2026-09-26), and the four-team maps in rotation (2026-09-27):
    3s forges, base boxes, mid generator caps and the build limits the file lacks; 4s forges are each map's
    3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
-   the recorded maps' gaps (15.4); every guessed map, when it returns to rotation.
+   every guessed map, when it returns to rotation, and Tengshe, whose world the archive lacks.
    A walk past every base and generator would make the copied forge and generator points exact.
-8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
-   map carries its own forge speed, generators and build limits.
+8. **Which Hypixel maps, in which modes.** Decided 2026-09-27: the first rotation is the fully captured maps
+   alone, each in the modes of its team count (8-team maps in Solo and Doubles, 4-team maps in 3s and 4s).
+   Guessed maps stay out, and so does Tengshe for now.
 
 The "minigames never drop" rule holds for BedWars: nothing spills at death except the ender chest at a
 final death, and resources move straight to the killer.
