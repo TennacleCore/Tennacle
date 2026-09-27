@@ -1080,9 +1080,10 @@ on the maps in 5.2, whose timers are the same everywhere; 2c on 25 maps (section
 
 1. **Start boost and first spawns** (per map and mode). From `Protect your bed`, leave your forge alone: the
    boost's speed and the first iron and gold show in its spawns, the first fill stops at its cap (64 iron so
-   far), and gold, well under its own cap, still marks exactly when the boost ends. When the tool says to pick
-   some up, empty the forge, then let it fill again for no upgrade's caps. Where a diamond generator is within
-   about 45 blocks of your island, its first spawn shows too.
+   far), and gold, well under its own cap, still marks exactly when the boost ends. Then let gold fill to its
+   no-upgrade cap while the boost's iron sits over iron's, and only then pick up everything, so iron refills
+   to its cap: quicker than emptying the forge at once (our play, 2026-09-27). The tool says when. Where a
+   diamond generator is within about 45 blocks of your island, its first spawn shows too.
 2. **Mid generators**: at the start, head for the middle until an emerald generator's countdown is in sight;
    its first step down dates the next spawn even if you never see one. Stay near a diamond generator across
    6:00 and 18:00 and an emerald one across 12:00 and 24:00, and leave one untouched until it stops, for its
