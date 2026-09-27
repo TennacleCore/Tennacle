@@ -123,6 +123,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
     with an empty title sent each second from 9 to 6. The board reads `Starting in Ns` throughout.
   - At the start the real names replace the random ones in the tab, the team board appears, and the party
     shares a team (both on Aqua).
+  - Grotto's `Countdown` waits for `START_AT` seated players and stops short below it, the look saying so
+    (2026-09-27); the pregame look and `/play bedwars` come with the mode.
 - Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
 
 ### 3.2 Start
@@ -1495,8 +1497,8 @@ Each of these was read in the code, not just reported:
    and `VICTORY!` or `GAME OVER!` with no subtitle, built with the mode. The filling queue is still to come.
 8. **Marker counts are exact**, so one game type cannot serve both 4- and 8-team maps. Done 2026-09-27: a
    type can expect one marker for each team (`GameType.expectEachTeam`), however many teams the map seats,
-   and the launch and the map pool read the same check; bed fight's beds use it. Team size as a rule still
-   needs a seat cap per team (decision 5).
+   and the launch and the map pool read the same check; bed fight's beds use it. Team size is the rule
+   `Roster.TEAM_SIZE` since 2026-09-27: a team seats at most that many, a held seat counted.
 9. **Invisibility hides nothing but the body.** Polyp's `Invisibility` sets the entity flag; armor stays
    visible to everyone, and no per-viewer equipment filter exists.
 
