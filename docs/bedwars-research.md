@@ -223,17 +223,14 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   generators. The radius is round, not square: Rooftop and Lasagne took blocks well past where a square's
   edge would be (the square was our play). Measured flat from 0,0 through block coordinates, a block goes in
   while its distance is under the radius, and Rooftop, Sky Rise and Ironclad stop at their file's 120, 123
-  and 131 (cap, 2026-09-25 to 27). Elsewhere the flat edge falls between whole numbers, and on Shipment no
-  one flat circle takes both its south edge (114.44 to 114.53) and its west (114.76 to 114.86). A sphere
-  with a whole radius, like the file's, fits every map: a block goes in while its distance from a point over
-  0,0 at about island height is under it. Shipment then takes 115 with the point at y 70, Jurassic 100,
-  Temple 101, Tengshe 114, Babylon and Silver Birch 136. Placing at one spot on the edge at the bottom of the
-  build range and again at the top would tell the two apart, since a sphere refuses the top one closer in.
-  Until then the arenas keep the flat circle, each at the simplest number between the last block placed and
-  the first refused; Shipment's 114.8 only its south refusal contradicts. The captures give the limits the
-  file lacks (2026-09-27):
+  and 131 (cap, 2026-09-25 to 27). The area is that circle at every height, with one height limit across the
+  whole map (our play). Elsewhere the edge falls between whole numbers, and each arena takes the simplest
+  number between the last block placed and the first refused. On Shipment no one circle round 0,0 takes
+  both its south edge (114.44 to 114.53) and its west (114.76 to 114.86), though one centered up to a block
+  off 0,0 would; its arena keeps 0,0 at 114.8, which only the south refusal contradicts. The captures give
+  the limits the file lacks (2026-09-27):
 
-  | Map | Floor | Height, first refused | Flat radius |
+  | Map | Floor | Height, first refused | Radius |
   |---|---|---|---|
   | Lasagne | 61 | 91 | 121 |
   | Shipment | 67 | 102 | 114.8: the south edge 114.44 to 114.53, the west 114.76 to 114.86 |
@@ -1537,8 +1534,7 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 7. **Captures.** Solo/Doubles are done (2026-09-26), and the four-team maps in rotation (2026-09-27):
    3s forges, base boxes, mid generator caps and the build limits the file lacks; 4s forges are each map's
    3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
-   the recorded maps' gaps (15.4); whether the build radius is flat or a sphere (section 4); 4v4's forges
-   and zones; every guessed map, when it returns to rotation.
+   the recorded maps' gaps (15.4); 4v4's forges and zones; every guessed map, when it returns to rotation.
    A walk past every base and generator would make the copied forge and generator points exact.
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
