@@ -398,8 +398,7 @@ with identical numbers; every forge level bought one at a time and left to fill,
   no-upgrade timing matched the logged forge with as many spawners, and with no upgrade it stopped at 48
   iron and 16 gold; every fast forge's boost filled to 64 first. The upgrades were bought on Gateway,
   Ironclad, Sky Rise, Orchestra and Amazon; the other maps take their levels from those. One Dragonstar game
-  read 46 iron where the server held the forge full (its gold kept coming, its iron did not), a count 2
-  short; the next Dragonstar game read 48.
+  read 46 iron because its forge was picked up from early (our play); the rerun read 48.
 - **Four-team forges** (cap, 2026-09-25: 3s on Lasagne and 4s on Relic, private games whose only modifier was
   the 1 s respawn, every level bought in turn): slower spawners than Solo's, with Solo's caps.
 
