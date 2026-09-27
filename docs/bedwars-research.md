@@ -1487,7 +1487,24 @@ being team ordinals in Hypixel's order:
 
 Arenas are tagged `bedwars` and by their team count: `bedwars-solo` and `bedwars-doubles` for 8 teams,
 `bedwars-3v3v3v3` and `bedwars-4v4v4v4` for 4, `bedwars-4v4` for 2. The output defaults to `build/`, since the
-worlds are Hypixel's. All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
+worlds are Hypixel's.
+
+A map no capture recorded is a guess throughout (decided 2026-09-27): nothing on it is taken as right, not
+even the rules that held on every map captured, and its arena carries `bedwars-guessed` so a rotation can
+leave it out. Every arena's `bedwars` data holds its status and what still needs a capture. Recorded: 28
+Solo/Doubles and 27 Triples/Quads maps (Tengshe is recorded but not in the archive). Guessed: 39
+Solo/Doubles, 33 Triples/Quads and all 6 4v4 maps. The recorded maps still need:
+
+| Map | Needs a capture |
+|---|---|
+| Ambush, Dockyard, Lightstone, Mirage, Sanctum, Serenity | emerald generators |
+| Silver Birch | emerald generators; build height and radius |
+| Orchestra | a world with its diamond generators' islands; emerald generators; base box |
+| Babylon | build floor, height and radius |
+| Temple | build floor, height and radius |
+| Waterfall, Jurassic | build radius (-1 in the map file) |
+| Shipment | height: 101 or 102 |
+ All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
 shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
 Slumber). So are all 60 Triples/Quads maps (2026-09-27): 27 from captures, 31 guessed, and none found on
 Daolong and Obelisk, the 27 in rotation with a base box from their zone round; Tengshe, in rotation, is not
@@ -1511,10 +1528,8 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 7. **Captures.** Solo/Doubles are done (2026-09-26), and the four-team maps in rotation (2026-09-27):
    3s forges, base boxes, mid generator caps and the build limits the file lacks; 4s forges are each map's
    3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
-   4v4's forges and zones; Temple's build limits, Shipment's height (101 or 102), Jurassic's and Waterfall's
-   radius; Babylon's and Silver Birch's limits, in Solo. A walk past every base and generator would make the
-   copied forge and generator points exact. Maps out of rotation stay on assumptions until they return,
-   since their build limits and generators cannot be captured before then (our play).
+   the recorded maps' gaps (15.4); 4v4's forges and zones; every guessed map, when it returns to rotation.
+   A walk past every base and generator would make the copied forge and generator points exact.
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
 
