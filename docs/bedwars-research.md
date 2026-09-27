@@ -1056,10 +1056,13 @@ each named armor stand with its names and update cadence; one dump per window ti
 HideFlags, Unbreakable and leather color; effects by amplifier and duration; sounds beside the nearest chat or
 title line. Each game also appends a line to `captures/generators.jsonl` as you leave its world (before
 2026-09-26, only at the disconnect, so a crash lost the connection's games), and `node capture-bedwars.js
---table` prints every game so far, one block per map and mode. A record's `period` is the lowest gap many
-spawns share, since a wait at the cap or a missed spawn only lengthens one; the median it used before read
-Orchestra's Golden and Molten Forge iron as 41.8 and 31.5 where the spawns ran 21, and that record was
-corrected from its own spawns (the table before it is `generators.jsonl.before-orchestra-period-fix`).
+--table` prints every game so far, one block per map and mode. A record's `period` is the median of its
+gaps up to half again the low ones: a wait at the cap or a missed spawn stretches a gap to two periods or
+more, packets land a few ticks early or late, and a forge's first wave can come early. The plain median read
+Orchestra's Golden and Molten Forge iron as 41.8 and 31.5 where the spawns ran 21, and the lowest shared gap
+read Terminal's 4s boost as 27 where it ran 31 (2026-09-27); both records were corrected from their own
+spawns (the tables before are `generators.jsonl.before-orchestra-period-fix` and
+`generators.jsonl.before-terminal-boost-fix`).
 
 1.8 wire facts the tool had to get right, verified in MCP-919 and paper_source_1.8.8: armor stands spawn as
 object 78 through `spawn_entity`, not `spawn_entity_living`; the effect packet's particle flag means shown,
