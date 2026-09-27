@@ -227,7 +227,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   whole map (our play). Elsewhere the edge falls between whole numbers, and each arena takes the simplest
   number between the last block placed and the first refused. On Shipment no one circle round 0,0 takes
   both its south edge (114.44 to 114.53) and its west (114.76 to 114.86), though one centered up to a block
-  off 0,0 would; its arena keeps 0,0 at 114.8, which only the south refusal contradicts. The captures give
+  off 0,0 would; its arena keeps 0,0 and grows to take every block placed, 114.8 (decided 2026-09-27: expand
+  where the probes disagree), which only the south refusal contradicts. The captures give
   the limits the file lacks (2026-09-27):
 
   | Map | Floor | Height, first refused | Radius |
@@ -1393,8 +1394,8 @@ Each of these was read in the code, not just reported:
 
 | Component | Home | Scope |
 |---|---|---|
-| Timeline | Grotto | named events at offsets from LIVE, alarms re-armed on rule change, `next()` for the board, a hook per event; bed fight's bed alarm becomes one entry |
-| Generators | Grotto | spawn points from markers; interval, tier, cap and pickup delay per resource; forge rate as team state; tiers from the timeline; the forge split on pickup |
+| Timeline | Tennacle or Barnacle | named events at offsets from LIVE, alarms re-armed on rule change, `next()` for the board, a hook per event; bed fight's bed alarm becomes one entry |
+| Generators | Tennacle or Barnacle | spawn points from markers; interval, tier, cap and pickup delay per resource; forge rate as team state; tiers from the timeline; the forge split on pickup |
 | Holograms | Canvas | per-viewer multi-line text with ticking lines; a text display, with Via's armor-stand emulation or a native armor-stand path for legacy viewers |
 | Shop screens | Canvas, Tennacle | catalog pages, lore colored by what the viewer can afford, purchases through a currency transaction, Quick Buy and Hotbar Manager in `PlayerPrefs`, the upgrades screen writing team state |
 | Currency | Polyp | count; take all or nothing, reporting the shortfall for "Need N more!"; give with an overflow policy in the era's add order |
@@ -1429,10 +1430,18 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   Hypixel's Solo sat one or two bases off them, and Crogorm's Doubles followed them (2026-09-26). Elsewhere
   the captured base fixes where the order starts.
 - Every generator stands on a diamond or emerald block with open air above, usually a lone one; Carapace's
-  lower emerald stands on glass. Its items drop over the middle of the block, 1.5, 2 or 2.5 above it by map
-  (Terminal 1.5, Ashfire 2), and its "Diamond" or "Emerald" line stands 2.97 above the drop point (95/32 on
-  the 1.8 wire, 88 of 88 captured). Copies of a generator can differ in height (Sky Rise, Rooted), each at
-  its map's rise. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other emerald blocks.
+  lower emerald stands on glass. Its items drop over the middle of the block, 1.5, 2 or 2.5 above the top
+  block under it by map, and its "Diamond" or "Emerald" line stands 2.97 above the drop point (95/32 on the
+  1.8 wire, 88 of 88 captured). Every generator has that hologram and name line (our play). The arenas
+  standardize the drop at 2.5 over the top block, on every map (decided 2026-09-27), the rise of most
+  captured generators: 139 of 220 diamond and 101 of 154 emerald ones. The captures had 1.5 on Ambush,
+  Artemis, Build Site, Carapace, Deadwood, Frogiton, Harvest, Harvesting, Impere, Infinite, Ironclad,
+  Lasagne, Lost Temple, Relic, Rooted, Sanctum, Silver Birch, Terminal and Whiskers (emeralds on Fort Doon
+  and Katsu too), 2 on Ashfire, and 2.5 elsewhere; the markers keep each captured point. A drop the map
+  set at one height lands at another where a column stacks one more block: one of Aquarium's four diamond
+  generators has two blocks, so its drop sits 1.5 over its top where the others sit 2.5, and the standard
+  puts its drop a block higher than theirs. Copies of a generator can differ in height (Sky Rise, Rooted),
+  each over its own block. Rooted's emeralds stand on stacked blocks and Scorched Sands' beside other emerald blocks.
   Terminal and Relic stack two emerald generators over their middle, 8 and 7 blocks apart, each with its
   own hologram (2026-09-27).
 - The forge usually stands on a 3 x 3 slab platform (23 of 31 captured maps). The archive's Orchestra has
@@ -1507,8 +1516,7 @@ Solo/Doubles, 33 Triples/Quads and all 6 4v4 maps. The recorded maps still need:
 
 | Map | Needs a capture |
 |---|---|
-| Mirage, Sanctum, Serenity | emerald generators: their drop height, 2.5 over the block assumed |
-| Shipment | radius: no one flat circle round 0,0 takes its south and west edges (section 4) |
+| Mirage, Sanctum, Serenity | emerald generators: where they stand, found only from their blocks |
 
 All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
 shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
@@ -1522,15 +1530,18 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 1. **Which mode first.** Decided 2026-09-26: the five core modes from the start, on the downloaded maps.
    Items 1, 6, 7 and 8 of 15.2 therefore come before the first game: the empty-team start, team names, the
    filling queue, boards and summaries for any team count, and map types by team count.
-2. **Parity target.** Exact Hypixel as the `hypixel` look (captured copy, `Hypixel.bedwars()` mechanics),
-   plus the house look, with the numbers as rules so `/rules` shows them.
+2. **Parity target.** Decided 2026-09-27: the first pass is the Hypixel look alone, named `hypixel` as the
+   look and the preset (captured copy, `Hypixel.bedwars()` mechanics, the numbers as rules so `/rules` shows
+   them); a house look comes later. Final kill, bed break and kill lines already exist in bed fight's
+   hypixel preset, and kill credit timing is in section 8.
 3. **Holograms.** Rely on Via's text-display emulation for 1.8, or send armor stands natively by viewer
    protocol. Via is less work; native gives exact line spacing.
-4. **Where generators and the timeline live.** Grotto if another mode will use them (the timeline at
-   least: bed fight's alarm is one), otherwise Tennacle.
+4. **Where generators and the timeline live.** Decided 2026-09-27: Tennacle or Barnacle, not Grotto.
+   Grotto stays general game-building tools, grown only where BedWars needs something general.
 5. **One type per team size, or a capacity rule.** Exact marker counts force a type per map shape today.
-6. **What a first cut leaves out.** My suggestion: Dreams, rotating items, cosmetics, challenges, quests,
-   tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
+6. **What a first cut leaves out.** Decided 2026-09-27: Dreams, rotating items and cosmetics. Open:
+   challenges, quests, tokens and the Slumber Hotel (my suggestion leaves them out too); stats in, XP and
+   levels later.
 7. **Captures.** Solo/Doubles are done (2026-09-26), and the four-team maps in rotation (2026-09-27):
    3s forges, base boxes, mid generator caps and the build limits the file lacks; 4s forges are each map's
    3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
