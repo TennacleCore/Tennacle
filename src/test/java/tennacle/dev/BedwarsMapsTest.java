@@ -138,7 +138,7 @@ class BedwarsMapsTest extends HeadlessServerTest {
         assertEquals(79.0, arena.markers(MarkerKey.limit("bedwars:height")).getFirst().y());
         assertEquals(60.0, arena.markers(MarkerKey.limit("bedwars:floor")).getFirst().y());
         assertEquals(1, arena.markers(MarkerKey.limit("bedwars:void")).size());
-        assertTrue(arena.marker(MarkerKey.region("bedwars:build"), "").contains(new BlockVec(19, 79, -19)));
+        assertEquals(20.0, arena.marker(MarkerKey.data("bedwars:radius"), "").payload().getDouble("radius"));
 
         Instance world = arena.instantiate();
         assertEquals(Block.STONE, world.getBlock(0, 64, 0));

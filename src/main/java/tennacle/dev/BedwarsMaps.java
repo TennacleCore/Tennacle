@@ -181,13 +181,13 @@ public final class BedwarsMaps {
         }
         JsonObject build = object(map, "build");
         if (build != null) {
-            int min = build.get("minBuild").getAsInt(), max = build.get("maxBuild").getAsInt(), radius = build.get("buildRadius").getAsInt();
-            // the map file's maxBuild is the first height refused
-            out.add(new LimitMarker("bedwars:height", "", "", null, (double) (max - 1), null));
-            out.add(new LimitMarker("bedwars:floor", "", "", null, (double) min, null));
-            if (radius > 0) {
-                out.add(new RegionMarker("bedwars:build", "", "", new BlockVec(-(radius - 1), min, -(radius - 1)),
-                        new BlockVec(radius - 1, max - 1, radius - 1)));
+            // maxBuild is the first height refused
+            if (build.has("maxBuild")) out.add(new LimitMarker("bedwars:height", "", "", null, build.get("maxBuild").getAsDouble() - 1, null));
+            if (build.has("minBuild")) out.add(new LimitMarker("bedwars:floor", "", "", null, build.get("minBuild").getAsDouble(), null));
+            // a circle round 0,0 through block coordinates: a block goes in while its distance is under it
+            if (build.has("buildRadius")) {
+                out.add(new DataMarker("bedwars:radius", "", "", CompoundBinaryTag.builder()
+                        .putDouble("radius", build.get("buildRadius").getAsDouble()).build(), 1));
             }
         }
         out.add(new LimitMarker("bedwars:void", "", "", null, 0.0, null));
