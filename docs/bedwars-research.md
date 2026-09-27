@@ -211,16 +211,32 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 | Mode | Bases | Diamond gens | Emerald gens |
 |---|---|---|---|
 | Solo, Doubles | 8 | 4 | 4 |
-| 3s, 4s | 4 | 4 | 2 (3 on a few maps) |
+| 3s, 4s | 4 | 4 | 2 (3 on Catalyst, and by their blocks Obelisk and Unturned) |
 | 4v4 | 2 | 2 | 2 |
 
 - **Build limits** are per map: minimum Y, maximum Y and a build radius. A map file added 2026-09-24
   (`research/bedwars/bwmapinfo.json`, in Hypixel's own field names: `pool`, `minBuild`, `maxBuild`,
   `buildRadius`, `festival`, `reskinOf`) has them for 158 maps: 83 eight-team and 75 four-team, 46 of them
   festival versions, no 4v4 maps. Medians: eight-team radius 121.5, four-team 103, both built from y 62 or 63
-  up to 96, about 32 blocks of height; Fandom's pages agree. 11 rows have radius -1. The file has no protected
-  areas around bases and generators. The radius is a square around 0,0 (our play): |x| and |z| each stay
-  under it.
+  up to 96, about 32 blocks of height; Fandom's pages agree. 11 rows have radius -1, and Temple's has no limits
+  at all (-1, 0, -1); the arenas leave out what a row lacks. The file has no protected areas around bases and
+  generators. The radius is a circle round 0,0 through block coordinates: a block goes in while its distance,
+  the square root of x squared plus z squared, is under it (cap, 2026-09-25 to 27). Rooftop, Sky Rise and
+  Ironclad stop at their file's 120, 123 and 131, and Rooftop and Lasagne took blocks well past where a
+  square's edge would be (the square was our play). The captures give the maps the file lacks (2026-09-27):
+
+  | Map | Floor | Height, first refused | Radius |
+  |---|---|---|---|
+  | Lasagne | 61 | 91 | 121 |
+  | Shipment | 67 | 101 or 102: placed at 100, refused at 102 | 114.5: placed to 114.44, refused from 114.53 |
+  | Tengshe | 64 | 101 | 113.6: placed to 113.53, refused from 113.60 |
+  | Silver Birch | 73 | | |
+
+  Shipment's and Tengshe's radii fall between whole numbers, so their arenas take the simplest number between
+  the last block placed and the first refused. The file is wrong about one floor: Fort Doon's is 68 in play,
+  not the file's 42 (refused at 66 and 67 under the base, 2026-09-27). Every other captured limit agrees with
+  the file. Unknown in rotation: Temple's three limits, Jurassic's and Waterfall's radius (-1), Babylon's three
+  and Silver Birch's height and radius.
 - **Pools**: the file puts every map in `BEDWARS_8TEAMS_FAST`, `BEDWARS_8TEAMS_SLOW`, `BEDWARS_4TEAMS_FAST`
   or `BEDWARS_4TEAMS_SLOW` (50, 33, 37 and 38 maps). FAST and SLOW do not match the forge speeds the
   community lists: Airshow, Glacier, Orchestra, Speedway, Waterfall and Solace are slow iron in both
@@ -291,6 +307,48 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   Each box merges every base probed on its map: two bases on Ambush, Bio-Hazard, Deadwood, Playground,
   Sanctum and Silver Birch, the same base twice on five more. Every refusal and success fits its box but 3
   cells on Impere and 1 each on Babylon and Crogorm.
+
+  Four-team base boxes (cap, 4s private games on all 28 maps in rotation with Disable Block Protection and Max
+  Team Upgrades, 2026-09-27, through the capture tool's zone check) follow the same rule: every axis closed on
+  both sides is centered on the spawn block but one. Many four-team spawn points sit on a block's corner
+  (Lasagne's at 0.0, 65, -95.0), and their boxes are still centered on the block under it. On eight maps the
+  region runs down to the build floor or past it (our play: the floor floors it), so nothing below it goes in
+  and its bottom never closes; a placement there draws both `You can't place blocks here!` and `You cannot
+  build any further down!`. The arenas take the top's reach for a bottom never closed.
+
+  | Map | Back and front | Left and right | Down and up | Size | |
+  |---|---|---|---|---|---|
+  | Aquarium | 6 | 5 | 5 | 13 x 11 x 11 | |
+  | Archway | 4 | 6 | 5 | 9 x 13 x 11 | bottom: refused 3 down, never closed |
+  | Artemis | 5 | 4 | 5 | 11 x 9 x 11 | |
+  | Build Site | 9 | 9 | 9 | 19 x 19 x 19 | bottom: refused past the floor, 5 down |
+  | Carapace | 6 | 7 | 6 | 13 x 15 x 13 | bottom: refused to the floor, 6 down |
+  | Catalyst | 7 | 6 | 5 | 15 x 13 x 11 | |
+  | Fort Doon | 5 | 6 | 4 | 11 x 13 x 9 | |
+  | Frogiton | 8 | 6 | 5 | 17 x 13 x 11 | bottom: refused to the floor, 5 down |
+  | Graveship | 7 | 9 | 5 | 15 x 19 x 11 | |
+  | Harvesting | 9 | 10 | 4 | 19 x 21 x 9 | |
+  | Holmgang | 7 | 6 | 8 | 15 x 13 x 17 | |
+  | Horizon | 6 | 6 | 4 | 13 x 13 x 9 | |
+  | Infinite | 5 | 7 | 4 | 11 x 15 x 9 | |
+  | Invasion | 5 | 5 | 5 | 11 x 11 x 11 | |
+  | Jurassic | 6 | 6 | 6 | 13 x 13 x 13 | bottom: refused past the floor, 4 down |
+  | Katsu | 7 | 8 | 8 | 15 x 17 x 17 | |
+  | Kubo | 8 | 7 | 13 | 17 x 15 x 27 | bottom: refused to the floor, 7 down |
+  | Lasagne | 8 | 11 | 6 | 17 x 23 x 13 | bottom: refused past the floor, 4 down |
+  | Lectus | 5 | 5 | 13 | 11 x 11 x 27 | bottom: refused past the floor, 11 down |
+  | Lost Temple | 8 | 8 | 11 | 17 x 17 x 23 | left and right closed at 8 and 7; bottom: refused past the floor, 4 down |
+  | Paladin | 8 | 8 | 9 | 17 x 17 x 19 | |
+  | Relic | 6 | 5 | 5 | 13 x 11 x 11 | |
+  | Shipment | 8 | 7 | 4 | 17 x 15 x 9 | |
+  | Swashbuckle | 5 | 5 | 5 | 11 x 11 x 11 | |
+  | Temple | 6 | 6 | 6 | 13 x 13 x 13 | |
+  | Tengshe | 5 | 6 | 4 | 11 x 13 x 9 | not in the archive |
+  | Terminal | 5 | 6 | 7 | 11 x 13 x 15 | bottom: closed by breaks past the floor, 5 down |
+  | Whiskers | 8 | 9 | 5 | 17 x 19 x 11 | |
+
+  Lost Temple's lopsided axis takes 8 both ways in its arena (the standard, 2026-09-27). Every refusal and
+  success fits its box but 3 cells on Carapace and 1 on Temple.
 
   The edge itself (cap, Sky Rise 2026-09-25, map-file radius 123): blocks went down out to 122.7 from 0,0 and
   the next, 123.7 out, was refused with `Build limit reached!`, a line of its own. Height (cap): Sky Rise took
@@ -434,7 +492,7 @@ with identical numbers; every forge level bought one at a time and left to fill,
 |---|---|---|---|---|---|
 | Diamond (all modes) | 30 s | 23 s | 11.2 s | 4 | 8 |
 | Emerald, Solo/Doubles | 65 s | 50 s | 35 s | 2 | |
-| Emerald, 3s/4s | 55 s | 40 s | 27.4 s | | 5 or 6 |
+| Emerald, 3s/4s | 55 s | 40 s | 27.4 s | | 6, or 4 with three generators (our play) |
 
 - Intervals are NamuWiki's; 11.2 s and 27.4 s are whole ticks (224, 548). 2026 client mods use 30/23/12
   and 65/50/35 (8 teams) or 55/40/27 (4 teams).
@@ -460,6 +518,10 @@ with identical numbers; every forge level bought one at a time and left to fill,
   Terminal, 2026-09-27): eight drops 601 ticks apart, then none until the oldest despawned. Mid emeralds
   vanish 300.4 to 300.8 s after they drop, so at tier I no more than 6 lie there and a four-team emerald
   cap can only show from tier II.
+- **Four-team caps on every map in rotation** (cap, 4s on all 28, 2026-09-27): diamonds stop at 8 and
+  emeralds at 6 at every generator read, at tier II or III, Catalyst's three emerald generators included.
+  Our play: four-team diamonds always stop at 8, and a map with three emerald generators stops each at 4;
+  Catalyst, the only such map in rotation, stopped each at 6, so the 4 stands for the maps out of rotation.
 - Item spawns reached the client from 85 blocks away (Sky Rise), so a generator across the island is still
   measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
@@ -1008,6 +1070,7 @@ www.hypixel.net           yellow
 | 2026-09-26 Solo on every map in rotation and Doubles on Crogorm, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every forge's spawner count, boost and no-upgrade timing and caps; every level on Orchestra, Amazon and Sky Rise; the Emerald Forge emerald cap; six more bases; Crogorm seating its teams by mode |
 | 2026-09-27 3s on every map in rotation, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | every 3s forge's spawners and no-upgrade caps; every level on Aquarium, whose Emerald Forge emeralds outlast any cap; 32 more bases; Jurassic's and Temple's three-point forges |
 | 2026-09-27 4s on Terminal, Aquarium, Archway, Artemis, Fort Doon and Invasion, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | the 4s forge, each map's 3s one with 5 spawners; Terminal's generators, two emerald ones stacked over the middle; three more bases |
+| 2026-09-27 4s on every four-team map in rotation, `Disable Block Protection` and `Max Team Upgrades` (`capture-bedwars.js` with its zone check) | every four-team base box; the diamond and emerald caps at every generator; Lasagne's, Shipment's and Tengshe's build limits; the radius a circle; Fort Doon's floor; Molten Forge's emerald cap |
 | 2026-09-27 4s on Jurassic and Temple, `Respawn Time: 1 Second` only (`capture-bedwars.js` with its forge check) | their three-point forges in 4s: the two extra spawners drop at the gold point |
 | 2026-09-25 Solo on Babylon, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the Dream Defender's aggro range on open ground, three more bedbugs |
 | 2026-09-25 4s on Holmgang, a private game with `Respawn Time: 1 Second` (`capture-bedwars.js`) | every 3s/4s shop tab, the week's rotating items, `Clicking too fast!`, bedbug aggro, a Dream Defender shut in a pen |
@@ -1120,6 +1183,13 @@ on the maps in 5.2, whose timers are the same everywhere; 2c on 25 maps (section
      no-upgrade caps are still read on every map.
    - **2c. Build limits**: from the middle, place blocks outward along an axis until refused, then along a
      diagonal, then up to the height limit; around a generator, place outward until the refusals stop.
+     The tool's zone check calls each side in chat once a block refused with the zone's line and one that
+     went in sit side by side across it (a refusal with no line can be a player in the way), then the base
+     box done, a side the build floor or height limit closes included. Then a diamond and an emerald
+     generator full: a countdown restart watched in view with nothing dropped since its step before (the
+     countdown redraws once a second, so a restart shows up to a second after its drop), a four-team
+     emerald from Emerald II. On a map the file lacks it asks for the height, floor and radius too, then
+     says to leave for the next map.
 
 Reading the summary: each generator is split into stretches (the start boost, each forge level your team
 bought, each tier), and each resource in a stretch gets one line:
@@ -1411,7 +1481,7 @@ being team ordinals in Hypixel's order:
 | `bedwars:base` | region, where captured | team |
 | `team` | data, `display` in the team's color | team |
 | `bedwars:diamond`, `bedwars:emerald` | point, where items drop | none |
-| `bedwars:build` | region, the build radius square from the floor to the height | none |
+| `bedwars:radius` | data, `radius`: a block goes in while its distance from 0,0 is under it | none |
 | `bedwars:height`, `bedwars:floor`, `bedwars:void` | limit y: highest and lowest placeable, the kill plane at 0 | none |
 | `bedwars:lobby` | region, the pregame room to clear at the start | none |
 
@@ -1420,8 +1490,8 @@ Arenas are tagged `bedwars` and by their team count: `bedwars-solo` and `bedwars
 worlds are Hypixel's. All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
 shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
 Slumber). So are all 60 Triples/Quads maps (2026-09-27): 27 from captures, 31 guessed, and none found on
-Daolong and Obelisk, all without a base box until their zone round; Tengshe, in rotation, is not in the
-archive. The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
+Daolong and Obelisk, the 27 in rotation with a base box from their zone round; Tengshe, in rotation, is not
+in the archive. The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
 check. Sign text, heads, banner patterns, flower pot contents and entities do not survive the conversion.
 
 ## 16. Decisions for you
@@ -1438,13 +1508,13 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 5. **One type per team size, or a capacity rule.** Exact marker counts force a type per map shape today.
 6. **What a first cut leaves out.** My suggestion: Dreams, rotating items, cosmetics, challenges, quests,
    tokens and the Slumber Hotel. Stats yes; XP and levels can follow.
-7. **Captures.** Solo/Doubles are done (2026-09-26), and 3s forges (2026-09-27); 4s forges are each map's
-   3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). A
-   walk past every base and generator would make the copied forge and generator points exact. Left, on the
-   maps in rotation: the 3s/4s zone round (base
-   boxes, generator and shopkeeper zones), 4v4's forges and zones, and the four-team mid generator caps (8
-   diamonds and 5 or 6 emeralds are the wiki's). Maps out of rotation stay on assumptions until they
-   return, since their build limits and generators cannot be captured before then (our play).
+7. **Captures.** Solo/Doubles are done (2026-09-26), and the four-team maps in rotation (2026-09-27):
+   3s forges, base boxes, mid generator caps and the build limits the file lacks; 4s forges are each map's
+   3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
+   4v4's forges and zones; Temple's build limits, Shipment's height (101 or 102), Jurassic's and Waterfall's
+   radius; Babylon's and Silver Birch's limits, in Solo. A walk past every base and generator would make the
+   copied forge and generator points exact. Maps out of rotation stay on assumptions until they return,
+   since their build limits and generators cannot be captured before then (our play).
 8. **Which Hypixel maps, in which modes.** The generator captures should reach those maps first, since each
    map carries its own forge speed, generators and build limits.
 
