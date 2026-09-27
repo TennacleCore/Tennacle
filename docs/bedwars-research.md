@@ -415,7 +415,9 @@ with identical numbers; every forge level bought one at a time and left to fill,
   file: the pool does not tell the speed here either. The forge's emeralds come faster than Solo's: 1101
   ticks (55 s, three spawns) at Emerald Forge and 541 (27 s) at Molten. On Aquarium (3s, 2026-09-27) the
   Emerald Forge's emeralds kept coming every 1101 ticks until the oldest despawned at 5 minutes, 6 lying at
-  most, so any cap is above 6; a Solo Emerald Forge stops at 2.
+  most, so any cap is above 6; a Solo Emerald Forge stops at 2. Molten Forge stops at 7 (cap, Aquarium 4s
+  under Max Team Upgrades, 2026-09-27): emeralds every 541 ticks, and a forge left alone held 7 through two
+  drops that never came; another held 7 when emptied (our play: 7 from a maxed team forge).
 - **Every 3s map in rotation** (cap, 2026-09-27: a private game on each of 29 with only the 1 s respawn,
   Aquarium bought through Molten Forge): 3 spawners on every map, Relic and Holmgang included, on the
   four-team timing above, stopping at 48 iron and 16 gold with no upgrade. The boost ends before a 3s forge
@@ -453,7 +455,11 @@ with identical numbers; every forge level bought one at a time and left to fill,
   27 ticks after the start on four maps. Max Team Upgrades leaves the mid generators alone: their tiers ran
   at the usual 601, 451, 1301 and 1001 ticks under it.
 - Four-team mid generators (cap, Relic 4s 2026-09-25): diamonds every 601, 451 and 226 ticks as in Solo,
-  emeralds every 801 at tier II (40 s plus one), with the tier lines at the Solo times.
+  emeralds every 801 at tier II (40 s plus one), with the tier lines at the Solo times. Emeralds every 1101
+  at tier I (Terminal and Aquarium 4s, 2026-09-27). Diamonds stop at 8 (cap, Aquarium 4s twice and
+  Terminal, 2026-09-27): eight drops 601 ticks apart, then none until the oldest despawned. Mid emeralds
+  vanish 300.4 to 300.8 s after they drop, so at tier I no more than 6 lie there and a four-team emerald
+  cap can only show from tier II.
 - Item spawns reached the client from 85 blocks away (Sky Rise), so a generator across the island is still
   measured.
 - **Holograms** (armor-stand name lines over a spinning block on an armor stand): yellow `Tier` + red
