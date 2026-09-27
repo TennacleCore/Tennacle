@@ -730,7 +730,8 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   beds are destroyed!`; slot 31 is an arrow named green `Go Back`, lore `To Quick Buy`, or `To Tracker &
   Communication` when opened from the compass. It lists only the teams still in the game, one in a
   two-player game, and a locked tracker says red `Not all enemy beds are destroyed yet!` and closes the
-  window (cap, 2026-09-27).
+  window (cap, 2026-09-27). A bought tracker points the compass at the nearest player on the tracked team
+  (our play).
 - **Compass menu** (cap, 2026-09-27): right-clicking the compass opens a 3-row `Tracker & Communication`. In
   Solo it holds the Tracker Shop alone (compass, slot 13); in Doubles green `Quick Communications` (emerald,
   slot 11, lore `Send highlighted chat messages to` / `your teammates!`, a blank, yellow `Click to open!`)
@@ -1276,8 +1277,9 @@ bought, each tier), and each resource in a stretch gets one line:
 
 3. **Shop sweep**: the Solo windows, the upgrades window from scratch and the refusals are captured
    (2026-09-24, 2026-09-25), and every 3s/4s tab with the upgrades (2026-09-25). Quick Buy editing, the
-   compass menu and Quick Communications followed (2026-09-27). Still open: where a tracker or a message
-   points the compass, which the tool logs from 2026-09-27 on.
+   compass menu and Quick Communications followed (2026-09-27). A tracker points at the nearest player on
+   its team (our play); where a message points the compass is uncaptured, and the tool logs it from
+   2026-09-27 on.
 4. **With a party**: the forge split, the Heal Pool, every trap and Magic Milk are settled (2026-09-25).
 5. **Deaths**: the respawn, respawn invincibility, the void kill, the credit window and a final death are
    captured (2026-09-25). AFK is not being tested.
