@@ -6,12 +6,14 @@ import io.github.term4.bloom.mapmaking.Teams;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.grotto.roster.Team;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * The liveries a match seats: a team is an ordinal ("1", "2", ...) read through three layers - the arena's
@@ -19,6 +21,13 @@ import java.util.Locale;
  * read: a kit's {@code armor.helmet} and {@code blocks.1}, bridge's {@code cage}, a name's {@code display}.
  */
 public final class Palette {
+
+    // BedWars' names where a color's own differs, and Gray's letter S (cap)
+    private static final Map<NamedTextColor, Printed> PRINTED = Map.of(
+            NamedTextColor.LIGHT_PURPLE, new Printed("PINK", "P"),
+            NamedTextColor.DARK_GRAY, new Printed("GRAY", "S"));
+
+    private record Printed(String name, String letter) {}
 
     private Palette() {}
 
@@ -48,16 +57,19 @@ public final class Palette {
         return teams;
     }
 
-    /** The team as the networks print it: its display color's name ("RED", "LIGHT PURPLE"). */
+    /** The team as the networks print it: its display color's name ("RED"), or BedWars' where that differs ("PINK"). */
     public static @NotNull String name(@NotNull Team team) {
-        return team.livery().get(Team.DISPLAY).named().toString().toUpperCase(Locale.ROOT).replace('_', ' ');
+        NamedTextColor color = team.livery().get(Team.DISPLAY).named();
+        Printed printed = PRINTED.get(color);
+        return printed != null ? printed.name() : color.toString().toUpperCase(Locale.ROOT).replace('_', ' ');
     }
 
     public static @NotNull String letter(@NotNull Team team) {
-        return name(team).substring(0, 1);
+        Printed printed = PRINTED.get(team.livery().get(Team.DISPLAY).named());
+        return printed != null ? printed.letter() : name(team).substring(0, 1);
     }
 
-    /** {@link #name} as prose reads it: {@code Light Purple}. */
+    /** {@link #name} as prose reads it: {@code Pink}. */
     public static @NotNull String titled(@NotNull Team team) {
         StringBuilder out = new StringBuilder();
         for (String word : name(team).split(" ")) {
