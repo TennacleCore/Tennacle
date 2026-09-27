@@ -15,7 +15,10 @@ import io.github.term4.bloom.mapmaking.LegacyAnvil;
 import io.github.term4.bloom.mapmaking.Teams;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Markers;
+import net.kyori.adventure.nbt.BinaryTagTypes;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.nbt.ListBinaryTag;
+import net.kyori.adventure.nbt.StringBinaryTag;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
@@ -128,10 +131,19 @@ public final class BedwarsMaps {
 
     private static byte[] build(String id, JsonObject map, byte[] world) {
         JsonObject lobby = object(map, "lobby");
+        // a map no capture recorded is a guess throughout, tagged so a rotation can leave it out
+        boolean guessed = !map.has("status") || !map.get("status").getAsString().equals("captured");
+        List<String> tags = new ArrayList<>(TAGS.getOrDefault(map.get("teams").getAsInt(), List.of("bedwars")));
+        if (guessed) tags.add("bedwars-guessed");
+        ListBinaryTag.Builder<StringBinaryTag> needs = ListBinaryTag.builder(BinaryTagTypes.STRING);
+        if (map.has("needs capture")) {
+            for (JsonElement need : map.getAsJsonArray("needs capture")) needs.add(StringBinaryTag.stringBinaryTag(need.getAsString()));
+        }
         ArenaBuilder builder = new ArenaBuilder(id).name(map.get("map").getAsString()).authors("Hypixel")
-                .tags(TAGS.getOrDefault(map.get("teams").getAsInt(), List.of("bedwars")).toArray(String[]::new))
-                .time(6000).world(world).user(CompoundBinaryTag.builder()
-                        .put("bedwars", CompoundBinaryTag.builder().putString("source", provenance(map)).build()).build());
+                .tags(tags.toArray(String[]::new))
+                .time(6000).world(world).user(CompoundBinaryTag.builder().put("bedwars", CompoundBinaryTag.builder()
+                        .putString("source", provenance(map)).putString("status", guessed ? "guessed" : "captured")
+                        .put("needs capture", needs.build()).build()).build());
         if (lobby != null) {
             Vec spawn = vec(lobby.getAsJsonArray("spawn"));
             builder.spawn(new Pos(spawn.x(), spawn.y(), spawn.z(), 180, 0));
@@ -229,7 +241,11 @@ public final class BedwarsMaps {
                 .map(b -> b.getAsJsonObject().get("source").getAsString().split("[:,]")[0]).distinct().sorted()
                 .reduce((a, b) -> a + "/" + b).orElse("none");
         JsonObject generators = map.getAsJsonObject("generator source");
-        return "bases " + bases + "; teams " + map.get("team source").getAsString().split(":")[0]
+        String status = map.has("status") ? map.get("status").getAsString() : "guessed";
+        String needs = map.has("needs capture") ? map.getAsJsonArray("needs capture").asList().stream()
+                .map(JsonElement::getAsString).reduce((a, b) -> a + ", " + b).orElse("") : "everything";
+        return status.toUpperCase(Locale.ROOT) + (needs.isEmpty() ? "" : ", needs a capture: " + needs)
+                + "; bases " + bases + "; teams " + map.get("team source").getAsString().split(":")[0]
                 + "; diamond " + generators.get("diamond").getAsString() + "; emerald " + generators.get("emerald").getAsString()
                 + (object(map, "base box") != null ? "; base box captured" : "; no base box");
     }

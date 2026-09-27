@@ -80,6 +80,7 @@ class BedwarsMapsTest extends HeadlessServerTest {
 
     private static final String MARKERS = """
             {"map": "Test Map", "group": "Solo-Doubles Maps/Regular", "teams": 2, "team source": "captured", "notes": [],
+             "status": "guessed", "needs capture": ["base box"],
              "lobby": {"min": [-2, 90, -2], "max": [2, 99, 2], "spawn": [0.5, 91, 0.5]},
              "build": {"pool": "BEDWARS_8TEAMS_FAST", "minBuild": 60, "maxBuild": 80, "buildRadius": 20},
              "forge spawners": 3,
@@ -112,7 +113,10 @@ class BedwarsMapsTest extends HeadlessServerTest {
 
         assertEquals(1, BedwarsMaps.convert(archive, markers, out, Set.of("Test Map")));
         Arena arena = Arena.read(out.resolve("bedwars-test-map.bncl"));
-        assertEquals(List.of("bedwars", "bedwars-4v4"), arena.meta().tags(), "two teams play 4v4");
+        assertEquals(List.of("bedwars", "bedwars-4v4", "bedwars-guessed"), arena.meta().tags(), "two teams play 4v4");
+        CompoundBinaryTag user = arena.meta().user().getCompound("bedwars");
+        assertEquals("guessed", user.getString("status"));
+        assertEquals("base box", user.getList("needs capture").getString(0));
 
         assertEquals(Set.of("1", "2"), arena.groups(Markers.SPAWN));
         PosMarker red = arena.marker(Markers.SPAWN, "1");
