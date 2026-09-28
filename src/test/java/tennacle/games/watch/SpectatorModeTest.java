@@ -144,12 +144,12 @@ class SpectatorModeTest extends HeadlessServerTest {
             assertEquals(TextDecoration.State.FALSE, w.player.getDisplayName().decoration(TextDecoration.ITALIC),
                     "gray and upright in tab, the scrims row");
             // no nameplate over a spectator, and a 1.8 client hangs the below-name health off that same gate
-            String specTeam = w.sent(TeamsPacket.class).stream()
+            java.util.Set<String> nameless = w.sent(TeamsPacket.class).stream()
                     .filter(t -> t.action() instanceof TeamsPacket.CreateTeamAction create
                             && create.settings().nameTagVisibility() == TeamsPacket.NameTagVisibility.NEVER)
-                    .map(TeamsPacket::teamName).findFirst().orElse(null);
-            assertNotNull(specTeam, "the spectators' team hides nameplates");
-            assertTrue(w.sent(TeamsPacket.class).stream().anyMatch(t -> t.teamName().equals(specTeam)
+                    .map(TeamsPacket::teamName).collect(java.util.stream.Collectors.toSet());
+            assertFalse(nameless.isEmpty(), "the spectators' team hides nameplates");
+            assertTrue(w.sent(TeamsPacket.class).stream().anyMatch(t -> nameless.contains(t.teamName())
                             && t.action() instanceof TeamsPacket.AddEntitiesToTeamAction add
                             && add.entities().contains("ModeWatch")),
                     "and the spectator is on it: no name over their head, and no health under it");

@@ -517,10 +517,14 @@ with identical numbers; every forge level bought one at a time and left to fill,
   Doubles on Sky Rise ran the same forge as Solo (2026-09-25).
 - Caps grow 8 iron and 2 gold per level. A capped forge restarts as soon as an item leaves: a pickup, or the
   5-minute despawn.
-- Ours (2026-09-28): the cap counts the stacks lying within 3 blocks whole, so a merged pile of 12 is 12. The
-  drops used to scatter off the slab pad: Polyp shoved any item whose cell was a solid block, where 1.8's
-  `pushOutOfBlocks` reads `isBlockFullCube`, and a slab is no cube; now nothing is pushed off a pad and the
-  iron stacks on the spot (GeneratorsTest ticks the items by hand).
+- **Drops, exactly** (cap, Sky Rise Solo 2026-09-25, #1640 and its neighbors): the spawn packet carries vanilla's
+  item hop (0.2 up, up to 0.1 sideways) and the very next tick a velocity of `0, -0.0391, 0`: the server zeroed
+  it, so the item falls straight and lands on the point (a teleport to `65.50` under a spawn at `66.00`, the
+  pad half a block under). Every drop is its own entity of one, never merged: a forge holds 48 single iron, and
+  a walk-over destroys them all at once. Ours (2026-09-28): `Generators.drop` spawns with the hop and zeroes the
+  velocity, unmergeable; the cap counts what lies within 3 blocks, one to an entity. The drops used to scatter
+  off the slab pad, because Polyp shoved any item whose cell was a solid block where 1.8's `pushOutOfBlocks`
+  reads `isBlockFullCube` and a slab is no cube (GeneratorsTest ticks the items by hand).
 - Emerald Forge adds an emerald spawner: 1300 ticks (65 s) at Emerald Forge, 701 (35 s) at Molten, as
   NamuWiki says. The cap is 3 (cap, Waterfall 2026-09-25: a Molten forge from the Max Team Upgrades
   modifier stopped with 3 emeralds lying, its iron and gold at the usual Molten 80 and 24), and 2 at Emerald
@@ -933,7 +937,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Magic Milk | for 30 s the drinker triggers no trap at all: no effect, no alert and no line for anyone (our play); only the drinker is told red `Your Magic Milk wore off!` with `liquid.water` (volume 0.7, pitch 2.0) when it ends (cap, four drinks: 30.0 to 30.1 s after the milk was used up, as the shop lore's `Avoid triggering traps for 30` / `seconds after consuming.` says). An intruder still inside when it wears off sets the next trap off at once (0.25 and 0.35 s later, cap). Cleared on death; keeps other effects per the docs, though drinking it removed the Mining Fatigue a trap had just given (cap). Ours (2026-09-28, `MagicMilk`): the drink washes off what traps inflict (blindness, slowness, mining fatigue) and keeps every other effect, where plain milk would clear the team's Haste too; `magic-milk.duration` 600 ticks from the end of the drink; the wearing off rechecks the drinker against every trap on the spot, with no delay | none |
 | Sponge | not vanilla's (cap, 18 sponges, 2026-09-25): placed with the normal sound, then from 5 ticks after, every 8 ticks for 4 steps, it clears the next ring of a 9 x 9 x 9 cube around itself (ring k at step k, the cube's shell k blocks out), with `random.wood_click` at volume 0.5 and pitch bytes 110, 116, 123, 129, and `cloud` x4 (spread 0.08, speed 0.04, long-distance) at the ring's open cells. One step after the last it vanishes with `game.player.swim.splash` (volume 0.6, pitch 2.0), 37 ticks after it went down. While it is active the cube takes no water flowing in, like a base region, so water placed beside it turns still at once and stays that way until a neighbor changes: one stayed floating over a hole dug under it even after the sponge was gone (our play, cap). Ours (2026-09-28, `Sponge`): the block lands as any placement, then `sponge.delay` 5, `sponge.step` 8 and `sponge.radius` 4 drive the rings, each with the click at the sponge and a cloud at every open cell of the shell, sent whole (the capture's 30 clouds a tick is Hypixel's sender, not the rule); its cube is held still through `Building.still` and let go when it vanishes, so nothing stays floating afterwards | none |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | done: Polyp's `hypixel` preset has Hypixel's pearls, with a BedWars variant for the sounds (our play) | none |
-| Invisibility | hides armor and nametag from enemies; a teammate sees the armor and the nametag but not the body (our play); held items stay visible; footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows. Captured (Sky Rise 2026-09-25): the effect is Invisibility amplifier 1 for 600 ticks. An enemy who drank it had all four armor slots sent empty in the tick of the drink, while his held wool still showed after. He left `footstep` x1 at his feet plus 0.1 (spread 0.3, 0, 0.3, speed 1, long-distance) as he walked, 1 to 25 ticks apart; a drinker is sent their own footsteps too. Our first hit on him sent the armor back in the tick of the hurt. A drinker who takes damage loses the effect in that tick and reads red `You took damage and lost your invisibility!` | none |
+| Invisibility | hides armor and nametag from enemies; a teammate sees the armor and the nametag but not the body (our play); held items stay visible; footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows. Captured (Sky Rise 2026-09-25): the effect is Invisibility amplifier 1 for 600 ticks. An enemy who drank it had all four armor slots sent empty in the tick of the drink, while his held wool still showed after. He left `footstep` x1 at his feet plus 0.1 (spread 0.3, 0, 0.3, speed 1, long-distance) as he walked, 1 to 25 ticks apart; a drinker is sent their own footsteps too. Our first hit on him sent the armor back in the tick of the hurt. A drinker who takes damage loses the effect in that tick and reads red `You took damage and lost your invisibility!`. The user (2026-09-28): a fall keeps it; fire breaks it; an enemy's blast breaks it, your own fireball jump does not, and a teammate's fireball neither hurts nor pushes you. Ours (2026-09-28, `games.Invisibles` over Polyp `ViewRewrites` and Grotto `Nametags.veil`): the armor goes out empty to every viewer not on the drinker's side in the tick of the drink and comes back with the hit, held items untouched; the nameplate sits on a nameless twin scoreboard team for the other teams (teammates and watchers keep it); the potion's swirl is off; fire and an enemy's hit, arrow or blast break it with the captured line, a fall or your own or a teammate's blast do not (`invisibility.hides-armor`, `invisibility.hides-name`, `invisibility.breaks-on-damage`); a teammate's blast is inert like their swing (`combat.friendly-fire.allows` gains `explosions`, off by default, a blast or a thrown thing attributed to its igniter or shooter). Footsteps are open: a 1.8 client's `footstep` particle has no modern particle Via could carry (ViaRewind lists it for 1.8 to 1.7 only), and a modern client's mycelium is unbuilt | footsteps |
 | Speed II, Jump V | The user (2026-09-28): a drunk potion leaves no bottle, in Bed Wars and in MineMen's NoDebuff alike; ours is the rule `consumables/minecraft:potion/remainder` off (Polyp `ConsumableTypeConfig.remainder`, a type at a time). (cap, 2026-09-25) Speed amplifier 1 and Jump Boost amplifier 4, 900 ticks each with particles shown. 15 s after the drink the server sends the effect again at 600 ticks, and removes it 45 s after the drink (four drinks). The rule behind it: a timed effect is sent again whenever its time left reaches a multiple of 30 s, so a golden apple's Absorption comes again at 90, 60 and 30 s left (cap, Deadwood) | none |
 | Golden Apple | vanilla 1.8 (our play), confirmed (cap, Ironclad 2026-09-25, two eats): 32 ticks to eat (1.61 and 1.63 s), `random.burp` at volume 0.5, then Absorption I for 2400 ticks and Regeneration II for 100, particles shown | none |
 
@@ -1157,7 +1161,11 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   `You have respawned!`, a clearing title with times 0/5/0, then times 5/30/5 green `RESPAWNED!` over an
   empty subtitle, the XP bar back, and the kit 0.1 s later. The victim hears no sound at either end. Ours
   (2026-09-28): `combat.respawn.wait` is `landing`, so the wait hangs level at the arena's spawn, the pregame
-  room's.
+  room's. The dead and the watchers wear vanilla Invisibility and Night Vision at 32767 while they wait
+  (`view.spectate.invisible`, `view.spectate.night-vision`, on; the respawn's body sheds them), everyone
+  watching sees everyone by default (`view.sight.*`, the user's rule), and a fellow dead or a watcher sees the
+  body itself: the invisible flag is cleared in the copy of the metadata they are sent (Polyp `ViewRewrites`,
+  Tennacle `Spectators`). Nameplates stay, the roster team's.
 - **Respawn invincibility** exists and ends when you attack:
   `You attacked someone and lost your invincibility!` (cap). Length: 1.5 s in 2017, then 3 s, and 3 s today
   (cap, 2026-09-25): over 11 respawns our hits up to 2.97 s after the spawn did nothing, and the first to
@@ -1777,8 +1785,10 @@ builds one arena per marker file: the world through Bloom's pre-1.13 reader, rel
 being team ordinals in Hypixel's order:
 Since 2026-09-28 the reader settles stair corners and fence, wall, pane and bar arms from the neighbors (Bloom
 `Connections`), states a 1.8 world never stores and both clients work out themselves; before it the server
-collided on straight stairs and a 1.8 client rubber-banded on every corner. The markers now sit in group
-folders (`Solo-Doubles Maps`, `Triples-Quads Maps`, `4v4 Maps`), 133 maps.
+collided on straight stairs and a 1.8 client rubber-banded on every corner. The user's Babylon rubber band at
+33.8, 81, -110.5 is the birch stair at 33, 81, -111, a west-facing stair in front of it: the pass stores it
+`outer_left`, where it was `straight` (dumped from the converted arena). The markers now sit in group folders
+(`Solo-Doubles Maps`, `Triples-Quads Maps`, `4v4 Maps`), 133 maps.
 
 | Key | Shape | Group |
 |---|---|---|

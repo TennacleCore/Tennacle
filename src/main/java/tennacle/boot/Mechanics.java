@@ -17,6 +17,8 @@ import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
 import io.github.term4.polyp.mechanics.itemdamage.ItemDamageSystem;
+import io.github.term4.grotto.modules.combat.FriendlyFire;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
 import io.github.term4.polyp.mechanics.fluids.FluidSystem;
@@ -96,6 +98,8 @@ public final class Mechanics {
         FixesSystem.install(polyp); // legacy-client fix set (targeted placement rollback, self-place, equipment, ...)
         Vri.install(polyp); // crack overlay, break FX, drops, pickup - the preset's VriConfig, a ruleset's edits over it
         explosions = ExplosionSystem.install(polyp);
+        FriendlyFire.attribution(e -> e instanceof PrimedTnt tnt ? tnt.igniter()
+                : e instanceof ProjectileEntity shot ? shot.getShooter() : null);
         ItemDamageSystem.install(polyp); // ground loot: explosions, fire, lava, cactus, void
 
         ShardBridge.install();

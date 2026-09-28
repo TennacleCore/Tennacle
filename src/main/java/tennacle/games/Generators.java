@@ -162,9 +162,15 @@ public final class Generators implements GameModule {
     /** {@code stack} dropped at {@code at} as a generator drops it, counted by none. */
     public static @Nullable DroppedItemEntity drop(@NotNull Game game, @NotNull Point at, @NotNull ItemStack stack) {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        // up 0.2, a little sideways (captured off the wire)
+        // captured: the spawn carries vanilla's hop (0.2 up, a little sideways) and the next tick zeroes it, so the
+        // item drops straight onto the point; each lies as its own entity, never folded into a stack
         Vec velocity = new Vec((rnd.nextDouble() - rnd.nextDouble()) * 0.1, 0.2, (rnd.nextDouble() - rnd.nextDouble()) * 0.1);
-        return DroppedItemEntity.spawn(game.shard(), new Pos(at.x(), at.y(), at.z()), velocity, stack, null, 0);
+        DroppedItemEntity item = DroppedItemEntity.spawn(game.shard(), new Pos(at.x(), at.y(), at.z()), velocity, stack, null, 0);
+        if (item != null) {
+            item.setMergeable(false);
+            item.setVelocity(Vec.ZERO);
+        }
+        return item;
     }
 
     /** A pickup of a {@code shared} stack made here copies it to every teammate within {@code radius} of the item. */

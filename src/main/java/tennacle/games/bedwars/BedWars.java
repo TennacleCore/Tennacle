@@ -2,6 +2,7 @@ package tennacle.games.bedwars;
 
 import tennacle.boot.Mechanics;
 import tennacle.games.Generators;
+import tennacle.games.Invisibles;
 import tennacle.games.Keepers;
 import tennacle.games.KitLayouts;
 import tennacle.games.Match;
@@ -342,6 +343,7 @@ public final class BedWars {
                                 .at(UPGRADES, BedWars::shopkeeper, BedWars::upgrades, Lines::upgradeLabels),
                         Regions::of,
                         Traps::new,
+                        () -> Invisibles.of(Lines::invisibilityLost),
                         HealPool::new,
                         PartyExit::new,
                         () -> Staging.during(Match.OPENING).clear(LOBBY)

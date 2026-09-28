@@ -53,7 +53,7 @@ class GeneratorsTest extends HeadlessServerTest {
     }
 
     @Test
-    void dropsSettleAndStackOnTheSpot() {
+    void dropsLandOnTheSpotOneToAnEntity() {
         Game game = Matches.grotto().launch(type(Generators.of()), Matches.mode("bedfight").arena().get());
         FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GenC");
         try {
@@ -85,11 +85,11 @@ class GeneratorsTest extends HeadlessServerTest {
                 }
             }
             List<DroppedItemEntity> items = lying(game, at, Material.IRON_INGOT);
-            assertEquals(dropped, items.stream().mapToInt(i -> i.getItemStack().amount()).sum(), "every drop lies there");
-            assertTrue(items.size() <= 2, "stacked, not " + items.size() + " entities");
+            assertEquals(dropped, items.size(), "every drop lies there, one to an entity");
             for (DroppedItemEntity item : items) {
                 double off = Math.hypot(item.getPosition().x() - at.x(), item.getPosition().z() - at.z());
-                assertTrue(off < 1.0, "an item strayed " + off + " from the point");
+                assertTrue(off < 1e-6, "an item strayed " + off + " from the point");
+                assertEquals(1, item.getItemStack().amount(), "never folded into a stack");
             }
         } finally {
             game.end(Outcome.aborted());

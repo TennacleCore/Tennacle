@@ -149,12 +149,12 @@ final class Wares {
         ItemStack punch = enchanted(Material.BOW, Map.of(Enchantment.POWER, 1, Enchantment.PUNCH, 1));
         goods(Tab.RANGED, "punch-bow", "Bow (Power I, Punch I)", (g, p) -> punch, punch, Price.of(6, EMERALD), "ranged");
         // captured 373:8195, the fire resistance potion's 1.8 value; its custom effect stands in for fire resistance
-        potion("speed", "Speed II Potion (45 seconds)", PotionType.FIRE_RESISTANCE, PotionEffect.SPEED, 1, 900,
+        potion("speed", "Speed II Potion (45 seconds)", PotionType.FIRE_RESISTANCE, PotionEffect.SPEED, 1, 900, true,
                 Price.of(1, EMERALD), "Speed II (0:45).");
-        potion("jump", "Jump V Potion (45 seconds)", PotionType.LEAPING, PotionEffect.JUMP_BOOST, 4, 900,
+        potion("jump", "Jump V Potion (45 seconds)", PotionType.LEAPING, PotionEffect.JUMP_BOOST, 4, 900, true,
                 Price.of(1, EMERALD), "Jump Boost V (0:45).");
         potion("invisibility", "Invisibility Potion (30 seconds)", PotionType.INVISIBILITY, PotionEffect.INVISIBILITY,
-                1, 600, Price.of(2, EMERALD), "Complete Invisibility (0:30).");
+                1, 600, false, Price.of(2, EMERALD), "Complete Invisibility (0:30)."); // the user (2026-09-28): no swirl to give the drinker away
         goods(Tab.UTILITY, "golden-apple", "Golden Apple", Material.GOLDEN_APPLE, 1, Price.of(3, GOLD), "utility",
                 "Well-rounded healing.");
         goods(Tab.UTILITY, "bedbug", "Bedbug", Material.SNOWBALL, 1, Price.of(24, IRON), "utility",
@@ -266,9 +266,9 @@ final class Wares {
     }
 
     private static void potion(String id, String name, PotionType type, PotionEffect effect, int amplifier, int ticks,
-                               Price price, String line) {
+                               boolean particles, Price price, String line) {
         ItemStack stack = ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS, new PotionContents(type, null,
-                List.of(new CustomPotionEffect(effect, amplifier, ticks, false, true, true))));
+                List.of(new CustomPotionEffect(effect, amplifier, ticks, false, particles, true))));
         ROLES.putIfAbsent(Material.POTION, "potions");
         add(new Ware(Goods.of(id, price, "potions", (g, p) -> stack), Tab.POTIONS, List.of(name), Ware.fixed(List.of(stack)),
                 List.of(Component.text(line, NamedTextColor.BLUE)), false));

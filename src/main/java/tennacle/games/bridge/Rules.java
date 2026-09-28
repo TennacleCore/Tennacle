@@ -124,7 +124,7 @@ public final class Rules implements GameModule {
             Lineup.unaim(player); // the compass aim of the life they just lost
             refit(game, player);
         });
-        respawns.onDead((player, seat) -> Spectators.ghostKit(player)); // the wait: a compass to the living, nothing else
+        respawns.onDead((player, seat) -> Spectators.ghostKit(game, player)); // the wait: a compass to the living, nothing else
         game.on(DamageEvent.class, DamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
             Slot seat = game.roster().slotOf(victim);

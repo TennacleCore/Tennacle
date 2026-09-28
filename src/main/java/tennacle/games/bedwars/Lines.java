@@ -264,6 +264,11 @@ final class Lines {
         return theme(game).bad("Not all enemy beds are destroyed yet!");
     }
 
+    /** Captured: red, in the tick of the enemy's hit. */
+    static Component invisibilityLost(Game game) {
+        return theme(game).bad("You took damage and lost your invisibility!");
+    }
+
     /** Our copy: Hypixel's line for a tracker on the team already tracked is not captured. */
     static Component trackingAlready(Game game) {
         return theme(game).bad("You are already tracking that team!");
