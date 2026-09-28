@@ -38,6 +38,8 @@ public final class BridgeEgg implements GameModule {
     public static final StateKey<Integer> LIFE = StateKey.of("bridge-egg.life", Codec.INT, 30);
     /** Ticks between where the egg was and the wool there. */
     public static final StateKey<Integer> DELAY = StateKey.of("bridge-egg.delay", Codec.INT, 5);
+    /** The wool starts at the egg's position this many ticks into its flight. */
+    public static final StateKey<Integer> START = StateKey.of("bridge-egg.start", Codec.INT, 2);
 
     static final Sound BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
 
@@ -48,7 +50,7 @@ public final class BridgeEgg implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(COOLDOWN, LIFE, DELAY);
+        return Set.of(COOLDOWN, LIFE, DELAY, START);
     }
 
     @Override
@@ -86,12 +88,15 @@ public final class BridgeEgg implements GameModule {
         Block wool = TeamBlocks.wool(game, seat);
         int life = game.rules().resolve(thrower, LIFE);
         int delay = game.rules().resolve(thrower, DELAY);
+        int start = game.rules().resolve(thrower, START);
         Deque<Pos> path = new ArrayDeque<>();
+        int[] flown = {0};
         structures.add(() -> {
             if (!egg.isRemoved()) {
                 Pos at = egg.getPosition();
-                // captured: the first wool is a tick into the flight, not the throw; the wire grid may shift the spawn a 1/32
-                if (at.distanceSquared(thrown) < 0.01) return true;
+                // captured 2026-09-28: Hypixel's spawn packet already carries one step of flight and its first wool
+                // sits a step past that; the throw's cell (a 1/32 off on the wire grid) and the first step stay bare
+                if (at.distanceSquared(thrown) < 0.01 || ++flown[0] < start) return true;
                 if (egg.getAliveTicks() > life || !building.space().buildable(thrower, at)) egg.remove();
                 else path.add(at);
             }

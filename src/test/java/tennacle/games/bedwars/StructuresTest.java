@@ -115,14 +115,16 @@ class StructuresTest extends HeadlessServerTest {
                 assertTrue(chat(fa).contains("Please wait 1.0s to use that again"), chat(fa).toString());
                 eggs.trail(a, egg, egg.getPosition());
                 ticks(game, 2);
-                egg.teleport(new Pos(7.5, 67, 5.5)).join(); // the first tick of flight
+                egg.teleport(new Pos(6.5, 67, 5.5)).join(); // the first step: bare, as captured
+                ticks(game, 1);
+                egg.teleport(new Pos(7.5, 67, 5.5)).join(); // the second: the first wool
                 ticks(game, 5);
                 assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(7, 65, 5)), "nothing yet");
                 ticks(game, 1);
                 assertTrue(game.shard().getBlock(new BlockVec(7, 65, 5)).name().endsWith("_wool"), "under the egg");
                 assertTrue(game.shard().getBlock(new BlockVec(8, 65, 5)).name().endsWith("_wool"), "the nearer x neighbor");
                 assertTrue(game.shard().getBlock(new BlockVec(7, 65, 6)).name().endsWith("_wool"), "the nearer z neighbor");
-                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(6, 65, 5)), "not the farther one");
+                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(6, 65, 5)), "not the first step");
                 assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(5, 65, 5)), "nothing under the throw itself");
                 egg.remove();
                 ticks(game, 6);
@@ -156,7 +158,7 @@ class StructuresTest extends HeadlessServerTest {
     }
 
     @Test
-    void theFirstWoolIsATickIntoTheFlight() {
+    void theFirstWoolIsTwoTicksIntoTheFlight() {
         round("EggB", (game, fa, fb) -> {
             Player a = fa.player;
             ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
@@ -168,17 +170,20 @@ class StructuresTest extends HeadlessServerTest {
                 ticks(game, 8); // the harness never moves it: it sits on the throw
                 assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(5, 68, 5)), "nothing under the throw");
                 egg.teleport(new Pos(7.5, 70, 5.5)).join();
+                ticks(game, 1);
+                egg.teleport(new Pos(9.5, 70, 5.5)).join();
                 ticks(game, 6);
-                assertTrue(game.shard().getBlock(new BlockVec(7, 68, 5)).name().endsWith("_wool"), "the first wool is a tick in");
+                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(7, 68, 5)), "the first step stays bare");
+                assertTrue(game.shard().getBlock(new BlockVec(9, 68, 5)).name().endsWith("_wool"), "the first wool is two ticks in");
             } finally {
                 egg.remove();
             }
         });
     }
 
-    /** The egg moved by hand the way the server moves it: the first wool lands a step out, never under the throw. */
+    /** The egg moved by hand the way the server moves it: the first wool lands two steps out (captured, both servers). */
     @Test
-    void theFirstWoolSitsAStepOut() {
+    void theFirstWoolSitsTwoStepsOut() {
         round("EggC", (game, fa, fb) -> {
             Player a = fa.player;
             a.teleport(new Pos(0.5, 70, 0.5, 0, 0)).join();
@@ -211,7 +216,7 @@ class StructuresTest extends HeadlessServerTest {
             }
             assertNotNull(first, "wool came");
             double out = Math.hypot(first.x() + 0.5 - thrown[0].x(), first.z() + 0.5 - thrown[0].z());
-            assertTrue(out >= 1.0, "the first wool is a step out, not under the throw: " + first + " at tick " + at + ", " + out + " from " + thrown[0]);
+            assertTrue(out >= 2.0, "the first wool is two steps out: " + first + " at tick " + at + ", " + out + " from " + thrown[0]);
             assertTrue(at <= 8, "and comes within eight ticks, not " + at);
         });
     }

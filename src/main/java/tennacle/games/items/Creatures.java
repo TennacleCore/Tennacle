@@ -250,7 +250,7 @@ public final class Creatures implements GameModule {
         for (Creature creature : List.copyOf(creatures.values())) {
             MobEntity mob = creature.mob();
             if (mob.isRemoved() || mob.isDead()) {
-                dismiss(creature);
+                retire(creature); // captured: the corpse flies and falls its twenty ticks; the tag and the count go now
                 continue;
             }
             if (creature.life() >= 0 && creature.left(game.tick()) <= 0) {
@@ -270,9 +270,13 @@ public final class Creatures implements GameModule {
     }
 
     private void dismiss(Creature creature) {
+        retire(creature);
+        if (!creature.mob().isRemoved()) creature.mob().remove();
+    }
+
+    private void retire(Creature creature) {
         creatures.remove(creature.mob());
         if (creature.tag() != null) creature.tag().remove();
-        if (!creature.mob().isRemoved()) creature.mob().remove();
     }
 
     // captured: 240.0s [■■■■■■■■■■], the time in the side's color, a square a level per 2 health, the rest gray

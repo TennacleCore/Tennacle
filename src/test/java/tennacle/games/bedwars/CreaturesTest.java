@@ -167,12 +167,14 @@ class CreaturesTest extends HeadlessServerTest {
     @Test
     void aBedbugWithNobodyNearStillMoves() {
         round("BugWander", (game, fa, fb) -> {
-            SilverfishEntity fish = game.module(Creatures.class).bedbug(fa.player, new Pos(-19.5, 65, 19.5)); // the far corner
+            // the deck's west edge: the owner 12 blocks off is no target, the enemy 27 blocks off is out of reach, and
+            // half the wander's random cells lie past the edge, as on an island
+            SilverfishEntity fish = game.module(Creatures.class).bedbug(fa.player, new Pos(-19.5, 65, 0.5));
             assertNotNull(fish);
             Pos from = fish.getPosition();
             double moved = 0;
             try {
-                for (int tick = 1; tick <= 40 && moved < 0.5; tick++) {
+                for (int tick = 1; tick <= 160 && moved < 0.5; tick++) {
                     ticks(game, 1);
                     fish.tick(System.nanoTime());
                     moved = fish.getPosition().distance(from);
@@ -180,7 +182,53 @@ class CreaturesTest extends HeadlessServerTest {
             } finally {
                 fish.remove();
             }
-            assertTrue(moved >= 0.5, "a bedbug wanders within two seconds of its spawn, moved " + moved);
+            assertTrue(moved >= 0.5, "a bedbug with nobody in reach wanders within eight seconds, moved " + moved);
+        });
+    }
+
+    /** Captured 2026-09-28: Hypixel's bedbugs never stood longer than 0.8 s; ours stood 1.3 to 5 s with their owner near. */
+    @Test
+    void aBedbugBesideItsOwnerKeepsMoving() {
+        round("BugOwner", (game, fa, fb) -> {
+            Pos beside = fa.player.getPosition().add(2, 0, 0);
+            SilverfishEntity fish = game.module(Creatures.class).bedbug(fa.player, beside);
+            assertNotNull(fish);
+            Pos last = fish.getPosition();
+            int still = 0, longest = 0;
+            try {
+                for (int tick = 1; tick <= 200; tick++) {
+                    ticks(game, 1);
+                    fish.tick(System.nanoTime());
+                    Pos now = fish.getPosition();
+                    still = now.distance(last) > 0.02 ? 0 : still + 1;
+                    longest = Math.max(longest, still);
+                    last = now;
+                }
+            } finally {
+                fish.remove();
+            }
+            assertTrue(longest <= 20, "a bedbug with its owner beside it never stands a second, stood " + longest + " ticks");
+        });
+    }
+
+    /** Captured: a killed bedbug flies, falls and fades for a second; only its tag and its count go at once. */
+    @Test
+    void aDeadBedbugKeepsItsCorpse() {
+        round("BugCorpse", (game, fa, fb) -> {
+            Creatures creatures = game.module(Creatures.class);
+            SilverfishEntity fish = creatures.bedbug(fa.player, new Pos(0.5, 65, 0.5));
+            assertNotNull(fish);
+            try {
+                assertFalse(fish.getActiveEffects().isEmpty(), "a bedbug wears its effects");
+                fish.kill();
+                ticks(game, 2);
+                assertFalse(fish.isRemoved(), "the corpse stays for its animation");
+                assertFalse(fish.getActiveEffects().isEmpty(), "and keeps its swirl");
+                for (int i = 0; i < 25 && !fish.isRemoved(); i++) fish.tick(System.nanoTime());
+                assertTrue(fish.isRemoved(), "and goes after its twenty ticks");
+            } finally {
+                fish.remove();
+            }
         });
     }
 
