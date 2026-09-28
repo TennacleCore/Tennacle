@@ -8,6 +8,7 @@ import tennacle.games.watch.Spectators;
 import tennacle.looks.Deaths;
 
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.combat.FriendlyFire;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.combat.KillCredit;
 import io.github.term4.grotto.modules.combat.Respawns;
@@ -53,7 +54,7 @@ public final class Lives implements GameModule {
                         boolean last, @Nullable String tool) {}
 
     /** A hit by something of a member's - a creature - answered for: whose, and what it is called. */
-    public record Blame(@NotNull Player by, @NotNull String tool) {}
+    public record Blame(@NotNull Player by, @Nullable String tool) {}
 
     private final Counters counters;
     private final List<Function<Entity, @Nullable Blame>> blames = new ArrayList<>();
@@ -84,7 +85,9 @@ public final class Lives implements GameModule {
             Blame blame = resolver.apply(source);
             if (blame != null) return blame;
         }
-        return null;
+        // a fireball's thrower, a TNT's igniter: the death line names them with no tool (captured)
+        Player owner = FriendlyFire.attributed(source);
+        return owner != null ? new Blame(owner, null) : null;
     }
 
     @Override

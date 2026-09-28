@@ -84,10 +84,17 @@ final class Gear {
         return level <= 0 ? ItemStack.AIR : tiers.get(Math.min(level, tiers.size()) - 1);
     }
 
+    private static final List<Material> SWORDS = List.of(Material.WOODEN_SWORD, Material.STONE_SWORD,
+            Material.IRON_SWORD, Material.DIAMOND_SWORD);
+
     /** A bought sword, the kind the wooden one gives way to. */
     static boolean sword(ItemStack item) {
-        return item.material() == Material.STONE_SWORD || item.material() == Material.IRON_SWORD
-                || item.material() == Material.DIAMOND_SWORD;
+        return rank(item) > 0;
+    }
+
+    /** The order among swords, wooden last; below it for anything else. */
+    static int rank(ItemStack item) {
+        return SWORDS.indexOf(item.material());
     }
 
     /** The wooden sword, the compass, the tools and the armor: the seat's for good, so never stored or dropped. */

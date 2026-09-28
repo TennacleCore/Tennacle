@@ -9,7 +9,11 @@ import tennacle.games.map.Building;
 
 import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
 import io.github.term4.polyp.mechanics.projectile.types.Fireball;
+import io.github.term4.polyp.mechanics.projectile.types.Egg;
 import net.minestom.server.network.packet.server.play.EntityEffectPacket;
+import net.minestom.server.network.packet.server.play.EntityAttributesPacket;
+import net.minestom.server.entity.attribute.Attribute;
+import io.github.term4.polyp.platform.player.OptimizedPlayer;
 import net.minestom.server.potion.PotionEffect;
 import tennacle.boot.Mechanics;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
@@ -43,6 +47,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A pop-up tower going up over ticks off a chest that never lands, and an egg's wool trailing five ticks behind. */
@@ -106,7 +111,7 @@ class StructuresTest extends HeadlessServerTest {
                 assertTrue(eggs.allow(a));
                 assertFalse(eggs.allow(a), "one a second");
                 assertTrue(chat(fa).contains("Please wait 1.0s to use that again"), chat(fa).toString());
-                eggs.trail(a, egg);
+                eggs.trail(a, egg, egg.getPosition());
                 ticks(game, 2);
                 egg.teleport(new Pos(7.5, 67, 5.5)).join(); // the first tick of flight
                 ticks(game, 5);
@@ -132,12 +137,54 @@ class StructuresTest extends HeadlessServerTest {
             Player a = fa.player;
             // the harness boots mechanics without the projectile system Mechanics.install() adds
             ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
-            assertNotNull(projectiles.launch(ProjectileSnapshot.of(a, Fireball.INSTANCE).withConfig(Vanilla18.projectiles())), "the fireball flies");
+            // a throw is a use-item packet's: its echoes to the thrower pass the self filter
+            ((OptimizedPlayer) a).suppressSelf(() -> assertNotNull(projectiles.launch(
+                    ProjectileSnapshot.of(a, Fireball.INSTANCE).withConfig(Vanilla18.projectiles())), "the fireball flies"));
             assertTrue(a.hasEffect(PotionEffect.SLOWNESS), "the throw slows the thrower");
             EntityEffectPacket sent = fa.sent(EntityEffectPacket.class).stream()
                     .filter(p -> p.potion().effect() == PotionEffect.SLOWNESS).toList().getLast();
             assertEquals(1, sent.potion().amplifier(), "Slowness II, the effect the client is sent");
             assertEquals(20, sent.potion().duration(), "for 20 ticks");
+            EntityAttributesPacket speed = fa.sent(EntityAttributesPacket.class).stream()
+                    .filter(p -> p.entityId() == a.getEntityId() && p.properties().stream()
+                            .anyMatch(property -> property.attribute() == Attribute.MOVEMENT_SPEED)).toList().getLast();
+            assertTrue(speed.properties().stream().flatMap(property -> property.modifiers().stream())
+                    .anyMatch(m -> Math.abs(m.amount() + 0.3) < 1e-9), "the slowdown reaches the client as its own speed");
+        });
+    }
+
+    @Test
+    void theFirstWoolIsATickIntoTheFlight() {
+        round("EggB", (game, fa, fb) -> {
+            Player a = fa.player;
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            Pos from = new Pos(5.5, 70, 5.5);
+            Entity egg = projectiles.launch(ProjectileSnapshot.of(a, Egg.INSTANCE).withItem(ItemStack.of(Material.EGG))
+                    .withSpawnPos(from).withConfig(Vanilla18.projectiles()));
+            assertNotNull(egg, "the egg flies");
+            try {
+                ticks(game, 8); // the harness never moves it: it sits on the throw
+                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(5, 68, 5)), "nothing under the throw");
+                egg.teleport(new Pos(7.5, 70, 5.5)).join();
+                ticks(game, 6);
+                assertTrue(game.shard().getBlock(new BlockVec(7, 68, 5)).name().endsWith("_wool"), "the first wool is a tick in");
+            } finally {
+                egg.remove();
+            }
+        });
+    }
+
+    @Test
+    void aSecondFireballWaits() {
+        round("FireB", (game, fa, fb) -> {
+            Player a = fa.player;
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            assertNotNull(projectiles.launch(ProjectileSnapshot.of(a, Fireball.INSTANCE).withConfig(Vanilla18.projectiles())));
+            ticks(game, 5);
+            assertNull(projectiles.launch(ProjectileSnapshot.of(a, Fireball.INSTANCE).withConfig(Vanilla18.projectiles())), "refused inside the half second");
+            assertTrue(chat(fa).contains("Please wait 0.5s to use that again"), chat(fa).toString());
+            ticks(game, 5);
+            assertNotNull(projectiles.launch(ProjectileSnapshot.of(a, Fireball.INSTANCE).withConfig(Vanilla18.projectiles())), "the cooldown is over");
         });
     }
 

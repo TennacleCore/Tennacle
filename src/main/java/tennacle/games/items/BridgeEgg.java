@@ -25,9 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Bridge Egg (captured 2026-09-25, 95 eggs): a vanilla egg that leaves the thrower's wool under where it was
@@ -43,8 +41,8 @@ public final class BridgeEgg implements GameModule {
 
     static final Sound BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
 
-    private final Map<Player, Long> thrown = new ConcurrentHashMap<>();
     private Game game;
+    private Throttle throttle;
     private Structures structures;
     private Building building;
 
@@ -56,6 +54,7 @@ public final class BridgeEgg implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         this.game = game;
+        throttle = new Throttle(game, COOLDOWN);
         structures = game.module(Structures.class);
         building = Building.of(game);
         if (structures == null || building == null) throw new IllegalStateException("BridgeEgg needs the mode's building rules and Structures installed before it");
@@ -66,41 +65,33 @@ public final class BridgeEgg implements GameModule {
                 e.setCancelled(true);
                 return;
             }
-            trail(thrower, e.projectile());
+            trail(thrower, e.projectile(), e.spawnPos());
         });
     }
 
     @Override
     public void onEnd(@NotNull Game game, @NotNull Outcome outcome) {
-        thrown.clear();
+        throttle.clear();
     }
 
     /** One throw a cooldown; a refused throw is told so and keeps its egg. */
     public boolean allow(Player thrower) {
-        if (game.roster().slotOf(thrower) == null) return false;
-        long cooldown = game.rules().resolve(thrower, COOLDOWN);
-        Long last = thrown.get(thrower);
-        if (last != null && game.tick() - last < cooldown) {
-            thrower.sendMessage(ItemLines.of(game).wait(game, cooldown));
-            return false;
-        }
-        thrown.put(thrower, game.tick());
-        return true;
+        return throttle.allow(thrower);
     }
 
-    /** Follows {@code egg} from the next tick, laying {@code thrower}'s wool under its path. */
-    public void trail(Player thrower, Entity egg) {
+    /** Follows {@code egg} from the next tick, laying {@code thrower}'s wool under its path from a tick past {@code thrown}. */
+    public void trail(Player thrower, Entity egg, Point thrown) {
         Slot seat = game.roster().slotOf(thrower);
         if (seat == null) return;
         Block wool = TeamBlocks.wool(game, seat);
         int life = game.rules().resolve(thrower, LIFE);
         int delay = game.rules().resolve(thrower, DELAY);
         Deque<Pos> path = new ArrayDeque<>();
-        Pos thrown = egg.getPosition();
         structures.add(() -> {
             if (!egg.isRemoved()) {
                 Pos at = egg.getPosition();
-                if (at.samePoint(thrown)) return true; // captured: the first wool is a tick into the flight, not the throw
+                // captured: the first wool is a tick into the flight, not the throw; the wire grid may shift the spawn a 1/32
+                if (at.distanceSquared(thrown) < 0.01) return true;
                 if (egg.getAliveTicks() > life || !building.space().buildable(thrower, at)) egg.remove();
                 else path.add(at);
             }

@@ -68,6 +68,12 @@ public final class Mechanics {
                 .build();
     }
 
+    /** Who is behind a damage source that is no player: a TNT's igniter, a projectile's shooter. */
+    public static void attribution() {
+        FriendlyFire.attribution(e -> e instanceof PrimedTnt tnt ? tnt.igniter()
+                : e instanceof ProjectileEntity shot ? shot.getShooter() : null);
+    }
+
     /** 1.8 mechanics + the full compat/fixes layer over shards: the two bridges are the whole integration. */
     public static void install() {
         polyp = Polyp.getInstance();
@@ -98,8 +104,7 @@ public final class Mechanics {
         FixesSystem.install(polyp); // legacy-client fix set (targeted placement rollback, self-place, equipment, ...)
         Vri.install(polyp); // crack overlay, break FX, drops, pickup - the preset's VriConfig, a ruleset's edits over it
         explosions = ExplosionSystem.install(polyp);
-        FriendlyFire.attribution(e -> e instanceof PrimedTnt tnt ? tnt.igniter()
-                : e instanceof ProjectileEntity shot ? shot.getShooter() : null);
+        attribution();
         ItemDamageSystem.install(polyp); // ground loot: explosions, fire, lava, cactus, void
 
         ShardBridge.install();
