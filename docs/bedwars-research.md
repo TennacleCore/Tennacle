@@ -1491,10 +1491,13 @@ Each of these was read in the code, not just reported:
    which the duels keep blue-first. They had authored only the display color, which left armor and wool
    on the ordinal default: Red's would have been blue.
 7. **Two-team assumptions**: bed fight's board has two side rows, `Queues` pairs exactly two equal sides,
-   `Summary` compares two sides, and the hypixel look says "won the Duel!". The board lists every side since
-   2026-09-27 (Grotto's `Scoreboard` rows render per viewer). The versus card and "won the Duel!" stay the
-   duels' own: BedWars ends with its captured block (the winners' line, then `1st Killer` to `3rd Killer`)
-   and `VICTORY!` or `GAME OVER!` with no subtitle, built with the mode. The filling queue is still to come.
+   `Summary` compares two sides, and the hypixel look says "won the Duel!". Done 2026-09-27, each as the
+   shared thing it is: boards render a row a side per viewer (Grotto `Scoreboard.rows`); `Summary` has a
+   game style over any number of sides, the winning side's name and seats over the top places by a stat
+   (`hypixelGame`, `top`; Canvas `HypixelCard.winners`, `ranked`); a `Mode` declares its family, duel or
+   game, and the hypixel verdict reads it (`VICTORY!` gold, `GAME OVER!` red, no subtitle); a game fills
+   up on its map through `/play <mode>` (`Matches.open`, `enter`, `waiting`), a party on one team with
+   room (`Roster.teamWithRoom`), while `/queue` keeps pairing duels.
 8. **Marker counts are exact**, so one game type cannot serve both 4- and 8-team maps. Done 2026-09-27: a
    type can expect one marker for each team (`GameType.expectEachTeam`), however many teams the map seats,
    and the launch and the map pool read the same check; bed fight's beds use it. Team size is the rule
@@ -1521,12 +1524,15 @@ Each of these was read in the code, not just reported:
 | Armor hiding | Polyp | a per-viewer equipment filter for invisible players |
 | Knockback credit | Grotto | `KillCredit` off knockback; projectile to shooter, TNT to igniter |
 | Empty-team start | Grotto | done 2026-09-27: unseated teams out at GO, two teams at least |
+| Waiting room | Grotto | done 2026-09-27: `Staging` holds joins at the arena spawn, no damage, a seat left is free again; GO seats everyone, runs the seating (the kit) and takes the room's blocks down |
+| Bed modes | Tennacle | done 2026-09-27: `games.beds` - `Beds` (any bed marker, any counter), `Lives` (respawn while the bed stands, the last death, leaves and rejoins, void), `Banners`, `Rows`; bed fight and Bed Wars share them |
 | Placed blocks | Grotto or Tennacle | the per-game placed set as a module explosion rules can read; reserved zones; `FieldFns` factories for placed-only and blast-proof glass |
 | Stats outcomes | Grotto, Tennacle | kills, deaths, final kills, final deaths, beds broken and lost, wins, losses and streaks; no XP or levels (decision 6) |
-| Filling queue | Tennacle | N teams, solos merged, a minimum and a countdown that cancels; team chat and `/shout` |
+| Filling queue | Tennacle | done 2026-09-27 as `/play`: a game per mode and platform fills on its map, its `Countdown` waiting for `START_AT` seated and stopping short below it; team chat and `/shout` still to come |
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
 | Team names | Tennacle | done 2026-09-27: Pink and Gray print as captured, and every team role follows the arena's color |
+| The mode | Tennacle | started 2026-09-27: `games.bedwars` - four modes (`bedwars-solo`, `-doubles`, `-3s`, `-4s`) off one type with a team size and a start threshold each, pools under `arenas/bedwars` holding guessed maps out, the room, beds, kills and final kills, the circle and limits, the captured board and end block. No generators, shop, holograms, hidden pregame names or `has joined` lines yet |
 
 ### 15.4 Hypixel's maps as arenas
 
