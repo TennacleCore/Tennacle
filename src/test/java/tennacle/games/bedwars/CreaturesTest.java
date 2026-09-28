@@ -97,6 +97,8 @@ class CreaturesTest extends HeadlessServerTest {
             Creatures creatures = game.module(Creatures.class);
             IronGolemEntity golem = creatures.defender(fa.player, new Pos(0.5, 65, 0.5));
             assertNotNull(golem);
+            assertFalse(golem.isCustomNameVisible(), "the stand's line is its only tag: a name would sit on the timer");
+            assertNotNull(golem);
             assertEquals(20.0f, golem.getHealth(), 0.01f);
             assertTrue(chat(fa).contains("Your creature will fight for you for 240 seconds."), chat(fa).toString());
             ticks(game, 2);

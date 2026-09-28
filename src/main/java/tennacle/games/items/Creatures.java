@@ -211,7 +211,8 @@ public final class Creatures implements GameModule {
         if (golem.getEntityMeta() instanceof LivingEntityMeta meta) {
             meta.setEffectParticles(List.of(EffectParticles.swirl(DEFENDER_SWIRL, false)));
         }
-        name(golem, seat.team(), "Iron Golem");
+        // captured: the golem carries no name of its own (nameVisible 0, an empty name); the stand's line is its only tag,
+        // and a name at the golem's 3.2 sat on the stand's text at 3.4 (the user, 2026-09-28: the timer unreadable)
         Hologram tag = Hologram.at(at, Match.scenery(game)).line(DEFENDER_TAG, defenderTag(seat.team(), life, golem.getHealth()));
         creatures.put(golem, new Creature(golem, seat.team(), seat, DEFENDER, game.tick(), life, tag, DEFENDER_TAG));
         owner.sendMessage(ItemLines.of(game).creature(game, life));
