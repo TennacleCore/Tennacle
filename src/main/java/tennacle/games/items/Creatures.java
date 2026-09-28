@@ -171,6 +171,7 @@ public final class Creatures implements GameModule {
                 .maxHealth(game.rules().resolve(owner, BEDBUG_HEALTH))
                 .targetChance(1) // captured: a bedbug's first step comes 3 ticks after its spawn
                 .targetSight(false) // captured 2026-09-28: bedbugs walk to a wall and face the enemy behind it
+                .wanderChance(1) // the user, 2026-09-28: with nobody in reach a bedbug roams, never the silverfish's stands
                 .hidesInBlocks(false).callsFromBlocks(false)
                 .targetSelector(Targets.PLAYERS)
                 .attackable(Targets.ANY)

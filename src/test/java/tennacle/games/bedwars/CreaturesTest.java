@@ -214,6 +214,30 @@ class CreaturesTest extends HeadlessServerTest {
         });
     }
 
+    /** The user, 2026-09-28: a Hypixel bedbug with nobody in reach roams. The corner of the deck, void on two sides. */
+    @Test
+    void aBedbugAtTheEdgeKeepsMoving() {
+        round("BugEdge", (game, fa, fb) -> {
+            SilverfishEntity fish = game.module(Creatures.class).bedbug(fa.player, new Pos(-19.5, 65, -19.5));
+            assertNotNull(fish);
+            Pos last = fish.getPosition();
+            int still = 0, longest = 0;
+            try {
+                for (int tick = 1; tick <= 300; tick++) {
+                    ticks(game, 1);
+                    fish.tick(System.nanoTime());
+                    Pos now = fish.getPosition();
+                    still = now.distance(last) > 0.02 ? 0 : still + 1;
+                    longest = Math.max(longest, still);
+                    last = now;
+                }
+            } finally {
+                fish.remove();
+            }
+            assertTrue(longest <= 20, "a bedbug at the edge never stands a second, stood " + longest + " ticks");
+        });
+    }
+
     /** Captured: a killed bedbug flies, falls and fades for a second; only its tag and its count go at once. */
     @Test
     void aDeadBedbugKeepsItsCorpse() {
