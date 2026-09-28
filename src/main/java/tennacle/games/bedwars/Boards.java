@@ -1,6 +1,7 @@
 package tennacle.games.bedwars;
 
 import tennacle.games.Match;
+import tennacle.games.Timeline;
 import tennacle.games.beds.Beds;
 import tennacle.games.beds.Rows;
 import tennacle.looks.Frames;
@@ -36,11 +37,19 @@ final class Boards {
                     case 5 -> Frames.hypixelRow("Mode: ", mode);
                     default -> Component.empty();
                 }, Phases.PHASE, Countdown.LEFT)
+                .rows(g -> Match.opening(g) ? 0 : 2, (g, me, i) -> i == 1 ? Component.empty() : nextEvent(g))
                 .rows(g -> Match.opening(g) ? 0 : g.roster().teams().size(),
                         (g, me, i) -> Rows.side(g, g.roster().teams().get(i).id(), me, Rows.BED_LOUD, Rows.GONE_LOUD),
                         Phases.PHASE, Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .rows(g -> Match.opening(g) ? 0 : 2, (g, me, i) -> i == 0 ? Component.empty()
                         : Frames.hypixelRow("Kills: ", kills(g, me)), Phases.PHASE, BedWars.KILLS));
+    }
+
+    // captured: the next event alone, "Diamond II in 5:22"
+    private static Component nextEvent(Game game) {
+        Timeline timeline = game.module(Timeline.class);
+        Timeline.Next next = timeline != null ? timeline.next() : null;
+        return next == null ? Component.empty() : Frames.hypixelRow(next.label() + " in ", Frames.shortClock(next.left()));
     }
 
     private static int seated(Game game) {

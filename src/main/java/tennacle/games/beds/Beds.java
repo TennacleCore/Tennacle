@@ -63,6 +63,7 @@ public final class Beds implements GameModule {
     private static final Sound LOST_BED = Sound.sound(SoundEvent.ENTITY_WITHER_DEATH, Sound.Source.MASTER, 1f, 1f);
     private static final Component LOST = Component.text("BED DESTROYED!", NamedTextColor.RED);
     private static final Component NO_RESPAWN = Component.text("You will no longer respawn!", NamedTextColor.WHITE);
+    private static final Component ALL_GONE = Component.text("All beds have been destroyed!", NamedTextColor.WHITE);
 
     private final MarkerKey<RegionMarker> key;
     private final StateKey<Integer> broken;
@@ -166,14 +167,20 @@ public final class Beds implements GameModule {
         List<String> left = standing(game);
         if (left.isEmpty()) return;
         for (String team : left) erase(team);
-        game.forEachAudience(viewer -> viewer.playSound(BROKEN));
-        told(left::contains);
+        boolean hypixel = Banners.hypixel(game);
+        game.forEachAudience(viewer -> viewer.playSound(hypixel ? LOST_BED : BROKEN));
+        if (hypixel) told(left::contains, ALL_GONE, Match.times(game, 5, 35, 10));
+        else told(left::contains, NO_RESPAWN, Match.times(game, 0, 40, 20));
         Match.say(game, Banners.bedsFell(game));
     }
 
-    // the side that lost it hears it on their screen; the rest read the line
     private void told(Predicate<String> teams) {
-        Title title = Title.title(LOST, NO_RESPAWN, Match.times(game, 0, 40, 20));
+        told(teams, NO_RESPAWN, Match.times(game, 0, 40, 20));
+    }
+
+    // the side that lost it hears it on their screen; the rest read the line
+    private void told(Predicate<String> teams, Component under, Title.Times times) {
+        Title title = Title.title(LOST, under, times);
         Match.each(game, p -> {
             String team = Match.teamOf(game, p);
             if (!team.isEmpty() && teams.test(team)) p.showTitle(title);

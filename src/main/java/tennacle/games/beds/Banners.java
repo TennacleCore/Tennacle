@@ -41,8 +41,9 @@ public final class Banners {
                 .append(who).append(prose(game, "!")));
     }
 
-    /** Every bed at once, on the destruction clock - uncaptured, the headline over the mode's own words. */
+    /** Every bed at once, on the destruction clock: captured hypixel, the headline over the mode's own words elsewhere. */
     public static @NotNull Component bedsFell(Game game) {
+        if (hypixel(game)) return Component.text("All beds have been destroyed!", NamedTextColor.RED, TextDecoration.BOLD);
         if (ruled(game)) return ruled(prose(game, "Every bed was destroyed!"));
         return framed(Component.empty().append(headline(game))
                 .append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!")));
@@ -113,7 +114,7 @@ public final class Banners {
         return Matches.lookOf(game).cue(Look.NAMED_ACCENT);
     }
 
-    private static boolean hypixel(Game game) {
+    static boolean hypixel(Game game) {
         return Matches.lookOf(game).cue(Look.COUNT_DOTS);
     }
 }

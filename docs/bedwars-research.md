@@ -1509,8 +1509,8 @@ Each of these was read in the code, not just reported:
 
 | Component | Home | Scope |
 |---|---|---|
-| Timeline | Tennacle or Barnacle | named events at offsets from LIVE, alarms re-armed on rule change, `next()` for the board, a hook per event; bed fight's bed alarm becomes one entry |
-| Generators | Tennacle or Barnacle | spawn points from markers; interval, tier, cap and pickup delay per resource; forge rate as team state; tiers from the timeline; the forge split on pickup |
+| Timeline | Tennacle | done 2026-09-27: `games.Timeline` - named events at offsets from LIVE, each a `timeline.<id>` rule re-armed when it changes, a hook per event, `watched` entries another module fires (Bed Gone stays `Beds`' clock) and `next()` for the board |
+| Generators | Tennacle | done 2026-09-27: `games.Generators` - timed drops at points under a pool's cap, a restart on demand (a drop on the spot, the clock from there), a pickup copied to teammates near the item. Bed Wars' `Forges` (the level as team state, the 30 s boost, spawner counts from the iron marker's payload) and `Mid` (tiers the timeline raises) ride it. Open: the carry limit (512 iron, 64 gold) needs a Polyp pickup hook; a level-up restarts a side's spawners together rather than the captured stagger; the four-team Emerald Forge cap is taken as 7 |
 | Holograms | Canvas | per-viewer multi-line text with ticking lines; a text display, with Via's armor-stand emulation or a native armor-stand path for legacy viewers |
 | Shop screens | Canvas, Tennacle | catalog pages, lore colored by what the viewer can afford, purchases through a currency transaction, Quick Buy (with its slot picker) and Hotbar Manager in `PlayerPrefs`, the upgrades screen writing team state, the compass menu with the tracker and Quick Communications, and a per-player compass target |
 | Currency | Polyp | count; take all or nothing, reporting the shortfall for "Need N more!"; give with an overflow policy in the era's add order |
@@ -1532,7 +1532,7 @@ Each of these was read in the code, not just reported:
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
 | Team names | Tennacle | done 2026-09-27: Pink and Gray print as captured, and every team role follows the arena's color |
-| The mode | Tennacle | started 2026-09-27: `games.bedwars` - four modes (`bedwars-solo`, `-doubles`, `-3s`, `-4s`) off one type with a team size and a start threshold each, pools under `arenas/bedwars` holding guessed maps out, the room, beds, kills and final kills, the circle and limits, the captured board and end block. No generators, shop, holograms, hidden pregame names or `has joined` lines yet |
+| The mode | Tennacle | started 2026-09-27: `games.bedwars` - four modes (`bedwars-solo`, `-doubles`, `-3s`, `-4s`) off one type with a team size and a start threshold each, pools under `arenas/bedwars` holding guessed maps out, the room, beds, kills and final kills, the circle and limits, the captured board and end block. Generators and the timeline the same day: the tier lines, the 25:00 warning, Bed Gone with its title and wither, the Sudden Death title, the 50:00 end by alive then final kills, beds and kills, and the board's next-event row. No shop, holograms, dragons, hidden pregame names or `has joined` lines yet |
 
 ### 15.4 Hypixel's maps as arenas
 
@@ -1654,7 +1654,8 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 3. **Holograms.** Decided 2026-09-27: armor stands sent natively by viewer protocol, unless Via's
    text-display emulation proves exact for 1.8, in which case Via.
 4. **Where generators and the timeline live.** Decided 2026-09-27: Tennacle or Barnacle, not Grotto.
-   Grotto stays general game-building tools, grown only where BedWars needs something general.
+   Grotto stays general game-building tools, grown only where BedWars needs something general. Built the
+   same day in Tennacle's `games` package, for any mode.
 5. **One type per team size, or a capacity rule.** Decided 2026-09-27: one general type. Team size and
    generator counts are rules with each mode's defaults (1 a team in Solo, 2 in Doubles, 3 in 3s, 4 in 4s,
    each on the maps for its team count), changeable like bridge's rules and never prevented. Exact marker

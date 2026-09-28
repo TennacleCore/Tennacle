@@ -13,6 +13,7 @@ import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.barnacle.Arena;
 import io.github.term4.barnacle.marker.DataMarker;
 import io.github.term4.barnacle.marker.LimitMarker;
+import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.bloom.mapmaking.Session;
@@ -20,7 +21,12 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.state.Scope;
+import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.entity.DroppedItemEntity;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.minestom.server.codec.Codec;
+import net.minestom.server.coordinate.Point;
+import net.minestom.server.coordinate.Vec;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
@@ -78,6 +84,16 @@ class BedWarsRoundTest extends HeadlessServerTest {
             s.addMarker(new RegionMarker("bedwars:base", "2", "", new BlockVec(9, 64, -2), new BlockVec(13, 68, 2)));
             s.addMarker(new RegionMarker("bedwars:base", "3", "", new BlockVec(-2, 64, 9), new BlockVec(2, 68, 13)));
             s.addMarker(new RegionMarker("bedwars:lobby", "", "", new BlockVec(-2, 99, -2), new BlockVec(2, 99, 2)));
+            CompoundBinaryTag spawners = CompoundBinaryTag.builder().putInt("solo", 3).putInt("doubles", 3)
+                    .putInt("3v3v3v3", 3).putInt("4v4v4v4", 5).build();
+            s.addMarker(new PointMarker("bedwars:forge", "1", "", new Vec(-15.5, 65, 0.5)));
+            s.addMarker(new PointMarker("bedwars:forge-iron", "1", "", new Vec(-15.5, 65, 0.5), spawners, 1));
+            s.addMarker(new PointMarker("bedwars:forge", "2", "", new Vec(15.5, 65, 0.5)));
+            s.addMarker(new PointMarker("bedwars:forge-iron", "2", "", new Vec(15.5, 65, 0.5), spawners, 1));
+            s.addMarker(new PointMarker("bedwars:forge", "3", "", new Vec(0.5, 65, 15.5)));
+            s.addMarker(new PointMarker("bedwars:forge-iron", "3", "", new Vec(0.5, 65, 15.5), spawners, 1));
+            s.addMarker(new PointMarker("bedwars:diamond", "", "", new Vec(0.5, 65, -15.5)));
+            s.addMarker(new PointMarker("bedwars:emerald", "", "", new Vec(-15.5, 65, -15.5)));
             s.addMarker(new LimitMarker("bedwars:height", "", "", null, 80.0, null));
             s.addMarker(new LimitMarker("bedwars:floor", "", "", null, 60.0, null));
             s.addMarker(new LimitMarker("bedwars:void", "", "", null, 50.0, null));
@@ -173,6 +189,49 @@ class BedWarsRoundTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    /** The forges run from GO, the middle drops at once, and the timeline's tier-up restarts it with its line. */
+    @Test
+    void forgesAndTheMiddleRunOnTheClock() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        game.state().set(Scope.GAME, StateKey.of("timeline.diamond-2", Codec.LONG, 0L), 60L);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGenA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGenB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            Point forge = game.arena().marker(BedWars.FORGE, Match.teamOf(game, a.player)).point();
+            Point diamond = game.arena().markers(BedWars.DIAMOND).getFirst().point();
+            tickUntil(game, "the boost's first wave", () -> lying(game, forge, Material.IRON_INGOT) >= 3);
+            tickUntil(game, "the first diamond", () -> lying(game, diamond, Material.DIAMOND) >= 1);
+            assertEquals(1, Mid.tier(game, Mid.Kind.DIAMOND));
+
+            a.sent.clear();
+            tickUntil(game, "Diamond II", () -> Mid.tier(game, Mid.Kind.DIAMOND) == 2);
+            assertEquals(2, lying(game, diamond, Material.DIAMOND), "the tier-up drops one on the spot");
+            List<String> chat = a.sent(SystemChatPacket.class).stream()
+                    .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
+            assertTrue(chat.contains("Diamond Generators have been upgraded to Tier II"), "" + chat);
+            assertTrue(lying(game, forge, Material.GOLD_INGOT) >= 1, "gold too");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    private static int lying(Game game, Point at, Material material) {
+        return (int) game.instance().getEntities().stream()
+                .filter(e -> e instanceof DroppedItemEntity item && item.getItemStack().material() == material
+                        && e.getPosition().distance(at) <= 3).count();
     }
 
     private static String lastTitle(FakePlayer p) {
