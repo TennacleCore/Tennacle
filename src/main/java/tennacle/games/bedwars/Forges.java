@@ -25,10 +25,9 @@ import java.util.Set;
 
 /**
  * Each side's forge: iron spawners at its iron points, as many as the map's marker says for this mode, a
- * gold spawner at its forge point, and from Emerald Forge an emerald one there. A level re-times them and
- * restarts them (captured: a purchase spawns at once); the start boost runs the first 30 s at Golden Forge's
- * pace with the first fill's cap. The level is team state the upgrades shop writes; an eliminated side's
- * forge keeps going.
+ * gold spawner at its forge point, and from Emerald Forge an emerald one there. A level written re-times them
+ * and restarts them; the start boost runs the first 30 s at Golden Forge's pace with the first fill's cap. An
+ * eliminated side's forge keeps going.
  */
 final class Forges implements GameModule {
 
@@ -95,6 +94,12 @@ final class Forges implements GameModule {
             forges.put(team.id(), new Forge(iron, ironPool, gold, goldPool, emerald, emeraldPool));
         }
         for (StateKey<?> key : rules()) game.rules().watch(key, (scope, value) -> forges.keySet().forEach(this::retime));
+        // captured: a level bought spawns at once, then runs at the new pace
+        game.rules().watch(LEVEL, (scope, value) -> {
+            if (!(scope instanceof Scope.Team team) || !forges.containsKey(team.id())) return;
+            retime(team.id());
+            restart(forges.get(team.id()));
+        });
         game.state().alarms().register(BOOST_ALARM, (tick, payload) -> {
             // captured: the boost's end spawns on the spot, then the level's own pace
             for (String team : forges.keySet()) {
@@ -111,15 +116,6 @@ final class Forges implements GameModule {
         return game.state().get(Scope.team(team), LEVEL);
     }
 
-    /** The next level: re-timed and restarted at once, as captured. Molten Forge is the last. */
-    public void upgrade(@NotNull String team) {
-        Forge forge = forges.get(team);
-        if (forge == null) return;
-        int level = Math.min(4, level(game, team) + 1);
-        game.state().set(Scope.team(team), LEVEL, level);
-        retime(team);
-        restart(forge);
-    }
 
     private void start() {
         for (String team : forges.keySet()) {

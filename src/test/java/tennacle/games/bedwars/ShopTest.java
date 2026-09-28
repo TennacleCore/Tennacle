@@ -229,7 +229,7 @@ class ShopTest extends HeadlessServerTest {
     private static Entity keeperOf(Game game, Player p) {
         String team = Match.teamOf(game, p);
         for (var entry : game.module(Keepers.class).standing().entrySet()) {
-            if (entry.getValue().group().equals(team)) return entry.getKey();
+            if (entry.getValue().group().equals(team) && entry.getValue().key().equals("bedwars:shop")) return entry.getKey();
         }
         throw new AssertionError("no keeper for " + team);
     }

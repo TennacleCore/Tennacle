@@ -15,6 +15,7 @@ import tennacle.games.map.Building;
 import tennacle.games.map.MapPool;
 import tennacle.games.matchmaking.Parties;
 import tennacle.games.shop.Favorites;
+import tennacle.games.shop.Shop;
 import tennacle.looks.Look;
 import tennacle.looks.Palette;
 import tennacle.looks.Presentation;
@@ -46,6 +47,7 @@ import io.github.term4.grotto.modules.gear.Loadout;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.outcome.Pressure;
 import io.github.term4.grotto.modules.space.Limits;
+import io.github.term4.grotto.modules.space.Regions;
 import io.github.term4.grotto.modules.view.HealthDisplay;
 import io.github.term4.grotto.modules.view.Nametags;
 import io.github.term4.grotto.modules.view.Refusals;
@@ -75,6 +77,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
+import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.utils.Unit;
 
 import java.util.ArrayList;
@@ -112,6 +115,8 @@ public final class BedWars {
     public static final MarkerKey<PointMarker> EMERALD = MarkerKey.point("bedwars:emerald");
     /** Where the side's item shopkeeper stands. */
     public static final MarkerKey<PointMarker> SHOP = MarkerKey.point("bedwars:shop");
+    /** Where the side's upgrades shopkeeper stands. */
+    public static final MarkerKey<PointMarker> UPGRADES = MarkerKey.point("bedwars:upgrades");
 
     public static final StateKey<Integer> KILLS = StateKey.of("ledger.bedwars.kills", Codec.INT, 0, true);
     public static final StateKey<Integer> DEATHS = StateKey.of("ledger.bedwars.deaths", Codec.INT, 0, true);
@@ -142,6 +147,10 @@ public final class BedWars {
             .role("utility", ItemStack.of(Material.TNT))
             .layouts((g, p) -> KitLayouts.of(p, "bedwars"))
             .stamp(Gear::unbreakable)
+            .stamp(Upgrades::sharpened, Upgrades.SHARPNESS)
+            .stamp(Upgrades::reinforced, Upgrades.PROTECTION)
+            .stamp(Upgrades::cushioned, Upgrades.CUSHIONED)
+            .effect(PotionEffect.HASTE, Upgrades::haste, Upgrades.HASTE)
             .dyedArmor(EquipmentSlot.HELMET, Material.LEATHER_HELMET, worn -> worn.with(DataComponents.ENCHANTMENTS,
                     new EnchantmentList(Map.of(Enchantment.AQUA_AFFINITY, 1))))
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
@@ -175,9 +184,23 @@ public final class BedWars {
     }
 
     private static void shop(Game game, Player player, PointMarker at) {
-        if (Match.live(game) && game.roster().slotOf(player) != null && !game.isGhost(player)) {
-            ItemShop.open(game, player, Wares.Tab.QUICK_BUY);
-        }
+        if (open(game, player)) ItemShop.open(game, player, Wares.Tab.QUICK_BUY);
+    }
+
+    private static void upgrades(Game game, Player player, PointMarker at) {
+        if (open(game, player)) UpgradeShop.open(game, player);
+    }
+
+    private static boolean open(Game game, Player player) {
+        return Match.live(game) && game.roster().slotOf(player) != null && !game.isGhost(player);
+    }
+
+    // one shop a game: the wares, the team upgrades and the traps
+    private static Shop shop() {
+        Shop shop = Wares.shop();
+        Upgrades.ALL.forEach(upgrade -> shop.offer(upgrade.offer()));
+        Traps.offers().forEach(shop::offer);
+        return shop;
     }
 
     public static void install() {
@@ -243,6 +266,7 @@ public final class BedWars {
                 .rule(Mid.Kind.DIAMOND.cap, 8)
                 .rule(Mid.Kind.EMERALD.cap, 6);
         Wares.fourTeam(builder);
+        Upgrades.fourTeam(builder);
     }
 
     // one game, a team size each: the modes differ in their rules and the maps their team count plays on
@@ -281,8 +305,12 @@ public final class BedWars {
                                 || stack.material() == Material.GOLD_INGOT),
                         () -> new Forges(spawners),
                         Mid::new,
-                        Wares::shop,
-                        () -> Keepers.of().at(SHOP, BedWars::shopkeeper, BedWars::shop),
+                        BedWars::shop,
+                        () -> Keepers.of().at(SHOP, BedWars::shopkeeper, BedWars::shop)
+                                .at(UPGRADES, BedWars::shopkeeper, BedWars::upgrades),
+                        Regions::of,
+                        Traps::new,
+                        HealPool::new,
                         () -> Staging.during(Match.OPENING).clear(LOBBY)
                                 .seating((g, p) -> g.module(Kits.class).apply(p)),
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),

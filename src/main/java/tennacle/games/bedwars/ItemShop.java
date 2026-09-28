@@ -13,6 +13,7 @@ import io.github.term4.canvas.screen.Items;
 import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.roster.Slot;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -131,6 +132,10 @@ final class ItemShop {
             lore.add(Component.text("Cost: ", NamedTextColor.GRAY).append(Component.text(
                     price.amount() + " " + price.currency().name(price.amount()), price.currency().color())));
         }
+        String upgraded = upgraded(game, viewer, ware);
+        if (upgraded != null) {
+            lore.add(Component.text("Upgraded: ", NamedTextColor.GRAY).append(Component.text(upgraded, NamedTextColor.YELLOW)));
+        }
         if (ware.upgradable()) {
             lore.add(Component.text("Tier: ", NamedTextColor.GRAY)
                     .append(Component.text(roman(ware.tier(game, viewer)), NamedTextColor.YELLOW)));
@@ -141,6 +146,22 @@ final class ItemShop {
             lore.add(Component.empty());
         }
         return lore;
+    }
+
+    // captured: swords and axes carry the team's Sharpness, armor its Protection
+    private static @Nullable String upgraded(Game game, Player viewer, Ware ware) {
+        Slot seat = game.roster().slotOf(viewer);
+        if (seat == null) return null;
+        String id = ware.offer().id();
+        if (id.endsWith("-sword") || id.equals("axe")) {
+            int level = Upgrades.level(game, seat, Upgrades.SHARPNESS);
+            return level > 0 ? "Sharpness " + roman(level) : null;
+        }
+        if (ware.tab() == Tab.ARMOR) {
+            int level = Upgrades.level(game, seat, Upgrades.PROTECTION);
+            return level > 0 ? "Protection " + roman(level) : null;
+        }
+        return null;
     }
 
     private static Component last(Game game, Player viewer, Ware ware) {

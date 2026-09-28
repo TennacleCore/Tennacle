@@ -996,6 +996,15 @@ Paid in diamonds at the upgrades NPC (6-row `Upgrades & Traps` window).
   invisible players as well as` / `their name and team.`; Miner Fatigue Trap `Inflict Mining Fatigue for 8
   seconds.`
 
+Ours (2026-09-28), keeping the rules and leaving the artifacts (decided: parity is behavior, not Hypixel's
+implementation): a purchase repaints the window where Hypixel reopens it 0.2 s later; Reinforced Armor's pieces
+change at once, all four at every tier, where Hypixel re-sends them 0.3 to 0.4 s later and misses the helmet at tier
+I; Haste goes on for good with its particles, not re-sent every second; the Heal Pool comes on and off as the
+player crosses its edge, where Hypixel checks once a second, and is never re-sent while it holds; "Clicking too
+fast!" stays, at 300 ms, since it guards against a double purchase. The line for a click on a maxed upgrade, "You
+have already maxed out this upgrade!", and "Trap queue full!" are Hypixel's strings (the string table), their color
+assumed red; a trap refused without a bed says the lore's red "Can't be purchased without a bed!".
+
 **Traps**:
 - Queue of three, first in first out. The next trap costs 1, 2 or 4 diamonds by how many are queued.
   One trap fires per intruder entering the base. They never fire once the bed is gone, and since 2025-09
@@ -1530,8 +1539,8 @@ Each of these was read in the code, not just reported:
 | Shop screens | Canvas, Tennacle | item shop done 2026-09-28: `games.shop` (below) under Bed Wars' `ItemShop`, `QuickBuyPicker` and `HotbarManager` screens, every captured line, lore rule and sound; Quick Buy pins in `PlayerPrefs` (`shop.Favorites`), the Hotbar Manager editing the kit layout. Left: the upgrades screen, the Tracker Shop (its icon shows, a click does nothing yet), the compass menu with Quick Communications, the per-player compass target |
 | Currency | Tennacle | done 2026-09-28 as `games.shop`: a `Currency` held and taken (`ItemCurrency`, items in the hotbar and main inventory), a `Price` that reads `4 iron` as a rule (`shop.<offer>`), `Offer`s (`Goods` through the kit, `Rank` levels on a seat's or team's ladder), and `Shop.buy`: refused, short by N, or paid and handed over. Kept out of Polyp: none of it is a vanilla mechanic |
 | NPCs | Tennacle | done 2026-09-28: `games.Keepers`, a body at each point marker, inert (Polyp `WorldPolicy.INERT`: no hit, shot, push or blast reaches it), facing its side's spawn and turning to the nearest player it sees within 8 blocks (never an invisible one, Hypixel v1.11), a right click doing the mode's use. Bed Wars' item shopkeepers are armorer villagers (Via shows a 1.8 client a blacksmith). Left: the upgrades keeper, the name lines over them |
-| Team upgrades | Tennacle | team state consulted on hit, equip, purchase and spawn; stamping enchants for the glint; Haste, Heal Pool, forge rate |
-| Traps | Tennacle | a per-team queue fired on base-region entry, the four effects, the alarm, Magic Milk's immunity window |
+| Team upgrades | Grotto, Tennacle | done 2026-09-28: `Upgrades`, each a `Rank` on a team ladder bought in `UpgradeShop` (the captured window, lore and lines, the team broadcast, "Clicking too fast!"); the kit stamps Sharpness, Protection and Feather Falling by the team's levels (Grotto restamps what the team holds when a level is written) and wears Haste by `Kit.effect` reads; the forge follows `Forges.LEVEL`; `HealPool` is a Grotto `Regions` ball of 21 around each spawn. Left: the stamp reaching the team chest and ender chests at the purchase (no team chests yet) |
+| Traps | Grotto, Tennacle | done 2026-09-28: `Traps`, a team queue of three in game state bought at 1, 2 and 4 diamonds (rules), a `Regions` ball of 12 around each standing bed, the four effects, the owners' title, line and sound, Reveal's alarm and bell, a 30 s cooldown (rule) after which the next goes off on whoever is still inside, the buyer's right-click removal. Left: Magic Milk, which will write `Traps.IMMUNE` |
 | Tiers and the death outfit | Grotto, Tennacle | tiers done 2026-09-28: Grotto's kit re-reads the state its items name (armor, the pickaxe, axe and shears as seat ladders), stamps what it hands over (unbreakable; team enchantments next), gives into a layout role's slot and takes a slot away; Bed Wars' `Gear` drops each tool a tier at a death through `Lives.onDeath`. Left: resources to the killer, the ender chest to the forge at a final death |
 | Structure builds | Grotto or Tennacle | one builder for every block-laying item: a build is a stream of (cell, block) placements a tick with the shared rules (air only, marked placed, build limits and protected zones, a sound per block, a push for a player in the cell). The pop-up tower feeds it a blueprint turned to the chest's facing, two cells a tick; the bridge egg the cells under its path, 5 ticks late; later builders plug in the same way |
 | Special items | Tennacle, Polyp hooks | bridge egg and pop-up tower (through structure builds), bedbug, Dream Defender, sponge, Magic Milk, water bucket (the blocks-and-stuff fluids module), TNT placement marked handled |
@@ -1547,7 +1556,7 @@ Each of these was read in the code, not just reported:
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
 | Team names | Tennacle | done 2026-09-27: Pink and Gray print as captured, and every team role follows the arena's color |
-| The mode | Tennacle | started 2026-09-27: `games.bedwars` - four modes (`bedwars-solo`, `-doubles`, `-3s`, `-4s`) off one type with a team size and a start threshold each, pools under `arenas/bedwars` holding guessed maps out, the room, beds, kills and final kills, the circle and limits, the captured board and end block. Generators and the timeline the same day: the tier lines, the 25:00 warning, Bed Gone with its title and wither, the Sudden Death title, the 50:00 end by alive then final kills, beds and kills, and the board's next-event row. The item shop 2026-09-28. No upgrades, holograms, dragons, hidden pregame names or `has joined` lines yet |
+| The mode | Tennacle | started 2026-09-27: `games.bedwars` - four modes (`bedwars-solo`, `-doubles`, `-3s`, `-4s`) off one type with a team size and a start threshold each, pools under `arenas/bedwars` holding guessed maps out, the room, beds, kills and final kills, the circle and limits, the captured board and end block. Generators and the timeline the same day: the tier lines, the 25:00 warning, Bed Gone with its title and wither, the Sudden Death title, the 50:00 end by alive then final kills, beds and kills, and the board's next-event row. The item shop, team upgrades and traps 2026-09-28. No holograms, dragons, hidden pregame names or `has joined` lines yet |
 
 ### 15.4 Hypixel's maps as arenas
 

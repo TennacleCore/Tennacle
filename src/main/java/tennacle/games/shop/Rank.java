@@ -58,6 +58,18 @@ public final class Rank implements Offer {
         return price != null ? price : prices;
     }
 
+    /** {@link #at}'s price rule. */
+    public @NotNull StateKey<Price> priceRule() {
+        if (price == null) throw new IllegalStateException(id + " sells the next level: its prices are a list");
+        return price;
+    }
+
+    /** {@link #next}'s price rule, a price a level. */
+    public @NotNull StateKey<List<Price>> pricesRule() {
+        if (prices == null) throw new IllegalStateException(id + " sells one level: it has one price");
+        return prices;
+    }
+
     /** The holder's level now; {@code 0} for a buyer with no seat. */
     public int current(@NotNull Game game, @NotNull Player buyer) {
         Scope scope = scope(game, buyer);

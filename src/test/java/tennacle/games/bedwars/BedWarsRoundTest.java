@@ -95,6 +95,9 @@ class BedWarsRoundTest extends HeadlessServerTest {
             s.addMarker(new PointMarker("bedwars:shop", "1", "", new Vec(-12.5, 65, 4.5)));
             s.addMarker(new PointMarker("bedwars:shop", "2", "", new Vec(12.5, 65, 4.5)));
             s.addMarker(new PointMarker("bedwars:shop", "3", "", new Vec(4.5, 65, 12.5)));
+            s.addMarker(new PointMarker("bedwars:upgrades", "1", "", new Vec(-12.5, 65, -4.5)));
+            s.addMarker(new PointMarker("bedwars:upgrades", "2", "", new Vec(12.5, 65, -4.5)));
+            s.addMarker(new PointMarker("bedwars:upgrades", "3", "", new Vec(-4.5, 65, 12.5)));
             s.addMarker(new PointMarker("bedwars:diamond", "", "", new Vec(0.5, 65, -15.5)));
             s.addMarker(new PointMarker("bedwars:emerald", "", "", new Vec(-15.5, 65, -15.5)));
             s.addMarker(new LimitMarker("bedwars:height", "", "", null, 80.0, null));
