@@ -175,7 +175,8 @@ public final class Replays {
         if (spool == null || !game.rules().resolve(Scope.GAME, RECORD)) return;
         try {
             // the header carries what the end would write, so a crash leaves a spool the next boot can file
-            Recording recording = Replay.record(game.shard()).spool(spool, Tapes.SPOOL_TICKS, data -> stamp(data, game, mode));
+            Recording recording = Replay.record(game.shard()).cueQuorum(() -> game.members().size())
+                    .spool(spool, Tapes.SPOOL_TICKS, data -> stamp(data, game, mode));
             live.put(game.id(), recording);
             recorded.put(recording, game);
         } catch (IOException | RuntimeException e) {

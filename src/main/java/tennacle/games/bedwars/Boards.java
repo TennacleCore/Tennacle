@@ -32,8 +32,10 @@ final class Boards {
                 .rows(g -> Match.opening(g) ? 6 : 0, (g, me, i) -> switch (i) {
                     case 0 -> Frames.hypixelRow("Map: ", g.arena().meta().name());
                     case 1 -> Frames.hypixelRow("Players: ", Match.seated(g) + "/" + Match.seats(g));
-                    case 3 -> Component.text(Countdown.left(g) < 0 ? "Waiting..." : "Starting in " + Countdown.left(g) + "s",
-                            NamedTextColor.WHITE);
+                    // captured: white "Starting in ", the seconds green
+                    case 3 -> Countdown.left(g) < 0 ? Component.text("Waiting...", NamedTextColor.WHITE)
+                            : Component.text("Starting in ", NamedTextColor.WHITE)
+                                    .append(Component.text(Countdown.left(g) + "s", NamedTextColor.GREEN));
                     case 5 -> Frames.hypixelRow("Mode: ", mode);
                     default -> Component.empty();
                 }, Phases.PHASE, Countdown.LEFT)

@@ -90,12 +90,13 @@ final class Gear {
                 || item.material() == Material.DIAMOND_SWORD;
     }
 
-    /** The wooden sword, the compass and the tools: the seat's for good, so never stored. */
+    /** The wooden sword, the compass, the tools and the armor: the seat's for good, so never stored or dropped. */
     static boolean kept(ItemStack item) {
         Material material = item.material();
         String name = material.key().value();
         return material == Material.WOODEN_SWORD || material == Material.COMPASS || material == Material.SHEARS
-                || name.endsWith("_pickaxe") || name.endsWith("_axe");
+                || name.endsWith("_pickaxe") || name.endsWith("_axe") || name.endsWith("_helmet")
+                || name.endsWith("_chestplate") || name.endsWith("_leggings") || name.endsWith("_boots");
     }
 
     /** Nothing a seat wears or swings wears out. */

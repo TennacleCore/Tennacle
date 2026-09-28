@@ -10,8 +10,12 @@ import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.roster.SlotLayout;
 import io.github.term4.polyp.entity.DroppedItemEntity;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.item.PickupItemEvent;
@@ -46,6 +50,51 @@ class GeneratorsTest extends HeadlessServerTest {
                 .filter(e -> e instanceof DroppedItemEntity item && item.getItemStack().material() == material
                         && e.getPosition().distance(at) <= 3)
                 .map(e -> (DroppedItemEntity) e).toList();
+    }
+
+    @Test
+    void dropsSettleAndStackOnTheSpot() {
+        Game game = Matches.grotto().launch(type(Generators.of()), Matches.mode("bedfight").arena().get());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GenC");
+        try {
+            p.player.setInstance(game.instance(), game.arena().meta().spawn()).join();
+            assertTrue(game.join(p.player));
+            Pos spawn = game.roster().slotOf(p.player).spawn();
+            p.player.teleport(spawn.add(6, 0, 0)).join(); // out of pickup reach
+            // a forge pad as the captured maps lay it: bottom slabs half a block under the drop point
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    game.shard().setBlock(new BlockVec(spawn.blockX() + dx, spawn.blockY() - 1, spawn.blockZ() + dz), Block.STONE_BRICK_SLAB);
+                }
+            }
+            Point at = new Vec(spawn.blockX() + 0.5, spawn.blockY(), spawn.blockZ() + 0.5);
+            Generators generators = game.module(Generators.class);
+            Generators.Generator g = generators.add(at, ItemStack.of(Material.IRON_INGOT), 1, generators.pool(64));
+            g.start(1);
+            TimelineTest.tickUntil(game, "twenty iron", () -> g.lying() >= 20);
+            g.stop();
+            int dropped = g.lying();
+            // headless: the items' own ticks by hand, the clock a server tick apart so the merge scan runs
+            long clock = System.nanoTime() / 1_000_000L;
+            for (int i = 0; i < 120; i++) {
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+                clock += 50;
+                for (Entity entity : List.copyOf(game.instance().getEntities())) {
+                    if (entity instanceof DroppedItemEntity item) item.tick(clock);
+                }
+            }
+            List<DroppedItemEntity> items = lying(game, at, Material.IRON_INGOT);
+            assertEquals(dropped, items.stream().mapToInt(i -> i.getItemStack().amount()).sum(), "every drop lies there");
+            assertTrue(items.size() <= 2, "stacked, not " + items.size() + " entities");
+            for (DroppedItemEntity item : items) {
+                double off = Math.hypot(item.getPosition().x() - at.x(), item.getPosition().z() - at.z());
+                assertTrue(off < 1.0, "an item strayed " + off + " from the point");
+            }
+        } finally {
+            game.end(Outcome.aborted());
+            p.player.remove();
+        }
     }
 
     @Test

@@ -39,6 +39,8 @@ import java.util.Set;
 final class TrackerShop {
 
     static final Refusal BEDS_STAND = new Refusal("beds-stand");
+    /** One team at a time (the user, 2026-09-28); tracking several, or a cheaper swap, is for later. */
+    static final Refusal TRACKING = new Refusal("tracking");
 
     private TrackerShop() {}
 
@@ -92,6 +94,7 @@ final class TrackerShop {
             case Sale.Short missing -> viewer.sendMessage(Lines.notEnough(game, missing.price()));
             case Sale.Refused refused -> {
                 if (refused.refusal() == BEDS_STAND) viewer.sendMessage(Lines.trackerLocked(game));
+                if (refused.refusal() == TRACKING) viewer.sendMessage(Lines.trackingAlready(game));
             }
         }
     }
@@ -117,7 +120,9 @@ final class TrackerShop {
         @Override
         public @Nullable Refusal refusal(@NotNull Game game, @NotNull Player buyer) {
             String own = Match.teamOf(game, buyer);
-            return Beds.standing(game).stream().allMatch(own::equals) ? null : BEDS_STAND;
+            if (!Beds.standing(game).stream().allMatch(own::equals)) return BEDS_STAND;
+            Slot seat = game.roster().slotOf(buyer);
+            return seat != null && team.equals(game.state().get(Scope.slot(seat.index()), Compass.TRACKING)) ? TRACKING : null;
         }
 
         @Override

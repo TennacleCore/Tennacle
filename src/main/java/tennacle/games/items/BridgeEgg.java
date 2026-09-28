@@ -96,9 +96,11 @@ public final class BridgeEgg implements GameModule {
         int life = game.rules().resolve(thrower, LIFE);
         int delay = game.rules().resolve(thrower, DELAY);
         Deque<Pos> path = new ArrayDeque<>();
+        Pos thrown = egg.getPosition();
         structures.add(() -> {
             if (!egg.isRemoved()) {
                 Pos at = egg.getPosition();
+                if (at.samePoint(thrown)) return true; // captured: the first wool is a tick into the flight, not the throw
                 if (egg.getAliveTicks() > life || !building.space().buildable(thrower, at)) egg.remove();
                 else path.add(at);
             }

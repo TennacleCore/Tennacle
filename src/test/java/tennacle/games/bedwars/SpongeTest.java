@@ -99,7 +99,7 @@ class SpongeTest extends HeadlessServerTest {
             fa.player.setItemInMainHand(ItemStack.of(Material.WATER_BUCKET));
             EventDispatcher.call(new PlayerUseItemEvent(fa.player, PlayerHand.MAIN, fa.player.getItemInMainHand(), 0));
             assertTrue(game.shard().getBlock(new BlockVec(-8, 65, 0)).compare(Block.WATER), "poured at the feet: " + chat(fa));
-            assertEquals(Material.BUCKET, fa.player.getItemInMainHand().material());
+            assertTrue(fa.player.getItemInMainHand().isAir(), "the spent bucket goes with the water");
             ticks(game, 12);
             assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(-9, 65, 0)), "no water runs into a base");
             assertTrue(game.shard().getBlock(new BlockVec(-7, 65, 0)).compare(Block.WATER), "it runs the other way");

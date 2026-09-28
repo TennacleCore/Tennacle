@@ -173,7 +173,8 @@ public final class LobbyCommands {
             Game game = seated;
             return () -> {
                 Game.Departure departure = game.depart(p);
-                if (departure != null && departure.reserved()) {
+                // the hold as it stands after the leave: a seat put out on the way (no bed to come back to) holds nothing
+                if (departure != null && departure.reserved() && game.roster().reservedSlotOf(p.getUsername()) != null) {
                     // the click puts the rejoin in the chat box, this game's code already on it
                     String rejoin = "/rejoin " + game.code();
                     p.sendMessage(yellow("You left ").append(gameLine(game, p)).append(yellow(". Click to rejoin."))

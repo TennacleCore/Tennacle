@@ -120,11 +120,11 @@ public final class Generators implements GameModule {
             return due < 0 ? -1 : Math.max(0, due - game.tick());
         }
 
-        /** This generator's items still lying near it. */
+        /** This generator's items still lying near it, stacks counted whole. */
         public int lying() {
             int n = 0;
             for (Entity entity : game.instance().getNearbyEntities(at, NEAR)) {
-                if (entity instanceof DroppedItemEntity item && item.getTag(MADE_BY) == this) n++;
+                if (entity instanceof DroppedItemEntity item && item.getTag(MADE_BY) == this) n += item.getItemStack().amount();
             }
             return n;
         }

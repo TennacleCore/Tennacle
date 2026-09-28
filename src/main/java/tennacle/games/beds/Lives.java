@@ -104,6 +104,7 @@ public final class Lives implements GameModule {
             for (Slot seat : game.roster().seatsOf(team)) {
                 if (game.roster().ownerOf(seat) == null) {
                     standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
+                    game.roster().release(seat); // nothing to come back to
                 }
             }
         });
@@ -158,6 +159,7 @@ public final class Lives implements GameModule {
             if (by != null) Match.addSeat(game, by, counters.finalKills());
             mark(player, seat, by, verb);
             standing.out(seat, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game)));
+            game.roster().release(seat); // the hold is for a seat with a bed to come back to
             if (standing.standing(seat.team()) == 0) {
                 Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
                 if (banner != null) Match.say(game, banner);

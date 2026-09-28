@@ -3,6 +3,7 @@ package tennacle.games.map;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.state.Scope;
+import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
 import io.github.term4.polyp.api.event.fluid.FluidSpreadEvent;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
@@ -53,13 +54,19 @@ public final class Building {
             StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
     /** A fluid may run into a reserved cell; off, it stops at the edge and stands still there (a base box). */
     public static final StateKey<Boolean> FLOW_RESERVED = StateKey.of("space.flow.reserved", Codec.BOOLEAN, false);
+    /** What a blast takes, wherever it goes off; a kind nobody names stands. A mode that names it keeps its preset's blast terrain. */
+    public static final StateKey<List<String>> BLAST = StateKey.of("space.blast", Codec.STRING.list(), List.of(PLACED));
+    /** A blast may take a reserved cell (a base box); off, those stand whatever else goes. */
+    public static final StateKey<Boolean> BLAST_RESERVED = StateKey.of("space.blast.reserved", Codec.BOOLEAN, false);
 
     /** Every rule this carries, for a type's declaration. */
-    public static final Set<StateKey<?>> RULES = Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, BREAK, BREAK_OUTSIDE, FLOW_RESERVED);
+    public static final Set<StateKey<?>> RULES = Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, BREAK, BREAK_OUTSIDE, FLOW_RESERVED,
+            BLAST, BLAST_RESERVED);
 
     static {
         RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
         RulesCompletions.words(BREAK_OUTSIDE.id(), List.of(PLACED, MAP));
+        RulesCompletions.words(BLAST.id(), List.of(PLACED, MAP));
     }
 
     /** The mode's geometry: everything the shared handlers cannot know. */
@@ -152,6 +159,13 @@ public final class Building {
         });
         game.onWorld(FluidSpreadEvent.class, FluidSpreadEvent::world, e -> {
             if (building.stilled(e.to())) e.setCancelled(true);
+        });
+        game.onWorld(ExplosionEvent.class, ExplosionEvent::world, e -> {
+            Player igniter = e.source() instanceof Player p && game.roster().slotOf(p) != null ? p : null;
+            List<String> may = igniter != null ? game.rules().resolve(igniter, BLAST) : game.rules().resolve(Scope.GAME, BLAST);
+            boolean reserved = igniter != null ? game.rules().resolve(igniter, BLAST_RESERVED) : game.rules().resolve(Scope.GAME, BLAST_RESERVED);
+            e.blocks().removeIf(pos -> !reserved && space.reserved(pos) || !may.contains(building.placed(pos) ? PLACED : MAP));
+            for (Point pos : e.blocks()) building.placed.remove(key(pos));
         });
         return building;
     }

@@ -115,7 +115,10 @@ public final class Beds implements GameModule {
             e.setCancelled(true); // both halves go together, so a half is never left standing
             if (!Match.live(game)) return; // not in play before the start or after the end: Refusals says so
             boolean mine = owner.equals(Match.teamOf(game, breaker));
-            if (!game.rules().resolve(breaker, BREAK).contains(mine ? OWN : ENEMY)) return; // Refusals says so
+            if (!game.rules().resolve(breaker, BREAK).contains(mine ? OWN : ENEMY)) {
+                Refusals.because(e, mine ? OWN : ENEMY); // Refusals says so, in the mode's words
+                return;
+            }
             Refusals.handled(e); // cancelled to take the whole bed at once, not to turn them away
             if (stands(game, owner)) broke(owner, breaker, pos);
         });

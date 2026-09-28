@@ -94,7 +94,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 
 - Players wait in a pregame area away from the bases and are teleported to their base at the start.
 - Board (cap): date and server id, `Map: <name>`, `Players: n/8`, `Waiting...` or `Starting in 20s`,
-  `Mode: Solo`, `Version: v1.11.2`, site line. Title BED WARS. `Starting in` counts down a second at a time.
+  `Mode: Solo`, `Version: v1.11.2`, site line. Title BED WARS. `Starting in` counts down a second at a time,
+  white with the seconds green (cap). Ours (2026-09-28): the same.
   Hypixel threads emoji characters through every board line, pregame and in game, which a 1.8 client draws
   as nothing; ours leaves them out.
 - Boss bar (cap, public): a wither named yellow bold `Playing `, white bold `BED WARS `, yellow bold `on `
@@ -140,7 +141,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
 
 - Banner (cap): a bold green bar of 64 `▬`, a centered bold `Bed Wars`, four centered lines telling you to
   protect your bed, destroy the enemy beds and collect Iron, Gold, Emerald and Diamond for upgrades, then
-  the closing bar.
+  the closing bar. Ours (2026-09-28): a game's banner heads with the mode's `banner` (`Bed Wars`, whatever
+  the mode) and names no opponent; a duel's keeps `<Mode> Duel` and its opponent line.
 - Starting kit: wooden sword and compass; full team-dyed leather armor, unbreakable, helmet with Aqua
   Affinity I (off, v0.4; comm 2020). The compass, green `Compass ` + gray `(Right Click)`, always comes in
   inventory slot 17, the main inventory's top right (cap: 298 sends in 25 sessions, the other 2 re-sending
@@ -148,6 +150,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   it opens the compass menu (6.2).
 - The XP bar shows BedWars level progress in game (off, v1.6).
 - Spawn protection at the start: assumed 3 s, like respawn invincibility (our play; not worth a capture).
+- Hunger and regeneration (the user, 2026-09-28): food never drains and health comes back on its own. Ours:
+  `hunger/exhaustionScale` 0 and `hunger/naturalRegen` on in the ruleset.
 
 ### 3.3 Timeline (core modes)
 
@@ -454,7 +458,13 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   Clicked outside, a bucket goes in even when its water lands inside the zone (our play). A placed bucket
   leaves nothing behind: the slot empties (cap, 87 uses). Ours (2026-09-28): a flow into a reserved cell (the
   base boxes) is cancelled under `space.flow.reserved` (off by default), so water stands still at the edge; the
-  bucket is judged where its water lands, not where it was clicked, which is the rule the check was after.
+  bucket is judged where its water lands, not where it was clicked, which is the rule the check was after; and
+  the spent bucket goes with the water, `fluids/bucketKept` off (2026-09-28).
+- **Blasts** (the user, 2026-09-28): a fireball or TNT takes blocks players placed, never the map's, and a
+  protected box (a base, a generator, a shopkeeper) is its own matter. Ours: `space.blast` names what a blast
+  takes (`placed`; add `map` for the map's blocks), `space.blast.reserved` lets one into a reserved box (off);
+  a mode that names `space.blast` keeps its preset's blast rays (the fold strips them from every other), and
+  a blasted block drops nothing (our play).
 
 ## 5. Economy
 
@@ -507,6 +517,10 @@ with identical numbers; every forge level bought one at a time and left to fill,
   Doubles on Sky Rise ran the same forge as Solo (2026-09-25).
 - Caps grow 8 iron and 2 gold per level. A capped forge restarts as soon as an item leaves: a pickup, or the
   5-minute despawn.
+- Ours (2026-09-28): the cap counts the stacks lying within 3 blocks whole, so a merged pile of 12 is 12. The
+  drops used to scatter off the slab pad: Polyp shoved any item whose cell was a solid block, where 1.8's
+  `pushOutOfBlocks` reads `isBlockFullCube`, and a slab is no cube; now nothing is pushed off a pad and the
+  iron stacks on the spot (GeneratorsTest ticks the items by hand).
 - Emerald Forge adds an emerald spawner: 1300 ticks (65 s) at Emerald Forge, 701 (35 s) at Molten, as
   NamuWiki says. The cap is 3 (cap, Waterfall 2026-09-25: a Molten forge from the Max Team Upgrades
   modifier stopped with 3 emeralds lying, its iron and gold at the usual Molten 80 and 24), and 2 at Emerald
@@ -734,7 +748,7 @@ table above is the newest documented.
 | Pickaxe, axe | drop one tier; tier I is permanent |
 | Swords | lost; the wooden sword comes back whenever no better sword is held (our play: there is always at least the wooden one) |
 | Bows, arrows, blocks, potions, utilities | lost, not dropped |
-| Compass | given back; a bought tracker is lost |
+| Compass | given back; a bought tracker is lost. One team at a time (the user, 2026-09-28): buying the team already tracked is refused, our line `You are already tracking that team!` (Hypixel's uncaptured); tracking several, or a cheaper swap between teams, is an idea for later, not now |
 | Iron, gold, diamonds, emeralds | to the killer (section 8) |
 | Ender chest, team chest | untouched (the ender chest is dumped at a final death) |
 
@@ -755,11 +769,14 @@ table above is the newest documented.
   an unsharpened stone sword under the upgrade and a sharpened one without it. Bugs, not ours: the check ignores the cursor, so a sword picked up in the inventory brings a wooden one and
   the two stay; a sword swapped in from a chest by a number key leaves the wooden one beside it; shift-clicking the
   wooden sword into a chest gave a second one. A better sword over a bought one was not bought; it would go in like
-  any item, by the rule above. Our Bed Wars counts the cursor and settles after every pickup, click and drop.
+  any item, by the rule above. The user (2026-09-28) recalls a better sword taking a worse bought sword's slot;
+  a capture is owed: buy iron holding stone, then again with the stone put away. Our Bed Wars counts the cursor and settles after every pickup, click and drop.
 - Armor can be bought with a full inventory. Other purchases are refused: red `Purchase Failed! Your
   inventory is full!` with `mob.endermen.portal` (cap, wool).
 - Pressing drop on a permanent item moves it to its Hotbar Manager slot; permanent items cannot go in
-  chests.
+  chests. Ours (2026-09-28): drops are on, but the kept pieces (the wooden sword, compass, tools and armor)
+  never leave the seat, refused at the drop key and the in-screen toss (`Loadout.kept`); a 1.8 client's clicks
+  settle the wooden sword a tick later, since they never reach `InventoryClickEvent`.
 - **Wood skins** (the user, 2026-09-28): a player's wood is any plank or log type they picked. Wood bought
   from the shop, or any plank or log picked up, becomes their skin: a real item everyone sees, placed as
   itself. Broken wood drops as oak planks whatever was placed, a dropped stack shows as oak planks, and the
@@ -917,7 +934,7 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
 | Sponge | not vanilla's (cap, 18 sponges, 2026-09-25): placed with the normal sound, then from 5 ticks after, every 8 ticks for 4 steps, it clears the next ring of a 9 x 9 x 9 cube around itself (ring k at step k, the cube's shell k blocks out), with `random.wood_click` at volume 0.5 and pitch bytes 110, 116, 123, 129, and `cloud` x4 (spread 0.08, speed 0.04, long-distance) at the ring's open cells. One step after the last it vanishes with `game.player.swim.splash` (volume 0.6, pitch 2.0), 37 ticks after it went down. While it is active the cube takes no water flowing in, like a base region, so water placed beside it turns still at once and stays that way until a neighbor changes: one stayed floating over a hole dug under it even after the sponge was gone (our play, cap). Ours (2026-09-28, `Sponge`): the block lands as any placement, then `sponge.delay` 5, `sponge.step` 8 and `sponge.radius` 4 drive the rings, each with the click at the sponge and a cloud at every open cell of the shell, sent whole (the capture's 30 clouds a tick is Hypixel's sender, not the rule); its cube is held still through `Building.still` and let go when it vanishes, so nothing stays floating afterwards | none |
 | Ender Pearl | no landing damage; lands on the last safe 2-tall spot unless over the void (2026-05); cannot land in a shopkeeper's space | done: Polyp's `hypixel` preset has Hypixel's pearls, with a BedWars variant for the sounds (our play) | none |
 | Invisibility | hides armor and nametag from enemies; a teammate sees the armor and the nametag but not the body (our play); held items stay visible; footstep particles on 1.8, mycelium on latest clients; louder footsteps; removed by enemy damage but not a teammate's arrow; strips stuck arrows. Captured (Sky Rise 2026-09-25): the effect is Invisibility amplifier 1 for 600 ticks. An enemy who drank it had all four armor slots sent empty in the tick of the drink, while his held wool still showed after. He left `footstep` x1 at his feet plus 0.1 (spread 0.3, 0, 0.3, speed 1, long-distance) as he walked, 1 to 25 ticks apart; a drinker is sent their own footsteps too. Our first hit on him sent the armor back in the tick of the hurt. A drinker who takes damage loses the effect in that tick and reads red `You took damage and lost your invisibility!` | none |
-| Speed II, Jump V | (cap, 2026-09-25) Speed amplifier 1 and Jump Boost amplifier 4, 900 ticks each with particles shown. 15 s after the drink the server sends the effect again at 600 ticks, and removes it 45 s after the drink (four drinks). The rule behind it: a timed effect is sent again whenever its time left reaches a multiple of 30 s, so a golden apple's Absorption comes again at 90, 60 and 30 s left (cap, Deadwood) | none |
+| Speed II, Jump V | The user (2026-09-28): a drunk potion leaves no bottle, in Bed Wars and in MineMen's NoDebuff alike; ours is the rule `consumables/minecraft:potion/remainder` off (Polyp `ConsumableTypeConfig.remainder`, a type at a time). (cap, 2026-09-25) Speed amplifier 1 and Jump Boost amplifier 4, 900 ticks each with particles shown. 15 s after the drink the server sends the effect again at 600 ticks, and removes it 45 s after the drink (four drinks). The rule behind it: a timed effect is sent again whenever its time left reaches a multiple of 30 s, so a golden apple's Absorption comes again at 90, 60 and 30 s left (cap, Deadwood) | none |
 | Golden Apple | vanilla 1.8 (our play), confirmed (cap, Ironclad 2026-09-25, two eats): 32 ticks to eat (1.61 and 1.63 s), `random.burp` at volume 0.5, then Absorption I for 2400 ticks and Regeneration II for 100, particles shown | none |
 
 #### Bridge Egg, exactly
@@ -941,7 +958,8 @@ that were not air. Packets that seemed to fit a 6-tick delay all arrived late in
   the egg is removed. A full flight lays 34 to 37 blocks, about 80 wool.
 - **Sound**: `mob.chicken.plop` at volume 1, pitch 1.0, at each laid block's corner.
 - **Ours** (2026-09-28, `BridgeEgg` over `games.map.Structures`): Polyp's own egg flies; from the next tick a
-  job records where it is, lays the L of three for the position `bridge-egg.delay` (5) ticks back through
+  job records where it is once it has left the throw (the user felt the bridge start under the thrower; the
+  throw's own cell was laid), lays the L of three for the position `bridge-egg.delay` (5) ticks back through
   `Building.place` (the same refusal as a hand placement, air only, marked as the thrower's own), and removes the
   egg past `bridge-egg.life` (30) ticks or once it leaves the mode's build space; the queue drains after. One throw
   a `bridge-egg.cooldown` (20 ticks); a refused throw reads `Please wait 1.0s to use that again` and keeps its egg.
@@ -1137,7 +1155,9 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   (0,152,0 on Sky Rise, 0,133,0 on Harvest) facing yaw 0, and stays in survival: no spectator mode. 4.96 to
   5.00 s after the death comes a teleport to the point the game started them on, both effects removed, yellow
   `You have respawned!`, a clearing title with times 0/5/0, then times 5/30/5 green `RESPAWNED!` over an
-  empty subtitle, the XP bar back, and the kit 0.1 s later. The victim hears no sound at either end.
+  empty subtitle, the XP bar back, and the kit 0.1 s later. The victim hears no sound at either end. Ours
+  (2026-09-28): `combat.respawn.wait` is `landing`, so the wait hangs level at the arena's spawn, the pregame
+  room's.
 - **Respawn invincibility** exists and ends when you attack:
   `You attacked someone and lost your invincibility!` (cap). Length: 1.5 s in 2017, then 3 s, and 3 s today
   (cap, 2026-09-25): over 11 respawns our hits up to 2.97 s after the spawn did nothing, and the first to
@@ -1191,6 +1211,10 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
 ## 9. Beds
 
 - Enemy beds break by hand with no tool; your own bed cannot be broken: red `You can't destroy your own bed!`
+  (plain red, not bold; the user, 2026-09-28). Ours: `beds.break` names whose bed a seat may break (`enemy` by
+  default, `own` allowed by a rule), the refusal reads the captured line; a bedless start, for a challenge, is
+  for later. A seat that leaves with no bed, or whose bed falls while it is away, is out, and the game ends
+  when it was the last in the way, as in bed fight (the user, 2026-09-28; `Lives`, pinned by two round tests).
   in chat, no sound, both halves sent again (cap). A bed breaks at the client's own break speed, with no
   timer of the server's (our play): with Haste II from Max Team Upgrades it went 0.2 s after the first swing,
   both halves at once (cap).
@@ -1590,6 +1614,8 @@ are relative to each repo's main source root.
   turns and mirrors, which fits 4- and 8-way maps.
 - **Replay**: item entities, TNT, mobs and NPCs, every block write (explosions included), container
   slots, chat, titles and the sidebar all record today.
+- **Replay start** (the user, 2026-09-28): the waiting room is no part of a game. Ours: a Bed Wars tape starts
+  as the seats open (`Staging.onOpened`), the lineup stamped whole; a mode with no room records from the launch.
 - **Holograms on 1.8**: the proxy's ViaBackwards has `map-display-entities: true`, so a modern text
   display reaches a 1.8 client as armor stands.
 
@@ -1749,6 +1775,10 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
 `gradlew bedwarsMaps -Parchive=<dir> -Pmarkers=<dir> [-Pout=<dir>] [-Pmaps=<names>]` (`tennacle.dev.BedwarsMaps`)
 builds one arena per marker file: the world through Bloom's pre-1.13 reader, relit, and these markers, groups
 being team ordinals in Hypixel's order:
+Since 2026-09-28 the reader settles stair corners and fence, wall, pane and bar arms from the neighbors (Bloom
+`Connections`), states a 1.8 world never stores and both clients work out themselves; before it the server
+collided on straight stairs and a 1.8 client rubber-banded on every corner. The markers now sit in group
+folders (`Solo-Doubles Maps`, `Triples-Quads Maps`, `4v4 Maps`), 133 maps.
 
 | Key | Shape | Group |
 |---|---|---|

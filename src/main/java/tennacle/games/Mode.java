@@ -33,6 +33,7 @@ import java.util.function.Supplier;
  *                   which is what a mode with captures behind its platforms wants
  * @param family     a duel or a game of many sides: what a look's verdict and end block take their form from
  * @param title      the name as copy reads it ({@code Bridge}, {@code Bed Wars Solo})
+ * @param banner     the headline of the start banner ({@code Bed Wars} over every Bed Wars mode); unset = the title
  */
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
@@ -40,7 +41,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                    @NotNull List<Component> intro, boolean ghostLoser, boolean sided,
                    @Nullable StateKey<Integer> teamScore,
                    @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look,
-                   @NotNull Family family, @NotNull String title) {
+                   @NotNull Family family, @NotNull String title, @NotNull String banner) {
 
     /** Hypixel's two presentations: a duel's card names two players; a game's block names the winning side. */
     public enum Family { DUEL, GAME }
@@ -53,7 +54,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                 @Nullable StateKey<Integer> teamScore,
                 @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
         this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null,
-                Family.DUEL, titled(name));
+                Family.DUEL, titled(name), titled(name));
     }
 
     /**
@@ -83,6 +84,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         private @Nullable String look;
         private Family family = Family.DUEL;
         private @Nullable String title;
+        private @Nullable String banner;
 
         private Builder(String name, GameType type, Maps arena, Supplier<MechanicsProfile.Builder> profile,
                         Ruleset base, Map<String, Ruleset> variants) {
@@ -148,9 +150,16 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
             return this;
         }
 
+        /** The start banner's headline; unset is the title. */
+        public @NotNull Builder banner(@NotNull String banner) {
+            this.banner = banner;
+            return this;
+        }
+
         public @NotNull Mode build() {
             return new Mode(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore,
-                    tabStats, marks, look, family, title != null ? title : titled(name));
+                    tabStats, marks, look, family, title != null ? title : titled(name),
+                    banner != null ? banner : title != null ? title : titled(name));
         }
     }
 

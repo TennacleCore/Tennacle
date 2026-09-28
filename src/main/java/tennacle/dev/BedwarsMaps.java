@@ -79,7 +79,7 @@ public final class BedwarsMaps {
     static int convert(Path archive, Path markers, Path out, @Nullable Set<String> only) throws IOException {
         Files.createDirectories(out);
         int written = 0;
-        try (Stream<Path> files = Files.list(markers)) {
+        try (Stream<Path> files = Files.walk(markers)) {
             for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
                 JsonObject map;
                 try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {

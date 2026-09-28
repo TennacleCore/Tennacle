@@ -315,9 +315,9 @@ public final class BedWars {
                 .rule(Roster.TEAM_SIZE, size)
                 .rule(Countdown.START_AT, teams * size - 1) // captured: the count began one seat short of full
                 .rule(Countdown.FROM, 20)
-                .rule(Loadout.DROP, false)
                 .rule(Loadout.UNEQUIP, false)
                 .rule(Respawns.RESPAWN_TICKS, 100L) // captured: 5 s
+                .rule(Respawns.WAIT, Respawns.WAIT_LANDING) // captured: the wait hangs at the pregame spawn over the middle
                 .rule(Respawns.REJOIN_TICKS, 200L)
                 .rule(Respawns.PROTECT_TICKS, 60L) // captured: 3 s, your own attack ends it
                 .rule(KillCredit.TICKS, 200L) // captured: the 10 s credit window
@@ -325,6 +325,7 @@ public final class BedWars {
                         Resources.DIAMOND.material().key(), Resources.EMERALD.material().key())) // captured, in this order
                 .rule(Beds.DESTROY, 30L * 60 * 20) // Bed Gone
                 .rule(Building.BREAK, List.of(Building.PLACED)) // the map's own blocks never come up; the beds are Beds'
+                .rule(Building.BLAST, List.of(Building.PLACED)) // a fireball or TNT takes placed blocks, never the map
                 .rule(Building.BREAK_OUTSIDE, List.of(Building.PLACED));
         if (teams == 4) fourTeam(builder);
         GameType type = builder.modules(Ends::hypixel, // first: the snapshot precedes cleanup
@@ -370,7 +371,7 @@ public final class BedWars {
                         Spectating::new, Sight::new, Presets::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
-                        Loadout::new,
+                        () -> new Loadout().kept(Gear::kept),
                         Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
@@ -379,6 +380,7 @@ public final class BedWars {
         Rulesets.check(Mechanics.polyp.profiles().global(), type);
         Mode mode = Mode.of(name, type, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants())
                 .title(title)
+                .banner("Bed Wars") // captured: the banner's headline, whatever the mode
                 .intro(INTRO.toArray(Component[]::new))
                 .game()
                 .ghostLoser()

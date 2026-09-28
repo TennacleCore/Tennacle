@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.function.Function;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.modules.flow.Countdown;
+import io.github.term4.grotto.modules.flow.Staging;
 import tennacle.games.matchmaking.Queues;
 import tennacle.games.watch.Spectators;
+import tennacle.games.map.Building;
 import tennacle.games.watch.Replays;
 import tennacle.looks.Look;
 import tennacle.looks.GameSounds;
@@ -264,7 +266,9 @@ public final class Matches {
             // the recording and its spool are started here but the ctor's failure path cannot reach them:
             // a launch that throws after this would leave a spool the next boot files as a replay of nothing
             try {
-                Replays.record(g);
+                Staging staging = g.module(Staging.class);
+                if (staging != null && staging.waiting()) staging.onOpened(Replays::record); // the wait is no part of the tape
+                else Replays.record(g);
                 for (Consumer<Game> hook : options.atLaunch()) hook.accept(g);
             } catch (RuntimeException | Error t) {
                 Replays.discard(g);
@@ -288,10 +292,12 @@ public final class Matches {
                           // change to it lands one fold late (the value you set applies on the NEXT change)
         MechanicsProfile.Builder profile = Presets.builderFor(game, mode); // mechanics:preset, else the mode's
         // a match's terrain is the arena's. Presets fitted for a block-breaking game (hypixel, mmc18) carry
-        // blast rays, and inside a match those grief the map - a mode that wants breakable ground registers a
-        // named BlockBreaking (as bridge does for heal-apple) and names it on explosion/blockBreaking below
-        profile.mutate(MechanicsKeys.EXPLOSION, ex -> ex == null ? null
-                : ExplosionConfig.builder(ex).blockBreaking((BlockBreaking) null).build());
+        // blast rays, and inside a match those grief the map - a mode that names what a blast may take
+        // (space.blast) keeps them, and Building holds each blast to that
+        if (!mode.type().rules().containsKey(Building.BLAST)) {
+            profile.mutate(MechanicsKeys.EXPLOSION, ex -> ex == null ? null
+                    : ExplosionConfig.builder(ex).blockBreaking((BlockBreaking) null).build());
+        }
         // and its inventories are the game's: a death keeps what it holds and the respawn's outfit takes over. A mode
         // that spills names death/spill in its ruleset, which folds over this
         profile.mutate(MechanicsKeys.DEATH, death -> DeathConfig.builder(death).spill(Spill.KEEP).build());

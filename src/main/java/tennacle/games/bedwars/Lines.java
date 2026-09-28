@@ -3,6 +3,7 @@ package tennacle.games.bedwars;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.shop.Price;
+import tennacle.games.beds.Beds;
 import tennacle.games.map.Building;
 import tennacle.looks.Look;
 import tennacle.looks.Palette;
@@ -196,8 +197,8 @@ final class Lines {
                 case Building.REASON_HEIGHT -> "Build height limit reached!";
                 default -> "You can't place blocks here!";
             });
-            case BREAK -> theme(game).bad(Building.REASON_MAP.equals(reason)
-                    ? "You can only break blocks placed by a player!" : "You can't break blocks here!");
+            case BREAK -> theme(game).bad(Beds.OWN.equals(reason) ? "You can't destroy your own bed!"
+                    : Building.REASON_MAP.equals(reason) ? "You can only break blocks placed by a player!" : "You can't break blocks here!");
             case PROTECTED, HIT -> Look.refusal(game, player, kind, reason);
         };
     }
@@ -261,6 +262,11 @@ final class Lines {
 
     static Component trackerLocked(Game game) {
         return theme(game).bad("Not all enemy beds are destroyed yet!");
+    }
+
+    /** Our copy: Hypixel's line for a tracker on the team already tracked is not captured. */
+    static Component trackingAlready(Game game) {
+        return theme(game).bad("You are already tracking that team!");
     }
 
     static Component notEnough(Game game, Price price) {

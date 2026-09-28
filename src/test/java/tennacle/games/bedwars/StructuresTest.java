@@ -99,16 +99,19 @@ class StructuresTest extends HeadlessServerTest {
                 assertFalse(eggs.allow(a), "one a second");
                 assertTrue(chat(fa).contains("Please wait 1.0s to use that again"), chat(fa).toString());
                 eggs.trail(a, egg);
+                ticks(game, 2);
+                egg.teleport(new Pos(7.5, 67, 5.5)).join(); // the first tick of flight
                 ticks(game, 5);
-                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(5, 65, 5)), "nothing yet");
+                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(7, 65, 5)), "nothing yet");
                 ticks(game, 1);
-                assertTrue(game.shard().getBlock(new BlockVec(5, 65, 5)).name().endsWith("_wool"), "under the egg");
-                assertTrue(game.shard().getBlock(new BlockVec(6, 65, 5)).name().endsWith("_wool"), "the nearer x neighbor");
-                assertTrue(game.shard().getBlock(new BlockVec(5, 65, 6)).name().endsWith("_wool"), "the nearer z neighbor");
-                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(4, 65, 5)), "not the farther one");
+                assertTrue(game.shard().getBlock(new BlockVec(7, 65, 5)).name().endsWith("_wool"), "under the egg");
+                assertTrue(game.shard().getBlock(new BlockVec(8, 65, 5)).name().endsWith("_wool"), "the nearer x neighbor");
+                assertTrue(game.shard().getBlock(new BlockVec(7, 65, 6)).name().endsWith("_wool"), "the nearer z neighbor");
+                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(6, 65, 5)), "not the farther one");
+                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(5, 65, 5)), "nothing under the throw itself");
                 egg.remove();
                 ticks(game, 6);
-                assertTrue(Building.of(game).placed(new BlockVec(5, 65, 5)), "a member's block");
+                assertTrue(Building.of(game).placed(new BlockVec(7, 65, 5)), "a member's block");
             } finally {
                 egg.remove();
             }
