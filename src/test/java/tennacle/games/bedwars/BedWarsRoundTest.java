@@ -32,6 +32,8 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.entity.EntityAttackEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.instance.Chunk;
@@ -400,6 +402,10 @@ class BedWarsRoundTest extends HeadlessServerTest {
             assertTrue(game.join(a.player));
             assertTrue(game.join(b.player));
             tickUntil(game, "both waiting", () -> game.isGhost(a.player) && game.isGhost(b.player));
+            // the user, 2026-09-28: the wait is dressed as a death's, whatever the join hooks handed out first
+            assertTrue(a.player.hasEffect(PotionEffect.INVISIBILITY), "the wait wears invisibility");
+            assertTrue(a.player.getEquipment(EquipmentSlot.CHESTPLATE).isAir(), "and no armor");
+            assertEquals(NamedTextColor.GRAY, a.player.getDisplayName() != null ? a.player.getDisplayName().color() : null, "grayed like any dead");
             assertFalse(WorldPolicy.canAffect(a.player, b.player), "a ghost reaches no ghost");
             assertFalse(WorldPolicy.canAffect(b.player, a.player));
             float before = b.player.getHealth();
@@ -407,6 +413,8 @@ class BedWarsRoundTest extends HeadlessServerTest {
             assertEquals(before, b.player.getHealth(), "the swing lands nothing");
             tickUntil(game, "both back", () -> !game.isGhost(a.player) && !game.isGhost(b.player));
             assertTrue(WorldPolicy.canAffect(a.player, b.player), "respawned, they fight again");
+            assertFalse(a.player.getEquipment(EquipmentSlot.CHESTPLATE).isAir(), "kitted again");
+            assertNotEquals(NamedTextColor.GRAY, a.player.getDisplayName() != null ? a.player.getDisplayName().color() : null, "in the side's color again");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();

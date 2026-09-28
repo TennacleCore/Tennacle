@@ -107,7 +107,7 @@ class InvisibilityTest extends HeadlessServerTest {
             b.sendPacket(a.getMetadataPacket());
             EntityMetaDataPacket seen = fb.sent(EntityMetaDataPacket.class).stream().filter(m -> m.entityId() == a.getEntityId()).toList().getLast();
             Metadata.Entry<?> flags = seen.entries().get(0);
-            assertTrue(flags != null && flags.value() instanceof Byte f && (f & 0x20) == 0, "a fellow dead sees the body: " + seen.entries());
+            assertTrue(flags != null && flags.value() instanceof Byte f && (f & 0x20) != 0, "a fellow dead sees the invisibility, the name and the hand: " + seen.entries());
             BedWarsRoundTest.tickUntil(game, "the respawn", () -> !respawns.isDead(a));
             assertFalse(a.hasEffect(PotionEffect.INVISIBILITY), "the respawn's body sheds it");
         });

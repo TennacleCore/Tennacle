@@ -37,15 +37,8 @@ import net.minestom.server.event.player.PlayerSpectateEntityEvent;
 import net.minestom.server.entity.attribute.Attribute;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
-import io.github.term4.polyp.platform.player.ViewRewrites;
-import net.minestom.server.entity.Metadata;
-import net.minestom.server.network.packet.server.SendablePacket;
-import net.minestom.server.network.packet.server.play.EntityMetaDataPacket;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
-import java.util.HashMap;
-import java.util.Map;
 import tennacle.Msg;
 
 /**
@@ -61,7 +54,6 @@ public final class Spectators {
 
     public static void install() {
         Lineup.install();
-        ViewRewrites.register(Spectators::bodiesForTheDead, EntityMetaDataPacket.class);
         // a watcher is in nobody's fight: their fists reach no one and no one's reach them. Binding cannot say
         // it - a watcher is bound to nothing, and so is every other watcher standing beside them. Extends
         // ShardPolicy, never WorldPolicy: a bare one reverts sight to binding equality and blinds them all
@@ -270,23 +262,6 @@ public final class Spectators {
         if (Spectating.invisible(game)) p.addEffect(new Potion(PotionEffect.INVISIBILITY, 0, WAIT_TICKS, Potion.ICON_FLAG));
         if (Spectating.nightVision(game)) p.addEffect(new Potion(PotionEffect.NIGHT_VISION, 0, WAIT_TICKS, Potion.ICON_FLAG));
     }
-
-    // a dead seat wears vanilla invisibility; its fellow dead and the watchers still see the body (the user, 2026-09-28)
-    private static SendablePacket bodiesForTheDead(OptimizedPlayer viewer, SendablePacket packet) {
-        if (!(packet instanceof EntityMetaDataPacket meta)) return packet;
-        Metadata.Entry<?> flags = meta.entries().get(0);
-        if (flags == null || !(flags.value() instanceof Byte b) || (b & INVISIBLE) == 0) return packet;
-        Game game = ghosting(viewer);
-        if (game == null) game = Matches.grotto().spectating(viewer);
-        if (game == null) return packet;
-        if (!(game.instance().getEntityById(meta.entityId()) instanceof Player dead) || dead == viewer) return packet;
-        if (!game.isGhost(dead) && !game.spectators().contains(dead)) return packet;
-        Map<Integer, Metadata.Entry<?>> entries = new HashMap<>(meta.entries());
-        entries.put(0, Metadata.Byte((byte) (b & ~INVISIBLE)));
-        return new EntityMetaDataPacket(meta.entityId(), entries);
-    }
-
-    private static final byte INVISIBLE = 0x20;
 
     /** The seated members of {@code game} still on their feet, as the compass lists them. */
     public static @NotNull List<Lineup.Entry> alive(@NotNull Game game) {

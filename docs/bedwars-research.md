@@ -1244,7 +1244,13 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   still have a bed!` 0.14 s after the first count. Two rejoiners of ours (the user, 2026-09-28) hovered
   together and could hit each other: both bound to nothing, binding equality let them. A ghost is inert
   (`WorldPolicy.INERT`) from `Game.ghost` to its unghost, leave or the game's end, Grotto's rule for every
-  wait, so no ghost reaches or is reached by anyone (`twoGhostsCannotFight`).
+  wait, so no ghost reaches or is reached by anyone (`twoGhostsCannotFight`). The same two waited in their
+  armor with team-colored names: a rejoin's wait started inside the join, and the modules whose join hook ran
+  after the respawn module's handed a kit and a color back to a ghost. A rejoiner's wait now starts a tick
+  after the join (Grotto `Respawns`), so every join hook dresses a member first and the ghosting's own hooks
+  gray and strip what they did. And a fellow dead is seen as vanilla invisibility shows anyone, the name and
+  the hand and never the body (the user, 2026-09-28): the rewrite that showed the dead their fellows' bodies
+  is gone.
 - **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. The warning reads bold red `You will
   be afk-ed in ` + bold yellow `10 seconds` + bold red `!` (cap, in game), then `note.pling` (volume 1,
   pitch 1.0) every 2 ticks until the player moves, up to 10 s (cap, 14 warnings); the candidate kick lines
