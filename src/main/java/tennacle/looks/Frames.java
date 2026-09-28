@@ -93,6 +93,17 @@ public final class Frames {
                 .line((g, me) -> Msg.HYPIXEL.accent("tennacle"));
     }
 
+    /** Hypixel's games (Bed Wars): shined title and date over the mode's own rows, the site line under. */
+    public static Scoreboard hypixelGame(String shineName, Consumer<Scoreboard> content) {
+        Scoreboard board = Scoreboard.of((g, me) -> Shine.HYPIXEL.frame(shout(shineName), (int) (g.tick() / 2)))
+                .titleEvery(2)
+                .line((g, me) -> Msg.HYPIXEL.prose(LocalDate.now().format(US_DATE))
+                        .append(Msg.HYPIXEL.dim("  " + g.code())))
+                .blank();
+        content.accept(board);
+        return board.blank().line((g, me) -> Msg.HYPIXEL.accent("tennacle"));
+    }
+
     /** Scrims: dark-aqua 16-hyphen rules, date, the captured 100px width. */
     public static Scoreboard scrims(String title, Consumer<Scoreboard> content) {
         Component rule = Msg.SCRIMS.rule(16, NamedTextColor.DARK_AQUA);

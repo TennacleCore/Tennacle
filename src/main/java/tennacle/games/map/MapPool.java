@@ -35,6 +35,7 @@ public final class MapPool implements Maps {
     private static final Logger LOGGER = LoggerFactory.getLogger(MapPool.class);
 
     private final String tag;
+    private String under = "";
     private final Map<Path, Arena> maps = new ConcurrentHashMap<>();
     /** What each held-out map still wants, by name - what {@link #get} says when the rotation is empty. */
     private final Map<String, String> unfinished = new ConcurrentHashMap<>();
@@ -50,9 +51,20 @@ public final class MapPool implements Maps {
         Bloom.onSave(saved -> {
             // starter saves land in templates/ and never join a rotation
             Path parent = saved.getParent();
-            if (parent != null && parent.equals(tennacle.boot.TestServer.arenaDir())) pool.refresh(saved);
+            if (parent != null && parent.equals(pool.dir())) pool.refresh(saved);
         });
         return pool;
+    }
+
+    /** Reads {@code arenas/<folder>} instead of {@code arenas/} itself. */
+    public @NotNull MapPool under(@NotNull String folder) {
+        this.under = folder;
+        return this;
+    }
+
+    private Path dir() {
+        Path base = tennacle.boot.TestServer.arenaDir();
+        return under.isEmpty() ? base : base.resolve(under);
     }
 
     /** The type a map must satisfy to enter the rotation; unset, every tagged map is taken as it is. */
@@ -121,7 +133,7 @@ public final class MapPool implements Maps {
 
     private synchronized void scan() {
         if (scanned) return;
-        Path dir = tennacle.boot.TestServer.arenaDir();
+        Path dir = dir();
         try (var files = Files.list(dir)) {
             files.filter(f -> f.getFileName().toString().endsWith(".bncl")).forEach(this::refresh);
             scanned = true; // a failed scan stays unscanned: a wrong working directory must not be permanent

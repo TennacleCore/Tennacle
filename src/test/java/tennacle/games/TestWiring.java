@@ -33,6 +33,7 @@ public final class TestWiring {
         Duels.install();
         Parties.install();
         Queues.install();
+        tennacle.games.matchmaking.Play.install();
         tennacle.commands.SpectateCommands.register();
         tennacle.commands.DevCommands.register(io.github.term4.polyp.Polyp.getInstance()); // /gm from a spectator switches bodies
         Spectators.install();
@@ -45,6 +46,7 @@ public final class TestWiring {
         tennacle.games.boxing.Boxing.install();
         tennacle.games.bridge.Bridge.install();
         tennacle.games.bedfight.BedFight.install();
+        tennacle.games.bedwars.BedWars.install();
         tennacle.commands.LobbyCommands.register();
     }
 }
