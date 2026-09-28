@@ -120,22 +120,34 @@ class ShopTest extends HeadlessServerTest {
     }
 
     @Test
-    void aSwordTakesTheOldOnesPlace() {
+    void aSwordTakesTheWoodensSlot() {
         round("ShopD", (game, a) -> {
             ItemShop.open(game, a, Wares.Tab.MELEE);
             give(a, Material.IRON_INGOT, 10);
             give(a, Material.GOLD_INGOT, 7);
+            a.setHeldItemSlot((byte) 5);
             click(a, 19, new Click.Left(19));
-            assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(0).material());
+            assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(0).material(), "the wooden one's slot, not the held one");
             assertEquals(0, count(a, "wooden_sword"), "the wooden one is gone");
             assertTrue(a.getInventory().getItemStack(0).has(net.minestom.server.component.DataComponents.UNBREAKABLE));
 
             click(a, 20, new Click.Left(20));
-            assertEquals(Material.IRON_SWORD, a.getInventory().getItemStack(0).material(), "the better one takes the slot");
-            assertEquals(1, count(a, "stone_sword"), "a bought one is kept");
-            for (int i = 0; i < 9; i++) {
-                assertFalse(a.getInventory().getItemStack(i).material() == Material.STONE_SWORD, "out of the hotbar");
-            }
+            assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(0).material(), "a bought one stays put");
+            assertEquals(Material.IRON_SWORD, a.getInventory().getItemStack(1).material(), "the first empty slot, the price paid");
+        });
+    }
+
+    @Test
+    void aPickedUpSwordTakesTheWoodensSlot() {
+        round("ShopF", (game, a) -> {
+            a.getInventory().setItemStack(1, ItemStack.of(Material.IRON_INGOT, 5));
+            var dropped = io.github.term4.polyp.entity.DroppedItemEntity.spawn(game.shard(), a.getPosition(), Vec.ZERO,
+                    ItemStack.of(Material.STONE_SWORD), null, 0);
+            assertNotNull(dropped);
+            EventDispatcher.call(new net.minestom.server.event.item.PickupItemEvent(a, dropped));
+            assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(0).material());
+            assertEquals(0, count(a, "wooden_sword"));
+            assertEquals(1, count(a, "stone_sword"));
         });
     }
 

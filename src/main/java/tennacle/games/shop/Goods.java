@@ -62,7 +62,7 @@ public final class Goods implements Offer {
 
     @Override
     public @Nullable Refusal refusal(@NotNull Game game, @NotNull Player buyer) {
-        return kits(game).fits(buyer, stack(game, buyer)) ? null : Refusal.FULL;
+        return kits(game).fits(buyer, role, stack(game, buyer)) ? null : Refusal.FULL;
     }
 
     @Override

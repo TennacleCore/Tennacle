@@ -7,6 +7,7 @@ import tennacle.games.shop.Rank;
 import tennacle.games.shop.Shop;
 
 import io.github.term4.canvas.theme.Role;
+import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.roster.Slot;
@@ -30,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +95,7 @@ final class Wares {
     static final Role<Role.Fill> GLASS = Role.block("blocks.glass");
 
     private static final Map<String, Ware> BY_ID = new LinkedHashMap<>();
+    private static final Map<Material, String> ROLES = new HashMap<>();
 
     static {
         goods(Tab.BLOCKS, "wool", "Wool", teamBlock(WOOL, 16), ItemStack.of(Material.WHITE_WOOL, 16), Price.of(4, IRON),
@@ -111,9 +114,9 @@ final class Wares {
                 "Extreme protection for your bed.");
         goods(Tab.BLOCKS, "ice", "Packed Ice", Material.PACKED_ICE, 8, Price.of(8, IRON), "blocks",
                 "Just normal ice. Good way to make a", "speedway.");
-        sword("stone-sword", "Stone Sword", Material.STONE_SWORD, Price.of(10, IRON));
-        sword("iron-sword", "Iron Sword", Material.IRON_SWORD, Price.of(7, GOLD));
-        sword("diamond-sword", "Diamond Sword", Material.DIAMOND_SWORD, Price.of(4, EMERALD));
+        goods(Tab.MELEE, "stone-sword", "Stone Sword", Material.STONE_SWORD, 1, Price.of(10, IRON), "melee");
+        goods(Tab.MELEE, "iron-sword", "Iron Sword", Material.IRON_SWORD, 1, Price.of(7, GOLD), "melee");
+        goods(Tab.MELEE, "diamond-sword", "Diamond Sword", Material.DIAMOND_SWORD, 1, Price.of(4, EMERALD), "melee");
         ItemStack stick = enchanted(Material.STICK, Map.of(Enchantment.KNOCKBACK, 1));
         goods(Tab.MELEE, "stick", "Stick (Knockback I)", (g, p) -> stick, stick, Price.of(5, GOLD), "melee");
         armor("chainmail", "Permanent Chainmail Armor", Material.CHAINMAIL_BOOTS, 1, Price.of(24, IRON),
@@ -182,6 +185,17 @@ final class Wares {
         return BY_ID.values().stream().filter(w -> w.tab() == tab).toList();
     }
 
+    /** The Hotbar Manager category an item plays, by the tab and kind it is sold as; null for none. */
+    static @Nullable String role(@NotNull ItemStack item) {
+        String name = item.material().key().value();
+        if (name.endsWith("_sword")) return "melee";
+        if (name.endsWith("_pickaxe")) return "pickaxe";
+        if (name.endsWith("_axe")) return "axe";
+        String family = Tint.family(name);
+        if ("wool".equals(family) || "terracotta".equals(family) || "stained_glass".equals(family)) return "blocks";
+        return ROLES.get(item.material());
+    }
+
     /** A shop selling every ware; one a game. */
     static @NotNull Shop shop() {
         Shop shop = Shop.of();
@@ -198,8 +212,7 @@ final class Wares {
     }
 
     private static StateKey<Price> price(String id) {
-        Offer offer = BY_ID.get(id).offer();
-        return offer instanceof Sword sword ? sword.rule() : ((Goods) offer).rule();
+        return ((Goods) BY_ID.get(id).offer()).rule();
     }
 
     private static void add(Ware ware) {
@@ -214,11 +227,8 @@ final class Wares {
 
     private static void goods(Tab tab, String id, String name, BiFunction<Game, Player, ItemStack> stack, ItemStack icon,
                               Price price, String role, String... description) {
+        ROLES.putIfAbsent(icon.material(), role);
         add(new Ware(Goods.of(id, price, role, stack), tab, List.of(name), List.of(icon), gray(description), false));
-    }
-
-    private static void sword(String id, String name, Material material, Price price) {
-        add(new Ware(new Sword(id, material, price), Tab.MELEE, List.of(name), List.of(ItemStack.of(material)), List.of(), false));
     }
 
     private static void armor(String id, String name, Material icon, int tier, Price price, String... description) {
@@ -237,6 +247,7 @@ final class Wares {
                                Price price, String line) {
         ItemStack stack = ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS, new PotionContents(type, null,
                 List.of(new CustomPotionEffect(effect, amplifier, ticks, false, true, true))));
+        ROLES.putIfAbsent(Material.POTION, "potions");
         add(new Ware(Goods.of(id, price, "potions", (g, p) -> stack), Tab.POTIONS, List.of(name), List.of(stack),
                 List.of(Component.text(line, NamedTextColor.BLUE)), false));
     }

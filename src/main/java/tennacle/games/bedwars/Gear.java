@@ -84,6 +84,12 @@ final class Gear {
         return level <= 0 ? ItemStack.AIR : tiers.get(Math.min(level, tiers.size()) - 1);
     }
 
+    /** A bought sword, the kind the wooden one gives way to. */
+    static boolean sword(ItemStack item) {
+        return item.material() == Material.STONE_SWORD || item.material() == Material.IRON_SWORD
+                || item.material() == Material.DIAMOND_SWORD;
+    }
+
     /** Nothing a seat wears or swings wears out. */
     static ItemStack unbreakable(Game game, Slot seat, ItemStack item) {
         return item.has(DataComponents.MAX_DAMAGE) && !item.has(DataComponents.UNBREAKABLE)

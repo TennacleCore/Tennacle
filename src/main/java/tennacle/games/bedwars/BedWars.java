@@ -131,7 +131,8 @@ public final class BedWars {
     // comes back at every spawn, and the Hotbar Manager's categories are the layout's names
     static final Kit KIT = Kit.of("bedwars").look(LOOK)
             .item("melee", 0, SWORD)
-            .fallback("melee", Sword::bought) // our play: the wooden sword is there whenever no better one is
+            .fallback("melee", Gear::sword) // captured 2026-09-27: the wooden sword is there whenever no better one is
+            .roleOf(Wares::role)
             .item("pickaxe", Gear::pickaxe, Gear.PICKAXE)
             .item("axe", Gear::axe, Gear.AXE)
             .item("shears", Gear::shears, Gear.SHEARS)

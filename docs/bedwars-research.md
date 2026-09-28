@@ -684,12 +684,19 @@ table above is the newest documented.
   tier you own with red `You've already purchased this item!` and `mob.endermen.portal` (cap, 2026-09-25).
 - Since 2023, a bought sword replaces the sword in your selected hotbar slot if it is better, and a better
   sword picked up replaces your current one. A worse sword than yours can still be bought (our play).
-- Swords, exactly (our play, 2026-09-28): a bought sword takes the wooden sword's place in its slot and the
-  wooden one is gone, like a tool's tier; a better sword bought over a bought one (stone, say) leaves the old one,
-  moved out of the hotbar, and takes its slot, and so on up. The team's Sharpened Swords go onto every sword a
-  player holds, a picked-up one too, and come off a picked-up sword when the team has none. Still to capture:
-  which main-inventory slot the old sword goes to, where a sword lands that is worse than yours, whether the held
-  slot or the Hotbar Manager's melee slot decides, what a picked-up better sword displaces, and a full inventory.
+- Swords, exactly (cap, 4v4v4v4 on Invasion and Jurassic 2026-09-27, `research/bedwars/swords.py`): a bought
+  sword takes the wooden sword's slot when the wooden one is held, whatever the held slot, and the wooden one is
+  gone. With no wooden sword it goes in like any item, the first empty slot: a second stone sword went to slot 3,
+  then 4; a stone bought over an iron one to slot 5. Nothing moved out of the hotbar. A sword picked up while the
+  wooden one is held takes its slot too, its item removed with no pickup animation; any other sword picks up
+  normally. The wooden sword comes back 0.1 to 0.45 s after the last other sword leaves the inventory. Sharpness
+  stays with each sword: the purchase of Sharpened Swords put it on every sword the team had, held or stored (an
+  ender chest's two stone swords and an iron one had it the next time it opened, and the user says the team chest
+  does the same), and later bought ones come with it, but a sword picked up or put away afterwards kept its own,
+  an unsharpened stone sword under the upgrade and a sharpened one without it. Bugs, not ours: the check ignores the cursor, so a sword picked up in the inventory brings a wooden one and
+  the two stay; a sword swapped in from a chest by a number key leaves the wooden one beside it; shift-clicking the
+  wooden sword into a chest gave a second one. A better sword over a bought one was not bought; it would go in like
+  any item, by the rule above. Our Bed Wars counts the cursor and settles after every pickup, click and drop.
 - Armor can be bought with a full inventory. Other purchases are refused: red `Purchase Failed! Your
   inventory is full!` with `mob.endermen.portal` (cap, wool).
 - Pressing drop on a permanent item moves it to its Hotbar Manager slot; permanent items cannot go in
