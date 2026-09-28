@@ -195,7 +195,13 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   other player's moves): six charges reached a player, one bite each, the next one 14 to 47 s later; ours bit
   several times a charge. The dragon's bite now lands once a victim a charge under `biteOncePerCharge` (the Bed
   Wars kind; vanilla's every-tick bite under the hurt window stays the engine's default), a charge being one
-  flight target. Its
+  flight target. The push the same way (the user, 2026-09-28: ours pushed more; all four dragon captures,
+  `dragon_gate.py`): of about 270 samples with a player inside vanilla's wing zones, 24 carried a velocity
+  packet and 22 of those a hurt too, the dragon itself hit within the last half second in only a tenth of
+  them, so its own hurt window is not what holds vanilla's every-tick push back. A pass pushes once, on the
+  bite, at the wing's strength when the player stands under a wing (2.61 at 1.5 blocks, 4.08 at 1) and the
+  bite's 0.4 otherwise; a Red dragon flew through an enemy at 1.1 blocks six times and pushed him once. Ours
+  now pushes once a victim a charge (`pushOncePerCharge`, the Bed Wars kind). Its
   flight fits vanilla's (random points within about 60 of the middle at y 70 to 120, or a player); whether it
   goes only for enemies does not show from one player's capture. Its own growl is the vanilla living sound at
   volume 5. From Sudden Death the board counts `More Dragons in 5:00` (cap): the second dragons come 5 real

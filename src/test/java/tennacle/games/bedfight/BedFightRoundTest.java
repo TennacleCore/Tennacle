@@ -797,6 +797,7 @@ class BedFightRoundTest extends HeadlessServerTest {
                     "nobody waits in an empty seat");
 
             assertTrue(game.join(red.player), "the seat was held for them"); // still standing in the world they left
+            tickUntil(game, "the wait starts a tick on, over every join hook", () -> game.isGhost(red.player));
             assertTrue(game.state().get(mine, io.github.term4.grotto.modules.combat.Respawns.DEAD),
                     "and they come back into the wait, not onto the map");
             assertTrue(game.isGhost(red.player), "a ghost until it runs out - no member, so Game.of reads null");
