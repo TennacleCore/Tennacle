@@ -92,6 +92,9 @@ class BedWarsRoundTest extends HeadlessServerTest {
             s.addMarker(new PointMarker("bedwars:forge-iron", "2", "", new Vec(15.5, 65, 0.5), spawners, 1));
             s.addMarker(new PointMarker("bedwars:forge", "3", "", new Vec(0.5, 65, 15.5)));
             s.addMarker(new PointMarker("bedwars:forge-iron", "3", "", new Vec(0.5, 65, 15.5), spawners, 1));
+            s.addMarker(new PointMarker("bedwars:shop", "1", "", new Vec(-12.5, 65, 4.5)));
+            s.addMarker(new PointMarker("bedwars:shop", "2", "", new Vec(12.5, 65, 4.5)));
+            s.addMarker(new PointMarker("bedwars:shop", "3", "", new Vec(4.5, 65, 12.5)));
             s.addMarker(new PointMarker("bedwars:diamond", "", "", new Vec(0.5, 65, -15.5)));
             s.addMarker(new PointMarker("bedwars:emerald", "", "", new Vec(-15.5, 65, -15.5)));
             s.addMarker(new LimitMarker("bedwars:height", "", "", null, 80.0, null));
@@ -240,11 +243,11 @@ class BedWarsRoundTest extends HeadlessServerTest {
         return titles.isEmpty() ? "" : titles.getLast();
     }
 
-    private static void live(Game game) {
+    static void live(Game game) {
         tickUntil(game, "the countdown ran out", () -> Match.live(game));
     }
 
-    private static void tickUntil(Game game, String what, Supplier<Boolean> done) {
+    static void tickUntil(Game game, String what, Supplier<Boolean> done) {
         long deadline = System.currentTimeMillis() + 8000;
         while (!done.get() && System.currentTimeMillis() < deadline) {
             MinecraftServer.getSchedulerManager().processTick();

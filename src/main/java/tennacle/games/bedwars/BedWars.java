@@ -2,6 +2,7 @@ package tennacle.games.bedwars;
 
 import tennacle.boot.Mechanics;
 import tennacle.games.Generators;
+import tennacle.games.Keepers;
 import tennacle.games.KitLayouts;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -13,6 +14,7 @@ import tennacle.games.beds.Lives;
 import tennacle.games.map.Building;
 import tennacle.games.map.MapPool;
 import tennacle.games.matchmaking.Parties;
+import tennacle.games.shop.Favorites;
 import tennacle.looks.Look;
 import tennacle.looks.Palette;
 import tennacle.looks.Presentation;
@@ -60,8 +62,15 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.component.DataComponents;
+import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.GameMode;
+import net.minestom.server.entity.LivingEntity;
+import net.minestom.server.entity.Player;
+import net.minestom.server.entity.VillagerProfession;
+import net.minestom.server.entity.VillagerType;
+import net.minestom.server.entity.metadata.villager.VillagerMeta;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
@@ -101,6 +110,8 @@ public final class BedWars {
     public static final MarkerKey<PointMarker> FORGE_IRON = MarkerKey.point("bedwars:forge-iron");
     public static final MarkerKey<PointMarker> DIAMOND = MarkerKey.point("bedwars:diamond");
     public static final MarkerKey<PointMarker> EMERALD = MarkerKey.point("bedwars:emerald");
+    /** Where the side's item shopkeeper stands. */
+    public static final MarkerKey<PointMarker> SHOP = MarkerKey.point("bedwars:shop");
 
     public static final StateKey<Integer> KILLS = StateKey.of("ledger.bedwars.kills", Codec.INT, 0, true);
     public static final StateKey<Integer> DEATHS = StateKey.of("ledger.bedwars.deaths", Codec.INT, 0, true);
@@ -113,16 +124,27 @@ public final class BedWars {
     private static final ItemStack SWORD = ItemStack.of(Material.WOODEN_SWORD)
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
 
-    static final Livery LOOK = new Livery(Map.of());
-    // captured: the wooden sword and team leather, the helmet alone with aqua affinity
+    // the shop's team blocks, in the team's color
+    static final Livery LOOK = new Livery(Map.of(Wares.WOOL.name(), "wool", Wares.CLAY.name(), "terracotta",
+            Wares.GLASS.name(), "stained_glass"));
+    // captured: the wooden sword and team leather, the helmet alone with aqua affinity; what is bought for good
+    // comes back at every spawn, and the Hotbar Manager's categories are the layout's names
     static final Kit KIT = Kit.of("bedwars").look(LOOK)
-            .item("sword", 0, SWORD)
+            .item("melee", 0, SWORD)
+            .item("pickaxe", Gear::pickaxe, Gear.PICKAXE)
+            .item("axe", Gear::axe, Gear.AXE)
+            .item("shears", Gear::shears, Gear.SHEARS)
+            .role("blocks", ItemStack.of(Material.TERRACOTTA))
+            .role("ranged", ItemStack.of(Material.BOW))
+            .role("potions", ItemStack.of(Material.BREWING_STAND))
+            .role("utility", ItemStack.of(Material.TNT))
             .layouts((g, p) -> KitLayouts.of(p, "bedwars"))
+            .stamp(Gear::unbreakable)
             .dyedArmor(EquipmentSlot.HELMET, Material.LEATHER_HELMET, worn -> worn.with(DataComponents.ENCHANTMENTS,
                     new EnchantmentList(Map.of(Enchantment.AQUA_AFFINITY, 1))))
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
-            .dyedArmor(EquipmentSlot.LEGGINGS, Material.LEATHER_LEGGINGS)
-            .dyedArmor(EquipmentSlot.BOOTS, Material.LEATHER_BOOTS);
+            .dyedArmor(EquipmentSlot.LEGGINGS, Gear::legs, Gear.ARMOR)
+            .dyedArmor(EquipmentSlot.BOOTS, Gear::boots, Gear.ARMOR);
 
     /** What Bed Wars reads per team - the editor's and the launch check's view. */
     static final Teams.Defaults DEFAULTS = new Teams.Defaults("bedwars", LOOK, roles());
@@ -138,13 +160,28 @@ public final class BedWars {
 
     private static List<Role<?>> roles() {
         List<Role<?>> roles = new ArrayList<>(KIT.roles());
-        roles.add(Team.DISPLAY);
+        roles.addAll(List.of(Team.DISPLAY, Wares.WOOL, Wares.CLAY, Wares.GLASS));
         return roles;
+    }
+
+    // captured: a blacksmith, which Via shows a 1.8 client for an armorer
+    private static Entity shopkeeper() {
+        LivingEntity keeper = new LivingEntity(EntityType.VILLAGER);
+        keeper.editEntityMeta(VillagerMeta.class, meta -> meta.setVillagerData(new VillagerMeta.VillagerData(
+                VillagerType.PLAINS, VillagerProfession.ARMORER, VillagerMeta.Level.NOVICE)));
+        return keeper;
+    }
+
+    private static void shop(Game game, Player player, PointMarker at) {
+        if (Match.live(game) && game.roster().slotOf(player) != null && !game.isGhost(player)) {
+            ItemShop.open(game, player, Wares.Tab.QUICK_BUY);
+        }
     }
 
     public static void install() {
         Teams.register(DEFAULTS);
         KitLayouts.editable("bedwars", KIT);
+        Favorites.install();
         mode("bedwars-solo", "Bed Wars Solo", "Solo", "solo", "bedwars-solo", 8, 1);
         mode("bedwars-doubles", "Bed Wars Doubles", "Doubles", "doubles", "bedwars-doubles", 8, 2);
         mode("bedwars-3s", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
@@ -203,6 +240,7 @@ public final class BedWars {
                 .rule(Mid.Kind.EMERALD.period, List.of(1101L, 801L, 548L))
                 .rule(Mid.Kind.DIAMOND.cap, 8)
                 .rule(Mid.Kind.EMERALD.cap, 6);
+        Wares.fourTeam(builder);
     }
 
     // one game, a team size each: the modes differ in their rules and the maps their team count plays on
@@ -241,6 +279,8 @@ public final class BedWars {
                                 || stack.material() == Material.GOLD_INGOT),
                         () -> new Forges(spawners),
                         Mid::new,
+                        Wares::shop,
+                        () -> Keepers.of().at(SHOP, BedWars::shopkeeper, BedWars::shop),
                         () -> Staging.during(Match.OPENING).clear(LOBBY)
                                 .seating((g, p) -> g.module(Kits.class).apply(p)),
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),
@@ -248,7 +288,7 @@ public final class BedWars {
                         KillCredit::new,
                         FriendlyFire::new,
                         () -> new Beds(BED, BEDS),
-                        () -> new Lives(COUNTERS),
+                        () -> new Lives(COUNTERS).onDeath(Gear::died),
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Staging staging = g.module(Staging.class);
                             if (staging != null && staging.waiting()) { // off the room's edge: back up, no death
