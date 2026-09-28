@@ -161,7 +161,9 @@ public final class Lives implements GameModule {
             game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
             if (by != null) Match.addSeat(game, by, counters.finalKills());
             mark(player, seat, by, verb);
-            standing.out(seat, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game)));
+            // a kill within the credit window says so; a plain leave was announced as the departure it is
+            standing.out(seat, by != null ? LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game))
+                    : LastStanding.Cause.departed());
             game.roster().release(seat); // the hold is for a seat with a bed to come back to
             if (standing.standing(seat.team()) == 0) {
                 Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
@@ -169,7 +171,7 @@ public final class Lives implements GameModule {
             }
             return;
         }
-        Match.say(game, Matches.lookOf(game).death().render(game, seat, player.getUsername(), by, verb));
+        if (by != null) Match.say(game, Matches.lookOf(game).death().render(game, seat, player.getUsername(), by, verb));
     }
 
     /** Coming back to a bed that went while they were away changes nothing: the seat is still out. */

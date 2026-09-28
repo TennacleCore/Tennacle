@@ -1222,7 +1222,11 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
 - **Spectating**: eliminated players spectate with a compass, a settings item, Play Again and Return to
   Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
-  death, final when bedless. `<player> disconnected.` (cap). Back in (cap, Sky Rise 2026-09-25):
+  death, final when bedless. `<player> disconnected.` (cap), the name in the side's color, the rest gray; back
+  in, `<player> reconnected.` the same. Ours said it twice (the user, 2026-09-28: the look's `left!` and a death
+  line reading `left the game`); the departure is the presentation's one line now, in those words, the lives
+  module only counting the death and dropping a bedless seat (`Cause.departed`, which draws no line; a kill
+  inside the credit window still says so). Back in (cap, Sky Rise 2026-09-25):
   `<player> reconnected.`, the death state, the countdown from 10, and yellow `You will respawn because you
   still have a bed!` 0.14 s after the first count.
 - **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. The warning reads bold red `You will

@@ -251,9 +251,11 @@ class BedWarsRoundTest extends HeadlessServerTest {
             BlockVec bBed = game.arena().marker(BedWars.BED, bTeam).boxes().getFirst().min();
             EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), Block.BLUE_BED, Block.AIR, bBed, BlockFace.TOP));
             assertFalse(Beds.stands(game, bTeam));
+            a.sent.clear();
             MinecraftServer.getCommandManager().execute(b.player, "l");
             tickUntil(game, "b out", () -> Game.of(b.player) == null);
             assertEquals(Outcome.winner(aTeam), game.decided(), "nothing to come back to: the leave is the last death");
+            assertEquals(List.of("BwLeftB disconnected."), lines(a, "BwLeftB"), "one line for the leave, Hypixel's");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
@@ -342,6 +344,41 @@ class BedWarsRoundTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    /** A bedded leaver is announced once, in Hypixel's words, and the seat waits. */
+    @Test
+    void aLeaverIsAnnouncedOnce() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoneA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoneB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            a.sent.clear();
+            MinecraftServer.getCommandManager().execute(b.player, "l");
+            tickUntil(game, "b out", () -> Game.of(b.player) == null);
+            assertNull(game.decided(), "a seat with a bed is held");
+            assertEquals(List.of("BwGoneB disconnected."), lines(a, "BwGoneB"), "one line, Hypixel's");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    /** The chat lines {@code p} was sent that name {@code who}, as plain text. */
+    private static List<String> lines(FakePlayer p, String who) {
+        return p.sent(SystemChatPacket.class).stream()
+                .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message()))
+                .filter(line -> line.contains(who)).toList();
     }
 
     private static int count(Player p, Material material) {

@@ -104,9 +104,13 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     /** A seat walked out on, or one re-claimed: the name as this look names players, then the fact. */
     public static @NotNull Component departure(Game game, Slot seat, String name, boolean back) {
         Theme theme = Matches.lookOf(game).theme();
+        // captured hypixel: the name in the side's color, then gray "disconnected." / "reconnected."
+        if (Matches.lookNameOf(game).equals("hypixel")) {
+            return Component.text(name + " ", game.roster().team(seat.team()).color())
+                    .append(Component.text(back ? "reconnected." : "disconnected.", NamedTextColor.GRAY));
+        }
         Component who = switch (Matches.lookNameOf(game)) {
             case "scrims", "tennacle" -> Component.text(name, game.roster().team(seat.team()).color());
-            case "hypixel" -> Component.text(name, NamedTextColor.AQUA);
             default -> theme.value(name);
         };
         return who.append(theme.prose(back ? " rejoined!" : " left!"));

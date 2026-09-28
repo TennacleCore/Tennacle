@@ -134,6 +134,7 @@ public final class Presentation implements GameModule {
     }
 
     private void out(Game game, Slot seat, @Nullable Player player, LastStanding.Cause cause) {
+        if (cause.kind() == LastStanding.Kind.DEPARTED) return; // the departure line said it
         Look look = Matches.lookOf(game);
         String name = player != null ? player.getUsername() : lastOwner(game, seat);
         if (name == null) return;
