@@ -14,6 +14,7 @@ import tennacle.games.beds.Beds;
 import tennacle.games.beds.Lives;
 import tennacle.games.beds.Spoils;
 import tennacle.games.map.Building;
+import tennacle.games.map.Structures;
 import tennacle.games.map.MapPool;
 import tennacle.games.matchmaking.Parties;
 import tennacle.games.shop.Favorites;
@@ -360,7 +361,7 @@ public final class BedWars {
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
                         Loadout::new,
-                        Rules::new, Presentation::new,
+                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Boards.hypixel(label))

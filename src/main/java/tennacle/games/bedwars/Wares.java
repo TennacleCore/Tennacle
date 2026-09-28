@@ -19,6 +19,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.component.PotionContents;
@@ -275,10 +276,18 @@ final class Wares {
     private static BiFunction<Game, Player, ItemStack> teamBlock(Role<Role.Fill> role, int count) {
         return (game, buyer) -> {
             Slot seat = game.roster().slotOf(buyer);
-            Team team = seat != null ? game.roster().team(seat.team()) : null;
-            Material block = (team != null ? team.livery() : BedWars.LOOK).get(role).material();
-            return ItemStack.of(block, count);
+            return ItemStack.of(teamMaterial(game, seat, role), count);
         };
+    }
+
+    static Material teamMaterial(Game game, @Nullable Slot seat, Role<Role.Fill> role) {
+        Team team = seat != null ? game.roster().team(seat.team()) : null;
+        return (team != null ? team.livery() : BedWars.LOOK).get(role).material();
+    }
+
+    /** The side's wool as a block, for what a build lays. */
+    static Block teamWool(Game game, @Nullable Slot seat) {
+        return Block.fromKey(teamMaterial(game, seat, WOOL).key());
     }
 
     private static List<Component> gray(String... lines) {

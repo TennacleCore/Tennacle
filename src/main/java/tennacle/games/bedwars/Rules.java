@@ -27,6 +27,7 @@ final class Rules implements GameModule {
     private int floorY;
     private int ceilingY;
     private List<RegionMarker> bases;
+    private Building building;
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
@@ -42,7 +43,7 @@ final class Rules implements GameModule {
         floorY = (int) Math.ceil(plane(BedWars.FLOOR));
         ceilingY = (int) Math.floor(plane(BedWars.HEIGHT));
         bases = game.arena().markers(BedWars.BASE);
-        Building.install(game, new Building.Space() {
+        building = Building.install(game, new Building.Space() {
             @Override
             public boolean buildable(@NotNull Player placer, @NotNull Point pos) {
                 return inBand(placer, pos) && inside(pos);
@@ -96,6 +97,10 @@ final class Rules implements GameModule {
     private int ceiling(Player placer) {
         int high = game.rules().resolve(placer, Building.HEIGHT);
         return high >= 0 ? high : ceilingY;
+    }
+
+    Building building() {
+        return building;
     }
 
     private double plane(MarkerKey<LimitMarker> key) {

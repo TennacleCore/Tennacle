@@ -8,7 +8,9 @@ import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.instance.block.Block;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tennacle.commands.RulesCompletions;
 
 import java.util.List;
@@ -84,8 +86,13 @@ public final class Building {
             REASON_HEIGHT = "height", REASON_OUTSIDE = "outside", REASON_MAP = "map", REASON_PLACED = "placed";
 
     private final it.unimi.dsi.fastutil.longs.LongSet placed = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+    private final Game game;
+    private final Space space;
 
-    private Building() {}
+    private Building(Game game, Space space) {
+        this.game = game;
+        this.space = space;
+    }
 
     /**
      * Wires the place and break handlers for {@code game}. {@code touched} runs after either lands, for a mode
@@ -93,26 +100,16 @@ public final class Building {
      */
     public static @NotNull Building install(@NotNull Game game, @NotNull Space space,
                                             @NotNull Consumer<Player> touched) {
-        Building building = new Building();
+        Building building = new Building(game, space);
         game.on(PlayerBlockPlaceEvent.class, e -> {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
-            Point pos = e.getBlockPosition();
-            if (!game.rules().resolve(player, BUILD)) {
-                refuse(e, REASON_BUILD);
+            String reason = building.refusal(player, e.getBlockPosition());
+            if (reason != null) {
+                refuse(e, reason);
                 return;
             }
-            if (space.reserved(pos)) {
-                refuse(e, REASON_RESERVED);
-                return;
-            }
-            boolean allowed = space.buildable(player, pos)
-                    || (game.rules().resolve(player, OUTSIDE) && space.inBand(player, pos)); // off the region, still in the band
-            if (!allowed) {
-                refuse(e, space.belowFloor(player, pos) ? REASON_FLOOR : space.aboveHeight(player, pos) ? REASON_HEIGHT : REASON_OUTSIDE);
-                return;
-            }
-            building.placed.add(key(pos));
+            building.placed.add(key(e.getBlockPosition()));
             touched.accept(player);
         });
         game.on(PlayerBlockBreakEvent.class, e -> {
@@ -143,6 +140,28 @@ public final class Building {
     private static void refuse(net.minestom.server.event.trait.CancellableEvent event, String reason) {
         event.setCancelled(true);
         Refusals.because(event, reason);
+    }
+
+    /** Why {@code placer} may not place at {@code pos} (a {@code REASON_}), or null. */
+    public @Nullable String refusal(@NotNull Player placer, @NotNull Point pos) {
+        if (!game.rules().resolve(placer, BUILD)) return REASON_BUILD;
+        if (space.reserved(pos)) return REASON_RESERVED;
+        boolean allowed = space.buildable(placer, pos)
+                || (game.rules().resolve(placer, OUTSIDE) && space.inBand(placer, pos)); // off the region, still in the band
+        if (allowed) return null;
+        return space.belowFloor(placer, pos) ? REASON_FLOOR : space.aboveHeight(placer, pos) ? REASON_HEIGHT : REASON_OUTSIDE;
+    }
+
+    /** Puts {@code block} into the air at {@code pos} as {@code placer}'s own placement, under the same rules as a hand's. */
+    public boolean place(@NotNull Player placer, @NotNull Point pos, @NotNull Block block) {
+        if (refusal(placer, pos) != null || !game.shard().getBlock(pos).air()) return false;
+        game.shard().setBlock(pos, block);
+        placed.add(key(pos));
+        return true;
+    }
+
+    public @NotNull Space space() {
+        return space;
     }
 
     /** Whether a member put the block at {@code pos} there. */

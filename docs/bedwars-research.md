@@ -929,6 +929,11 @@ that were not air. Packets that seemed to fit a 6-tick delay all arrived late in
   throw, so the bridge begins about 1.5 blocks from the thrower. Wool keeps going down for about 4 ticks after
   the egg is removed. A full flight lays 34 to 37 blocks, about 80 wool.
 - **Sound**: `mob.chicken.plop` at volume 1, pitch 1.0, at each laid block's corner.
+- **Ours** (2026-09-28, `BridgeEgg` over `games.map.Structures`): Polyp's own egg flies; from the next tick a
+  job records where it is, lays the L of three for the position `bridge-egg.delay` (5) ticks back through
+  `Building.place` (the same refusal as a hand placement, air only, marked as the thrower's own), and removes the
+  egg past `bridge-egg.life` (30) ticks or once it leaves the mode's build space; the queue drains after. One throw
+  a `bridge-egg.cooldown` (20 ticks); a refused throw reads `Please wait 1.0s to use that again` and keeps its egg.
 
 #### Compact Pop-up Tower, exactly
 
@@ -960,6 +965,11 @@ Fitted on 19 builds (cap, 2026-09-24): after turning each to one frame, the clea
   - `h = 6`, the crenels (10): (-3, -2), (-3, 0), (-3, 2), (2, -2), (2, 0), (2, 2), (-2, ±3) and (1, ±3).
 - **Order**: layer by layer from `h = -1` up (10, 10, 10, 11, 11, 30, 18, 10 cells). Within a layer the cells go
   from the lowest world x to the highest, whichever way the tower faces (three facings seen).
+- **Ours** (2026-09-28, `PopupTower` over `games.map.Structures`): the trapped chest's placement is cancelled once
+  `Building` has allowed it (a refusal never reaches the tower, so the chest returns and nothing is spent), one
+  tower leaves the hand, and the blueprint above goes up `tower.per-tick` (2) cells a tick from the next tick,
+  each through `Building.place` (a taken cell keeps its slot), with the plop at the captured corner and the
+  `-0.5 * look + 0.2 up` shove through Polyp's knockback delivery for anyone a cell lands in.
 
 Explosions, as documented:
 
@@ -1639,6 +1649,8 @@ Each of these was read in the code, not just reported:
 | Stats outcomes | Grotto, Tennacle | kills, deaths, final kills, final deaths, beds broken and lost, wins, losses and streaks; no XP or levels (decision 6) |
 | Item skins | Grotto, Tennacle | done 2026-09-28: `Kit.Skin` and `games.Skins` (6.1), Bed Wars' wood; the pick is a dev command until the standard menus |
 | Block drops | Polyp | done 2026-09-28: `BlockLoot` and `LegacyLoot` under `BlockDrops.VANILLA` / `VANILLA_18` (section 4) |
+| Bridge Egg, Compact Pop-up Tower | Tennacle | done 2026-09-28: `games.map.Structures` (builds over ticks through `Building.place`), Bed Wars `BridgeEgg` and `PopupTower` (6.3) |
+| Creatures | Polyp, Tennacle | engine done 2026-09-28: Polyp `mechanics/mobs`, 1.8's pathfinder and goals ported, silverfish, iron golem and ender dragon with the knobs the captures need (targets by side, damage roll, hit interval, sight of invisible, the dragon's blocks, part damage and enchant bonus); the Bed Wars items, owner sides, holograms, death lines and Sudden Death are next |
 | Filling queue | Tennacle | done 2026-09-27 as `/play`: a game per mode and platform fills on its map, its `Countdown` waiting for `START_AT` seated and stopping short below it; team chat and `/shout` still to come |
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |

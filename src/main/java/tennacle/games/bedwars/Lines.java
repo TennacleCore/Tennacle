@@ -45,6 +45,9 @@ final class Lines {
     static final Sound ORB = Sound.sound(SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP, Sound.Source.PLAYER, 1f, 1f);
     /** Captured: 1.8's {@code liquid.water}. */
     static final Sound MILK_WORE_OFF = Sound.sound(SoundEvent.BLOCK_WATER_AMBIENT, Sound.Source.PLAYER, 0.7f, 2f);
+    /** 1.8 mob.chicken.plop at each laid block. */
+    static final Sound EGG_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
+    static final Sound TOWER_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 0.8f, 50 / 63f);
 
     private Lines() {}
 
@@ -239,6 +242,11 @@ final class Lines {
 
     static Component enderDropped(Game game, String player) {
         return theme(game).good("Contents of " + player + "'s Ender Chest have been dropped into their fountain.");
+    }
+
+    /** Captured: the whole cooldown, whatever is left of it. */
+    static Component wait(Game game, long cooldownTicks) {
+        return theme(game).bad(String.format(java.util.Locale.ROOT, "Please wait %.1fs to use that again", cooldownTicks / 20.0));
     }
 
     static Component milkWoreOff(Game game) {
