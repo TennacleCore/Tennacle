@@ -29,6 +29,7 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
+import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import org.junit.jupiter.api.BeforeAll;
 import net.minestom.server.coordinate.BlockVec;
@@ -279,6 +280,26 @@ class CreaturesTest extends HeadlessServerTest {
                     fish.tick(System.nanoTime());
                 }
                 assertTrue(fish.getPosition().x() > 2.0, "and it walks up to the wall: x " + fish.getPosition().x());
+            } finally {
+                fish.remove();
+            }
+        });
+    }
+
+    /** The user, 2026-09-28: a creature hunts an invisible player as any other; only the shopkeeper looks away. */
+    @Test
+    void aBedbugHuntsTheInvisible() {
+        round("BugUnseen", (game, fa, fb) -> {
+            fb.player.addEffect(new Potion(PotionEffect.INVISIBILITY, 0, 600, Potion.ICON_FLAG));
+            fb.player.setInvisible(true);
+            SilverfishEntity fish = game.module(Creatures.class).bedbug(fa.player, new Pos(0.5, 65, 0.5));
+            assertNotNull(fish);
+            try {
+                for (int tick = 1; tick <= 40 && fish.attackTarget() != fb.player; tick++) {
+                    ticks(game, 1);
+                    fish.tick(System.nanoTime());
+                }
+                assertSame(fb.player, fish.attackTarget(), "the invisible enemy is its target");
             } finally {
                 fish.remove();
             }

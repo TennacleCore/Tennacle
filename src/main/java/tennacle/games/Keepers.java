@@ -58,6 +58,8 @@ public final class Keepers implements GameModule {
     private static final String LOOK = "keepers:look";
     /** Blocks around a keeper, across and up, that a pearl may not land in; {@code 0} = none. */
     public static final StateKey<Double> SPACE = StateKey.of("keeper.space", Codec.DOUBLE, 1.5);
+    /** A keeper turns to an invisible player too, giving them away; off (Hypixel), it never does. */
+    public static final StateKey<Boolean> LOOK_INVISIBLE = StateKey.of("keeper.look.invisible", Codec.BOOLEAN, false);
 
     private final List<Post> posts = new ArrayList<>();
     private final Map<Entity, Standing> standing = new IdentityHashMap<>();
@@ -91,7 +93,7 @@ public final class Keepers implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SPACE);
+        return Set.of(SPACE, LOOK_INVISIBLE);
     }
 
     @Override
@@ -178,9 +180,10 @@ public final class Keepers implements GameModule {
         return nearest;
     }
 
-    // Hypixel v1.11: never toward an invisible player
+    // Hypixel v1.11: never toward an invisible player, unless the rule says
     private boolean seen(Player player) {
-        return player.getGameMode() != GameMode.SPECTATOR && !game.isGhost(player)
-                && !player.isInvisible() && !player.hasEffect(PotionEffect.INVISIBILITY);
+        if (player.getGameMode() == GameMode.SPECTATOR || game.isGhost(player)) return false;
+        return game.rules().resolve(Scope.GAME, LOOK_INVISIBLE)
+                || !player.isInvisible() && !player.hasEffect(PotionEffect.INVISIBILITY);
     }
 }

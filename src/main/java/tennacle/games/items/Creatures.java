@@ -172,6 +172,7 @@ public final class Creatures implements GameModule {
                 .targetChance(1) // captured: a bedbug's first step comes 3 ticks after its spawn
                 .targetSight(false) // captured 2026-09-28: bedbugs walk to a wall and face the enemy behind it
                 .wanderChance(1) // the user, 2026-09-28: with nobody in reach a bedbug roams, never the silverfish's stands
+                .seesInvisible(true) // the user, 2026-09-28: a creature hunts an invisible player as any other
                 .hidesInBlocks(false).callsFromBlocks(false)
                 .targetSelector(Targets.PLAYERS)
                 .attackable(Targets.ANY)
@@ -203,7 +204,7 @@ public final class Creatures implements GameModule {
                 .targetSight(false) // captured 2026-09-28: a defender too
                 .speed(game.rules().resolve(owner, DEFENDER_SPEED))
                 .attackInterval(game.rules().resolve(owner, DEFENDER_SWING))
-                .seesInvisible(true)
+                .seesInvisible(true) // the user, 2026-09-28: a creature hunts an invisible player as any other
                 .targetSelector(DEFENDER_TARGETS)
                 .attackable(Targets.ANY)
                 .build());

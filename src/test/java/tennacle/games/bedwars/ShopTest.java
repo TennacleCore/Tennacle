@@ -18,6 +18,8 @@ import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.world.WorldPolicy;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.minestom.server.potion.Potion;
+import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
@@ -39,6 +41,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -210,6 +213,25 @@ class ShopTest extends HeadlessServerTest {
     }
 
     // a live Solo game with a foe seated, the viewer holding nothing but the kit
+    /** The user, 2026-09-28: a shopkeeper never turns to an invisible player, unless the rule lets it give them away. */
+    @Test
+    void aKeeperLooksPastTheInvisible() {
+        round("ShopH", (game, a) -> {
+            Entity keeper = keeperOf(game, a);
+            float facing = keeper.getPosition().yaw();
+            a.teleport(keeper.getPosition().add(5, 0, 0).withView(0, 0)).join(); // five blocks east, off the spawn's line
+            a.addEffect(new Potion(PotionEffect.INVISIBILITY, 0, 600, Potion.ICON_FLAG));
+            a.setInvisible(true);
+            long until = game.tick() + 3;
+            BedWarsRoundTest.tickUntil(game, "three looks", () -> game.tick() >= until);
+            assertEquals(facing, keeper.getPosition().yaw(), 0.5f, "still facing its spawn");
+            game.state().set(Scope.GAME, Keepers.LOOK_INVISIBLE, true);
+            long later = game.tick() + 3;
+            BedWarsRoundTest.tickUntil(game, "three more", () -> game.tick() >= later);
+            assertNotEquals(facing, keeper.getPosition().yaw(), 0.5f, "the rule lets it turn to them");
+        });
+    }
+
     private static void round(String name, java.util.function.BiConsumer<Game, Player> body) {
         Mode solo = Matches.mode("bedwars-solo");
         Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
