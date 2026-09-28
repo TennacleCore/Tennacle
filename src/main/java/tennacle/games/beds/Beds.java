@@ -1,7 +1,8 @@
-package tennacle.games.bedfight;
+package tennacle.games.beds;
 
 import tennacle.games.Match;
 
+import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
@@ -31,16 +32,16 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The beds: one a side, a real bed under a {@code bedfight:bed} region over both its blocks, in the owning
- * team's group. While a side's bed stands its seats respawn; breaking it takes that away, and the next death
- * there is the last. {@link #BREAK} says whose bed a seat may take. {@link #DESTROY} takes every bed left at
- * once, so a match nobody wins still ends. The elimination is {@code LastStanding}'s, which {@link Rules} calls
+ * The beds: one a side, a real bed under the mode's bed region over both its blocks, in the owning team's
+ * group. While a side's bed stands its seats respawn; breaking it takes that away, and the next death there
+ * is the last. {@link #BREAK} says whose bed a seat may take. {@link #DESTROY} takes every bed left at once,
+ * so a match nobody wins still ends. The elimination is {@code LastStanding}'s, which {@link Lives} calls
  * when a bedless seat falls.
  */
 public final class Beds implements GameModule {
 
     /** Whether the team's bed still stands; team-scoped, so a board reads it a side at a time. */
-    public static final StateKey<Boolean> STANDS = StateKey.of("ledger.bedfight.bed", Codec.BOOLEAN, true, true);
+    public static final StateKey<Boolean> STANDS = StateKey.of("ledger.beds.stands", Codec.BOOLEAN, true, true);
     /** Ticks of live play before every standing bed falls at once; negative = never. */
     public static final StateKey<Long> DESTROY = StateKey.of("beds.destroy", Codec.LONG, 10L * 60 * 20);
     /** The breaker's own side's bed. */
@@ -63,10 +64,18 @@ public final class Beds implements GameModule {
     private static final Component LOST = Component.text("BED DESTROYED!", NamedTextColor.RED);
     private static final Component NO_RESPAWN = Component.text("You will no longer respawn!", NamedTextColor.WHITE);
 
+    private final MarkerKey<RegionMarker> key;
+    private final StateKey<Integer> broken;
     private Game game;
     /** Every block of every bed, to the side that sleeps in it. */
     private final Map<BlockVec, String> cells = new HashMap<>();
     private final List<java.util.function.Consumer<String>> fell = new java.util.ArrayList<>();
+
+    /** The beds under {@code key}'s regions; a break counts on the breaker's {@code broken}. */
+    public Beds(@NotNull MarkerKey<RegionMarker> key, @NotNull StateKey<Integer> broken) {
+        this.key = key;
+        this.broken = broken;
+    }
 
     /** Told the side whose bed just went, however it went - the clock or an enemy pick. */
     public @NotNull Beds onFall(@NotNull java.util.function.Consumer<String> action) {
@@ -84,7 +93,7 @@ public final class Beds implements GameModule {
         this.game = game;
         for (Team team : game.roster().teams()) {
             game.state().set(Scope.team(team.id()), STANDS, true);
-            RegionMarker bed = game.arena().marker(BedFight.BED, team.id());
+            RegionMarker bed = game.arena().marker(key, team.id());
             if (bed == null) continue;
             for (RegionMarker.Cuboid box : bed.boxes()) {
                 for (int x = box.min().blockX(); x <= box.max().blockX(); x++) {
@@ -198,7 +207,7 @@ public final class Beds implements GameModule {
 
     private void broke(String owner, Player breaker, Point bed) {
         erase(owner);
-        Match.addSeat(game, breaker, BedFight.BEDS);
+        Match.addSeat(game, breaker, broken);
         Team broken = game.roster().team(owner);
         // both networks: the side that lost it hears the wither, everyone else the dragon, each from the bed
         game.forEachAudience(viewer -> viewer.playSound(owner.equals(Match.teamOf(game, viewer)) ? LOST_BED : BROKEN,

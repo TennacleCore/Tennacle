@@ -1,4 +1,4 @@
-package tennacle.games.bedfight;
+package tennacle.games.beds;
 
 import tennacle.looks.Look;
 import tennacle.games.Matches;
@@ -17,16 +17,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Bed fight's own lines per network: the bed that went, the side that went with it, and the void's wording.
+ * A bed mode's lines per network: the bed that went, the side that went with it, and the void's wording.
  * Minemen and hypixel wear their captured headlines; every other look reads the way bridge's banners do -
  * the line alone, centered between the theme's rules.
  */
-final class Banners {
+public final class Banners {
 
     private Banners() {}
 
     /** Captured hypixel; minemen carries its own everywhere. */
-    static @NotNull Component bedBroken(Game game, Team side, Player breaker) {
+    public static @NotNull Component bedBroken(Game game, Team side, Player breaker) {
         Component who = Component.text(breaker.getUsername(), tennacle.games.Match.teamColor(game, breaker));
         if (ruled(game)) {
             return ruled(Component.empty()
@@ -42,14 +42,14 @@ final class Banners {
     }
 
     /** Every bed at once, on the destruction clock - uncaptured, the headline over the mode's own words. */
-    static @NotNull Component bedsFell(Game game) {
+    public static @NotNull Component bedsFell(Game game) {
         if (ruled(game)) return ruled(prose(game, "Every bed was destroyed!"));
         return framed(Component.empty().append(headline(game))
                 .append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!")));
     }
 
     /** Captured hypixel; minemen names no elimination in bed fight, so it gets none. */
-    static @Nullable Component eliminated(Game game, Team side) {
+    public static @Nullable Component eliminated(Game game, Team side) {
         if (minemen(game)) return null;
         if (ruled(game)) {
             return ruled(Component.text(Palette.titled(side) + " Team ", side.color())
@@ -62,12 +62,12 @@ final class Banners {
     }
 
     /** How this network says a void death someone is credited for. */
-    static @NotNull String voidVerb(Game game) {
+    public static @NotNull String voidVerb(Game game) {
         return minemen(game) ? "was hit into the void by" : "was knocked into the void by";
     }
 
     /** Captured: hypixel shouts it, minemen does not. */
-    static @NotNull String finalNote(Game game) {
+    public static @NotNull String finalNote(Game game) {
         return minemen(game) ? "FINAL KILL" : "FINAL KILL!";
     }
 

@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.beds.Beds;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 

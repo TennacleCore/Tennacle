@@ -1,5 +1,7 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.beds.Beds;
+import tennacle.games.beds.Rows;
 import tennacle.games.Match;
 import tennacle.looks.Frames;
 import tennacle.looks.Palette;
@@ -26,11 +28,10 @@ final class Boards {
 
     private Boards() {}
 
-    static final Component BED = Component.text("✔", NamedTextColor.GREEN);
-    static final Component GONE = Component.text("✖", NamedTextColor.RED);
-    // captured hypixel: the lighter glyphs, and bold
-    private static final Component BED_LOUD = Component.text("✓", NamedTextColor.GREEN).decorate(TextDecoration.BOLD);
-    private static final Component GONE_LOUD = Component.text("✗", NamedTextColor.RED).decorate(TextDecoration.BOLD);
+    static final Component BED = Rows.BED;
+    static final Component GONE = Rows.GONE;
+    private static final Component BED_LOUD = Rows.BED_LOUD;
+    private static final Component GONE_LOUD = Rows.GONE_LOUD;
 
     static Scoreboard scrims() {
         return Frames.scrims("Bed Fight", Boards::rows);
@@ -86,26 +87,8 @@ final class Boards {
         return Component.text(label, NamedTextColor.WHITE).append(value);
     }
 
-    /**
-     * One side: its color's initial in bold, then the name, then a standing bed, how many of a bedless side are
-     * still in, or the cross that says they are out. The viewer's own side is marked.
-     */
     private static Component sideLine(Game game, String team, Player viewer, Component bed, Component gone) {
-        if (team == null) return Component.empty();
-        Team side = game.roster().team(team);
-        Component line = Component.text(Palette.letter(side), side.color())
-                .append(Component.text(" " + Palette.titled(side) + ": ", NamedTextColor.WHITE))
-                .append(state(game, team, bed, gone));
-        Slot mine = game.roster().slotOf(viewer);
-        return mine != null && mine.team().equals(team)
-                ? line.append(Component.text(" YOU", NamedTextColor.GRAY)) : line;
-    }
-
-    private static Component state(Game game, String team, Component bed, Component gone) {
-        if (Beds.stands(game, team)) return bed;
-        LastStanding standing = game.module(LastStanding.class);
-        int alive = standing != null ? standing.standing(team) : 0;
-        return alive > 0 ? Component.text(alive, NamedTextColor.GREEN) : gone;
+        return Rows.side(game, team, viewer, bed, gone);
     }
 
     private static int sides(Game game) {

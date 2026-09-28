@@ -1,5 +1,7 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.beds.Beds;
+import tennacle.games.beds.Lives;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.watch.Spectators;
@@ -471,14 +473,14 @@ class BedFightRoundTest extends HeadlessServerTest {
             assertNotNull(mine);
 
             blue.sent.clear();
-            game.module(Rules.class).fell(red.player);
+            game.module(Lives.class).fell(red.player);
             List<String> ordinary = said(blue).stream().filter(l -> l.contains("BedLineRed")).toList();
             assertEquals(List.of("BedLineRed fell into the void."), ordinary, "one line, the look's: " + said(blue));
 
             break0(blue.player, new BlockVec(-7, 65, 0));
             assertFalse(Beds.stands(game, mine.team()), "their bed is gone");
             blue.sent.clear();
-            game.module(Rules.class).fell(red.player);
+            game.module(Lives.class).fell(red.player);
             List<String> last = said(blue).stream().filter(l -> l.contains("BedLineRed")).toList();
             assertEquals(List.of("BedLineRed fell into the void. FINAL KILL!"), last, "and one on the last: " + said(blue));
             String side = tennacle.looks.Palette.titled(game.roster().team(mine.team()));
@@ -529,7 +531,7 @@ class BedFightRoundTest extends HeadlessServerTest {
                     "between the theme's rules, the way bridge's banners read: " + banner);
 
             blue.sent.clear();
-            game.module(Rules.class).fell(red.player);
+            game.module(Lives.class).fell(red.player);
             assertEquals(List.of("HouseBedRed fell into the void. FINAL KILL!"),
                     said(blue).stream().filter(l -> l.contains("HouseBedRed")).toList(),
                     "one line, with the note: " + said(blue));
@@ -568,7 +570,7 @@ class BedFightRoundTest extends HeadlessServerTest {
                     "the headline and its guillemet are bold, the rest is not");
 
             blue.sent.clear();
-            game.module(Rules.class).fell(red.player);
+            game.module(Lives.class).fell(red.player);
             assertEquals(List.of("MmcBedRed fell into the void! FINAL KILL"),
                     said(blue).stream().filter(l -> l.contains("MmcBedRed fell")).toList(),
                     "minemen shouts no exclamation on the note: " + said(blue));
@@ -859,7 +861,7 @@ class BedFightRoundTest extends HeadlessServerTest {
 
             List<String> marked = new java.util.ArrayList<>();
             break0(blue.player, new BlockVec(-7, 65, 0));
-            game.module(Rules.class).fell(red.player);
+            game.module(Lives.class).fell(red.player);
             for (var mark : tennacle.games.watch.Replays.marksOf(game)) {
                 marked.add(mark.name());
                 if (mark.name().equals("bed")) {

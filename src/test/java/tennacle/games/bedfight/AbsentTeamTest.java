@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.beds.Beds;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.TestWiring;
@@ -76,7 +77,7 @@ class AbsentTeamTest extends HeadlessServerTest {
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),
                         Countdown::of,
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),
-                        Beds::new)
+                        () -> new Beds(BedFight.BED, BedFight.BEDS))
                 .build();
         Game game = Matches.grotto().launch(type, threeSides());
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "AbsA");

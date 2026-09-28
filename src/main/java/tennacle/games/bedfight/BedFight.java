@@ -13,6 +13,8 @@ import tennacle.looks.Look;
 import tennacle.looks.Palette;
 import tennacle.looks.Presentation;
 import tennacle.games.Presets;
+import tennacle.games.beds.Beds;
+import tennacle.games.beds.Lives;
 import io.github.term4.bloom.mapmaking.Teams;
 
 import io.github.term4.barnacle.marker.LimitMarker;
@@ -93,6 +95,9 @@ public final class BedFight {
     public static final StateKey<Integer> DEATHS = StateKey.of("ledger.bedfight.deaths", Codec.INT, 0, true);
     /** Beds this seat broke. */
     public static final StateKey<Integer> BEDS = StateKey.of("ledger.bedfight.beds", Codec.INT, 0, true);
+    public static final StateKey<Integer> FINAL_KILLS = StateKey.of("ledger.bedfight.final-kills", Codec.INT, 0, true);
+    public static final StateKey<Integer> FINAL_DEATHS = StateKey.of("ledger.bedfight.final-deaths", Codec.INT, 0, true);
+    static final Lives.Counters COUNTERS = new Lives.Counters(KILLS, DEATHS, FINAL_KILLS, FINAL_DEATHS);
 
     private static final ItemStack SWORD = ItemStack.of(Material.WOODEN_SWORD)
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
@@ -171,10 +176,11 @@ public final class BedFight {
                         Respawns::manual,
                         KillCredit::new,
                         FriendlyFire::new,
-                        Beds::new,
+                        () -> new Beds(BED, BEDS),
+                        () -> new Lives(COUNTERS),
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
-                            Rules rules = g.module(Rules.class);
-                            if (rules != null) rules.fell(who);
+                            Lives lives = g.module(Lives.class);
+                            if (lives != null) lives.fell(who);
                         })),
                         Pressure::of,
                         Nametags::of,
