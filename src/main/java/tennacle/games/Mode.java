@@ -31,13 +31,19 @@ import java.util.function.Supplier;
  * @param marks      how a replay's bookmarks read on the bookmark screen; null = the name on paper
  * @param look       the look every match of this mode wears whatever preset it runs; null = the preset's own,
  *                   which is what a mode with captures behind its platforms wants
+ * @param family     a duel or a game of many sides: what a look's verdict and end block take their form from
+ * @param title      the name as copy reads it ({@code Bridge}, {@code Bed Wars Solo})
  */
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
                    @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants,
                    @NotNull List<Component> intro, boolean ghostLoser, boolean sided,
                    @Nullable StateKey<Integer> teamScore,
-                   @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look) {
+                   @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look,
+                   @NotNull Family family, @NotNull String title) {
+
+    /** Hypixel's two presentations: a duel's card names two players; a game's block names the winning side. */
+    public enum Family { DUEL, GAME }
 
     /** A mode whose looks are its platforms' - every mode with captures behind them. */
     public Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
@@ -46,7 +52,8 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                 @NotNull List<Component> intro, boolean ghostLoser, boolean sided,
                 @Nullable StateKey<Integer> teamScore,
                 @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
-        this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null);
+        this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null,
+                Family.DUEL, titled(name));
     }
 
     /**
@@ -74,6 +81,8 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         private List<SeatStat> tabStats = List.of();
         private @Nullable Marks marks;
         private @Nullable String look;
+        private Family family = Family.DUEL;
+        private @Nullable String title;
 
         private Builder(String name, GameType type, Maps arena, Supplier<MechanicsProfile.Builder> profile,
                         Ruleset base, Map<String, Ruleset> variants) {
@@ -127,9 +136,21 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
             return this;
         }
 
+        /** A game of many sides, not a duel. */
+        public @NotNull Builder game() {
+            this.family = Family.GAME;
+            return this;
+        }
+
+        /** The name as copy reads it; unset is the name capitalized. */
+        public @NotNull Builder title(@NotNull String title) {
+            this.title = title;
+            return this;
+        }
+
         public @NotNull Mode build() {
             return new Mode(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore,
-                    tabStats, marks, look);
+                    tabStats, marks, look, family, title != null ? title : titled(name));
         }
     }
 
@@ -150,8 +171,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         tabStats = List.copyOf(tabStats);
     }
 
-    /** {@code Bridge} for {@code bridge}: the name as copy reads it. */
-    public @NotNull String title() {
+    private static String titled(String name) {
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 

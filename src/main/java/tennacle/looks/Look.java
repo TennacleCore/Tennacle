@@ -144,19 +144,26 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 Match.times(game, 0, 40, 10));
     }
 
-    /** The start countdown's voice: chat line, optional title per beat, and the at-zero line. */
-    public record Count(@NotNull IntFunction<Component> number,
-                        @Nullable IntFunction<Component> title,
+    /** The start countdown's voice: chat line and title per beat (null = a silent beat), the at-zero line,
+     *  and the line for a count stopped short of players. */
+    public record Count(@NotNull IntFunction<@Nullable Component> number,
+                        @Nullable IntFunction<@Nullable Component> title,
                         @NotNull Beat beat,
-                        @NotNull BiFunction<Game, Player, @Nullable Component> started) {
+                        @NotNull BiFunction<Game, Player, @Nullable Component> started,
+                        @Nullable Component cancelled) {
 
         /** How long a beat's title holds, in client ticks. */
         public record Beat(int fadeIn, int stay, int fadeOut) {}
 
         /** The captured hypixel timing, which a look with no beat title never reads. */
-        public Count(@NotNull IntFunction<Component> number, @Nullable IntFunction<Component> title,
+        public Count(@NotNull IntFunction<@Nullable Component> number, @Nullable IntFunction<@Nullable Component> title,
                      @NotNull BiFunction<Game, Player, @Nullable Component> started) {
-            this(number, title, new Beat(0, 20, 20), started);
+            this(number, title, new Beat(0, 20, 20), started, null);
+        }
+
+        public Count(@NotNull IntFunction<@Nullable Component> number, @Nullable IntFunction<@Nullable Component> title,
+                     @NotNull Beat beat, @NotNull BiFunction<Game, Player, @Nullable Component> started) {
+            this(number, title, beat, started, null);
         }
     }
 
@@ -200,9 +207,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** Captured hypixel: scoring modes end on TEAM WINS! + the score; plain duels on VICTORY!/DEFEAT!. */
     public static final Look HYPIXEL = new Look(Msg.HYPIXEL, Look::hypixelDeath, Look::hypixelVerdict,
-            new Count(Look::hypixelNumber,
-                    n -> Component.text(n, n >= 4 ? NamedTextColor.YELLOW : NamedTextColor.RED),
-                    Look::hypixelStarted),
+            new Count(Look::hypixelNumber, Look::hypixelDigit, new Count.Beat(0, 20, 20), Look::hypixelStarted,
+                    Component.text("We don't have enough players! Start cancelled.", NamedTextColor.RED)),
             // captured: note.hat vol 20 each beat, nothing at zero, the firework launch on each beat after a goal
             SoundSet.of()
                     .cue(SoundSet.COUNTDOWN,
@@ -403,10 +409,21 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     }
 
     // captured: yellow prose, red digit, "1 second!" singular; the intro block lands at zero
-    private static Component hypixelNumber(int n) {
+    // captured: a 5-second count speaks every second, a 20-second one at 20, 10 and the last five; the number
+    // yellow at 20, gold at 10, red from 5
+    private static @Nullable Component hypixelNumber(int n) {
+        if (n > 5 && n % 10 != 0) return null;
+        NamedTextColor tone = n > 10 ? NamedTextColor.YELLOW : n > 5 ? NamedTextColor.GOLD : NamedTextColor.RED;
         return Component.text("The game starts in ", NamedTextColor.YELLOW)
-                .append(Component.text(n, NamedTextColor.RED))
+                .append(Component.text(n, tone))
                 .append(Component.text(n == 1 ? " second!" : " seconds!", NamedTextColor.YELLOW));
+    }
+
+    // captured: the digit titled at 10 (green) and from 5 (5 and 4 yellow, 3 to 1 red)
+    private static @Nullable Component hypixelDigit(int n) {
+        if (n == 10) return Component.text(n, NamedTextColor.GREEN);
+        if (n > 5) return null;
+        return Component.text(n, n >= 4 ? NamedTextColor.YELLOW : NamedTextColor.RED);
     }
 
     private static @Nullable Component hypixelStarted(Game game, Player viewer) {
@@ -430,6 +447,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     private static Title hypixelVerdict(Game game, boolean won, Player winner) {
         Mode mode = Matches.modeOf(game);
         Title.Times times = Match.times(game, 0, 40, 10);
+        // captured (Bed Wars): gold bold VICTORY! and red bold GAME OVER!, no subtitle, held 100 ticks
+        if (mode != null && mode.family() == Mode.Family.GAME) {
+            return Title.title(won ? Component.text("VICTORY!", NamedTextColor.GOLD, TextDecoration.BOLD)
+                    : Component.text("GAME OVER!", NamedTextColor.RED, TextDecoration.BOLD),
+                    Component.empty(), Match.times(game, 0, 100, 0));
+        }
         if (mode != null && mode.teamScore() != null) {
             Slot seat = game.roster().slotOf(winner);
             Team team = game.roster().team(seat != null ? seat.team() : null);
