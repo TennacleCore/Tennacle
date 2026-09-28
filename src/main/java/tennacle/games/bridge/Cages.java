@@ -1,6 +1,7 @@
 package tennacle.games.bridge;
 
 import tennacle.games.map.Chunks;
+import tennacle.games.map.Prefab;
 import tennacle.games.map.HotArena;
 import io.github.term4.bloom.Bloom;
 import io.github.term4.barnacle.marker.DataMarker;
@@ -312,19 +313,10 @@ public final class Cages implements GameModule {
             }
             BlockVec anchor = new BlockVec(spot.pos().blockX(), spot.pos().blockY(), spot.pos().blockZ());
             List<Cell> cells = new ArrayList<>();
-            for (RegionMarker.Cuboid part : box.boxes()) {
-                Chunks.load(source, part.min().blockX() >> 4, part.max().blockX() >> 4, part.min().blockZ() >> 4, part.max().blockZ() >> 4);
-                for (int x = part.min().blockX(); x <= part.max().blockX(); x++) {
-                    for (int z = part.min().blockZ(); z <= part.max().blockZ(); z++) {
-                        for (int y = part.min().blockY(); y <= part.max().blockY(); y++) {
-                            Block block = source.getBlock(x, y, z);
-                            if (block.air()) continue;
-                            cells.add(new Cell(
-                                    new BlockVec(x - anchor.blockX(), y - anchor.blockY(), z - anchor.blockZ()),
-                                    block, accented(block, new BlockVec(x, y, z), accents)));
-                        }
-                    }
-                }
+            for (Prefab.Cell cell : Prefab.read(source, box, anchor)) {
+                BlockVec at = new BlockVec(anchor.blockX() + cell.offset().blockX(), anchor.blockY() + cell.offset().blockY(),
+                        anchor.blockZ() + cell.offset().blockZ());
+                cells.add(new Cell(cell.offset(), cell.block(), accented(cell.block(), at, accents)));
             }
             long accented = cells.stream().filter(Cell::accented).count();
             long loose = cells.stream().filter(c -> !c.accented() && c.block().key().value().startsWith("red_")).count();

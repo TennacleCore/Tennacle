@@ -20,6 +20,8 @@ import net.kyori.adventure.nbt.BinaryTagTypes;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.kyori.adventure.nbt.StringBinaryTag;
+import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
@@ -93,7 +95,7 @@ public final class BedwarsMaps {
                     continue;
                 }
                 String id = "bedwars-" + name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
-                byte[] arena = build(id, map, world(zip));
+                byte[] arena = build(id, map, world(zip, room(map)));
                 Files.write(out.resolve(id + ".bncl"), arena);
                 written++;
                 System.out.println(name + ": " + id + ".bncl, " + arena.length / 1024 + " KB, " + provenance(map));
@@ -102,7 +104,23 @@ public final class BedwarsMaps {
         return written;
     }
 
-    private static byte[] world(Path zip) throws IOException {
+    // the room is the rooms arena's to lay (games.map.Rooms): the map ships the marker alone
+    private static RegionMarker.@Nullable Cuboid room(JsonObject map) {
+        JsonObject lobby = object(map, "lobby");
+        return lobby == null ? null : new RegionMarker.Cuboid(block(lobby.getAsJsonArray("min")), block(lobby.getAsJsonArray("max")));
+    }
+
+    private static void clear(Instance instance, RegionMarker.@Nullable Cuboid room) {
+        if (room == null) return;
+        for (int x = room.min().blockX(); x <= room.max().blockX(); x++) {
+            for (int z = room.min().blockZ(); z <= room.max().blockZ(); z++) {
+                if (!instance.isChunkLoaded(x >> 4, z >> 4)) continue;
+                for (int y = room.min().blockY(); y <= room.max().blockY(); y++) instance.setBlock(x, y, z, Block.AIR);
+            }
+        }
+    }
+
+    private static byte[] world(Path zip, RegionMarker.@Nullable Cuboid room) throws IOException {
         Path temp = Files.createTempDirectory("bedwars-map");
         try (ZipFile archive = new ZipFile(zip.toFile())) {
             String root = null;
@@ -124,7 +142,7 @@ public final class BedwarsMaps {
                 }
             }
             if (!LegacyAnvil.isLegacy(temp)) throw new IOException(zip + " is not a pre-1.13 world");
-            return LegacyAnvil.toPolar(temp);
+            return LegacyAnvil.toPolar(temp, instance -> clear(instance, room));
         } finally {
             try (Stream<Path> paths = Files.walk(temp)) {
                 for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);

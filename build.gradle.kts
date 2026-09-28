@@ -71,6 +71,18 @@ tasks.register<JavaExec>("bedwarsMaps") {
     argumentProviders.add(CommandLineArgumentProvider { listOf(archive.get(), markers.get(), out.get(), maps.get()) })
 }
 
+tasks.register<JavaExec>("roomExtract") {
+    description = "Cuts the -Pkey region of -Psource (an arena) into -Pout (arenas/rooms.bncl) as the room variant -Pvariant"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "tennacle.dev.RoomExtract"
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    val source = providers.gradleProperty("source")
+    val key = providers.gradleProperty("key").orElse("bedwars:lobby")
+    val variant = providers.gradleProperty("variant").orElse("bedwars")
+    val out = providers.gradleProperty("out").orElse(layout.projectDirectory.file("arenas/rooms.bncl").asFile.path)
+    argumentProviders.add(CommandLineArgumentProvider { listOf(source.get(), key.get(), variant.get(), out.get()) })
+}
+
 tasks.test {
     useJUnitPlatform()
     maxHeapSize = "2g" // one shared headless server across 50+ classes; gradle's 512m default runs out near the end

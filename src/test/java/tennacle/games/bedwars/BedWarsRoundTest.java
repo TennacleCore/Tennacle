@@ -40,6 +40,9 @@ import net.minestom.server.instance.block.BlockFace;
 import tennacle.games.map.Building;
 import tennacle.boot.Mechanics;
 import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
+import tennacle.games.Idle;
+import io.github.term4.polyp.api.event.item.ItemPickupEvent;
+import net.minestom.server.event.player.PlayerMoveEvent;
 import tennacle.games.watch.Replays;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SetTitleTextPacket;
@@ -53,12 +56,21 @@ import net.kyori.adventure.text.Component;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.types.Fireball;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
+import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
+import io.github.term4.polyp.mechanics.damage.types.explosion.ExplosionDamage;
+import net.minestom.server.entity.Entity;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -97,7 +109,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
             s.addMarker(new RegionMarker("bedwars:base", "1", "", new BlockVec(-13, 64, -2), new BlockVec(-9, 68, 2)));
             s.addMarker(new RegionMarker("bedwars:base", "2", "", new BlockVec(9, 64, -2), new BlockVec(13, 68, 2)));
             s.addMarker(new RegionMarker("bedwars:base", "3", "", new BlockVec(-2, 64, 9), new BlockVec(2, 68, 13)));
-            s.addMarker(new RegionMarker("bedwars:lobby", "", "", new BlockVec(-2, 99, -2), new BlockVec(2, 99, 2)));
+            s.addMarker(new RegionMarker("bedwars:lobby", "", "", new BlockVec(-12, 97, -12), new BlockVec(12, 106, 12)));
             CompoundBinaryTag spawners = CompoundBinaryTag.builder().putInt("solo", 3).putInt("doubles", 3)
                     .putInt("3v3v3v3", 3).putInt("4v4v4v4", 5).build();
             s.addMarker(new PointMarker("bedwars:forge", "1", "", new Vec(-15.5, 65, 0.5)));
@@ -152,7 +164,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
             assertNotEquals(Match.teamOf(game, a.player), Match.teamOf(game, c.player), "the next arrival takes the emptiest team");
             assertEquals(ROOM.y(), a.player.getPosition().y(), 1e-9, "held in the room");
             assertTrue(a.player.getInventory().getItemStack(0).isAir(), "no kit in the room");
-            assertEquals(Block.GLASS, game.shard().getBlock(new BlockVec(0, 99, 0)));
+            assertFalse(game.shard().getBlock(new BlockVec(0, 99, 0)).air(), "the room's floor under them");
 
             live(game);
             Pos seat = game.roster().slotOf(a.player).spawn();
@@ -292,6 +304,76 @@ class BedWarsRoundTest extends HeadlessServerTest {
             assertEquals(Block.WHITE_WOOL, game.shard().getBlock(new BlockVec(0, 64, -5)), "the map's floor stays");
             assertFalse(Building.of(game).placed(cell), "and the mark went with it");
         } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void theRoomIsLaidFromItsOwnArena() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwRoomA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwRoomB");
+        try {
+            RegionMarker.Cuboid room = game.arena().marker(BedWars.LOBBY, "").boxes().getFirst();
+            assertTrue(blocksIn(game, room) > 25, "the room stands while the game fills");
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            assertEquals(0, blocksIn(game, room), "and goes at GO");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    private static int blocksIn(Game game, RegionMarker.Cuboid box) {
+        int n = 0;
+        for (int x = box.min().blockX(); x <= box.max().blockX(); x++) {
+            for (int y = box.min().blockY(); y <= box.max().blockY(); y++) {
+                for (int z = box.min().blockZ(); z <= box.max().blockZ(); z++) {
+                    if (!game.shard().getBlock(x, y, z).air()) n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    @Test
+    void aFireballKillIsTheThrowers() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwFireA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwFireB");
+        Entity fireball = null;
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            List<Lives.Death> deaths = new ArrayList<>();
+            game.module(Lives.class).onDeath(deaths::add);
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            fireball = projectiles.launch(ProjectileSnapshot.of(a.player, Fireball.INSTANCE).withConfig(Vanilla18.projectiles()));
+            assertNotNull(fireball, "the fireball flies");
+            Mechanics.polyp.services().damage().apply(DamageSnapshot.of(b.player, ExplosionDamage.INSTANCE).withSource(fireball).withAmount(100f));
+            assertEquals(1, deaths.size(), "one death");
+            assertSame(a.player, deaths.getFirst().killer(), "the thrower's kill");
+            assertNull(deaths.getFirst().tool(), "named with no tool");
+        } finally {
+            if (fireball != null) fireball.remove();
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();
@@ -466,6 +548,40 @@ class BedWarsRoundTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
             c.player.remove();
+        }
+    }
+
+    @Test
+    void standingStillStopsPickups() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        game.state().set(Scope.GAME, Idle.PICKUP, 40L);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwIdleA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwIdleB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            DroppedItemEntity iron = DroppedItemEntity.spawn(game.shard(), a.player.getPosition(), Vec.ZERO, ItemStack.of(Material.IRON_INGOT), null, 0);
+            assertNotNull(iron);
+            long from = game.tick();
+            tickUntil(game, "forty ticks still", () -> game.tick() >= from + 41);
+            var late = new ItemPickupEvent(a.player, iron);
+            EventDispatcher.call(late);
+            assertTrue(late.isCancelled(), "no pickup for a member standing still");
+            EventDispatcher.call(new PlayerMoveEvent(a.player, a.player.getPosition().add(0.5, 0, 0), true));
+            var moved = new ItemPickupEvent(a.player, iron);
+            EventDispatcher.call(moved);
+            assertFalse(moved.isCancelled(), "a step brings the pickups back");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
         }
     }
 

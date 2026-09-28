@@ -2,6 +2,7 @@ package tennacle.games.bedwars;
 
 import tennacle.boot.Mechanics;
 import tennacle.games.Generators;
+import tennacle.games.Idle;
 import tennacle.games.Invisibles;
 import tennacle.games.Keepers;
 import tennacle.games.KitLayouts;
@@ -14,6 +15,8 @@ import tennacle.games.Timeline;
 import tennacle.games.beds.Beds;
 import tennacle.games.beds.Lives;
 import tennacle.games.beds.Spoils;
+import tennacle.games.map.HotArena;
+import tennacle.games.map.Rooms;
 import tennacle.games.map.Building;
 import tennacle.games.map.Structures;
 import tennacle.games.map.MapPool;
@@ -113,6 +116,8 @@ public final class BedWars {
     public static final MarkerKey<RegionMarker> BASE = MarkerKey.region("bedwars:base");
     /** The waiting room, gone at the start. */
     public static final MarkerKey<RegionMarker> LOBBY = MarkerKey.region("bedwars:lobby");
+    /** The waiting room, once, in its own arena; the maps carry the marker alone. */
+    static final HotArena ROOMS = HotArena.of("rooms");
     /** Highest placeable Y. */
     public static final MarkerKey<LimitMarker> HEIGHT = MarkerKey.limit("bedwars:height");
     /** Lowest placeable Y. */
@@ -153,6 +158,7 @@ public final class BedWars {
             .item(Compass.SLOT, Compass.ITEM)
             .fallback("melee", Gear::sword) // captured 2026-09-27: the wooden sword is there whenever no better one is
             .roleOf(Wares::role)
+            .ranked("melee", Gear::rank) // captured 2026-09-28: a better sword takes the held one's slot, the beaten one moves to the first empty
             .item("pickaxe", Gear::pickaxe, Gear.PICKAXE)
             .item("axe", Gear::axe, Gear.AXE)
             .item("shears", Gear::shears, Gear.SHEARS)
@@ -240,6 +246,7 @@ public final class BedWars {
         mode("bedwars-doubles", "Bed Wars Doubles", "Doubles", "doubles", "bedwars-doubles", 8, 2);
         mode("bedwars-3s", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
         mode("bedwars-4s", "Bed Wars 4v4v4v4", "4v4v4v4", "4v4v4v4", "bedwars-4v4v4v4", 4, 4);
+        Rooms.warm(ROOMS); // off the boot thread, not off the first game's clock
     }
 
     // captured: the timeline's events, the middle's tiers among them
@@ -347,6 +354,7 @@ public final class BedWars {
                         () -> Invisibles.of(Lines::invisibilityLost),
                         HealPool::new,
                         PartyExit::new,
+                        () -> Rooms.of(ROOMS, "bedwars", LOBBY), // before the seats open: the room is down as they do
                         () -> Staging.during(Match.OPENING).clear(LOBBY)
                                 .seating((g, p) -> g.module(Kits.class).apply(p)),
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),
@@ -375,6 +383,7 @@ public final class BedWars {
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
                         () -> new Loadout().kept(Gear::kept),
+                        Idle::new,
                         Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
