@@ -196,7 +196,7 @@ final class Chests implements GameModule {
         for (int i = 0; i < slots.length; i++) {
             if (slots[i] == null) continue;
             containers.set(game.shard(), key, i, slots.length, ItemStack.AIR);
-            Generators.drop(game, forge.point(), slots[i]);
+            Generators.drop(game, forge.point(), BedWars.KIT.shed(game, slots[i]));
             any = true;
         }
         if (any) Match.say(game, Lines.enderDropped(game, player.getUsername()));

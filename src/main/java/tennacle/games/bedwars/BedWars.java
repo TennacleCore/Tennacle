@@ -8,6 +8,7 @@ import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.Presets;
+import tennacle.games.Skins;
 import tennacle.games.Timeline;
 import tennacle.games.beds.Beds;
 import tennacle.games.beds.Lives;
@@ -84,8 +85,10 @@ import net.minestom.server.utils.Unit;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Bed Wars, Hypixel's, on its maps: eight or four sides, each with a bed. A game fills up in the map's waiting
@@ -149,6 +152,7 @@ public final class BedWars {
             .role("potions", ItemStack.of(Material.BREWING_STAND))
             .role("utility", ItemStack.of(Material.TNT))
             .layouts((g, p) -> KitLayouts.of(p, "bedwars"))
+            .skin(Skins.skin())
             .stamp(Gear::unbreakable)
             .stamp(Upgrades::sharpened, Upgrades.SHARPNESS)
             .stamp(Upgrades::reinforced, Upgrades.PROTECTION)
@@ -159,6 +163,9 @@ public final class BedWars {
             .dyedArmor(EquipmentSlot.CHESTPLATE, Material.LEATHER_CHESTPLATE)
             .dyedArmor(EquipmentSlot.LEGGINGS, Gear::legs, Gear.ARMOR)
             .dyedArmor(EquipmentSlot.BOOTS, Gear::boots, Gear.ARMOR);
+
+    /** Captured: every plank and log is one wood, oak planks when nobody wears it. */
+    static final Skins.Family WOOD = Skins.register(new Skins.Family("wood", Material.OAK_PLANKS, wood()));
 
     /** What Bed Wars reads per team - the editor's and the launch check's view. */
     static final Teams.Defaults DEFAULTS = new Teams.Defaults("bedwars", LOOK, roles());
@@ -171,6 +178,15 @@ public final class BedWars {
             Component.text("to access powerful upgrades.", NamedTextColor.YELLOW, TextDecoration.BOLD));
 
     private BedWars() {}
+
+    private static Set<Material> wood() {
+        Set<Material> out = new LinkedHashSet<>();
+        for (String kind : List.of("oak", "spruce", "birch", "jungle", "acacia", "dark_oak")) {
+            out.add(Material.fromKey("minecraft:" + kind + "_planks"));
+            out.add(Material.fromKey("minecraft:" + kind + "_log"));
+        }
+        return out;
+    }
 
     private static List<Role<?>> roles() {
         List<Role<?>> roles = new ArrayList<>(KIT.roles());
@@ -210,6 +226,7 @@ public final class BedWars {
         Teams.register(DEFAULTS);
         KitLayouts.editable("bedwars", KIT);
         Favorites.install();
+        Skins.install();
         mode("bedwars-solo", "Bed Wars Solo", "Solo", "solo", "bedwars-solo", 8, 1);
         mode("bedwars-doubles", "Bed Wars Doubles", "Doubles", "doubles", "bedwars-doubles", 8, 2);
         mode("bedwars-3s", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
@@ -344,7 +361,7 @@ public final class BedWars {
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
                         Loadout::new,
                         Rules::new, Presentation::new,
-                        () -> Refusals.of(Look::refusal),
+                        () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Boards.hypixel(label))
                 .build();

@@ -4,6 +4,7 @@ import tennacle.games.watch.Spectators;
 import io.github.term4.polyp.mechanics.attribute.catalog.VanillaPotions;
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
+import tennacle.games.Skins;
 import tennacle.dev.Arsenal;
 import tennacle.dev.LagSimulator;
 
@@ -41,7 +42,9 @@ import net.minestom.server.network.packet.server.play.UpdateHealthPacket;
 import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -95,6 +98,7 @@ public final class DevCommands {
     }
 
     public static void register(Polyp polyp) {
+        skins();
 
         // what the tab is ACTUALLY being sent for this viewer - the tab differs per client generation
         AppCommand tabdump = Commands.dev("tabdump", "What the tab list is sending you.");
@@ -394,4 +398,54 @@ public final class DevCommands {
         p.setItemInMainHand(held.with(DataComponents.ENCHANTMENTS, updated));
         Msg.tag(p, "enchant", "enchanted held item with ", Msg.v(key.asString()), " ", Msg.v(level));
     }
+
+    // the skin picker: Skins holds the families and the picks, the standard menus will front them later
+    private static void skins() {
+        AppCommand skin = Commands.dev("skin", "The face of what you buy and pick up, per family.")
+                .usage("/skin [family] [face]", "list the families, a family's faces, or pick one");
+        skin.setDefaultExecutor((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            if (Skins.families().isEmpty()) {
+                Msg.say(p, "Nothing wears a skin yet.");
+                return;
+            }
+            for (Skins.Family family : Skins.families()) {
+                Msg.say(p, Msg.v(family.id()), ": ", Msg.v(Skins.name(Skins.faceOf(p, family))), ". ",
+                        Msg.run("/skin " + family.id()), " lists its faces.");
+            }
+        });
+        var familyArg = ArgumentType.Word("family");
+        var faceArg = ArgumentType.Word("face");
+        skin.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            Skins.Family family = family(p, ctx.get(familyArg));
+            if (family == null) return;
+            List<String> faces = family.faces().stream().map(Skins::name).sorted().toList();
+            Msg.say(p, Msg.v(family.id()), " faces: ", Msg.v(String.join(", ", faces)), ". Yours: ",
+                    Msg.v(Skins.name(Skins.faceOf(p, family))), ".");
+        }, familyArg);
+        skin.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            Skins.Family family = family(p, ctx.get(familyArg));
+            if (family == null) return;
+            Material face = Material.fromKey("minecraft:" + ctx.get(faceArg));
+            if (face == null || !family.faces().contains(face)) {
+                Msg.fail(p, "No ", Msg.v(family.id()), " face named ", Msg.v(ctx.get(faceArg)), ". ",
+                        Msg.run("/skin " + family.id()), " lists them.");
+                return;
+            }
+            Skins.pick(p, family, face);
+            Msg.ok(p, Msg.v(family.id()), " set to ", Msg.v(Skins.name(face)), ".");
+        }, familyArg, faceArg);
+        Commands.register(skin);
+    }
+
+    private static Skins.@Nullable Family family(Player p, String id) {
+        for (Skins.Family family : Skins.families()) {
+            if (family.id().equals(id)) return family;
+        }
+        Msg.fail(p, "No family named ", Msg.v(id), ". ", Msg.run("/skin"), " lists them.");
+        return null;
+    }
 }
+

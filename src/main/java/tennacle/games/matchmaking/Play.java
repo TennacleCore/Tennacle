@@ -26,7 +26,7 @@ public final class Play {
     private Play() {}
 
     public static void install() {
-        AppCommand play = Commands.player("play", "Join a game that is filling up, or start one.")
+        AppCommand play = Commands.dev("play", "Join a game that is filling up, or start one.")
                 .usage("/play <mode> [platform]", "take a seat")
                 .featured();
         var mode = ArgumentType.Word("mode");

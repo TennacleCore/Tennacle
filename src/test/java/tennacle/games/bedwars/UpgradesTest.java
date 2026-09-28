@@ -34,6 +34,7 @@ import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.network.packet.server.play.SetTitleTextPacket;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
+import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -182,6 +183,24 @@ class UpgradesTest extends HeadlessServerTest {
             assertTrue(chat(fb).contains("Your Magic Milk wore off!"), chat(fb).toString());
             assertTrue(b.hasEffect(PotionEffect.BLINDNESS), "still inside: the trap goes off at once");
             assertEquals(0, Traps.queue(game, owner).size());
+        });
+    }
+
+    @Test
+    void magicMilkKeepsYourOwnEffects() {
+        round("UpgE", (game, fa, fb) -> {
+            Player b = fb.player;
+            for (PotionEffect kept : List.of(PotionEffect.SPEED, PotionEffect.INVISIBILITY, PotionEffect.JUMP_BOOST,
+                    PotionEffect.ABSORPTION, PotionEffect.REGENERATION, PotionEffect.HASTE)) {
+                b.addEffect(new Potion(kept, 1, 600));
+            }
+            b.addEffect(new Potion(PotionEffect.MINING_FATIGUE, 0, 160));
+            game.module(MagicMilk.class).drank(b);
+            assertFalse(b.hasEffect(PotionEffect.MINING_FATIGUE), "a trap's");
+            for (PotionEffect kept : List.of(PotionEffect.SPEED, PotionEffect.INVISIBILITY, PotionEffect.JUMP_BOOST,
+                    PotionEffect.ABSORPTION, PotionEffect.REGENERATION, PotionEffect.HASTE)) {
+                assertTrue(b.hasEffect(kept), kept + " stays");
+            }
         });
     }
 

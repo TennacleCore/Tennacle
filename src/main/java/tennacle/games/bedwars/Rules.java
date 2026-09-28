@@ -59,6 +59,16 @@ final class Rules implements GameModule {
             }
 
             @Override
+            public boolean belowFloor(@NotNull Player placer, @NotNull Point pos) {
+                return pos.blockY() < floor(placer);
+            }
+
+            @Override
+            public boolean aboveHeight(@NotNull Player placer, @NotNull Point pos) {
+                return pos.blockY() > ceiling(placer);
+            }
+
+            @Override
             public boolean reserved(@NotNull Point pos) {
                 for (RegionMarker base : bases) {
                     if (base.contains(pos)) return true;
@@ -73,11 +83,19 @@ final class Rules implements GameModule {
         return Math.hypot(pos.blockX(), pos.blockZ()) < radius;
     }
 
-    // the marker, or the rule when a seat carries its own
     private boolean inBand(Player placer, Point pos) {
+        return pos.blockY() >= floor(placer) && pos.blockY() <= ceiling(placer);
+    }
+
+    // the marker, or the rule when a seat carries its own
+    private int floor(Player placer) {
         int low = game.rules().resolve(placer, Building.FLOOR);
+        return low >= 0 ? low : floorY;
+    }
+
+    private int ceiling(Player placer) {
         int high = game.rules().resolve(placer, Building.HEIGHT);
-        return pos.blockY() >= (low >= 0 ? low : floorY) && pos.blockY() <= (high >= 0 ? high : ceilingY);
+        return high >= 0 ? high : ceilingY;
     }
 
     private double plane(MarkerKey<LimitMarker> key) {

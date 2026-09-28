@@ -44,6 +44,10 @@ None of the existing minigames drops the inventory at death (bridge, sumo, boxin
 `death/spill keep` on every match. A mode that should drop (a skywars) names `death/spill drop` in its ruleset,
 and `death/spilled` narrows what falls. A death `Lives` decides runs the same spill (`DamageSystem.spill`), after
 `Spoils` has handed the killer what `combat.death.to-killer` admits (Bed Wars: its four resources).
+Block drops are Polyp's vanilla tables (`BlockDrops.VANILLA`, 1.8's own under `VANILLA_18`). Item skins: a kit's
+`Skin` wears the seat's face on what comes to hand and sheds it on what leaves; `games.Skins` holds the families
+and picks (Bed Wars' wood). Queue and Bed Wars commands (`/play`, `/queue`, `/skin`) are dev tools until the
+standard commands and menus land; prod code exposes the hooks they call.
 
 ## Audit pass (done)
 - PlayerPrefs: the one login-prefetch pipeline (cage picks + kit layouts ride it; new per-player data

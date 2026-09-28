@@ -367,6 +367,24 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   region runs down to the build floor or past it (our play: the floor floors it), so nothing below it goes in
   and its bottom never closes; a placement there draws both `You can't place blocks here!` and `You cannot
   build any further down!`. The arenas take the top's reach for a bottom never closed.
+- **Refusals, ours (2026-09-28)**: the refusing rule names why (`Building`: reserved zone, floor, height, off
+  the circle, a map block), and Bed Wars' `Lines.refusal` picks the captured copy by it: `You can't place blocks
+  here!` and `You can't break blocks here!` for a zone, `You cannot build any further down!` under the floor,
+  `You can only break blocks placed by a player!` for a map block, and over the height `Build height limit
+  reached!`, the string catalog's wording (CAPTURE). The user's rule: in Bed Wars a refused placement or break
+  sounds to nobody but the actor's own client, where bridge lets everyone hear (`Rulesets.BASE`:
+  `fx/polyp:block_place_refused = to(predicted-for(source), place-sound)`, a 1.8 placer getting the sound
+  its client cannot predict, and `block_break_refused = none`).
+- **Breaking and drops** (Hypixel keeps vanilla's, the user says, but for wood): a block drops nothing
+  without the tool it needs (1.8 `Material.rock`, `iron`, `anvil`, `snow`, `craftedSnow` and `barrier`
+  want one; `ItemPickaxe.canHarvestBlock` wants diamond for obsidian, iron for gold, diamond, emerald and
+  redstone, stone for iron and lapis), so hardened clay, end stone and obsidian need a pickaxe and glass,
+  stained glass, ice and packed ice drop nothing at all (1.8 `quantityDropped` 0), while wool, wood, ladders
+  and sponges drop by hand. Ours (2026-09-28): Polyp reads the block tags for the gate, which say the same of
+  every block 1.8 had, and 26.1's loot tables for what falls (`BlockLoot`), with 1.8's own drops first under
+  the 1.8 presets (`LegacyLoot`: lapis 4 to 8, the ore itself for iron and gold, no sticks off leaves, a
+  bare-handed dead bush nothing, two-tall grass no seeds, snow layers plus one). Bed Wars' blocks all agree
+  between the eras.
 
   | Map | Back and front | Left and right | Down and up | Size | |
   |---|---|---|---|---|---|
@@ -731,6 +749,15 @@ table above is the newest documented.
   inventory is full!` with `mob.endermen.portal` (cap, wool).
 - Pressing drop on a permanent item moves it to its Hotbar Manager slot; permanent items cannot go in
   chests.
+- **Wood skins** (the user, 2026-09-28): a player's wood is any plank or log type they picked. Wood bought
+  from the shop, or any plank or log picked up, becomes their skin: a real item everyone sees, placed as
+  itself. Broken wood drops as oak planks whatever was placed, a dropped stack shows as oak planks, and the
+  shop shows oak planks. Same break time and blast resistance, so nothing plays differently. Ours: Grotto's
+  kit takes a `Skin` (`worn` as an item comes to hand, given or picked up; `shed` as it leaves, dropped,
+  spilled or broken out of a block), Tennacle's `Skins` holds the families and each player's pick, Bed Wars
+  registers `wood` (the six planks and six logs, oak planks plain) and, as the user allowed, the shop shows
+  the buyer's own face. The same seam takes any family (obsidian, a modern client's crying obsidian) and a
+  face chosen per viewer version. The pick is `/skin` for now, a dev tool.
 
 ### 6.2 Shop window
 
@@ -1115,7 +1142,11 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   the victim reads red `You have been eliminated!`; the last member out prints
   `TEAM ELIMINATED > <Team> Team has been eliminated!` (cap). Just before the final-kill line the victim's
   ender chest is dumped into their team's forge:
-  `Contents of <player>'s Ender Chest have been dropped into their fountain.` (cap).
+  `Contents of <player>'s Ender Chest have been dropped into their fountain.` (cap). How the stacks come out
+  (spread, kick, delay) is not captured: CAPTURE a final death with a stocked ender chest. The user: they are
+  not generated items, whatever they are, so they never count against the forge's cap or split on pickup
+  (ours: a generator's own drops carry a tag, nothing else does, and stacks of different provenance never
+  merge).
 - **Spectating**: eliminated players spectate with a compass, a settings item, Play Again and Return to
   Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
@@ -1456,6 +1487,12 @@ in `type.game`. Minestom `2026.06.05-26.1.2`.
   5 ticks after a respawn, below-name health never starting, upgrades skipping items bought afterwards,
   no reward for eliminating a team's last player.
 
+### 14.2a The recreation on Polyp
+
+Swofty's PR 856 (2026-09) moves the recreation onto Polyp 0.3.0 and rewrites its replay and Bed Wars cleanup
+(the ender chest dump of issue 788, kill tracking, hidden names, generator splitting, pearls, a stat tracker).
+Reference only, GPL: its feature list is a checklist, never a source.
+
 ### 14.3 Lessons we keep
 
 1. **The respawn right is a target** with one question, whether it is still valid: a bed, a countdown, a
@@ -1600,6 +1637,8 @@ Each of these was read in the code, not just reported:
 | Bed modes | Tennacle | done 2026-09-27: `games.beds` - `Beds` (any bed marker, any counter), `Lives` (respawn while the bed stands, the last death, leaves and rejoins, void), `Banners`, `Rows`; bed fight and Bed Wars share them |
 | Placed blocks | Grotto or Tennacle | the per-game placed set as a module explosion rules can read; reserved zones; `FieldFns` factories for placed-only and blast-proof glass |
 | Stats outcomes | Grotto, Tennacle | kills, deaths, final kills, final deaths, beds broken and lost, wins, losses and streaks; no XP or levels (decision 6) |
+| Item skins | Grotto, Tennacle | done 2026-09-28: `Kit.Skin` and `games.Skins` (6.1), Bed Wars' wood; the pick is a dev command until the standard menus |
+| Block drops | Polyp | done 2026-09-28: `BlockLoot` and `LegacyLoot` under `BlockDrops.VANILLA` / `VANILLA_18` (section 4) |
 | Filling queue | Tennacle | done 2026-09-27 as `/play`: a game per mode and platform fills on its map, its `Countdown` waiting for `START_AT` seated and stopping short below it; team chat and `/shout` still to come |
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
@@ -1743,6 +1782,10 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 8. **Which Hypixel maps, in which modes.** Decided 2026-09-27: the first rotation is the fully captured maps
    alone, each in the modes of its team count (8-team maps in Solo and Doubles, 4-team maps in 3s and 4s).
    Guessed maps stay out, and so does Tengshe for now.
+
+9. **Commands.** The user, 2026-09-28: every queue and Bed Wars command (`/play`, `/queue`, `/skin`) is a
+   development tool (`Commands.dev`), never baked into the game; the standard commands and menus come later
+   and will call the same hooks (`Matches`, `Skins`).
 
 The "minigames never drop" rule holds for BedWars: nothing spills at death except the ender chest at a
 final death, and resources move straight to the killer.

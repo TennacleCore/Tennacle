@@ -43,7 +43,7 @@ public final class Queues {
                 waiting.remove(e.getPlayer().getUuid());
             }
         });
-        AppCommand queue = Commands.player("queue", "Wait for the next side that wants the same game.")
+        AppCommand queue = Commands.dev("queue", "Wait for the next side that wants the same game.")
                 .usage("/queue <mode> [platform]", "join the line")
                 .usage("/queue leave", "step out of it")
                 .featured();

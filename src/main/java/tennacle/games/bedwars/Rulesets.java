@@ -19,7 +19,10 @@ final class Rulesets {
             .rule(Presets.KEY, "hypixel")
             .rule(Roster.RECLAIM_TICKS, -1L)
             .rule(Abandonment.EMPTY_TICKS, 1200L)
-            .path("vri/itemDrop", false);
+            .path("vri/itemDrop", false)
+            // the user's rule: a refused placement or break sounds to nobody but its own client
+            .path("fx/polyp:block_place_refused", "to(predicted-for(source), place-sound)")
+            .path("fx/polyp:block_break_refused", "none");
 
     static Map<String, Ruleset> variants() {
         return Map.of();

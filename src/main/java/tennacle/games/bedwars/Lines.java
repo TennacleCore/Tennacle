@@ -3,6 +3,8 @@ package tennacle.games.bedwars;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.shop.Price;
+import tennacle.games.map.Building;
+import tennacle.looks.Look;
 import tennacle.looks.Palette;
 
 import io.github.term4.canvas.hologram.Hologram;
@@ -10,6 +12,7 @@ import io.github.term4.canvas.theme.Theme;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.state.Scope;
+import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
@@ -19,9 +22,11 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.component.DataComponents;
+import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.sound.SoundEvent;
 
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
@@ -167,6 +172,20 @@ final class Lines {
         return Title.title(theme(game).bad("ALARM!!!").decorate(TextDecoration.BOLD),
                 Component.text("Reveal trap set off by ").append(Component.text(team + " ", color)).append(Component.text("team!")),
                 Match.times(game, 5, 35, 10));
+    }
+
+    /** Captured: the zone lines, the floor's, and a map block's; the height line is the string catalog's, uncaptured. */
+    static Component refusal(Game game, Player player, Refusals.Kind kind, @Nullable String reason) {
+        return switch (kind) {
+            case PLACE -> theme(game).bad(switch (reason == null ? "" : reason) {
+                case Building.REASON_FLOOR -> "You cannot build any further down!";
+                case Building.REASON_HEIGHT -> "Build height limit reached!";
+                default -> "You can't place blocks here!";
+            });
+            case BREAK -> theme(game).bad(Building.REASON_MAP.equals(reason)
+                    ? "You can only break blocks placed by a player!" : "You can't break blocks here!");
+            case PROTECTED, HIT -> Look.refusal(game, player, kind, reason);
+        };
     }
 
     static Component chestLocked(Game game, Team owner) {

@@ -204,7 +204,7 @@ class ShopTest extends HeadlessServerTest {
 
     @Test
     void speedLooksLikeHypixels() {
-        var contents = Wares.of("speed").icons().getFirst().get(net.minestom.server.component.DataComponents.POTION_CONTENTS);
+        var contents = Wares.of("speed").icons().getFirst().apply(null, null).get(net.minestom.server.component.DataComponents.POTION_CONTENTS);
         assertEquals(net.minestom.server.potion.PotionType.FIRE_RESISTANCE, contents.potion(), "373:8195 on a 1.8 client");
     }
 

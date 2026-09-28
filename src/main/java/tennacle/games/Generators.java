@@ -7,17 +7,18 @@ import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.ItemEntity;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.entity.EntityItemMergeEvent;
 import net.minestom.server.event.item.PickupItemEvent;
 import net.minestom.server.item.ItemStack;
+import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
@@ -32,6 +33,8 @@ public final class Generators implements GameModule {
     /** How near a generator its items count against the cap, and a teammate a pickup, in blocks. */
     private static final double NEAR = 3.0;
     private static final String ALARM = "generators:";
+    /** On an item a generator dropped: which. Anything else lying there (a spilled chest's iron) is nobody's. */
+    private static final Tag<Generator> MADE_BY = Tag.Transient("tennacle:generated");
 
     /** Generators sharing one cap: their items lying near them count together. */
     public final class Pool {
@@ -62,7 +65,6 @@ public final class Generators implements GameModule {
         private ItemStack stack;
         private long period;
         private long due = -1;
-        private final List<DroppedItemEntity> items = new ArrayList<>();
 
         private Generator(int index, Point at, ItemStack stack, long period, Pool pool) {
             this.index = index;
@@ -108,8 +110,11 @@ public final class Generators implements GameModule {
 
         /** This generator's items still lying near it. */
         public int lying() {
-            items.removeIf(item -> item.isRemoved() || item.getPosition().distance(at) > NEAR);
-            return items.size();
+            int n = 0;
+            for (Entity entity : game.instance().getNearbyEntities(at, NEAR)) {
+                if (entity instanceof DroppedItemEntity item && item.getTag(MADE_BY) == this) n++;
+            }
+            return n;
         }
 
         private void schedule(long at) {
@@ -128,15 +133,11 @@ public final class Generators implements GameModule {
         private void drop() {
             if (pool.lying() >= pool.cap) return;
             DroppedItemEntity item = Generators.drop(game, at, stack);
-            if (item != null) {
-                items.add(item);
-                made.put(item.getEntityId(), this);
-            }
+            if (item != null) item.setTag(MADE_BY, this);
         }
     }
 
     private final List<Generator> generators = new ArrayList<>();
-    private final Map<Integer, Generator> made = new HashMap<>();
     private double shareRadius = -1;
     private Predicate<ItemStack> shared = stack -> false;
     private Game game;
@@ -175,17 +176,21 @@ public final class Generators implements GameModule {
 
     /** The generator {@code item} came out of, or null. */
     public @Nullable Generator made(@NotNull ItemEntity item) {
-        return made.get(item.getEntityId());
+        return item.getTag(MADE_BY);
     }
 
     @Override
     public void install(@NotNull Game game) {
         this.game = game;
+        // a stack of another provenance never folds in: the count and the split stay the generator's own
+        game.on(EntityItemMergeEvent.class, e -> {
+            if (e.getEntity().getTag(MADE_BY) != e.getMerged().getTag(MADE_BY)) e.setCancelled(true);
+        });
         // Polyp's pickup runs first and cancels a full inventory, so this is a pickup that landed
         game.on(PickupItemEvent.class, PickupItemEvent::getLivingEntity, e -> {
             if (shareRadius < 0 || !(e.getLivingEntity() instanceof Player picker)) return;
             ItemEntity item = e.getItemEntity();
-            if (made.remove(item.getEntityId()) == null || !shared.test(e.getItemStack())) return;
+            if (item.getTag(MADE_BY) == null || !shared.test(e.getItemStack())) return;
             String team = Match.teamOf(game, picker);
             if (team.isEmpty()) return;
             for (Player mate : game.members()) {

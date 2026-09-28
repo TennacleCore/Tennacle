@@ -95,7 +95,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     }
 
     /** The line for an action the game refused, in light red: hypixel's copy, kept for every look. */
-    public static @NotNull Component refusal(Game game, Player player, Refusals.Kind kind) {
+    public static @NotNull Component refusal(Game game, Player player, Refusals.Kind kind, @Nullable String reason) {
         return Component.text(switch (kind) {
             case PROTECTED -> "This player has spawn protection!";
             case PLACE -> "You can't place blocks here!";

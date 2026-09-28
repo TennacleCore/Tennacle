@@ -1,6 +1,7 @@
 package tennacle.games.map;
 
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.modules.view.Refusals;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.coordinate.Point;
@@ -66,7 +67,21 @@ public final class Building {
         default boolean reserved(@NotNull Point pos) {
             return false;
         }
+
+        /** Under the floor, for the line that says so; a space with no floor of its own never is. */
+        default boolean belowFloor(@NotNull Player placer, @NotNull Point pos) {
+            return false;
+        }
+
+        /** Over the height, likewise. */
+        default boolean aboveHeight(@NotNull Player placer, @NotNull Point pos) {
+            return false;
+        }
     }
+
+    /** The reasons a refusal carries ({@link Refusals#because}), for a mode's line to pick its copy by. */
+    public static final String REASON_BUILD = "build", REASON_RESERVED = "reserved", REASON_FLOOR = "floor",
+            REASON_HEIGHT = "height", REASON_OUTSIDE = "outside", REASON_MAP = "map", REASON_PLACED = "placed";
 
     private final it.unimi.dsi.fastutil.longs.LongSet placed = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
 
@@ -83,10 +98,18 @@ public final class Building {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
-            boolean allowed = game.rules().resolve(player, BUILD) && (space.buildable(player, pos)
-                    || (game.rules().resolve(player, OUTSIDE) && space.inBand(player, pos))); // off the region, still in the band
-            if (!allowed || space.reserved(pos)) {
-                e.setCancelled(true); // Refusals says so
+            if (!game.rules().resolve(player, BUILD)) {
+                refuse(e, REASON_BUILD);
+                return;
+            }
+            if (space.reserved(pos)) {
+                refuse(e, REASON_RESERVED);
+                return;
+            }
+            boolean allowed = space.buildable(player, pos)
+                    || (game.rules().resolve(player, OUTSIDE) && space.inBand(player, pos)); // off the region, still in the band
+            if (!allowed) {
+                refuse(e, space.belowFloor(player, pos) ? REASON_FLOOR : space.aboveHeight(player, pos) ? REASON_HEIGHT : REASON_OUTSIDE);
                 return;
             }
             building.placed.add(key(pos));
@@ -98,14 +121,28 @@ public final class Building {
             Point pos = e.getBlockPosition();
             boolean own = building.placed.contains(key(pos));
             List<String> may = game.rules().resolve(player, space.guarded(pos) ? BREAK : BREAK_OUTSIDE);
-            if (!game.rules().resolve(player, BUILD) || !may.contains(own ? PLACED : MAP)) {
-                e.setCancelled(true);
+            if (!game.rules().resolve(player, BUILD)) {
+                refuse(e, REASON_BUILD);
+                return;
+            }
+            if (!own && space.reserved(pos)) {
+                refuse(e, REASON_RESERVED);
+                return;
+            }
+            if (!may.contains(own ? PLACED : MAP)) {
+                refuse(e, own ? REASON_PLACED : REASON_MAP);
                 return;
             }
             building.placed.remove(key(pos)); // after the refusal: a block that stays is still the one who placed it
             touched.accept(player);
         });
         return building;
+    }
+
+    // Refusals says so, in the mode's words for the reason
+    private static void refuse(net.minestom.server.event.trait.CancellableEvent event, String reason) {
+        event.setCancelled(true);
+        Refusals.because(event, reason);
     }
 
     /** Whether a member put the block at {@code pos} there. */

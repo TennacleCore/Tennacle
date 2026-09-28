@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.Skins;
 import tennacle.games.shop.Goods;
 import tennacle.games.shop.Offer;
 import tennacle.games.shop.Price;
@@ -69,8 +70,13 @@ final class Wares {
     }
 
     /** How the shop shows one offer; a tool reads by the tier it sells, the rest by their first entry. */
-    record Ware(@NotNull Offer offer, @NotNull Tab tab, @NotNull List<String> names, @NotNull List<ItemStack> icons,
-                @NotNull List<Component> description, boolean permanent) {
+    record Ware(@NotNull Offer offer, @NotNull Tab tab, @NotNull List<String> names,
+                @NotNull List<BiFunction<Game, Player, ItemStack>> icons, @NotNull List<Component> description,
+                boolean permanent) {
+
+        static List<BiFunction<Game, Player, ItemStack>> fixed(List<ItemStack> icons) {
+            return icons.stream().<BiFunction<Game, Player, ItemStack>>map(icon -> (g, p) -> icon).toList();
+        }
 
         boolean upgradable() {
             return names.size() > 1;
@@ -86,7 +92,7 @@ final class Wares {
         }
 
         ItemStack icon(Game game, Player viewer) {
-            return icons.get(Math.min(tier(game, viewer), icons.size()) - 1);
+            return icons.get(Math.min(tier(game, viewer), icons.size()) - 1).apply(game, viewer);
         }
     }
 
@@ -108,7 +114,8 @@ final class Wares {
                 "Solid block to defend your bed.");
         goods(Tab.BLOCKS, "ladder", "Ladder", Material.LADDER, 8, Price.of(4, IRON), "blocks",
                 "Useful to save cats stuck in trees.");
-        goods(Tab.BLOCKS, "wood", "Wood", Material.OAK_PLANKS, 16, Price.of(4, GOLD), "blocks",
+        BiFunction<Game, Player, ItemStack> wood = (g, p) -> Skins.worn(p, ItemStack.of(Material.OAK_PLANKS, 16));
+        goods(Tab.BLOCKS, "wood", "Wood", wood, wood, Material.OAK_PLANKS, Price.of(4, GOLD), "blocks",
                 "Good block to defend your bed.", "Strong against pickaxes.");
         goods(Tab.BLOCKS, "obsidian", "Obsidian", Material.OBSIDIAN, 4, Price.of(4, EMERALD), "blocks",
                 "Extreme protection for your bed.");
@@ -126,7 +133,7 @@ final class Wares {
         armor("diamond-armor", "Permanent Diamond Armor", Material.DIAMOND_BOOTS, 3, Price.of(6, EMERALD),
                 "Diamond leggings and boots which", "you will always crush with."); // sic
         add(new Ware(Rank.at("shears", Gear.SHEARS, Rank.Holder.SEAT, 1, Price.of(20, IRON)), Tab.TOOLS,
-                List.of("Permanent Shears"), List.of(ItemStack.of(Material.SHEARS)),
+                List.of("Permanent Shears"), Ware.fixed(List.of(ItemStack.of(Material.SHEARS))),
                 gray("Great to get rid of wool. You will", "always spawn with these shears."), true));
         tool("pickaxe", Gear.PICKAXE, Gear.PICKAXES, List.of("Wooden Pickaxe (Efficiency I)", "Iron Pickaxe (Efficiency II)",
                 "Golden Pickaxe (Efficiency III, Sharpness II)", "Diamond Pickaxe (Efficiency III)"));
@@ -193,7 +200,8 @@ final class Wares {
         if (name.endsWith("_axe")) return "axe";
         String family = Tint.family(name);
         if ("wool".equals(family) || "terracotta".equals(family) || "stained_glass".equals(family)) return "blocks";
-        return ROLES.get(item.material());
+        Skins.Family skinned = Skins.familyOf(item.material());
+        return ROLES.get(skinned != null ? skinned.plain() : item.material());
     }
 
     /** A shop selling every ware; one a game. */
@@ -227,20 +235,27 @@ final class Wares {
 
     private static void goods(Tab tab, String id, String name, BiFunction<Game, Player, ItemStack> stack, ItemStack icon,
                               Price price, String role, String... description) {
-        ROLES.putIfAbsent(icon.material(), role);
+        goods(tab, id, name, stack, (g, p) -> icon, icon.material(), price, role, description);
+    }
+
+    // the icon each viewer sees, and the material the role is filed under
+    private static void goods(Tab tab, String id, String name, BiFunction<Game, Player, ItemStack> stack,
+                              BiFunction<Game, Player, ItemStack> icon, Material plain, Price price, String role,
+                              String... description) {
+        ROLES.putIfAbsent(plain, role);
         add(new Ware(Goods.of(id, price, role, stack), tab, List.of(name), List.of(icon), gray(description), false));
     }
 
     private static void armor(String id, String name, Material icon, int tier, Price price, String... description) {
         add(new Ware(Rank.at(id, Gear.ARMOR, Rank.Holder.SEAT, tier, price), Tab.ARMOR, List.of(name),
-                List.of(ItemStack.of(icon)), gray(description), true));
+                Ware.fixed(List.of(ItemStack.of(icon))), gray(description), true));
     }
 
     private static void tool(String id, StateKey<Integer> ladder, List<ItemStack> tiers,
                              List<String> names) {
         Rank rank = Rank.next(id, ladder, Rank.Holder.SEAT,
                 List.of(Price.of(10, IRON), Price.of(10, IRON), Price.of(3, GOLD), Price.of(6, GOLD)));
-        add(new Ware(rank, Tab.TOOLS, names, tiers, List.of(), true));
+        add(new Ware(rank, Tab.TOOLS, names, Ware.fixed(tiers), List.of(), true));
     }
 
     private static void potion(String id, String name, PotionType type, PotionEffect effect, int amplifier, int ticks,
@@ -248,7 +263,7 @@ final class Wares {
         ItemStack stack = ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS, new PotionContents(type, null,
                 List.of(new CustomPotionEffect(effect, amplifier, ticks, false, true, true))));
         ROLES.putIfAbsent(Material.POTION, "potions");
-        add(new Ware(Goods.of(id, price, "potions", (g, p) -> stack), Tab.POTIONS, List.of(name), List.of(stack),
+        add(new Ware(Goods.of(id, price, "potions", (g, p) -> stack), Tab.POTIONS, List.of(name), Ware.fixed(List.of(stack)),
                 List.of(Component.text(line, NamedTextColor.BLUE)), false));
     }
 
