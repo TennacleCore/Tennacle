@@ -31,7 +31,11 @@ public final class Banners {
 
     /** Captured hypixel; minemen carries its own everywhere. */
     public static @NotNull Component bedBroken(Game game, Team side, Player breaker) {
-        Component who = Component.text(breaker.getUsername(), tennacle.games.Match.teamColor(game, breaker));
+        return bedBroken(game, side, Component.text(breaker.getUsername(), tennacle.games.Match.teamColor(game, breaker)));
+    }
+
+    /** The bed line for any taker: a player's colored name, or a creature's. */
+    public static @NotNull Component bedBroken(Game game, Team side, Component who) {
         if (ruled(game)) {
             return ruled(Component.empty()
                     .append(Component.text(Palette.titled(side) + " Bed ", side.color()))

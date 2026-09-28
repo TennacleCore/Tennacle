@@ -158,7 +158,7 @@ public final class BedWars {
             .item(Compass.SLOT, Compass.ITEM)
             .fallback("melee", Gear::sword) // captured 2026-09-27: the wooden sword is there whenever no better one is
             .roleOf(Wares::role)
-            .ranked("melee", Gear::rank) // captured 2026-09-28: a better sword takes the held one's slot, the beaten one moves to the first empty
+            .ranked("melee", Gear::rank) // the user, 2026-09-28: a better sword takes the melee slot from the sword there; the beaten one to the first empty
             .item("pickaxe", Gear::pickaxe, Gear.PICKAXE)
             .item("axe", Gear::axe, Gear.AXE)
             .item("shears", Gear::shears, Gear.SHEARS)

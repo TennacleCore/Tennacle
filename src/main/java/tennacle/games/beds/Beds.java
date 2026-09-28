@@ -1,5 +1,7 @@
 package tennacle.games.beds;
 
+import io.github.term4.polyp.api.event.mobs.MobBreakBlockEvent;
+import org.jetbrains.annotations.Nullable;
 import tennacle.games.Match;
 
 import io.github.term4.barnacle.marker.MarkerKey;
@@ -51,6 +53,8 @@ public final class Beds implements GameModule {
     /** Whose bed a seat may break; a side nobody names sleeps safe. */
     public static final StateKey<List<String>> BREAK =
             StateKey.of("beds.break", Codec.STRING.list(), List.of(ENEMY));
+    /** A dragon (any block-eating mob) takes a bed it flies through; off, the bed stands and slows it. */
+    public static final StateKey<Boolean> DRAGONS = StateKey.of("beds.dragons", Codec.BOOLEAN, false);
 
     static {
         tennacle.commands.RulesCompletions.words(BREAK.id(), List.of(OWN, ENEMY));
@@ -86,7 +90,7 @@ public final class Beds implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(DESTROY, BREAK);
+        return Set.of(DESTROY, BREAK, DRAGONS);
     }
 
     @Override
@@ -121,6 +125,17 @@ public final class Beds implements GameModule {
             }
             Refusals.handled(e); // cancelled to take the whole bed at once, not to turn them away
             if (stands(game, owner)) broke(owner, breaker, pos);
+        });
+        game.onWorld(MobBreakBlockEvent.class, MobBreakBlockEvent::world, e -> {
+            Point pos = e.position();
+            String owner = cells.get(new BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
+            if (owner == null) return;
+            e.setCancelled(true); // the whole bed goes at once, or none of it
+            if (!Match.live(game) || !stands(game, owner) || !game.rules().resolve(Scope.GAME, DRAGONS)) return;
+            Component by = e.mob().getCustomName() != null ? e.mob().getCustomName()
+                    : Component.text(e.mob().getEntityType().key().value());
+            Object side = e.mob().sides().of(e.mob());
+            broke(owner, by, side != null ? String.valueOf(side) : null, pos);
         });
         LastStanding standing = game.module(LastStanding.class);
         if (standing != null) {
@@ -217,22 +232,27 @@ public final class Beds implements GameModule {
     }
 
     private void broke(String owner, Player breaker, Point bed) {
-        erase(owner);
         Match.addSeat(game, breaker, broken);
+        broke(owner, Component.text(breaker.getUsername(), Match.teamColor(game, breaker)), Match.teamOf(game, breaker), bed);
+    }
+
+    // a bed taken by a name: a player's, or a creature's (its side is its owner's)
+    private void broke(String owner, Component by, @Nullable String byTeam, Point bed) {
+        erase(owner);
         Team broken = game.roster().team(owner);
         // both networks: the side that lost it hears the wither, everyone else the dragon, each from the bed
         game.forEachAudience(viewer -> viewer.playSound(owner.equals(Match.teamOf(game, viewer)) ? LOST_BED : BROKEN,
                 bed.blockX() + 0.5, bed.blockY() + 0.5, bed.blockZ() + 0.5));
         told(owner::equals);
-        Match.say(game, Banners.bedBroken(game, broken, breaker));
-        Team by = game.roster().team(Match.teamOf(game, breaker));
+        Match.say(game, Banners.bedBroken(game, broken, by));
+        Team side = byTeam != null && !byTeam.isEmpty() ? game.roster().team(byTeam) : null;
         tennacle.games.watch.Replays.mark(game, "bed", net.kyori.adventure.nbt.CompoundBinaryTag.builder()
                 .putString("bed", tennacle.looks.Palette.titled(broken))
                 .putString("bedTeam", broken.id())
                 .putInt("bedColor", broken.color().value())
-                .putString("breaker", breaker.getUsername())
-                .putString("breakerTeam", by != null ? by.id() : "")
-                .putInt("breakerColor", (by != null ? by.color() : broken.color()).value())
+                .putString("breaker", net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(by))
+                .putString("breakerTeam", side != null ? side.id() : "")
+                .putInt("breakerColor", (side != null ? side.color() : broken.color()).value())
                 .build());
     }
 

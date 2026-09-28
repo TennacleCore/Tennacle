@@ -132,8 +132,9 @@ class ShopTest extends HeadlessServerTest {
             assertTrue(a.getInventory().getItemStack(0).has(net.minestom.server.component.DataComponents.UNBREAKABLE));
 
             click(a, 20, new Click.Left(20));
-            assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(0).material(), "a bought one stays put");
-            assertEquals(Material.IRON_SWORD, a.getInventory().getItemStack(1).material(), "the first empty slot, the price paid");
+            // the user, 2026-09-28: a better sword takes the melee slot from the sword there, wherever the hand is
+            assertEquals(Material.IRON_SWORD, a.getInventory().getItemStack(0).material(), "the melee slot, its stone sword beaten");
+            assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(1).material(), "the beaten one to the first empty slot, the price paid");
         });
     }
 

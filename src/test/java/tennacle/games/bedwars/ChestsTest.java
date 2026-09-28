@@ -89,6 +89,25 @@ class ChestsTest extends HeadlessServerTest {
         });
     }
 
+    /** The user, 2026-09-28: a number key over a better sword in the chest brings it to that slot, the wooden one to
+     *  the next free slot, nothing into the chest; the container's refusal of the wooden one does not stop it. */
+    @Test
+    void aNumberKeyTakesTheBetterSword() {
+        round("ChestG", (game, fa, fb) -> {
+            Player a = fa.player;
+            open(game, a, CHEST);
+            var window = a.getOpenInventory();
+            assertNotNull(window, "open to its own");
+            window.setItemStack(3, ItemStack.of(Material.STONE_SWORD));
+            InventoryPreClickEvent e = new InventoryPreClickEvent(window, a, new Click.HotbarSwap(0, 3));
+            EventDispatcher.call(e);
+            assertTrue(e.isCancelled(), "the kit's, not the click's");
+            assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(0).material(), "the better sword in the keyed slot");
+            assertEquals(Material.WOODEN_SWORD, a.getInventory().getItemStack(1).material(), "the wooden one to the next free slot");
+            assertTrue(window.getItemStack(3).isAir(), "and the chest slot empty");
+        });
+    }
+
     @Test
     void aPunchPutsTheStackIn() {
         round("ChestB", (game, fa, fb) -> {

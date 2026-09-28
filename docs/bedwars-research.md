@@ -201,7 +201,10 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   them, so its own hurt window is not what holds vanilla's every-tick push back. A pass pushes once, on the
   bite, at the wing's strength when the player stands under a wing (2.61 at 1.5 blocks, 4.08 at 1) and the
   bite's 0.4 otherwise; a Red dragon flew through an enemy at 1.1 blocks six times and pushed him once. Ours
-  now pushes once a victim a charge (`pushOncePerCharge`, the Bed Wars kind). Its
+  now pushes once a victim a charge (`pushOncePerCharge`, the Bed Wars kind). Beds: Hypixel's dragons never
+  meet one (Bed Destruction runs first), so `beds.dragons` (the user, 2026-09-28, for modifiers) is off by
+  default and a bed stands against a dragon, slowing it as bedrock would; on, the dragon takes the whole bed
+  and the line names it (Polyp's `MobBreakBlockEvent`, one per block, cancellable). Its
   flight fits vanilla's (random points within about 60 of the middle at y 70 to 120, or a player); whether it
   goes only for enemies does not show from one player's capture. Its own growl is the vanilla living sound at
   volume 5. From Sudden Death the board counts `More Dragons in 5:00` (cap): the second dragons come 5 real
@@ -786,10 +789,15 @@ table above is the newest documented.
 - A lower armor tier than yours is refused with red `You already have a higher tier item.` and no sound; the
   tier you own with red `You've already purchased this item!` and `mob.endermen.portal` (cap, 2026-09-25).
 - Since 2023, a bought sword replaces the sword in your selected hotbar slot if it is better, and a better
-  sword picked up replaces your current one. A worse sword than yours can still be bought (our play). Ours
-  (2026-09-28, Grotto `Kit.ranked`): only the held slot's sword yields to a better bought one, and it moves to
-  the first empty slot (ASSUMED: the note says "replaces", and no capture shows what becomes of the old one);
-  a better sword than one sitting elsewhere lands as any item, as the swords capture below has it.
+  sword picked up replaces your current one. A worse sword than yours can still be bought (our play). The user
+  (2026-09-28): a better sword takes the primary melee slot, the Hotbar Manager's, when a melee weapon sits
+  there. Ours (Grotto `Kit.ranked`): the melee slot's sword yields to a better bought one, wherever the hand
+  is, and moves to the first empty slot (ASSUMED: no capture shows what becomes of the old one); a better
+  sword than one sitting in any other slot lands as any item, as the swords capture below has it. A number
+  key over a better sword in a chest (the user, 2026-09-28) puts it in that slot and moves the wooden one to
+  the next free slot, nothing into the chest; ours refused it, because the container system refused the
+  wooden sword the swap would have stored and that refusal skipped the kit's swap (Grotto `Kits.swapIn` now
+  runs on the refused click too).
 - Swords, exactly (cap, 4v4v4v4 on Invasion and Jurassic 2026-09-27, `research/bedwars/swords.py`): a bought
   sword takes the wooden sword's slot when the wooden one is held, whatever the held slot, and the wooden one is
   gone. With no wooden sword it goes in like any item, the first empty slot: a second stone sword went to slot 3,
@@ -1256,7 +1264,9 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   after the join (Grotto `Respawns`), so every join hook dresses a member first and the ghosting's own hooks
   gray and strip what they did. And a fellow dead is seen as vanilla invisibility shows anyone, the name and
   the hand and never the body (the user, 2026-09-28): the rewrite that showed the dead their fellows' bodies
-  is gone.
+  is gone. The nameplate grays with the row (the user, later that day): under `view.tab.dead.gray` a dead seat
+  sits on its team's dead twin scoreboard team, gray, still named, sorting right after the team (Grotto
+  `Nametags`).
 - **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. The warning reads bold red `You will
   be afk-ed in ` + bold yellow `10 seconds` + bold red `!` (cap, in game), then `note.pling` (volume 1,
   pitch 1.0) every 2 ticks until the player moves, up to 10 s (cap, 14 warnings); the candidate kick lines

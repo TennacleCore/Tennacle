@@ -34,6 +34,9 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.entity.EntityAttackEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.potion.PotionEffect;
+import io.github.term4.polyp.api.event.mobs.MobBreakBlockEvent;
+import io.github.term4.polyp.mechanics.mobs.kinds.EnderDragonEntity;
+import tennacle.games.items.Creatures;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.instance.Chunk;
@@ -416,6 +419,46 @@ class BedWarsRoundTest extends HeadlessServerTest {
             assertFalse(a.player.getEquipment(EquipmentSlot.CHESTPLATE).isAir(), "kitted again");
             assertNotEquals(NamedTextColor.GRAY, a.player.getDisplayName() != null ? a.player.getDisplayName().color() : null, "in the side's color again");
         } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    /** The user, 2026-09-28: a rule for dragons and beds, a modifier's; off, the bed stands against a dragon. */
+    @Test
+    void aDragonLeavesTheBedUnlessAllowed() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwDrgA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwDrgB");
+        EnderDragonEntity dragon = null;
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            String bTeam = Match.teamOf(game, b.player);
+            BlockVec bBed = game.arena().marker(BedWars.BED, bTeam).boxes().getFirst().min();
+            dragon = game.module(Creatures.class).dragon(game.roster().team(Match.teamOf(game, a.player)), new Pos(-7.5, 80, 0.5));
+            MobBreakBlockEvent kept = new MobBreakBlockEvent(game.shard(), dragon, bBed, game.shard().getBlock(bBed));
+            EventDispatcher.call(kept);
+            assertTrue(kept.isCancelled(), "the bed stands against a dragon");
+            assertTrue(Beds.stands(game, bTeam));
+            game.state().set(Scope.GAME, Beds.DRAGONS, true);
+            b.sent.clear();
+            MobBreakBlockEvent taken = new MobBreakBlockEvent(game.shard(), dragon, bBed, game.shard().getBlock(bBed));
+            EventDispatcher.call(taken);
+            assertTrue(taken.isCancelled(), "the module takes the whole bed itself");
+            assertFalse(Beds.stands(game, bTeam), "allowed, the dragon takes it");
+            assertTrue(game.shard().getBlock(bBed).isAir());
+            assertTrue(lines(b, "Dragon").stream().anyMatch(l -> l.contains("was destroyed by")), "named as the taker: " + lines(b, "Dragon"));
+        } finally {
+            if (dragon != null) dragon.remove();
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();
