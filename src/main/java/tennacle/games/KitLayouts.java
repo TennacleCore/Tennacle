@@ -52,6 +52,14 @@ public final class KitLayouts {
         return kits != null ? kits.get(kitId) : null;
     }
 
+    /** Stores {@code layout} as {@code player}'s for {@code kitId}. */
+    public static void set(@NotNull Player player, @NotNull String kitId, @NotNull Map<String, Integer> layout) {
+        Map<String, Map<String, Integer>> kits = STORE.of(player.getUuid());
+        Map<String, Map<String, Integer>> next = kits != null ? new ConcurrentHashMap<>(kits) : new ConcurrentHashMap<>();
+        next.put(kitId, Map.copyOf(layout));
+        STORE.set(player, next);
+    }
+
     /** Registers {@code kit} with the editor; the first call wires the close-to-save hook and the command. */
     public static void editable(String kitId, Kit kit) {
         EDITABLE.put(kitId, kit);
@@ -131,11 +139,7 @@ public final class KitLayouts {
         }
         for (int i = 0; i < edit.stash().length; i++) inv.setItemStack(i, edit.stash()[i]);
         inv.update();
-        Map<String, Map<String, Integer>> kits = STORE.of(player.getUuid());
-        Map<String, Map<String, Integer>> next =
-                kits != null ? new ConcurrentHashMap<>(kits) : new ConcurrentHashMap<>();
-        next.put(edit.kitId(), layout);
-        STORE.set(player, next);
+        set(player, edit.kitId(), layout);
         Msg.ok(player, "Saved your ", Msg.v(edit.kitId()), " layout.");
     }
 

@@ -26,6 +26,10 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
 /**
  * The one rule a bed mode turns on: a death while the side's bed stands respawns, and once it is gone the next
  * is the last, the side going out with its last seat. Walking out is a death like any other: whoever last hit
@@ -39,7 +43,12 @@ public final class Lives implements GameModule {
     public record Counters(@NotNull StateKey<Integer> kills, @NotNull StateKey<Integer> deaths,
                            @NotNull StateKey<Integer> finalKills, @NotNull StateKey<Integer> finalDeaths) {}
 
+    /** A death as decided: {@code victim} still holds what they carried, a walk-out's included. */
+    public record Death(@NotNull Game game, @NotNull Player victim, @NotNull Slot seat, @Nullable Player killer,
+                        boolean last) {}
+
     private final Counters counters;
+    private final List<Consumer<Death>> onDeath = new ArrayList<>();
     private Game game;
     private Respawns respawns;
     private KillCredit credit;
@@ -47,6 +56,11 @@ public final class Lives implements GameModule {
 
     public Lives(@NotNull Counters counters) {
         this.counters = counters;
+    }
+
+    public @NotNull Lives onDeath(@NotNull Consumer<Death> action) {
+        onDeath.add(action);
+        return this;
     }
 
     @Override
@@ -104,6 +118,7 @@ public final class Lives implements GameModule {
         Player by = credit.creditFor(player);
         String verb = by != null ? "was killed by" : "left the game";
         if (by != null) Match.addSeat(game, by, counters.kills());
+        died(new Death(game, player, seat, by, !Beds.stands(game, seat.team())));
         if (!Beds.stands(game, seat.team())) {
             game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
             if (by != null) Match.addSeat(game, by, counters.finalKills());
@@ -146,6 +161,8 @@ public final class Lives implements GameModule {
         if (seat == null) return;
         Match.addSeat(game, victim, counters.deaths());
         if (by != null) Match.addSeat(game, by, counters.kills());
+        died(new Death(game, victim, seat, by, !Beds.stands(game, seat.team())));
+        if (victim.getOpenInventory() != null) victim.closeInventory(); // vanilla closes a window at a death
         if (!Beds.stands(game, seat.team())) {
             Match.addSeat(game, victim, counters.finalDeaths());
             if (by != null) Match.addSeat(game, by, counters.finalKills());
@@ -161,6 +178,10 @@ public final class Lives implements GameModule {
         Match.say(game, Matches.lookOf(game).death().render(game, seat, victim.getUsername(), by, verb));
         Deaths.cue(game, victim, by);
         respawns.queue(victim);
+    }
+
+    private void died(Death death) {
+        for (Consumer<Death> action : onDeath) action.accept(death);
     }
 
     // the death nobody comes back from: both sides of it, and the face to put on the bookmark
