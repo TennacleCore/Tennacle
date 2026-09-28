@@ -485,6 +485,56 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** A ladder loses its wall inside a game: the fork's support-loss drop cast the game's block view to an instance
+     *  and threw, and the dig's other neighbors, water among them, never heard of the change (the user, 2026-09-28). */
+    @Test
+    void aLadderFallsWithItsWall() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLadderA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLadderB");
+        net.minestom.server.event.EventNode<net.minestom.server.event.Event> routing = io.github.term4.archipelago.shard.Shard.blockRouting();
+        MinecraftServer.getGlobalEventHandler().addChild(routing); // the packet path, as the server boots it
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            a.player.teleport(new Pos(2.5, 65, 7.5)).join();
+            BlockVec wall = new BlockVec(2, 65, 5), ladder = new BlockVec(3, 65, 5);
+            a.player.setItemInMainHand(ItemStack.of(Material.WHITE_WOOL, 8));
+            // the client's placement on the floor under the wall, through the routing: a member's block, one the mode lets go
+            MinecraftServer.getGlobalEventHandler().call(new net.minestom.server.event.player.PlayerPacketEvent(a.player,
+                    new net.minestom.server.network.packet.client.play.ClientPlayerBlockPlacementPacket(
+                            PlayerHand.MAIN, wall.sub(0, 1, 0), BlockFace.TOP, 0.5f, 1f, 0.5f, false, false, 1)));
+            long laid = game.tick() + 2;
+            tickUntil(game, "the placement lands", () -> game.tick() >= laid);
+            assertEquals(Block.WHITE_WOOL, game.shard().getBlock(wall), "a placed wall; chat " + plain(a));
+            a.sent.clear();
+            Block hung = Block.LADDER.withProperty("facing", "east"); // hung on the wall's east face
+            game.shard().setBlock(ladder, hung);
+            var rule = MinecraftServer.getBlockManager().getBlockPlacementRule(hung);
+            assertNotNull(rule, "the fork's ladder rule is registered here");
+            // the client's dig packet: the shard's routing breaks the block and runs the physics behind it
+            MinecraftServer.getGlobalEventHandler().call(new net.minestom.server.event.player.PlayerPacketEvent(a.player,
+                    new net.minestom.server.network.packet.client.play.ClientPlayerActionPacket(
+                            net.minestom.server.network.packet.client.play.ClientPlayerActionPacket.Status.FINISHED_DIGGING, wall, BlockFace.TOP, 0)));
+            long landed = game.tick() + 2; // the routing relays the dig onto the shard's clock
+            tickUntil(game, "the dig lands", () -> game.tick() >= landed);
+            assertTrue(game.shard().getBlock(wall).isAir(), "the wall went; chat " + plain(a));
+            assertTrue(game.shard().getBlock(ladder).isAir(), "and the ladder with it, no drop and no throw");
+        } finally {
+            MinecraftServer.getGlobalEventHandler().removeChild(routing);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
     /** The chat lines {@code p} was sent that name {@code who}, as plain text. */
     private static List<String> lines(FakePlayer p, String who) {
         return p.sent(SystemChatPacket.class).stream()

@@ -24,6 +24,9 @@ public final class TestWiring {
         if (wired) return;
         wired = true;
         tennacle.boot.Mechanics.polyp = MechanicsBoot.ensure();
+        // the fork's placement rules before the fluid wrappers, as Mechanics.install orders them: a wrapper over
+        // nothing answers a support-loss update with the block unchanged, and a ladder would never fall
+        org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations.registerDefault();
         // the harness boots mechanics without the systems Mechanics.install() adds
         tennacle.boot.Mechanics.containers = io.github.term4.polyp.mechanics.containers.ContainerSystem.install(
                 tennacle.boot.Mechanics.polyp, io.github.term4.polyp.presets.vanilla18.Containers.config());
