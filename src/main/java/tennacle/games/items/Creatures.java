@@ -1,4 +1,4 @@
-package tennacle.games.bedwars;
+package tennacle.games.items;
 
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
@@ -10,22 +10,22 @@ import io.github.term4.canvas.hologram.Hologram;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Outcome;
-import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
+import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.damage.PreDamageEvent;
 import io.github.term4.polyp.api.event.projectile.ProjectileHitEvent;
 import io.github.term4.polyp.mechanics.attribute.catalog.EffectParticles;
 import io.github.term4.polyp.mechanics.mobs.MobEntity;
 import io.github.term4.polyp.mechanics.mobs.MobKindConfig;
-import io.github.term4.polyp.mechanics.mobs.MobsSystem;
 import io.github.term4.polyp.mechanics.mobs.Sides;
 import io.github.term4.polyp.mechanics.mobs.Targets;
 import io.github.term4.polyp.mechanics.mobs.kinds.EnderDragonEntity;
 import io.github.term4.polyp.mechanics.mobs.kinds.IronGolemEntity;
 import io.github.term4.polyp.mechanics.mobs.kinds.SilverfishEntity;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -33,10 +33,12 @@ import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.entity.metadata.LivingEntityMeta;
 import net.minestom.server.event.player.PlayerUseItemOnBlockEvent;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.potion.Potion;
@@ -51,40 +53,38 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * The creatures a seat sets on the other sides (captured 2026-09-25): the Bedbug a snowball leaves where it lands,
- * the Dream Defender an egg puts down, and Sudden Death's dragons. Each fights every side but its own, wears its
- * side's name, carries a countdown over or under it, and its kills are its owner's - without the dead's items,
- * unless {@code combat.death.to-owner} says otherwise.
+ * the Dream Defender an egg puts down, and a side's dragon. Each fights every side but its own, wears its side's
+ * name, carries a countdown over or under it, and its kills are its owner's - without the dead's items, unless
+ * {@code combat.death.to-owner} says otherwise. Any mode with lives and last-standing may list it.
  */
-final class Creatures implements GameModule {
+public final class Creatures implements GameModule {
 
-    static final StateKey<Long> BEDBUG_LIFE = StateKey.of("creatures.bedbug.life", Codec.LONG, 300L);
-    static final StateKey<Double> BEDBUG_HEALTH = StateKey.of("creatures.bedbug.health", Codec.DOUBLE, 8.0);
+    public static final StateKey<Long> BEDBUG_LIFE = StateKey.of("creatures.bedbug.life", Codec.LONG, 300L);
+    public static final StateKey<Double> BEDBUG_HEALTH = StateKey.of("creatures.bedbug.health", Codec.DOUBLE, 8.0);
     /** Effect levels; 0 for none. */
-    static final StateKey<Integer> BEDBUG_STRENGTH = StateKey.of("creatures.bedbug.strength", Codec.INT, 2);
-    static final StateKey<Integer> BEDBUG_RESISTANCE = StateKey.of("creatures.bedbug.resistance", Codec.INT, 1);
-    static final StateKey<Long> DEFENDER_LIFE = StateKey.of("creatures.defender.life", Codec.LONG, 4800L);
-    static final StateKey<Double> DEFENDER_HEALTH = StateKey.of("creatures.defender.health", Codec.DOUBLE, 20.0);
+    public static final StateKey<Integer> BEDBUG_STRENGTH = StateKey.of("creatures.bedbug.strength", Codec.INT, 2);
+    public static final StateKey<Integer> BEDBUG_RESISTANCE = StateKey.of("creatures.bedbug.resistance", Codec.INT, 1);
+    public static final StateKey<Long> DEFENDER_LIFE = StateKey.of("creatures.defender.life", Codec.LONG, 4800L);
+    public static final StateKey<Double> DEFENDER_HEALTH = StateKey.of("creatures.defender.health", Codec.DOUBLE, 20.0);
     /** Fitted: 0.15 to 0.16 blocks a tick chasing, against vanilla's 0.135 at 0.25. */
-    static final StateKey<Double> DEFENDER_SPEED = StateKey.of("creatures.defender.speed", Codec.DOUBLE, 0.27);
+    public static final StateKey<Double> DEFENDER_SPEED = StateKey.of("creatures.defender.speed", Codec.DOUBLE, 0.27);
     /** Ticks between swings in reach; the hurt window paces what lands. */
-    static final StateKey<Integer> DEFENDER_SWING = StateKey.of("creatures.defender.swing", Codec.INT, 1);
-    static final StateKey<Integer> DRAGONS_PER_TEAM = StateKey.of("creatures.dragons.per-team", Codec.INT, 1);
-    /** Over the side's spawn. */
-    static final StateKey<Double> DRAGONS_HEIGHT = StateKey.of("creatures.dragons.height", Codec.DOUBLE, 15.0);
-    static final StateKey<Double> DRAGONS_LIFT = StateKey.of("creatures.dragons.lift", Codec.DOUBLE, 0.4);
+    public static final StateKey<Integer> DEFENDER_SWING = StateKey.of("creatures.defender.swing", Codec.INT, 1);
+    public static final StateKey<Double> DRAGONS_LIFT = StateKey.of("creatures.dragons.lift", Codec.DOUBLE, 0.4);
 
     /** Captured swirls: the bedbug's is what its two effects blend to; the golem's shows with no effect behind it. */
     static final int DEFENDER_SWIRL = 5134171;
-    static final String BEDBUG = "Bedbug", DEFENDER = "Dream Defender";
+    public static final String BEDBUG = "Bedbug", DEFENDER = "Dream Defender";
+
     private static final String TICK = "creatures:tick";
     private static final double BEDBUG_TAG = -1.38 + 0.5, DEFENDER_TAG = 0.94 + 0.5;
     private static final int BEDBUG_SQUARES = 5, DEFENDER_SQUARES = 10;
-    private static final java.util.function.Predicate<net.minestom.server.entity.LivingEntity> DEFENDER_TARGETS =
-            e -> e instanceof Player || e instanceof MobEntity mob && mob.hostile();
-    private static final java.util.function.Predicate<net.minestom.server.instance.block.Block> EVERY_BLOCK = block -> true;
+    private static final Predicate<LivingEntity> DEFENDER_TARGETS = e -> e instanceof Player || e instanceof MobEntity mob && mob.hostile();
+    private static final Predicate<Block> EVERY_BLOCK = block -> true;
 
     private record Creature(MobEntity mob, String team, @Nullable Slot seat, @Nullable String tool, long born, long life,
                             @Nullable Hologram tag, double rise) {
@@ -93,7 +93,6 @@ final class Creatures implements GameModule {
 
     private final Map<MobEntity, Creature> creatures = new LinkedHashMap<>();
     private Game game;
-    private LastStanding standing;
 
     /** A player is its seat's side, a creature its owner's; anyone else is nobody's. */
     private final Sides sides = entity -> {
@@ -108,15 +107,14 @@ final class Creatures implements GameModule {
     @Override
     public @NotNull Set<StateKey<?>> rules() {
         return Set.of(BEDBUG_LIFE, BEDBUG_HEALTH, BEDBUG_STRENGTH, BEDBUG_RESISTANCE, DEFENDER_LIFE, DEFENDER_HEALTH,
-                DEFENDER_SPEED, DEFENDER_SWING, DRAGONS_PER_TEAM, DRAGONS_HEIGHT, DRAGONS_LIFT);
+                DEFENDER_SPEED, DEFENDER_SWING, DRAGONS_LIFT);
     }
 
     @Override
     public void install(@NotNull Game game) {
         this.game = game;
         Lives lives = game.module(Lives.class);
-        standing = game.module(LastStanding.class);
-        if (lives == null || standing == null) throw new IllegalStateException("Creatures needs LastStanding and Lives installed before it");
+        if (lives == null) throw new IllegalStateException("Creatures needs Lives installed before it");
         lives.blame(source -> {
             Creature creature = source instanceof MobEntity mob ? creatures.get(mob) : null;
             if (creature == null || creature.seat() == null || creature.tool() == null) return null;
@@ -160,7 +158,7 @@ final class Creatures implements GameModule {
     }
 
     /** A snowball's silverfish at {@code at}, {@code owner}'s for {@link #BEDBUG_LIFE}. */
-    @Nullable SilverfishEntity bedbug(Player owner, Pos at) {
+    public @Nullable SilverfishEntity bedbug(Player owner, Pos at) {
         Slot seat = game.roster().slotOf(owner);
         if (seat == null) return null;
         long life = game.rules().resolve(owner, BEDBUG_LIFE);
@@ -179,13 +177,13 @@ final class Creatures implements GameModule {
         name(fish, seat.team(), "Silverfish");
         Hologram tag = Hologram.at(at, Match.scenery(game)).line(BEDBUG_TAG, squares(seat.team(), BEDBUG_SQUARES, BEDBUG_SQUARES));
         creatures.put(fish, new Creature(fish, seat.team(), seat, BEDBUG, game.tick(), life, tag, BEDBUG_TAG));
-        owner.sendMessage(Lines.creature(game, life));
+        owner.sendMessage(ItemLines.of(game).creature(game, life));
         arm();
         return fish;
     }
 
     /** An egg's golem at {@code at}, {@code owner}'s for {@link #DEFENDER_LIFE}. */
-    @Nullable IronGolemEntity defender(Player owner, Pos at) {
+    public @Nullable IronGolemEntity defender(Player owner, Pos at) {
         Slot seat = game.roster().slotOf(owner);
         if (seat == null) return null;
         long life = game.rules().resolve(owner, DEFENDER_LIFE);
@@ -207,52 +205,19 @@ final class Creatures implements GameModule {
         name(golem, seat.team(), "Iron Golem");
         Hologram tag = Hologram.at(at, Match.scenery(game)).line(DEFENDER_TAG, defenderTag(seat.team(), life, golem.getHealth()));
         creatures.put(golem, new Creature(golem, seat.team(), seat, DEFENDER, game.tick(), life, tag, DEFENDER_TAG));
-        owner.sendMessage(Lines.creature(game, life));
+        owner.sendMessage(ItemLines.of(game).creature(game, life));
         arm();
         return golem;
     }
 
-    /** Sudden Death: every standing side gets its dragons, and the world hears it. */
-    static void suddenDeath(Game game) {
-        Creatures creatures = game.module(Creatures.class);
-        if (creatures != null) creatures.wave(false);
-    }
-
-    static void moreDragons(Game game) {
-        Creatures creatures = game.module(Creatures.class);
-        if (creatures != null) creatures.wave(true);
-    }
-
-    private void wave(boolean more) {
-        if (more) Match.say(game, Lines.moreDragons(game));
-        int perTeam = game.rules().resolve(io.github.term4.grotto.state.Scope.GAME, DRAGONS_PER_TEAM);
-        for (Team team : game.roster().teams()) {
-            if (standing.standing(team.id()) == 0) continue;
-            Pos spawn = null;
-            for (Slot seat : game.roster().seatsOf(team.id())) {
-                if (seat.spawn() != null) {
-                    spawn = seat.spawn();
-                    break;
-                }
-            }
-            if (spawn == null) continue;
-            double height = game.rules().resolve(io.github.term4.grotto.state.Scope.GAME, DRAGONS_HEIGHT);
-            for (int i = 0; i < perTeam; i++) {
-                dragon(team, spawn.add(0, height, 0));
-                if (!more) Match.say(game, Lines.suddenDeathDragon(game, team));
-            }
-        }
-        Match.each(game, p -> p.playSound(Lines.DRAGON_GROWL));
-    }
-
     /** A side's dragon: it eats every block, ignores a blade's enchant, and never touches its own. */
-    EnderDragonEntity dragon(Team team, Pos at) {
+    public EnderDragonEntity dragon(Team team, Pos at) {
         EnderDragonEntity dragon = EnderDragonEntity.spawn(Mechanics.mobs, game.shard(), at);
         dragon.sides(sides);
         dragon.kind(MobKindConfig.builder()
                 .breaks(EVERY_BLOCK)
                 .enchantBonus(false)
-                .wingLift(game.rules().resolve(io.github.term4.grotto.state.Scope.GAME, DRAGONS_LIFT))
+                .wingLift(game.rules().resolve(Scope.GAME, DRAGONS_LIFT))
                 .targetSelector(Targets.PLAYERS)
                 .attackable(Targets.ANY)
                 .build());
@@ -313,7 +278,7 @@ final class Creatures implements GameModule {
     }
 
     // captured: the leading zero goes: .9s, .0s, -.0s
-    static String seconds(long ticks) {
+    public static String seconds(long ticks) {
         String out = String.format(Locale.ROOT, "%.1f", ticks / 20.0);
         if (out.startsWith("0.")) return out.substring(1);
         if (out.startsWith("-0.")) return "-" + out.substring(2);
@@ -328,16 +293,16 @@ final class Creatures implements GameModule {
         if (lit > 0) parts.add(Component.text("■".repeat(lit), color));
         if (total - lit > 0) parts.add(Component.text("■".repeat(total - lit), NamedTextColor.GRAY));
         parts.add(Component.text("]", NamedTextColor.DARK_GRAY));
-        return Component.join(net.kyori.adventure.text.JoinConfiguration.noSeparators(), parts);
+        return Component.join(JoinConfiguration.noSeparators(), parts);
     }
 
     /** The creature a mob is, or null for a mob nobody here sent. */
-    @Nullable String toolOf(MobEntity mob) {
+    public @Nullable String toolOf(MobEntity mob) {
         Creature creature = creatures.get(mob);
         return creature != null ? creature.tool() : null;
     }
 
-    int count() {
+    public int count() {
         return creatures.size();
     }
 }

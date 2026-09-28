@@ -46,17 +46,7 @@ final class Lines {
     /** Captured: 1.8's {@code liquid.water}. */
     static final Sound MILK_WORE_OFF = Sound.sound(SoundEvent.BLOCK_WATER_AMBIENT, Sound.Source.PLAYER, 0.7f, 2f);
     /** 1.8 mob.chicken.plop at each laid block. */
-    static final Sound EGG_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
-    static final Sound TOWER_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 0.8f, 50 / 63f);
     static final Sound DRAGON_GROWL = Sound.sound(SoundEvent.ENTITY_ENDER_DRAGON_GROWL, Sound.Source.MASTER, 1f, 1f);
-    static final Sound SPONGE_GONE = Sound.sound(SoundEvent.ENTITY_PLAYER_SPLASH, Sound.Source.MASTER, 0.6f, 2f);
-    // captured pitch bytes, one a ring; a ring past the fourth keeps the last
-    private static final int[] SPONGE_PITCH = {110, 116, 123, 129};
-
-    static Sound spongeRing(int ring) {
-        int pitch = SPONGE_PITCH[Math.min(Math.max(ring, 1), SPONGE_PITCH.length) - 1];
-        return Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.MASTER, 0.5f, pitch / 63f);
-    }
 
     private Lines() {}
 
@@ -108,10 +98,6 @@ final class Lines {
     /** Captured: red, in chat alone, five minutes before every bed goes. */
     static void bedsWarning(Game game) {
         Match.say(game, theme(game).bad("All beds will be destroyed in 5 minutes!"));
-    }
-
-    static Component creature(Game game, long lifeTicks) {
-        return theme(game).good("Your creature will fight for you for " + (lifeTicks / 20) + " seconds.");
     }
 
     /** Captured: red SUDDEN DEATH:, gold +, aqua 1, the side's dragon in its color. */
@@ -267,11 +253,6 @@ final class Lines {
 
     static Component enderDropped(Game game, String player) {
         return theme(game).good("Contents of " + player + "'s Ender Chest have been dropped into their fountain.");
-    }
-
-    /** Captured: the whole cooldown, whatever is left of it. */
-    static Component wait(Game game, long cooldownTicks) {
-        return theme(game).bad(String.format(java.util.Locale.ROOT, "Please wait %.1fs to use that again", cooldownTicks / 20.0));
     }
 
     static Component milkWoreOff(Game game) {

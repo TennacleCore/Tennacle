@@ -8,6 +8,10 @@ import tennacle.games.shop.Rank;
 import tennacle.games.shop.Shop;
 
 import io.github.term4.canvas.theme.Role;
+import io.github.term4.polyp.item.ItemKind;
+import io.github.term4.polyp.presets.hypixel.Projectiles;
+import io.github.term4.polyp.presets.hypixel.Tnt;
+import tennacle.games.TeamBlocks;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
@@ -97,9 +101,7 @@ final class Wares {
         }
     }
 
-    static final Role<Role.Fill> WOOL = Role.block("blocks.wool");
-    static final Role<Role.Fill> CLAY = Role.block("blocks.clay");
-    static final Role<Role.Fill> GLASS = Role.block("blocks.glass");
+    static final Role<Role.Fill> WOOL = TeamBlocks.WOOL, CLAY = TeamBlocks.CLAY, GLASS = TeamBlocks.GLASS;
 
     private static final Map<String, Ware> BY_ID = new LinkedHashMap<>();
     private static final Map<Material, String> ROLES = new HashMap<>();
@@ -159,9 +161,9 @@ final class Wares {
                 "Spawns silverfish where the snowball", "lands to distract your enemies.", "Lasts 15 seconds.");
         goods(Tab.UTILITY, "dream-defender", "Dream Defender", Material.IRON_GOLEM_SPAWN_EGG, 1, Price.of(120, IRON),
                 "utility", "Iron Golem to help defend your", "base. Lasts 4 minutes.");
-        goods(Tab.UTILITY, "fireball", "Fireball", Material.FIRE_CHARGE, 1, Price.of(40, IRON), "utility",
+        goods(Tab.UTILITY, "fireball", "Fireball", ItemKind.stamp(ItemStack.of(Material.FIRE_CHARGE), Projectiles.FIREBALL), Price.of(40, IRON), "utility",
                 "Right-click to launch! Great to knock", "back enemies walking on thin bridges.");
-        goods(Tab.UTILITY, "tnt", "TNT", Material.TNT, 1, Price.of(4, GOLD), "utility",
+        goods(Tab.UTILITY, "tnt", "TNT", ItemKind.stamp(ItemStack.of(Material.TNT), Tnt.KIND), Price.of(4, GOLD), "utility",
                 "Instantly ignites, appropriate to", "explode things!");
         goods(Tab.UTILITY, "pearl", "Ender Pearl", Material.ENDER_PEARL, 1, Price.of(4, EMERALD), "utility",
                 "The quickest way to invade enemy", "bases.");
@@ -230,7 +232,11 @@ final class Wares {
 
     private static void goods(Tab tab, String id, String name, Material material, int count, Price price, String role,
                               String... description) {
-        ItemStack stack = ItemStack.of(material, count);
+        goods(tab, id, name, ItemStack.of(material, count), price, role, description);
+    }
+
+    // a stack stamped with its kind: the use is the kind's wherever the item goes
+    private static void goods(Tab tab, String id, String name, ItemStack stack, Price price, String role, String... description) {
         goods(tab, id, name, (g, p) -> stack, stack, price, role, description);
     }
 
@@ -285,10 +291,6 @@ final class Wares {
         return (team != null ? team.livery() : BedWars.LOOK).get(role).material();
     }
 
-    /** The side's wool as a block, for what a build lays. */
-    static Block teamWool(Game game, @Nullable Slot seat) {
-        return Block.fromKey(teamMaterial(game, seat, WOOL).key());
-    }
 
     private static List<Component> gray(String... lines) {
         List<Component> out = new ArrayList<>();

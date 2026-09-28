@@ -4,6 +4,8 @@ import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
+import tennacle.games.items.BridgeEgg;
+import tennacle.games.map.Building;
 
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -81,7 +83,7 @@ class StructuresTest extends HeadlessServerTest {
             assertTrue(game.shard().getBlock(new BlockVec(0, 65, 0)).name().endsWith("_wool"), "wool under the ladder");
             assertTrue(game.shard().getBlock(new BlockVec(-2, 70, 2)).name().endsWith("_wool"), "the platform's far right corner");
             assertTrue(game.shard().getBlock(new BlockVec(2, 72, -3)).name().endsWith("_wool"), "a crenel");
-            assertTrue(game.module(Rules.class).building().placed(new BlockVec(1, 66, -2)), "laid as the placer's own");
+            assertTrue(Building.of(game).placed(new BlockVec(1, 66, -2)), "laid as the placer's own");
         });
     }
 
@@ -106,7 +108,7 @@ class StructuresTest extends HeadlessServerTest {
                 assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(4, 65, 5)), "not the farther one");
                 egg.remove();
                 ticks(game, 6);
-                assertTrue(game.module(Rules.class).building().placed(new BlockVec(5, 65, 5)), "a member's block");
+                assertTrue(Building.of(game).placed(new BlockVec(5, 65, 5)), "a member's block");
             } finally {
                 egg.remove();
             }

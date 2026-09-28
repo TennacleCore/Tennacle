@@ -87,7 +87,7 @@ class SpongeTest extends HeadlessServerTest {
             assertEquals(Block.SPONGE, game.shard().getBlock(p), "still standing");
             ticks(game, 8);
             assertEquals(Block.AIR, game.shard().getBlock(p), "gone a step after the last ring");
-            assertFalse(game.module(Rules.class).building().placed(p), "and no longer anyone's block");
+            assertFalse(Building.of(game).placed(p), "and no longer anyone's block");
         });
     }
 

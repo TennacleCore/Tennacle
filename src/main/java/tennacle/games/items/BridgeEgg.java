@@ -1,5 +1,6 @@
-package tennacle.games.bedwars;
+package tennacle.games.items;
 
+import tennacle.games.TeamBlocks;
 import tennacle.games.map.Building;
 import tennacle.games.map.Structures;
 
@@ -9,6 +10,7 @@ import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
+import net.kyori.adventure.sound.Sound;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
@@ -17,6 +19,7 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.Material;
+import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
@@ -29,14 +32,16 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The Bridge Egg (captured 2026-09-25, 95 eggs): a vanilla egg that leaves the thrower's wool under where it was
  * five ticks before, an L of three per tick, for thirty ticks or until it hits something or leaves the build limits.
- * One throw a second; a refusal costs nothing.
+ * One throw a second; a refusal costs nothing. Any mode with building rules may list it.
  */
-final class BridgeEgg implements GameModule {
+public final class BridgeEgg implements GameModule {
 
-    static final StateKey<Long> COOLDOWN = StateKey.of("bridge-egg.cooldown", Codec.LONG, 20L);
-    static final StateKey<Integer> LIFE = StateKey.of("bridge-egg.life", Codec.INT, 30);
+    public static final StateKey<Long> COOLDOWN = StateKey.of("bridge-egg.cooldown", Codec.LONG, 20L);
+    public static final StateKey<Integer> LIFE = StateKey.of("bridge-egg.life", Codec.INT, 30);
     /** Ticks between where the egg was and the wool there. */
-    static final StateKey<Integer> DELAY = StateKey.of("bridge-egg.delay", Codec.INT, 5);
+    public static final StateKey<Integer> DELAY = StateKey.of("bridge-egg.delay", Codec.INT, 5);
+
+    static final Sound BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
 
     private final Map<Player, Long> thrown = new ConcurrentHashMap<>();
     private Game game;
@@ -52,9 +57,8 @@ final class BridgeEgg implements GameModule {
     public void install(@NotNull Game game) {
         this.game = game;
         structures = game.module(Structures.class);
-        Rules rules = game.module(Rules.class);
-        if (structures == null || rules == null) throw new IllegalStateException("BridgeEgg needs Rules and Structures installed before it");
-        building = rules.building();
+        building = Building.of(game);
+        if (structures == null || building == null) throw new IllegalStateException("BridgeEgg needs the mode's building rules and Structures installed before it");
         game.on(ProjectileLaunchEvent.class, ProjectileLaunchEvent::shooter, e -> {
             if (!(e.shooter() instanceof Player thrower) || e.snapshot().item() == null
                     || e.snapshot().item().material() != Material.EGG || game.isGhost(thrower)) return;
@@ -72,12 +76,12 @@ final class BridgeEgg implements GameModule {
     }
 
     /** One throw a cooldown; a refused throw is told so and keeps its egg. */
-    boolean allow(Player thrower) {
+    public boolean allow(Player thrower) {
         if (game.roster().slotOf(thrower) == null) return false;
         long cooldown = game.rules().resolve(thrower, COOLDOWN);
         Long last = thrown.get(thrower);
         if (last != null && game.tick() - last < cooldown) {
-            thrower.sendMessage(Lines.wait(game, cooldown));
+            thrower.sendMessage(ItemLines.of(game).wait(game, cooldown));
             return false;
         }
         thrown.put(thrower, game.tick());
@@ -85,10 +89,10 @@ final class BridgeEgg implements GameModule {
     }
 
     /** Follows {@code egg} from the next tick, laying {@code thrower}'s wool under its path. */
-    void trail(Player thrower, Entity egg) {
+    public void trail(Player thrower, Entity egg) {
         Slot seat = game.roster().slotOf(thrower);
         if (seat == null) return;
-        Block wool = Wares.teamWool(game, seat);
+        Block wool = TeamBlocks.wool(game, seat);
         int life = game.rules().resolve(thrower, LIFE);
         int delay = game.rules().resolve(thrower, DELAY);
         Deque<Pos> path = new ArrayDeque<>();
@@ -106,7 +110,7 @@ final class BridgeEgg implements GameModule {
     private void lay(Player thrower, Pos at, Block wool) {
         for (BlockVec cell : cells(at)) {
             if (!building.place(thrower, cell, wool)) continue;
-            game.forEachAudience(v -> v.playSound(Lines.EGG_BLOCK, cell.x(), cell.y(), cell.z()));
+            game.forEachAudience(v -> v.playSound(BLOCK, cell.x(), cell.y(), cell.z()));
         }
     }
 

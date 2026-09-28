@@ -1,6 +1,7 @@
-package tennacle.games.bedwars;
+package tennacle.games.items;
 
 import tennacle.boot.Mechanics;
+import tennacle.games.TeamBlocks;
 import tennacle.games.map.Building;
 import tennacle.games.map.Structures;
 
@@ -9,6 +10,7 @@ import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
+import net.kyori.adventure.sound.Sound;
 import net.minestom.server.ServerFlag;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.BlockVec;
@@ -20,6 +22,7 @@ import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
+import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -30,11 +33,13 @@ import java.util.Set;
 /**
  * The Compact Pop-up Tower (captured 2026-09-24): the chest never lands; from the next tick the blueprint goes up two
  * cells a tick, floor first, doorway toward the placer, a ladder up the middle. A cell that is taken keeps its slot,
- * a player a cell lands in is thrown back along their own look.
+ * a player a cell lands in is thrown back along their own look. Any mode with building rules may list it.
  */
-final class PopupTower implements GameModule {
+public final class PopupTower implements GameModule {
 
-    static final StateKey<Integer> PER_TICK = StateKey.of("tower.per-tick", Codec.INT, 2);
+    public static final StateKey<Integer> PER_TICK = StateKey.of("tower.per-tick", Codec.INT, 2);
+
+    static final Sound BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 0.8f, 50 / 63f);
 
     private static final int[][] WALL = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {0, -2}, {0, 2}, {1, -1}, {1, 0}, {1, 1}};
     private static final int[][] CRENELS = {{-3, -2}, {-3, 0}, {-3, 2}, {2, -2}, {2, 0}, {2, 2}, {-2, -3}, {-2, 3}, {1, -3}, {1, 3}};
@@ -54,9 +59,8 @@ final class PopupTower implements GameModule {
     public void install(@NotNull Game game) {
         this.game = game;
         structures = game.module(Structures.class);
-        Rules rules = game.module(Rules.class);
-        if (structures == null || rules == null) throw new IllegalStateException("PopupTower needs Rules and Structures installed before it");
-        building = rules.building();
+        building = Building.of(game);
+        if (structures == null || building == null) throw new IllegalStateException("PopupTower needs the mode's building rules and Structures installed before it");
         // after Building's own handler: a placement it refused never gets here, one it allowed is ours
         game.on(PlayerBlockPlaceEvent.class, e -> {
             Player player = e.getPlayer();
@@ -75,10 +79,10 @@ final class PopupTower implements GameModule {
     }
 
     /** Lays the blueprint at {@code p}, faced from where {@code placer} looks. */
-    void build(Player placer, Point p) {
+    public void build(Player placer, Point p) {
         Slot seat = game.roster().slotOf(placer);
         if (seat == null) return;
-        Block wool = Wares.teamWool(game, seat);
+        Block wool = TeamBlocks.wool(game, seat);
         int facing = facing(placer.getPosition().yaw());
         List<Structures.Cell> cells = blueprint(p, facing, wool);
         boolean alongX = DIR[facing][0] != 0;
@@ -86,7 +90,7 @@ final class PopupTower implements GameModule {
         structures.add(Structures.lay(cells, perTick, cell -> {
             if (!building.place(placer, cell.pos(), cell.block())) return false;
             Point at = cell.pos();
-            game.forEachAudience(v -> v.playSound(Lines.TOWER_BLOCK, at.blockX() + (alongX ? 0 : 0.5),
+            game.forEachAudience(v -> v.playSound(BLOCK, at.blockX() + (alongX ? 0 : 0.5),
                     at.blockY(), at.blockZ() + (alongX ? 0.5 : 0)));
             shove(at);
             return true;

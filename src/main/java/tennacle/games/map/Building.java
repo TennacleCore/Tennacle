@@ -15,8 +15,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tennacle.commands.RulesCompletions;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -89,10 +92,17 @@ public final class Building {
     public static final String REASON_BUILD = "build", REASON_RESERVED = "reserved", REASON_FLOOR = "floor",
             REASON_HEIGHT = "height", REASON_OUTSIDE = "outside", REASON_MAP = "map", REASON_PLACED = "placed";
 
+    private static final Map<Game, Building> BY_GAME = Collections.synchronizedMap(new WeakHashMap<>());
+
     private final it.unimi.dsi.fastutil.longs.LongSet placed = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
     private final List<Predicate<Point>> stills = new java.util.ArrayList<>();
     private final Game game;
     private final Space space;
+
+    /** The building rules a mode installed for {@code game}, or null before its rules module ran. */
+    public static @Nullable Building of(@NotNull Game game) {
+        return BY_GAME.get(game);
+    }
 
     private Building(Game game, Space space) {
         this.game = game;
@@ -106,6 +116,7 @@ public final class Building {
     public static @NotNull Building install(@NotNull Game game, @NotNull Space space,
                                             @NotNull Consumer<Player> touched) {
         Building building = new Building(game, space);
+        BY_GAME.put(game, building);
         game.on(PlayerBlockPlaceEvent.class, e -> {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;

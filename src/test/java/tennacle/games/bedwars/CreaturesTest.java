@@ -5,6 +5,7 @@ import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
+import tennacle.games.items.Creatures;
 import tennacle.games.beds.Spoils;
 
 import io.github.term4.archipelago.shard.ShardManager;
@@ -142,7 +143,7 @@ class CreaturesTest extends HeadlessServerTest {
     void suddenDeathBringsADragonASide() {
         round("Dragons", (game, fa, fb) -> {
             Creatures creatures = game.module(Creatures.class);
-            Creatures.suddenDeath(game);
+            Dragons.suddenDeath(game);
             List<EnderDragonEntity> dragons = game.instance().getEntities().stream()
                     .filter(e -> e instanceof EnderDragonEntity).map(e -> (EnderDragonEntity) e).toList();
             assertEquals(2, dragons.size(), "one for each standing side");
@@ -150,7 +151,7 @@ class CreaturesTest extends HeadlessServerTest {
             EnderDragonEntity first = dragons.getFirst();
             assertEquals(80.0, first.getPosition().y(), 0.01, "fifteen over the side's spawn");
             assertFalse(first.sides().same(first, fa.player) && first.sides().same(first, fb.player), "one side's, not both");
-            Creatures.moreDragons(game);
+            Dragons.moreDragons(game);
             assertEquals(4, creatures.count(), "the wave adds one a side");
             assertTrue(chat(fa).contains("MORE DRAGONS HAVE SPAWNED!"), chat(fa).toString());
         });

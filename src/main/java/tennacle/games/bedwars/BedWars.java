@@ -29,6 +29,11 @@ import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
+import tennacle.games.TeamBlocks;
+import tennacle.games.items.BridgeEgg;
+import tennacle.games.items.Creatures;
+import tennacle.games.items.PopupTower;
+import tennacle.games.items.Sponge;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.grotto.Body;
@@ -136,8 +141,8 @@ public final class BedWars {
             .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
 
     // the shop's team blocks, in the team's color
-    static final Livery LOOK = new Livery(Map.of(Wares.WOOL.name(), "wool", Wares.CLAY.name(), "terracotta",
-            Wares.GLASS.name(), "stained_glass"));
+    static final Livery LOOK = new Livery(Map.of(TeamBlocks.WOOL.name(), "wool", TeamBlocks.CLAY.name(), "terracotta",
+            TeamBlocks.GLASS.name(), "stained_glass"));
     // captured: the wooden sword and team leather, the helmet alone with aqua affinity; what is bought for good
     // comes back at every spawn, and the Hotbar Manager's categories are the layout's names
     static final Kit KIT = Kit.of("bedwars").look(LOOK)
@@ -191,7 +196,7 @@ public final class BedWars {
 
     private static List<Role<?>> roles() {
         List<Role<?>> roles = new ArrayList<>(KIT.roles());
-        roles.addAll(List.of(Team.DISPLAY, Wares.WOOL, Wares.CLAY, Wares.GLASS));
+        roles.addAll(List.of(Team.DISPLAY, TeamBlocks.WOOL, TeamBlocks.CLAY, TeamBlocks.GLASS));
         return roles;
     }
 
@@ -244,8 +249,8 @@ public final class BedWars {
                 .event("bed-gone-warning", null, 25L * 60 * 20).on("bed-gone-warning", Lines::bedsWarning)
                 .watched("bed-gone", "Bed Gone", g -> Beds.standing(g).isEmpty() ? -1 : Beds.fallsIn(g))
                 .event("sudden-death", "Sudden Death", 40L * 60 * 20).on("sudden-death", Lines::suddenDeath)
-                .on("sudden-death", Creatures::suddenDeath)
-                .event("more-dragons", "More Dragons", 45L * 60 * 20).on("more-dragons", Creatures::moreDragons)
+                .on("sudden-death", Dragons::suddenDeath)
+                .event("more-dragons", "More Dragons", 45L * 60 * 20).on("more-dragons", Dragons::moreDragons)
                 .event("game-end", "Game End", 50L * 60 * 20).on("game-end", BedWars::end);
     }
 
@@ -348,7 +353,7 @@ public final class BedWars {
                         Compass::new,
                         Spoils::new,
                         MagicMilk::new,
-                        Creatures::new,
+                        Creatures::new, Dragons::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Staging staging = g.module(Staging.class);
                             if (staging != null && staging.waiting()) { // off the room's edge: back up, no death

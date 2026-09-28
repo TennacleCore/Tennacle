@@ -1,5 +1,7 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.TeamBlocks;
+
 import tennacle.games.Match;
 import tennacle.games.shop.ItemCurrency;
 import tennacle.looks.Palette;
@@ -107,7 +109,7 @@ final class QuickComms {
         int slot = 10;
         for (Team team : Compass.enemies(game, viewer)) {
             Component name = Component.text(Palette.name(team), team.color(), TextDecoration.BOLD);
-            ItemStack wool = ItemStack.of(team.livery().get(Wares.WOOL).material());
+            ItemStack wool = ItemStack.of(team.livery().get(TeamBlocks.WOOL).material());
             window.button(slot++, option(wool, say.lead, name), (v, click) -> {
                 if (click instanceof Click.Double) return;
                 v.closeInventory();

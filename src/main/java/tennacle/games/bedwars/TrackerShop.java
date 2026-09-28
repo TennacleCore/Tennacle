@@ -1,5 +1,7 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.TeamBlocks;
+
 import tennacle.games.Match;
 import tennacle.games.beds.Beds;
 import tennacle.games.shop.Offer;
@@ -71,7 +73,7 @@ final class TrackerShop {
         lore.add(!open ? Component.text("Unlocks when all enemy beds are destroyed!", NamedTextColor.RED)
                 : affordable ? Component.text("Click to purchase!", NamedTextColor.YELLOW)
                 : Component.text("You don't have enough " + price.currency().name(price.amount()) + "!", NamedTextColor.RED));
-        ItemStack wool = ItemStack.of(team.livery().get(Wares.WOOL).material());
+        ItemStack wool = ItemStack.of(team.livery().get(TeamBlocks.WOOL).material());
         Component name = Component.text("Track Team " + Palette.titled(team), open && affordable ? NamedTextColor.GREEN : NamedTextColor.RED);
         return Items.bare(Items.lore(Items.named(wool, name), lore));
     }

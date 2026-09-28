@@ -1,4 +1,4 @@
-package tennacle.games.bedwars;
+package tennacle.games.items;
 
 import tennacle.games.map.Building;
 import tennacle.games.map.Structures;
@@ -7,6 +7,7 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.mechanics.fluids.Fluids;
+import net.kyori.adventure.sound.Sound;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
@@ -16,6 +17,7 @@ import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.network.packet.server.play.ParticlePacket;
 import net.minestom.server.particle.Particle;
+import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -26,13 +28,17 @@ import java.util.Set;
  * The sponge (captured 2026-09-25): it lands like any block, then from {@code sponge.delay} ticks on, every
  * {@code sponge.step}, it drinks the next shell of the cube {@code sponge.radius} blocks out, with a click and a
  * cloud at every open cell of the shell; a step after the last it is gone with a splash. While it stands, no
- * water runs into its cube.
+ * water runs into its cube. Any mode with building rules may list it.
  */
-final class Sponge implements GameModule {
+public final class Sponge implements GameModule {
 
-    static final StateKey<Integer> DELAY = StateKey.of("sponge.delay", Codec.INT, 5);
-    static final StateKey<Integer> STEP = StateKey.of("sponge.step", Codec.INT, 8);
-    static final StateKey<Integer> RADIUS = StateKey.of("sponge.radius", Codec.INT, 4);
+    public static final StateKey<Integer> DELAY = StateKey.of("sponge.delay", Codec.INT, 5);
+    public static final StateKey<Integer> STEP = StateKey.of("sponge.step", Codec.INT, 8);
+    public static final StateKey<Integer> RADIUS = StateKey.of("sponge.radius", Codec.INT, 4);
+
+    static final Sound GONE = Sound.sound(SoundEvent.ENTITY_PLAYER_SPLASH, Sound.Source.MASTER, 0.6f, 2f);
+    // captured pitch bytes, one a ring; a ring past the fourth keeps the last
+    private static final int[] RING_PITCH = {110, 116, 123, 129};
 
     private Game game;
     private Structures structures;
@@ -47,9 +53,8 @@ final class Sponge implements GameModule {
     public void install(@NotNull Game game) {
         this.game = game;
         structures = game.module(Structures.class);
-        Rules rules = game.module(Rules.class);
-        if (structures == null || rules == null) throw new IllegalStateException("Sponge needs Rules and Structures installed before it");
-        building = rules.building();
+        building = Building.of(game);
+        if (structures == null || building == null) throw new IllegalStateException("Sponge needs the mode's building rules and Structures installed before it");
         // after Building's own handler: a placement it refused never gets here
         game.on(PlayerBlockPlaceEvent.class, e -> {
             Player player = e.getPlayer();
@@ -58,8 +63,13 @@ final class Sponge implements GameModule {
         });
     }
 
+    static Sound ring(int ring) {
+        int pitch = RING_PITCH[Math.min(Math.max(ring, 1), RING_PITCH.length) - 1];
+        return Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.MASTER, 0.5f, pitch / 63f);
+    }
+
     /** A sponge {@code placer} just put at {@code at}; the block lands after the event, the first step reads it there. */
-    void start(Player placer, Point at) {
+    public void start(Player placer, Point at) {
         int delay = game.rules().resolve(placer, DELAY);
         int step = game.rules().resolve(placer, STEP);
         int radius = game.rules().resolve(placer, RADIUS);
@@ -83,7 +93,7 @@ final class Sponge implements GameModule {
                 }
                 building.vanish(center);
                 Point c = center.add(0.5, 0.5, 0.5);
-                game.forEachAudience(v -> v.playSound(Lines.SPONGE_GONE, c.x(), c.y(), c.z()));
+                game.forEachAudience(v -> v.playSound(GONE, c.x(), c.y(), c.z()));
                 release.run();
                 return false;
             }
@@ -115,8 +125,9 @@ final class Sponge implements GameModule {
             }
         }
         Point c = center.add(0.5, 0.5, 0.5);
+        Sound click = ring(ring);
         game.forEachAudience(v -> {
-            v.playSound(Lines.spongeRing(ring), c.x(), c.y(), c.z());
+            v.playSound(click, c.x(), c.y(), c.z());
             for (ParticlePacket cloud : clouds) v.sendPacket(cloud);
         });
     }
