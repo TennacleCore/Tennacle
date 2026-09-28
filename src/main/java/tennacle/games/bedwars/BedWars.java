@@ -364,7 +364,7 @@ public final class BedWars {
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
                         Loadout::new,
-                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Presentation::new,
+                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Boards.hypixel(label))

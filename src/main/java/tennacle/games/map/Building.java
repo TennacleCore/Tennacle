@@ -2,6 +2,8 @@ package tennacle.games.map;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.view.Refusals;
+import io.github.term4.grotto.state.Scope;
+import io.github.term4.polyp.api.event.fluid.FluidSpreadEvent;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.coordinate.Point;
@@ -20,9 +22,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
- * Where a seat may build and what it may break. Bridge and bed fight declare the same six rule ids and the same
- * place/break shape; only the geometry differs, so the rules, the vocabulary and the placed set live here and
- * each mode supplies its own {@link Space}.
+ * Where a seat may build, what it may break, and where a fluid may run. Bridge and bed fight declare the same rule
+ * ids and the same place/break shape; only the geometry differs, so the rules, the vocabulary and the placed set
+ * live here and each mode supplies its own {@link Space}.
  */
 public final class Building {
 
@@ -45,9 +47,11 @@ public final class Building {
     /** What may be broken outside one - the rest of the map. */
     public static final StateKey<List<String>> BREAK_OUTSIDE =
             StateKey.of("space.break.outside", Codec.STRING.list(), List.of(PLACED));
+    /** A fluid may run into a reserved cell; off, it stops at the edge and stands still there (a base box). */
+    public static final StateKey<Boolean> FLOW_RESERVED = StateKey.of("space.flow.reserved", Codec.BOOLEAN, false);
 
     /** Every rule this carries, for a type's declaration. */
-    public static final Set<StateKey<?>> RULES = Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, BREAK, BREAK_OUTSIDE);
+    public static final Set<StateKey<?>> RULES = Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, BREAK, BREAK_OUTSIDE, FLOW_RESERVED);
 
     static {
         RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
@@ -86,6 +90,7 @@ public final class Building {
             REASON_HEIGHT = "height", REASON_OUTSIDE = "outside", REASON_MAP = "map", REASON_PLACED = "placed";
 
     private final it.unimi.dsi.fastutil.longs.LongSet placed = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+    private final List<Predicate<Point>> stills = new java.util.ArrayList<>();
     private final Game game;
     private final Space space;
 
@@ -133,7 +138,31 @@ public final class Building {
             building.placed.remove(key(pos)); // after the refusal: a block that stays is still the one who placed it
             touched.accept(player);
         });
+        game.onWorld(FluidSpreadEvent.class, FluidSpreadEvent::world, e -> {
+            if (building.stilled(e.to())) e.setCancelled(true);
+        });
         return building;
+    }
+
+    // a cell no fluid may run into: a reserved one under the rule, or one a module holds
+    private boolean stilled(Point pos) {
+        if (!game.rules().resolve(Scope.GAME, FLOW_RESERVED) && space.reserved(pos)) return true;
+        for (Predicate<Point> still : stills) {
+            if (still.test(pos)) return true;
+        }
+        return false;
+    }
+
+    /** Keeps every fluid out of {@code area} until the returned runnable is called (a sponge's cube). */
+    public @NotNull Runnable still(@NotNull Predicate<Point> area) {
+        stills.add(area);
+        return () -> stills.remove(area);
+    }
+
+    /** Takes the block at {@code pos} away, a member's mark with it (a sponge that is done, the water it drank). */
+    public void vanish(@NotNull Point pos) {
+        game.shard().setBlock(pos, Block.AIR);
+        placed.remove(key(pos));
     }
 
     // Refusals says so, in the mode's words for the reason

@@ -49,6 +49,14 @@ final class Lines {
     static final Sound EGG_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
     static final Sound TOWER_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 0.8f, 50 / 63f);
     static final Sound DRAGON_GROWL = Sound.sound(SoundEvent.ENTITY_ENDER_DRAGON_GROWL, Sound.Source.MASTER, 1f, 1f);
+    static final Sound SPONGE_GONE = Sound.sound(SoundEvent.ENTITY_PLAYER_SPLASH, Sound.Source.MASTER, 0.6f, 2f);
+    // captured pitch bytes, one a ring; a ring past the fourth keeps the last
+    private static final int[] SPONGE_PITCH = {110, 116, 123, 129};
+
+    static Sound spongeRing(int ring) {
+        int pitch = SPONGE_PITCH[Math.min(Math.max(ring, 1), SPONGE_PITCH.length) - 1];
+        return Sound.sound(SoundEvent.BLOCK_WOODEN_BUTTON_CLICK_ON, Sound.Source.MASTER, 0.5f, pitch / 63f);
+    }
 
     private Lines() {}
 
