@@ -42,8 +42,6 @@ public final class Invisibles implements GameModule {
 
     private static final Set<EquipmentSlot> WORN = EnumSet.of(EquipmentSlot.HELMET, EquipmentSlot.CHESTPLATE,
             EquipmentSlot.LEGGINGS, EquipmentSlot.BOOTS);
-    private static final Set<EquipmentSlot> SENT = EnumSet.of(EquipmentSlot.MAIN_HAND, EquipmentSlot.OFF_HAND,
-            EquipmentSlot.HELMET, EquipmentSlot.CHESTPLATE, EquipmentSlot.LEGGINGS, EquipmentSlot.BOOTS);
     private static final Tag<Boolean> UNSEEN = Tag.Transient("tennacle:unseen");
     private static boolean hooked;
 
@@ -92,8 +90,9 @@ public final class Invisibles implements GameModule {
     private void changed(Player p, boolean invisible) {
         if (game.roster().slotOf(p) == null) return;
         p.setTag(UNSEEN, invisible);
+        // the four worn slots alone (captured): the hands ride their own updates, and the drink's is still under way
         Map<EquipmentSlot, ItemStack> worn = new EnumMap<>(EquipmentSlot.class);
-        for (EquipmentSlot slot : SENT) worn.put(slot, p.getEquipment(slot));
+        for (EquipmentSlot slot : WORN) worn.put(slot, p.getEquipment(slot));
         p.sendPacketToViewers(new EntityEquipmentPacket(p.getEntityId(), worn));
         Nametags tags = game.module(Nametags.class);
         if (tags != null && game.rules().resolve(p, HIDES_NAME)) tags.veil(p, invisible);

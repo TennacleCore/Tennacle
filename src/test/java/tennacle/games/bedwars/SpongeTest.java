@@ -22,6 +22,7 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerHand;
 import io.github.term4.polyp.util.tick.TickSystem;
 import net.minestom.server.event.EventDispatcher;
+import net.minestom.server.event.instance.InstanceTickEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.instance.block.Block;
@@ -91,6 +92,18 @@ class SpongeTest extends HeadlessServerTest {
         });
     }
 
+    /** A game on the server clock has no tick of its own: the instance's pass carries its water (the user's no-flow). */
+    @Test
+    void waterFlowsOnTheServerClock() {
+        round("ClockA", (game, fa, fb) -> {
+            Mechanics.fluids.place(game.shard(), new BlockVec(-8, 65, 4), Block.WATER);
+            for (int i = 1; i <= 12; i++) {
+                EventDispatcher.call(new InstanceTickEvent(game.instance(), i, 50));
+            }
+            assertTrue(game.shard().getBlock(new BlockVec(-7, 65, 4)).compare(Block.WATER), "it flows on the instance's own pass");
+        });
+    }
+
     @Test
     void waterStopsAtABaseAndAtASponge() {
         round("SpongeB", (game, fa, fb) -> {
@@ -99,6 +112,7 @@ class SpongeTest extends HeadlessServerTest {
             fa.player.setItemInMainHand(ItemStack.of(Material.WATER_BUCKET));
             EventDispatcher.call(new PlayerUseItemEvent(fa.player, PlayerHand.MAIN, fa.player.getItemInMainHand(), 0));
             assertTrue(game.shard().getBlock(new BlockVec(-8, 65, 0)).compare(Block.WATER), "poured at the feet: " + chat(fa));
+            assertEquals("0", game.shard().getBlock(new BlockVec(-8, 65, 0)).getProperty("level"), "a source, not a fall");
             assertTrue(fa.player.getItemInMainHand().isAir(), "the spent bucket goes with the water");
             ticks(game, 12);
             assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(-9, 65, 0)), "no water runs into a base");

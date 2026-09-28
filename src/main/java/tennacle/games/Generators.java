@@ -165,7 +165,9 @@ public final class Generators implements GameModule {
         // captured: the spawn carries vanilla's hop (0.2 up, a little sideways) and the next tick zeroes it, so the
         // item drops straight onto the point; each lies as its own entity, never folded into a stack
         Vec velocity = new Vec((rnd.nextDouble() - rnd.nextDouble()) * 0.1, 0.2, (rnd.nextDouble() - rnd.nextDouble()) * 0.1);
-        DroppedItemEntity item = DroppedItemEntity.spawn(game.shard(), new Pos(at.x(), at.y(), at.z()), velocity, stack, null, 0);
+        // vanilla's random yaw, on the wire as Hypixel's is
+        Pos pos = new Pos(at.x(), at.y(), at.z(), rnd.nextFloat() * 360f, 0f);
+        DroppedItemEntity item = DroppedItemEntity.spawn(game.shard(), pos, velocity, stack, null, 0);
         if (item != null) {
             item.setMergeable(false);
             item.setVelocity(Vec.ZERO);
