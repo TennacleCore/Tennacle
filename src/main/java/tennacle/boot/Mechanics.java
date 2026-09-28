@@ -42,6 +42,7 @@ public final class Mechanics {
 
     public static ExplosionSystem explosions;
     public static ProjectileSystem projectiles;
+    public static ContainerSystem containers;
     public static Polyp polyp;
 
     private Mechanics() {}
@@ -77,7 +78,7 @@ public final class Mechanics {
                 org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getBEDS(),
                 org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getCONTAINERS());
         BlocksSystem.install(polyp); // after the rules above: the chest slot wraps the one registered there
-        ContainerSystem.install(polyp); // the opening itself: contents on the world, spilled on break
+        containers = ContainerSystem.install(polyp); // the opening itself: contents on the world, spilled on break
         AttackSystem.install(polyp);
         DamageSystem.install(polyp);
         KnockbackSystem.install(polyp);

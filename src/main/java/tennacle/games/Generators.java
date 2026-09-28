@@ -12,6 +12,7 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.PickupItemEvent;
 import net.minestom.server.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -126,10 +127,7 @@ public final class Generators implements GameModule {
 
         private void drop() {
             if (pool.lying() >= pool.cap) return;
-            ThreadLocalRandom rnd = ThreadLocalRandom.current();
-            // a fresh drop: up 0.2, a little sideways (captured off the wire)
-            Vec velocity = new Vec((rnd.nextDouble() - rnd.nextDouble()) * 0.1, 0.2, (rnd.nextDouble() - rnd.nextDouble()) * 0.1);
-            DroppedItemEntity item = DroppedItemEntity.spawn(game.shard(), new Pos(at.x(), at.y(), at.z()), velocity, stack, null, 0);
+            DroppedItemEntity item = Generators.drop(game, at, stack);
             if (item != null) {
                 items.add(item);
                 made.put(item.getEntityId(), this);
@@ -145,6 +143,14 @@ public final class Generators implements GameModule {
 
     public static @NotNull Generators of() {
         return new Generators();
+    }
+
+    /** {@code stack} dropped at {@code at} as a generator drops it, counted by none. */
+    public static @Nullable DroppedItemEntity drop(@NotNull Game game, @NotNull Point at, @NotNull ItemStack stack) {
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        // up 0.2, a little sideways (captured off the wire)
+        Vec velocity = new Vec((rnd.nextDouble() - rnd.nextDouble()) * 0.1, 0.2, (rnd.nextDouble() - rnd.nextDouble()) * 0.1);
+        return DroppedItemEntity.spawn(game.shard(), new Pos(at.x(), at.y(), at.z()), velocity, stack, null, 0);
     }
 
     /** A pickup of a {@code shared} stack made here copies it to every teammate within {@code radius} of the item. */
@@ -168,7 +174,7 @@ public final class Generators implements GameModule {
     }
 
     /** The generator {@code item} came out of, or null. */
-    public @org.jetbrains.annotations.Nullable Generator made(@NotNull ItemEntity item) {
+    public @Nullable Generator made(@NotNull ItemEntity item) {
         return made.get(item.getEntityId());
     }
 

@@ -90,6 +90,14 @@ final class Gear {
                 || item.material() == Material.DIAMOND_SWORD;
     }
 
+    /** The wooden sword and the tools: the seat's for good, so never stored. */
+    static boolean kept(ItemStack item) {
+        Material material = item.material();
+        String name = material.key().value();
+        return material == Material.WOODEN_SWORD || material == Material.SHEARS
+                || name.endsWith("_pickaxe") || name.endsWith("_axe");
+    }
+
     /** Nothing a seat wears or swings wears out. */
     static ItemStack unbreakable(Game game, Slot seat, ItemStack item) {
         return item.has(DataComponents.MAX_DAMAGE) && !item.has(DataComponents.UNBREAKABLE)

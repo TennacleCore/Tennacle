@@ -89,7 +89,7 @@ import java.util.Map;
  * Bed Wars, Hypixel's, on its maps: eight or four sides, each with a bed. A game fills up in the map's waiting
  * room and counts down one seat short of full; while your bed stands you respawn, and once it is broken your
  * next death is your last. Solo, Doubles, 3s and 4s are one game with a team size each, on the maps of their
- * team count. The forges and the middle's generators run on the captured schedules; the shop is still to come.
+ * team count. The forges and the middle's generators run on the captured schedules.
  */
 public final class BedWars {
 
@@ -319,6 +319,7 @@ public final class BedWars {
                         FriendlyFire::new,
                         () -> new Beds(BED, BEDS),
                         () -> new Lives(COUNTERS).onDeath(Gear::died),
+                        Chests::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Staging staging = g.module(Staging.class);
                             if (staging != null && staging.waiting()) { // off the room's edge: back up, no death

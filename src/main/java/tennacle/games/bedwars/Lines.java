@@ -3,15 +3,20 @@ package tennacle.games.bedwars;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.shop.Price;
+import tennacle.looks.Palette;
 
 import io.github.term4.canvas.theme.Theme;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title;
+import net.minestom.server.component.DataComponents;
+import net.minestom.server.item.ItemStack;
 import net.minestom.server.sound.SoundEvent;
 
 import java.util.List;
@@ -27,6 +32,8 @@ final class Lines {
     // captured: volume 8, the pling at the 1.8 client's highest pitch and the portal at its lowest
     static final Sound BOUGHT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 8f, 2f);
     static final Sound REFUSED = Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 8f, 0.5f);
+    /** Captured at the depositor's feet, not the chest. */
+    static final Sound DEPOSIT = Sound.sound(SoundEvent.BLOCK_CHEST_CLOSE, Sound.Source.BLOCK, 1f, 1f);
 
     private Lines() {}
 
@@ -122,6 +129,59 @@ final class Lines {
         return Title.title(theme(game).bad("ALARM!!!").decorate(TextDecoration.BOLD),
                 Component.text("Reveal trap set off by ").append(Component.text(team + " ", color)).append(Component.text("team!")),
                 Match.times(game, 5, 35, 10));
+    }
+
+    static Component chestLocked(Game game, Team owner) {
+        return lock(game, "You cannot open this Chest as the ", owner);
+    }
+
+    static Component depositLocked(Game game, Team owner) {
+        return lock(game, "You cannot deposit into this chest as the ", owner);
+    }
+
+    private static Component lock(Game game, String lead, Team owner) {
+        return theme(game).bad(lead).append(Component.text(Palette.titled(owner) + " Team", owner.color()))
+                .append(theme(game).bad(" has not been eliminated!"));
+    }
+
+    static Component cantDeposit(Game game) {
+        return theme(game).bad("You can't deposit this item!");
+    }
+
+    static Component needTwo(Game game) {
+        return theme(game).bad("You need at least 2 items of this type to deposit!");
+    }
+
+    static Component noSpace(Game game) {
+        return theme(game).bad("No space available to deposit items.");
+    }
+
+    /** Captured: the item in its color, the chest aqua or light purple, then the chest's count of it. */
+    static Component deposited(Game game, ItemStack item, int amount, boolean team, int total) {
+        Theme theme = theme(game);
+        TextColor color = switch (item.material().key().value()) {
+            case "gold_ingot" -> NamedTextColor.GOLD;
+            case "diamond" -> NamedTextColor.AQUA;
+            case "emerald" -> NamedTextColor.GREEN;
+            default -> NamedTextColor.WHITE;
+        };
+        return theme.prose("Deposited ")
+                .append(Component.text("x" + amount + " ", color).append(name(item)).append(Component.text(" ")))
+                .append(theme.prose("into "))
+                .append(team ? Component.text("Team Chest", NamedTextColor.AQUA) : Component.text("Ender Chest", NamedTextColor.LIGHT_PURPLE))
+                .append(theme.prose("! "))
+                .append(theme.dim("(" + total + " Total)"));
+    }
+
+    // each client's own name for it, 1.8's through Via
+    private static Component name(ItemStack item) {
+        Component custom = item.get(DataComponents.CUSTOM_NAME);
+        return custom != null ? Component.text(PlainTextComponentSerializer.plainText().serialize(custom))
+                : Component.translatable(item.material().translationKey());
+    }
+
+    static Component enderDropped(Game game, String player) {
+        return theme(game).good("Contents of " + player + "'s Ender Chest have been dropped into their fountain.");
     }
 
     static Component alarmLine(Game game, String intruder, String team, TextColor color) {
