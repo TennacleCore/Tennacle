@@ -33,6 +33,7 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import tennacle.games.TeamBlocks;
 import tennacle.games.items.BridgeEgg;
 import tennacle.games.items.Creatures;
+import tennacle.games.items.Fireballs;
 import tennacle.games.items.PopupTower;
 import tennacle.games.items.Sponge;
 import tennacle.games.matchmaking.PartyExit;
@@ -374,7 +375,7 @@ public final class BedWars {
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
                         () -> new Loadout().kept(Gear::kept),
-                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Presentation::new,
+                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Boards.hypixel(label))

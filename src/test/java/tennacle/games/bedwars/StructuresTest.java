@@ -7,6 +7,13 @@ import tennacle.games.TestWiring;
 import tennacle.games.items.BridgeEgg;
 import tennacle.games.map.Building;
 
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.types.Fireball;
+import net.minestom.server.network.packet.server.play.EntityEffectPacket;
+import net.minestom.server.potion.PotionEffect;
+import tennacle.boot.Mechanics;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -35,6 +42,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A pop-up tower going up over ticks off a chest that never lands, and an egg's wool trailing five ticks behind. */
@@ -115,6 +123,21 @@ class StructuresTest extends HeadlessServerTest {
             } finally {
                 egg.remove();
             }
+        });
+    }
+
+    @Test
+    void aThrowSlowsTheThrower() {
+        round("FireA", (game, fa, fb) -> {
+            Player a = fa.player;
+            // the harness boots mechanics without the projectile system Mechanics.install() adds
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            assertNotNull(projectiles.launch(ProjectileSnapshot.of(a, Fireball.INSTANCE).withConfig(Vanilla18.projectiles())), "the fireball flies");
+            assertTrue(a.hasEffect(PotionEffect.SLOWNESS), "the throw slows the thrower");
+            EntityEffectPacket sent = fa.sent(EntityEffectPacket.class).stream()
+                    .filter(p -> p.potion().effect() == PotionEffect.SLOWNESS).toList().getLast();
+            assertEquals(1, sent.potion().amplifier(), "Slowness II, the effect the client is sent");
+            assertEquals(20, sent.potion().duration(), "for 20 ticks");
         });
     }
 
