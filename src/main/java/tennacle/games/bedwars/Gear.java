@@ -90,11 +90,11 @@ final class Gear {
                 || item.material() == Material.DIAMOND_SWORD;
     }
 
-    /** The wooden sword and the tools: the seat's for good, so never stored. */
+    /** The wooden sword, the compass and the tools: the seat's for good, so never stored. */
     static boolean kept(ItemStack item) {
         Material material = item.material();
         String name = material.key().value();
-        return material == Material.WOODEN_SWORD || material == Material.SHEARS
+        return material == Material.WOODEN_SWORD || material == Material.COMPASS || material == Material.SHEARS
                 || name.endsWith("_pickaxe") || name.endsWith("_axe");
     }
 

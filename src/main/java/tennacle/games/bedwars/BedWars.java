@@ -136,6 +136,7 @@ public final class BedWars {
     // comes back at every spawn, and the Hotbar Manager's categories are the layout's names
     static final Kit KIT = Kit.of("bedwars").look(LOOK)
             .item("melee", 0, SWORD)
+            .item(Compass.SLOT, Compass.ITEM)
             .fallback("melee", Gear::sword) // captured 2026-09-27: the wooden sword is there whenever no better one is
             .roleOf(Wares::role)
             .item("pickaxe", Gear::pickaxe, Gear.PICKAXE)
@@ -320,6 +321,7 @@ public final class BedWars {
                         () -> new Beds(BED, BEDS),
                         () -> new Lives(COUNTERS).onDeath(Gear::died),
                         Chests::new,
+                        Compass::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Staging staging = g.module(Staging.class);
                             if (staging != null && staging.waiting()) { // off the room's edge: back up, no death

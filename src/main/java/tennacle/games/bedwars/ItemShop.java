@@ -52,8 +52,8 @@ final class ItemShop {
             page.button(GRID[i], viewer -> icon(game, viewer, open, index), (viewer, click) -> press(game, viewer, open, index, click));
         }
         if (open == Tab.QUICK_BUY) {
-            page.item(45, Items.bare(Items.lore(Items.named(Material.COMPASS, Component.text("Tracker Shop", NamedTextColor.GREEN)),
-                    gray("Purchase tracking upgrade for your", "compass which will track each player", "on a specific team until you die."))));
+            page.button(45, Items.bare(Items.lore(Items.named(Material.COMPASS, Component.text("Tracker Shop", NamedTextColor.GREEN)),
+                    Compass.trackerLore())), (viewer, click) -> TrackerShop.open(game, viewer, false));
             page.button(53, Items.lore(Items.named(Material.BLAZE_POWDER, Component.text("Hotbar Manager", NamedTextColor.GREEN)),
                     List.of(gray("Edit preferred slots for your items"), gray("per category."), Component.empty(),
                             Component.text("Click to edit!", NamedTextColor.YELLOW))),

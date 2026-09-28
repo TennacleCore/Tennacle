@@ -34,6 +34,7 @@ final class Lines {
     static final Sound REFUSED = Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 8f, 0.5f);
     /** Captured at the depositor's feet, not the chest. */
     static final Sound DEPOSIT = Sound.sound(SoundEvent.BLOCK_CHEST_CLOSE, Sound.Source.BLOCK, 1f, 1f);
+    static final Sound ORB = Sound.sound(SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP, Sound.Source.PLAYER, 1f, 1f);
 
     private Lines() {}
 
@@ -182,6 +183,47 @@ final class Lines {
 
     static Component enderDropped(Game game, String player) {
         return theme(game).good("Contents of " + player + "'s Ender Chest have been dropped into their fountain.");
+    }
+
+    static Component trackerLocked(Game game) {
+        return theme(game).bad("Not all enemy beds are destroyed yet!");
+    }
+
+    static Component notEnough(Game game, Price price) {
+        return theme(game).bad("You don't have enough " + price.currency().name(price.amount()) + "!");
+    }
+
+    static Component trackerLost(Game game) {
+        return theme(game).bad("You will lose ability to track this team when you die!");
+    }
+
+    /** Captured over the hotbar: the tracked player bold in their team's color, the meters green and bold. */
+    static Component tracking(String player, TextColor color, int meters) {
+        return Component.text("Tracking: ", NamedTextColor.WHITE)
+                .append(Component.text(player, color, TextDecoration.BOLD))
+                .append(Component.text(" - Distance: ", NamedTextColor.WHITE))
+                .append(Component.text(meters + "m", NamedTextColor.GREEN, TextDecoration.BOLD));
+    }
+
+    /** Captured: the team chat's own prefix; Hypixel's rank-colored name is a rankless gray one here. */
+    static Component teamSays(Game game, String sender, Component message) {
+        Theme theme = theme(game);
+        return Component.text()
+                .append(theme.good("TEAM > ").decorate(TextDecoration.BOLD))
+                .append(theme.prose(sender))
+                .append(Component.text(": ", NamedTextColor.WHITE))
+                .append(message)
+                .build();
+    }
+
+    /** A quick message: its words green, {@code what} (a team, a resource) as it is styled. */
+    static Component said(Game game, String lead, Component what) {
+        return theme(game).good(lead).append(what);
+    }
+
+    /** {@code what} carries its own trailing space. */
+    static Component targeting(Game game, Component what) {
+        return theme(game).good("Targeting ").append(what).append(theme(game).good("on the compass now!"));
     }
 
     static Component alarmLine(Game game, String intruder, String team, TextColor color) {
