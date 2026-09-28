@@ -673,7 +673,7 @@ table above is the newest documented.
 | Armor bought as Permanent (legs and boots; helmet and chest stay team leather) | kept |
 | Shears | kept |
 | Pickaxe, axe | drop one tier; tier I is permanent |
-| Swords | lost; the wooden sword comes back whenever no better sword is held |
+| Swords | lost; the wooden sword comes back whenever no better sword is held (our play: there is always at least the wooden one) |
 | Bows, arrows, blocks, potions, utilities | lost, not dropped |
 | Compass | given back; a bought tracker is lost |
 | Iron, gold, diamonds, emeralds | to the killer (section 8) |
@@ -684,6 +684,12 @@ table above is the newest documented.
   tier you own with red `You've already purchased this item!` and `mob.endermen.portal` (cap, 2026-09-25).
 - Since 2023, a bought sword replaces the sword in your selected hotbar slot if it is better, and a better
   sword picked up replaces your current one. A worse sword than yours can still be bought (our play).
+- Swords, exactly (our play, 2026-09-28): a bought sword takes the wooden sword's place in its slot and the
+  wooden one is gone, like a tool's tier; a better sword bought over a bought one (stone, say) leaves the old one,
+  moved out of the hotbar, and takes its slot, and so on up. The team's Sharpened Swords go onto every sword a
+  player holds, a picked-up one too, and come off a picked-up sword when the team has none. Still to capture:
+  which main-inventory slot the old sword goes to, where a sword lands that is worse than yours, whether the held
+  slot or the Hotbar Manager's melee slot decides, what a picked-up better sword displaces, and a full inventory.
 - Armor can be bought with a full inventory. Other purchases are refused: red `Purchase Failed! Your
   inventory is full!` with `mob.endermen.portal` (cap, wool).
 - Pressing drop on a permanent item moves it to its Hotbar Manager slot; permanent items cannot go in
@@ -717,11 +723,11 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   volume 8 with the pitch byte at 255 and 0, which the 1.8 client clamps to 2.0 and 0.5
   (`SoundManager.getNormalizedPitch`); volume 8 only stretches their range to 128 blocks.
 - The `Shift Click to add` line was missing on Permanent Chainmail and Iron Armor, Permanent Shears and both
-  tools, all five in that player's Quick Buy, while other Quick Buy items kept it. Our reading, which the shop
-  follows: a permanent or upgradable item already in Quick Buy takes no second pin; anything else can.
+  tools, all five in that player's Quick Buy, while other Quick Buy items kept it. The rule is unknown. Decided
+  2026-09-28: ours shows it, and takes the pin, only on items not already in the player's Quick Buy.
 - Items carry HideFlags 255. Potions are 373:8195 (Speed II), 373:8203 (Jump V) and 373:8206
-  (Invisibility), with CustomPotionEffects (8195 is the fire resistance potion's value; ours sends a swiftness
-  potion, 8194, so a 1.8 client draws it the speed color); the Dream Defender is spawn egg 383:99, the Bedbug a snowball, the
+  (Invisibility), with CustomPotionEffects (8195 is the fire resistance potion's value, which ours sends too:
+  a fire resistance potion whose custom Speed II stands in for its own effect, 1.8's rule); the Dream Defender is spawn egg 383:99, the Bedbug a snowball, the
   pop-up tower a trapped chest carrying Hypixel's `ExtraAttributes` tag. The shop shows white wool and plain
   hardened clay (172) whatever the team; the wool lore says it turns into your team's color. The Permanent
   Diamond Armor lore reads `...which you will always crush with.` (sic).

@@ -135,7 +135,8 @@ final class Wares {
         goods(Tab.RANGED, "power-bow", "Bow (Power I)", (g, p) -> power, power, Price.of(20, GOLD), "ranged");
         ItemStack punch = enchanted(Material.BOW, Map.of(Enchantment.POWER, 1, Enchantment.PUNCH, 1));
         goods(Tab.RANGED, "punch-bow", "Bow (Power I, Punch I)", (g, p) -> punch, punch, Price.of(6, EMERALD), "ranged");
-        potion("speed", "Speed II Potion (45 seconds)", PotionType.SWIFTNESS, PotionEffect.SPEED, 1, 900,
+        // captured 373:8195, the fire resistance potion's 1.8 value; its custom effect stands in for fire resistance
+        potion("speed", "Speed II Potion (45 seconds)", PotionType.FIRE_RESISTANCE, PotionEffect.SPEED, 1, 900,
                 Price.of(1, EMERALD), "Speed II (0:45).");
         potion("jump", "Jump V Potion (45 seconds)", PotionType.LEAPING, PotionEffect.JUMP_BOOST, 4, 900,
                 Price.of(1, EMERALD), "Jump Boost V (0:45).");

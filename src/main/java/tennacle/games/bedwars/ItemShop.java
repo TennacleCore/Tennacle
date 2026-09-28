@@ -114,10 +114,10 @@ final class ItemShop {
             lore.addAll(gray("You will permanently respawn with at", "least the lowest tier."));
             lore.add(Component.empty());
         }
-        // a permanent ware already pinned takes no second pin (our reading of the 2026-09-24 windows)
+        // decided 2026-09-28: a ware already pinned takes no second pin
         if (tab == Tab.QUICK_BUY) {
             lore.add(Component.text("Shift Click to remove from Quick Buy!", NamedTextColor.AQUA));
-        } else if (!ware.permanent() || !pins(viewer).contains(ware.offer().id())) {
+        } else if (!pins(viewer).contains(ware.offer().id())) {
             lore.add(Component.text("Shift Click to add to Quick Buy", NamedTextColor.AQUA));
         }
         lore.add(last(game, viewer, ware));
@@ -198,7 +198,7 @@ final class ItemShop {
         if (tab == Tab.QUICK_BUY) {
             pin(viewer, index, "");
             Screens.repaint(viewer);
-        } else {
+        } else if (!pins(viewer).contains(ware.offer().id())) {
             QuickBuyPicker.open(game, viewer, ware);
         }
     }

@@ -120,14 +120,22 @@ class ShopTest extends HeadlessServerTest {
     }
 
     @Test
-    void aSwordTakesTheWoodenOnesPlace() {
+    void aSwordTakesTheOldOnesPlace() {
         round("ShopD", (game, a) -> {
             ItemShop.open(game, a, Wares.Tab.MELEE);
             give(a, Material.IRON_INGOT, 10);
+            give(a, Material.GOLD_INGOT, 7);
             click(a, 19, new Click.Left(19));
             assertEquals(Material.STONE_SWORD, a.getInventory().getItemStack(0).material());
-            assertEquals(0, count(a, "wooden_sword"));
+            assertEquals(0, count(a, "wooden_sword"), "the wooden one is gone");
             assertTrue(a.getInventory().getItemStack(0).has(net.minestom.server.component.DataComponents.UNBREAKABLE));
+
+            click(a, 20, new Click.Left(20));
+            assertEquals(Material.IRON_SWORD, a.getInventory().getItemStack(0).material(), "the better one takes the slot");
+            assertEquals(1, count(a, "stone_sword"), "a bought one is kept");
+            for (int i = 0; i < 9; i++) {
+                assertFalse(a.getInventory().getItemStack(i).material() == Material.STONE_SWORD, "out of the hotbar");
+            }
         });
     }
 
@@ -135,13 +143,17 @@ class ShopTest extends HeadlessServerTest {
     void quickBuyPinsAndHotbarSlots() {
         round("ShopE", (game, a) -> {
             ItemShop.open(game, a, Wares.Tab.BLOCKS);
-            click(a, 22, new Click.LeftShift(22)); // End Stone
+            click(a, 20, new Click.LeftShift(20)); // Hardened Clay
             assertEquals("Adding to Quick Buy...", title(a));
             click(a, 43, new Click.Left(43));
             assertEquals("Quick Buy", title(a));
-            assertEquals(Material.END_STONE, Screens.inventory(a).getItemStack(43).material());
+            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material());
             click(a, 43, new Click.LeftShift(43));
             assertEquals(Material.RED_STAINED_GLASS_PANE, Screens.inventory(a).getItemStack(43).material(), "unpinned");
+
+            ItemShop.open(game, a, Wares.Tab.BLOCKS);
+            click(a, 19, new Click.LeftShift(19)); // Wool, pinned already
+            assertEquals("Blocks", title(a), "a pinned ware takes no second pin");
 
             HotbarManager.open(game, a);
             click(a, 10, new Click.Left(10)); // Blocks onto the cursor
@@ -156,6 +168,12 @@ class ShopTest extends HeadlessServerTest {
             click(a, 19, new Click.HotbarSwap(7, 19));
             assertTrue(a.getInventory().getItemStack(7).material().key().value().endsWith("_wool"), "a number key's slot");
         });
+    }
+
+    @Test
+    void speedLooksLikeHypixels() {
+        var contents = Wares.of("speed").icons().getFirst().get(net.minestom.server.component.DataComponents.POTION_CONTENTS);
+        assertEquals(net.minestom.server.potion.PotionType.FIRE_RESISTANCE, contents.potion(), "373:8195 on a 1.8 client");
     }
 
     // a live Solo game with a foe seated, the viewer holding nothing but the kit
