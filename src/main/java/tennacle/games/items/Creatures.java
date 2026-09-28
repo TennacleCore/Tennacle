@@ -81,7 +81,10 @@ public final class Creatures implements GameModule {
     public static final String BEDBUG = "Bedbug", DEFENDER = "Dream Defender";
 
     private static final String TICK = "creatures:tick";
-    private static final double BEDBUG_TAG = -1.38 + 0.5, DEFENDER_TAG = 0.94 + 0.5;
+    // captured: full-size invisible stands at -1.38 and 0.94, their text 2.475 over their feet; ours are markers, so the
+    // text sits where theirs renders, not the stand
+    private static final double STAND_TEXT = 1.975 + 0.5;
+    private static final double BEDBUG_TAG = -1.38 + STAND_TEXT, DEFENDER_TAG = 0.94 + STAND_TEXT;
     private static final int BEDBUG_SQUARES = 5, DEFENDER_SQUARES = 10;
     private static final Predicate<LivingEntity> DEFENDER_TARGETS = e -> e instanceof Player || e instanceof MobEntity mob && mob.hostile();
     private static final Predicate<Block> EVERY_BLOCK = block -> true;
@@ -166,6 +169,7 @@ public final class Creatures implements GameModule {
         fish.sides(sides);
         fish.kind(MobKindConfig.builder()
                 .maxHealth(game.rules().resolve(owner, BEDBUG_HEALTH))
+                .targetChance(1) // captured: a bedbug's first step comes 3 ticks after its spawn
                 .hidesInBlocks(false).callsFromBlocks(false)
                 .targetSelector(Targets.PLAYERS)
                 .attackable(Targets.ANY)
@@ -193,6 +197,7 @@ public final class Creatures implements GameModule {
         golem.sides(sides);
         golem.kind(MobKindConfig.builder()
                 .maxHealth(game.rules().resolve(owner, DEFENDER_HEALTH))
+                .targetChance(1)
                 .speed(game.rules().resolve(owner, DEFENDER_SPEED))
                 .attackInterval(game.rules().resolve(owner, DEFENDER_SWING))
                 .seesInvisible(true)
