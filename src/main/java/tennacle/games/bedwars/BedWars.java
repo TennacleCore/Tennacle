@@ -327,6 +327,7 @@ public final class BedWars {
                         Chests::new,
                         Compass::new,
                         Spoils::new,
+                        MagicMilk::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Staging staging = g.module(Staging.class);
                             if (staging != null && staging.waiting()) { // off the room's edge: back up, no death

@@ -88,6 +88,8 @@ final class Traps implements GameModule {
     /** Read as the game starts. */
     static final StateKey<Double> RADIUS = StateKey.of("traps.radius", Codec.DOUBLE, 12.0);
     static final int MAX = 3;
+    /** What a trap does to an intruder, and what Magic Milk washes off. */
+    static final Set<PotionEffect> INFLICTS = Set.of(PotionEffect.BLINDNESS, PotionEffect.SLOWNESS, PotionEffect.MINING_FATIGUE);
 
     static final Refusal QUEUE_FULL = new Refusal("queue-full");
     static final Refusal NO_BED = new Refusal("no-bed");
@@ -157,6 +159,13 @@ final class Traps implements GameModule {
         store(game, team, queue);
         player.sendMessage(Lines.trapRemoved(game, gone.kind().title));
         return true;
+    }
+
+    /** {@code player} as if they just walked in wherever they stand. */
+    void recheck(@NotNull Player player) {
+        areas.forEach((team, area) -> {
+            if (regions.inside(area).contains(player)) entered(team, player);
+        });
     }
 
     private void entered(String team, Player player) {

@@ -162,6 +162,29 @@ class UpgradesTest extends HeadlessServerTest {
         });
     }
 
+    @Test
+    void magicMilkKeepsTrapsOff() {
+        round("UpgD", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            give(a, Material.DIAMOND, 1);
+            UpgradeShop.open(game, a);
+            click(a, 14); // Blindness
+            String owner = Match.teamOf(game, a);
+            game.module(MagicMilk.class).drank(b);
+            Pos bed = new Pos(-9.5, 65, 0.5);
+            b.teleport(bed).join();
+            EventDispatcher.call(new PlayerMoveEvent(b, bed, true));
+            assertEquals(1, Traps.queue(game, owner).size(), "no trap takes the drinker");
+            assertFalse(b.hasEffect(PotionEffect.BLINDNESS));
+
+            fb.sent.clear();
+            ticks(game, 601);
+            assertTrue(chat(fb).contains("Your Magic Milk wore off!"), chat(fb).toString());
+            assertTrue(b.hasEffect(PotionEffect.BLINDNESS), "still inside: the trap goes off at once");
+            assertEquals(0, Traps.queue(game, owner).size());
+        });
+    }
+
     private static void round(String name, Body body) {
         Mode solo = Matches.mode("bedwars-solo");
         Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());

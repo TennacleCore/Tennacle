@@ -38,6 +38,8 @@ final class Lines {
     /** Captured at the depositor's feet, not the chest. */
     static final Sound DEPOSIT = Sound.sound(SoundEvent.BLOCK_CHEST_CLOSE, Sound.Source.BLOCK, 1f, 1f);
     static final Sound ORB = Sound.sound(SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP, Sound.Source.PLAYER, 1f, 1f);
+    /** Captured: 1.8's {@code liquid.water}. */
+    static final Sound MILK_WORE_OFF = Sound.sound(SoundEvent.BLOCK_WATER_AMBIENT, Sound.Source.PLAYER, 0.7f, 2f);
 
     private Lines() {}
 
@@ -218,6 +220,10 @@ final class Lines {
 
     static Component enderDropped(Game game, String player) {
         return theme(game).good("Contents of " + player + "'s Ender Chest have been dropped into their fountain.");
+    }
+
+    static Component milkWoreOff(Game game) {
+        return theme(game).bad("Your Magic Milk wore off!");
     }
 
     static Component trackerLocked(Game game) {
