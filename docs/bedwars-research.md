@@ -1523,7 +1523,12 @@ Reference only, GPL: its feature list is a checklist, never a source.
    Our `owner:setting` rules and Polyp's generated knobs already are this.
 7. **An item carries only its identity.** A fireball's power, a bedbug's lifetime and a pop-up tower's
    shape resolve from the active mode when the item is used, the way Polyp profiles already resolve a
-   projectile's numbers, never from parameters baked into item data.
+   projectile's numbers, never from parameters baked into item data. Noted 2026-09-28: a fire charge thrown
+   as a fireball and TNT lit on placement are not the materials' vanilla uses but a custom item's, one any
+   mode may hand out; the `hypixel` and `mmc18` mechanics (knockback, breaking, the numbers) stay as fitted,
+   and what belongs to the item kind is the use itself. Today that use is a world knob
+   (`TntConfig.igniteOnPlace`, the presets' `FIRE_CHARGE` projectile type); as kinds, a Hypixel TNT and a
+   MineMen TNT would carry their own fuses, and a fireball its variants, the identity being the kind.
 8. **Game logic stays on the tick thread** (Swofty's move listener runs void and trap checks on a new
    virtual thread per event).
 9. **Text lives in one keyed place**, one look per network, as bedfight's `Banners` already does.
