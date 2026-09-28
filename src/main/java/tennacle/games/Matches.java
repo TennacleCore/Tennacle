@@ -190,6 +190,8 @@ public final class Matches {
     /** The Polyp preset the match's mechanics start from, else the mode's own profile. */
     public static @NotNull String mechanicsNameOf(@NotNull Game game) {
         String name = game.rules().resolve(Scope.GAME, Presets.KEY);
+        Mode mode = modeOf(game);
+        if (mode != null) name = mode.mechanicsFor(name);
         return name.isEmpty() ? "the mode's own" : name;
     }
 

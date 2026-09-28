@@ -41,7 +41,8 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                    @NotNull List<Component> intro, boolean ghostLoser, boolean sided,
                    @Nullable StateKey<Integer> teamScore,
                    @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look,
-                   @NotNull Family family, @NotNull String title, @NotNull String banner) {
+                   @NotNull Family family, @NotNull String title, @NotNull String banner,
+                   @NotNull Map<String, String> mechanics) {
 
     /** Hypixel's two presentations: a duel's card names two players; a game's block names the winning side. */
     public enum Family { DUEL, GAME }
@@ -54,7 +55,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                 @Nullable StateKey<Integer> teamScore,
                 @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
         this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null,
-                Family.DUEL, titled(name), titled(name));
+                Family.DUEL, titled(name), titled(name), Map.of());
     }
 
     /**
@@ -65,6 +66,11 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                                       @NotNull Supplier<MechanicsProfile.Builder> profile,
                                       @NotNull Ruleset base, @NotNull Map<String, Ruleset> variants) {
         return new Builder(name, type, arena, profile, base, variants);
+    }
+
+    /** The Polyp preset {@code asked} (a platform's or a ruleset's network name) runs as here: its own flavor, else itself. */
+    public @NotNull String mechanicsFor(@NotNull String asked) {
+        return mechanics.getOrDefault(asked, asked);
     }
 
     public static final class Builder {
@@ -85,6 +91,13 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         private Family family = Family.DUEL;
         private @Nullable String title;
         private @Nullable String banner;
+        private final Map<String, String> mechanics = new java.util.LinkedHashMap<>();
+
+        /** The network preset {@code asked} runs as the Polyp preset {@code flavor} in this mode (bedwars: hypixel as hypixel_bedwars). */
+        public @NotNull Builder mechanics(@NotNull String asked, @NotNull String flavor) {
+            mechanics.put(asked, flavor);
+            return this;
+        }
 
         private Builder(String name, GameType type, Maps arena, Supplier<MechanicsProfile.Builder> profile,
                         Ruleset base, Map<String, Ruleset> variants) {
@@ -159,7 +172,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         public @NotNull Mode build() {
             return new Mode(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore,
                     tabStats, marks, look, family, title != null ? title : titled(name),
-                    banner != null ? banner : title != null ? title : titled(name));
+                    banner != null ? banner : title != null ? title : titled(name), mechanics);
         }
     }
 
@@ -177,6 +190,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         if (arena instanceof tennacle.games.map.MapPool pool) pool.serves(type);
         variants = Map.copyOf(variants);
         intro = List.copyOf(intro);
+        mechanics = Map.copyOf(mechanics);
         tabStats = List.copyOf(tabStats);
     }
 

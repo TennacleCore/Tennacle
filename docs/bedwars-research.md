@@ -1250,6 +1250,10 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap). Ours (2026-09-28): a dead
   seat that rode spectator mode and came back saw its own body, the effect still on: Polyp's spectator switch
   cleared the invisible flag on the way back; it keeps one the effect still grants.
+- **Mechanics preset** (the user, 2026-09-28): a Bed Wars match on the hypixel platform runs Polyp's
+  `HYPIXEL_BEDWARS` (fire taken on contact, `igniteWarmupTicks` 1, and the game-wide pearl landing), never the
+  network's generic `HYPIXEL`; the mode maps the platform's name to its flavor (`Mode.mechanics`), so platforms
+  and rulesets keep saying `hypixel`.
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
   death, final when bedless. `<player> disconnected.` (cap), the name in the side's color, the rest gray; back
   in, `<player> reconnected.` the same. Ours said it twice (the user, 2026-09-28: the look's `left!` and a death

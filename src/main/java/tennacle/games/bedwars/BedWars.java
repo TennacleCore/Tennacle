@@ -398,6 +398,7 @@ public final class BedWars {
                 .ghostLoser()
                 .sided()
                 .look("hypixel")
+                .mechanics("hypixel", "hypixel_bedwars") // the user, 2026-09-28: fire takes on contact, the pearl lands game-wide
                 .tabStats(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Final Kills", FINAL_KILLS),
                         new Mode.SeatStat("Beds Broken", BEDS))
                 .build();

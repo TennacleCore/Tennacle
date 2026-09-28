@@ -37,6 +37,7 @@ import net.minestom.server.potion.PotionEffect;
 import io.github.term4.polyp.api.event.mobs.MobBreakBlockEvent;
 import io.github.term4.polyp.mechanics.mobs.kinds.EnderDragonEntity;
 import tennacle.games.items.Creatures;
+import io.github.term4.polyp.MechanicsKeys;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.instance.Chunk;
@@ -462,6 +463,25 @@ class BedWarsRoundTest extends HeadlessServerTest {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();
+        }
+    }
+
+    /** The user, 2026-09-28: a Bed Wars match on hypixel runs Polyp's Bed Wars flavor, where fire takes on contact. */
+    @Test
+    void theHypixelFlavorTakesFireOnContact() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor("hypixel"), fixture());
+        try {
+            assertEquals("hypixel_bedwars", Matches.mechanicsNameOf(game), "the network's name, the mode's flavor");
+            io.github.term4.polyp.mechanics.damage.DamageConfig damage =
+                    Mechanics.polyp.profiles().resolveWorld(game.shard(), MechanicsKeys.DAMAGE);
+            assertNotNull(damage);
+            io.github.term4.polyp.mechanics.damage.types.burning.BurningConfig fire =
+                    (io.github.term4.polyp.mechanics.damage.types.burning.BurningConfig) damage.typeConfig(
+                            io.github.term4.polyp.mechanics.damage.types.burning.InFireDamage.KEY);
+            assertEquals(1, fire.igniteWarmupTicks(null), "one contact tick, not the second felt hit");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
         }
     }
 

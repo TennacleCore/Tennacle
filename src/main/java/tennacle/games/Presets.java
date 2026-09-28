@@ -27,7 +27,7 @@ public final class Presets implements GameModule {
 
     /** The builder the fold starts from: the named preset, else the mode's profile. */
     public static @NotNull MechanicsProfile.Builder builderFor(@NotNull Game game, @NotNull Mode mode) {
-        String name = game.rules().resolve(Scope.GAME, KEY);
+        String name = mode.mechanicsFor(game.rules().resolve(Scope.GAME, KEY));
         if (name.isEmpty()) return mode.profile().get();
         for (Preset preset : Preset.values()) {
             // the compat layer rides with it: a preset's mechanics and its cross-version layer are one entry
