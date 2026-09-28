@@ -794,10 +794,12 @@ table above is the newest documented.
   there. Ours (Grotto `Kit.ranked`): the melee slot's sword yields to a better bought one, wherever the hand
   is, and moves to the first empty slot (ASSUMED: no capture shows what becomes of the old one); a better
   sword than one sitting in any other slot lands as any item, as the swords capture below has it. A number
-  key over a better sword in a chest (the user, 2026-09-28) puts it in that slot and moves the wooden one to
-  the next free slot, nothing into the chest; ours refused it, because the container system refused the
-  wooden sword the swap would have stored and that refusal skipped the kit's swap (Grotto `Kits.swapIn` now
-  runs on the refused click too).
+  key over a better sword in a chest (the user, 2026-09-28) puts it in that slot, nothing into the chest, and
+  the wooden one goes: vanilla 1.8's hotkey over a container sets the hotbar's item in the first free slot
+  (`Container.slotClick`, mode 2), the client predicts that, and the server lays it out the same before the
+  kit's settle strips the wooden one (a lingering one read as a ghost). Ours refused the key at first, because
+  the container system refused the wooden sword a modern swap would have stored and that refusal skipped the
+  kit's swap (Grotto `Kits.swapIn` now runs on the refused click too).
 - Swords, exactly (cap, 4v4v4v4 on Invasion and Jurassic 2026-09-27, `research/bedwars/swords.py`): a bought
   sword takes the wooden sword's slot when the wooden one is held, whatever the held slot, and the wooden one is
   gone. With no wooden sword it goes in like any item, the first empty slot: a second stone sword went to slot 3,
