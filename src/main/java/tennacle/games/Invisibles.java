@@ -57,7 +57,8 @@ public final class Invisibles implements GameModule {
 
     private static final Set<EquipmentSlot> WORN = EnumSet.of(EquipmentSlot.HELMET, EquipmentSlot.CHESTPLATE,
             EquipmentSlot.LEGGINGS, EquipmentSlot.BOOTS);
-    private static final Tag<Boolean> UNSEEN = Tag.Transient("tennacle:unseen");
+    /** Whether enemies are to see nothing of this seat: the potion is on and no wait has replaced it. */
+    public static final Tag<Boolean> UNSEEN = Tag.Transient("tennacle:unseen");
     private static boolean hooked;
 
     private final Function<Game, Component> lost;
@@ -82,8 +83,9 @@ public final class Invisibles implements GameModule {
         this.game = game;
         hook();
         // both events fire before the effect list changes, so the viewers' copies read a mark set here, not the list
+        // a dead seat's wait wears vanilla invisibility too (Spectators.dress): the view rules' business, not this
         game.on(EntityPotionAddEvent.class, EntityPotionAddEvent::getEntity, e -> {
-            if (e.getPotion().effect() == PotionEffect.INVISIBILITY && e.getEntity() instanceof Player p) changed(p, true);
+            if (e.getPotion().effect() == PotionEffect.INVISIBILITY && e.getEntity() instanceof Player p && !game.isGhost(p)) changed(p, true);
         });
         game.on(EntityPotionRemoveEvent.class, EntityPotionRemoveEvent::getEntity, e -> {
             if (e.getPotion().effect() == PotionEffect.INVISIBILITY && e.getEntity() instanceof Player p) changed(p, false);
@@ -108,6 +110,18 @@ public final class Invisibles implements GameModule {
             victim.removeEffect(PotionEffect.INVISIBILITY);
             victim.sendMessage(lost.apply(game));
         });
+    }
+
+    /** The death takes the potion's view with it (its clear fires no removal); the wait wears its own. */
+    @Override
+    public void onGhost(@NotNull Game game, @NotNull Player player) {
+        if (Boolean.TRUE.equals(player.getTag(UNSEEN))) changed(player, false);
+    }
+
+    /** The respawn's fresh body carries no potion, and neither may its view. */
+    @Override
+    public void onUnghost(@NotNull Game game, @NotNull Player player) {
+        if (Boolean.TRUE.equals(player.getTag(UNSEEN))) changed(player, false);
     }
 
     // the viewers' copies of the armor go out again: the per-viewer view below decides what each sees

@@ -34,6 +34,7 @@ import net.minestom.server.item.Material;
 import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.presets.vanilla18.Consumables;
+import tennacle.games.Invisibles;
 import org.junit.jupiter.api.Test;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
@@ -129,6 +130,28 @@ class InvisibilityTest extends HeadlessServerTest {
                     .filter(p -> p.entityId() == a.getEntityId() && p.equipments().containsKey(EquipmentSlot.MAIN_HAND)).toList();
             assertFalse(hands.isEmpty(), "the enemy is told about the hand");
             assertTrue(hands.getLast().equipments().get(EquipmentSlot.MAIN_HAND).isAir(), "and sees it empty");
+        });
+    }
+
+    /** The wait's own invisibility is the view rules' business; a respawn comes back seen, whatever the death wore. */
+    @Test
+    void theWaitWearsNoPotion() {
+        round("InvWait", (game, fa, fb) -> {
+            Player a = fa.player;
+            a.addEffect(new Potion(PotionEffect.INVISIBILITY, 1, 600, Potion.ICON_FLAG)); // drunk, then dead with it on
+            game.module(Respawns.class).unprotect(a);
+            game.module(Lives.class).fell(a);
+            BedWarsRoundTest.tickUntil(game, "a waiting", () -> game.isGhost(a));
+            assertTrue(a.hasEffect(PotionEffect.INVISIBILITY), "the wait wears vanilla invisibility");
+            assertFalse(Boolean.TRUE.equals(a.getTag(Invisibles.UNSEEN)), "which is no potion of the game's");
+            fb.sent.clear();
+            BedWarsRoundTest.tickUntil(game, "a back", () -> !game.isGhost(a));
+            assertFalse(Boolean.TRUE.equals(a.getTag(Invisibles.UNSEEN)), "the respawn is seen");
+            assertFalse(a.hasEffect(PotionEffect.INVISIBILITY));
+            List<EntityEquipmentPacket> worn = fb.sent(EntityEquipmentPacket.class).stream()
+                    .filter(p -> p.entityId() == a.getEntityId() && p.equipments().containsKey(EquipmentSlot.HELMET)).toList();
+            assertFalse(worn.isEmpty(), "the enemy is sent the armor again");
+            assertFalse(worn.getLast().equipments().get(EquipmentSlot.HELMET).isAir(), "and sees the helmet");
         });
     }
 
