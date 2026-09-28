@@ -137,6 +137,7 @@ final class Mid implements GameModule {
     private void spin() {
         double turned = TURN / 2 * (1 - Math.cos(Math.PI * game.tick() / SWEEP));
         for (Display display : displays) {
+            if (display.block().getInstance() == null) continue; // the scenery went with the game; the alarm fires once more
             display.block().teleport(display.top().add(0, -BOB * turned / TURN, 0).withYaw((float) -turned));
             long due = display.generator().due();
             // captured: before the first drop the count already runs to the second one
