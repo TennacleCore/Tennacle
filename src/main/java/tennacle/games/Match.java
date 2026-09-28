@@ -2,6 +2,7 @@ package tennacle.games;
 
 import tennacle.games.watch.Replays;
 import tennacle.looks.Palette;
+import io.github.term4.canvas.hologram.Hologram;
 import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.outcome.Pressure;
@@ -10,6 +11,7 @@ import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.world.WorldPolicy;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
@@ -103,6 +105,14 @@ public final class Match {
     public static @NotNull String opponentName(@NotNull Game game, @NotNull Player me) {
         Player them = opponent(game, me);
         return them != null ? them.getUsername() : "";
+    }
+
+    /** Spawns scenery into {@code game}: nothing hits, shoots, pushes or blasts it. */
+    public static @NotNull Hologram.Spawn scenery(@NotNull Game game) {
+        return (entity, at) -> {
+            entity.setTag(WorldPolicy.INERT, true);
+            game.shard().spawn(entity, at);
+        };
     }
 
     /** The player's team id, or {@code ""} when they hold no seat. */

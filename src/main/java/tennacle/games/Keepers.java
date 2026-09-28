@@ -3,6 +3,7 @@ package tennacle.games;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.PosMarker;
+import io.github.term4.canvas.hologram.Hologram;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Markers;
@@ -23,6 +24,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -38,7 +40,8 @@ public final class Keepers implements GameModule {
         void use(@NotNull Game game, @NotNull Player player, @NotNull PointMarker at);
     }
 
-    private record Post(MarkerKey<PointMarker> key, Supplier<? extends Entity> body, Use use) {}
+    private record Post(MarkerKey<PointMarker> key, Supplier<? extends Entity> body, Use use,
+                        Function<Game, List<Hologram.Line>> labels) {}
 
     private record Standing(PointMarker at, Use use) {}
 
@@ -58,7 +61,13 @@ public final class Keepers implements GameModule {
 
     /** A {@code body} at every {@code key} point, doing {@code use} on a right click. */
     public @NotNull Keepers at(@NotNull MarkerKey<PointMarker> key, @NotNull Supplier<? extends Entity> body, @NotNull Use use) {
-        posts.add(new Post(key, body, use));
+        return at(key, body, use, game -> List.of());
+    }
+
+    /** {@link #at} with lines over it, each rising from the point it stands at. */
+    public @NotNull Keepers at(@NotNull MarkerKey<PointMarker> key, @NotNull Supplier<? extends Entity> body, @NotNull Use use,
+                               @NotNull Function<Game, List<Hologram.Line>> labels) {
+        posts.add(new Post(key, body, use, labels));
         return this;
     }
 
@@ -80,6 +89,8 @@ public final class Keepers implements GameModule {
                 if (body instanceof LivingEntity living) living.setInvulnerable(true);
                 standing.put(body, new Standing(at, post.use()));
                 game.shard().spawn(body, facing(at));
+                Hologram labels = Hologram.at(facing(at), Match.scenery(game));
+                post.labels().apply(game).forEach(labels::line);
             }
         }
         // one press, one use: a modern client sends a packet a hand, a legacy one INTERACT and INTERACT_AT

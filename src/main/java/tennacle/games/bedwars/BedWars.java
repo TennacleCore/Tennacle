@@ -311,8 +311,8 @@ public final class BedWars {
                         () -> new Forges(spawners),
                         Mid::new,
                         BedWars::shop,
-                        () -> Keepers.of().at(SHOP, BedWars::shopkeeper, BedWars::shop)
-                                .at(UPGRADES, BedWars::shopkeeper, BedWars::upgrades),
+                        () -> Keepers.of().at(SHOP, BedWars::shopkeeper, BedWars::shop, Lines::shopLabels)
+                                .at(UPGRADES, BedWars::shopkeeper, BedWars::upgrades, Lines::upgradeLabels),
                         Regions::of,
                         Traps::new,
                         HealPool::new,

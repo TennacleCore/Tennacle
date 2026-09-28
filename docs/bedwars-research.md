@@ -232,8 +232,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   the depositor's feet, not the chest (cap). A single bow is refused with red `You need at least 2 items of
   this type to deposit!` (cap); a single resource deposits. Tools (shears, axes, pickaxes) get red `You
   can't deposit this item!` (our play; cap for shears).
-- **Deposits, exactly** (cap, every Bed Wars capture through 2026-09-27, the inventory rebuilt from its
-  slot packets): any item deposits, not just resources. A lone cobblestone, bridge egg or Magic Milk went
+- **Deposits, exactly** (cap, every Bed Wars capture through 2026-09-27, `research/bedwars/deposits.py`
+  rebuilding the inventory from its slot packets): any item deposits, not just resources. A lone cobblestone, bridge egg or Magic Milk went
   in; a sneak-punch took every stack of it, 66 gray wool held as 2, and 20 of 29 water buckets as the
   chest had room. Only swords and bows need two: a lone iron sword was refused, and so were two stone
   swords when one had Sharpness and the other not; two plain ones put one in. Punching another side's
@@ -585,6 +585,19 @@ with identical numbers; every forge level bought one at a time and left to fill,
   rising 0.43 blocks on one sweep and sinking on the other, with a move packet every tick. The countdown
   renames once a second. An emerald generator's display is the same (cap, Amazon 2026-09-25): the same line
   heights, swing and rise.
+- **Hologram stands, exactly** (cap, 2026-09-27, `research/bedwars/stands.py`): every line is an invisible armor
+  stand with its name shown. A generator's are marker stands (sized 0, so the text is half a block over the
+  stand): the countdown, name and tier stands 2.59375, 2.96875 and 3.34375 over the drop point. The block is an
+  invisible marker stand wearing it, 0.59375 over the drop point at the top of its bob, moved every tick; the
+  turn speeds up and slows down (0.7 a tick, capped near 14.1), resting a tick or two at each end, and the
+  sink is in step with it. A keeper's are full-size stands (their text 2.475 over them) at 0.4375, 0.15625
+  and -0.09375 over the villager: `SOLO` or `TEAM`, `UPGRADES` or `ITEM SHOP`, `RIGHT CLICK`.
+- **Ours (2026-09-28)**: Canvas `Hologram`, a line a marker stand, the text at its captured height for every
+  client (1.8 sizes a marker stand 0 x 0 as today's do). The keepers' lines are marker stands too, placed so
+  their text lands where Hypixel's full-size ones draw it: a full-size stand's hitbox stands in the villager and
+  can take the click meant for it. The block turns out and back on a cosine, 540 degrees over 60 ticks each way
+  with the captured 14.1 a tick at mid-sweep, every generator in step as captured, sinking 0.43 with the turn.
+  The countdown reads the generator's own clock every tick and sends only a change.
 - Items near a generator count toward its cap until carried away.
 
 ### 5.3 Pickup
@@ -1569,7 +1582,7 @@ Each of these was read in the code, not just reported:
 |---|---|---|
 | Timeline | Tennacle | done 2026-09-27: `games.Timeline` - named events at offsets from LIVE, each a `timeline.<id>` rule re-armed when it changes, a hook per event, `watched` entries another module fires (Bed Gone stays `Beds`' clock) and `next()` for the board |
 | Generators | Tennacle | done 2026-09-27: `games.Generators` - timed drops at points under a pool's cap, a restart on demand (a drop on the spot, the clock from there), a pickup copied to teammates near the item. Bed Wars' `Forges` (the level as team state, the 30 s boost, spawner counts from the iron marker's payload) and `Mid` (tiers the timeline raises) ride it. Open: the carry limit (512 iron, 64 gold) needs a Polyp pickup hook; a level-up restarts a side's spawners together rather than the captured stagger; the four-team Emerald Forge cap is taken as 7 |
-| Holograms | Canvas | per-viewer multi-line text with ticking lines; a text display, with Via's armor-stand emulation or a native armor-stand path for legacy viewers |
+| Holograms | Canvas | done 2026-09-28: `canvas.hologram.Hologram`, a line a marker armor stand at the captured text height, spawned through the app (Tennacle tags it inert); Bed Wars' keepers take their lines through `Keepers.at(..., labels)` and `Mid` shows each generator's tier, name, countdown and turning block. Per-viewer text is not built: nothing captured needs it |
 | Shop screens | Canvas, Tennacle | item shop done 2026-09-28: `games.shop` (below) under Bed Wars' `ItemShop`, `QuickBuyPicker` and `HotbarManager` screens, every captured line, lore rule and sound; Quick Buy pins in `PlayerPrefs` (`shop.Favorites`), the Hotbar Manager editing the kit layout; the upgrades screen, the Tracker Shop, the compass menu with Quick Communications and the per-player compass target the same day (6.2) |
 | Currency | Tennacle | done 2026-09-28 as `games.shop`: a `Currency` held and taken (`ItemCurrency`, items in the hotbar and main inventory), a `Price` that reads `4 iron` as a rule (`shop.<offer>`), `Offer`s (`Goods` through the kit, `Rank` levels on a seat's or team's ladder), and `Shop.buy`: refused, short by N, or paid and handed over. Kept out of Polyp: none of it is a vanilla mechanic |
 | NPCs | Tennacle | done 2026-09-28: `games.Keepers`, a body at each point marker, inert (Polyp `WorldPolicy.INERT`: no hit, shot, push or blast reaches it), facing its side's spawn and turning to the nearest player it sees within 8 blocks (never an invisible one, Hypixel v1.11), a right click doing the mode's use. Bed Wars' item shopkeepers are armorer villagers (Via shows a 1.8 client a blacksmith). Left: the upgrades keeper, the name lines over them |
@@ -1591,7 +1604,7 @@ Each of these was read in the code, not just reported:
 | Map keys | Tennacle | written by the converter (15.4); the mode still has to declare and read them |
 | Replay metadata | Archipelago | encode custom names, display text and villager data, which drop today |
 | Team names | Tennacle | done 2026-09-27: Pink and Gray print as captured, and every team role follows the arena's color |
-| The mode | Tennacle | started 2026-09-27: `games.bedwars` - four modes (`bedwars-solo`, `-doubles`, `-3s`, `-4s`) off one type with a team size and a start threshold each, pools under `arenas/bedwars` holding guessed maps out, the room, beds, kills and final kills, the circle and limits, the captured board and end block. Generators and the timeline the same day: the tier lines, the 25:00 warning, Bed Gone with its title and wither, the Sudden Death title, the 50:00 end by alive then final kills, beds and kills, and the board's next-event row. The item shop, team upgrades, traps, chests, the compass, tracker, quick messages and kill loot 2026-09-28. No holograms, dragons, hidden pregame names or `has joined` lines yet |
+| The mode | Tennacle | started 2026-09-27: `games.bedwars` - four modes (`bedwars-solo`, `-doubles`, `-3s`, `-4s`) off one type with a team size and a start threshold each, pools under `arenas/bedwars` holding guessed maps out, the room, beds, kills and final kills, the circle and limits, the captured board and end block. Generators and the timeline the same day: the tier lines, the 25:00 warning, Bed Gone with its title and wither, the Sudden Death title, the 50:00 end by alive then final kills, beds and kills, and the board's next-event row. The item shop, team upgrades, traps, chests, the compass, tracker, quick messages, kill loot and the holograms 2026-09-28. No dragons, special items, hidden pregame names or `has joined` lines yet |
 
 ### 15.4 Hypixel's maps as arenas
 

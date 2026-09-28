@@ -5,8 +5,11 @@ import tennacle.games.Matches;
 import tennacle.games.shop.Price;
 import tennacle.looks.Palette;
 
+import io.github.term4.canvas.hologram.Hologram;
 import io.github.term4.canvas.theme.Theme;
 import io.github.term4.grotto.Game;
+import io.github.term4.grotto.roster.Roster;
+import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
@@ -49,6 +52,38 @@ final class Lines {
                         diamond ? NamedTextColor.AQUA : NamedTextColor.DARK_GREEN)
                 .append(theme(game).accent("have been upgraded to Tier "))
                 .append(theme(game).bad(NUMERALS[Math.max(1, Math.min(3, tier)) - 1])));
+    }
+
+    // captured: 2.475 over the full-size stands Hypixel puts 0.4375, 0.15625 and -0.09375 over the keeper
+    static List<Hologram.Line> shopLabels(Game game) {
+        return List.of(new Hologram.Line(2.63125, Component.text("ITEM SHOP", NamedTextColor.AQUA)),
+                new Hologram.Line(2.38125, rightClick(game)));
+    }
+
+    static List<Hologram.Line> upgradeLabels(Game game) {
+        boolean solo = game.rules().resolve(Scope.GAME, Roster.TEAM_SIZE) == 1;
+        return List.of(new Hologram.Line(2.9125, Component.text(solo ? "SOLO" : "TEAM", NamedTextColor.AQUA)),
+                new Hologram.Line(2.63125, Component.text("UPGRADES", NamedTextColor.AQUA)),
+                new Hologram.Line(2.38125, rightClick(game)));
+    }
+
+    private static Component rightClick(Game game) {
+        return theme(game).accent("RIGHT CLICK").decorate(TextDecoration.BOLD);
+    }
+
+    /** Captured over a generator: yellow, then a red numeral. */
+    static Component tier(Game game, int tier) {
+        return theme(game).accent("Tier ").append(theme(game).bad(NUMERALS[Math.max(1, Math.min(3, tier)) - 1]));
+    }
+
+    static Component generator(Mid.Kind kind) {
+        return kind == Mid.Kind.DIAMOND ? Component.text("Diamond", NamedTextColor.AQUA, TextDecoration.BOLD)
+                : Component.text("Emerald", NamedTextColor.DARK_GREEN, TextDecoration.BOLD);
+    }
+
+    static Component spawnsIn(Game game, long seconds) {
+        return theme(game).accent("Spawns in ").append(theme(game).bad(String.valueOf(seconds)))
+                .append(theme(game).accent(seconds == 1 ? " second" : " seconds"));
     }
 
     /** Captured: red, in chat alone, five minutes before every bed goes. */
