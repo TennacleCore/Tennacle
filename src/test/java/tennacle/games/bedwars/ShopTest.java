@@ -213,22 +213,35 @@ class ShopTest extends HeadlessServerTest {
     }
 
     // a live Solo game with a foe seated, the viewer holding nothing but the kit
+    /** The user, 2026-09-28: a shopkeeper turns to the nearest player at any distance, all the way round. */
+    @Test
+    void aKeeperTurnsFromAnyDistance() {
+        round("ShopI", (game, a) -> {
+            Entity keeper = keeperOf(game, a);
+            float facing = keeper.getPosition().yaw();
+            a.teleport(keeper.getPosition().add(25, 0, 0).withView(0, 0)).join(); // the far side of the deck, off the spawn's line
+            long until = game.tick() + 3;
+            BedWarsRoundTest.tickUntil(game, "three looks", () -> game.tick() >= until);
+            assertNotEquals(facing, keeper.getPosition().yaw(), 0.5f, "turned to a player 25 blocks off");
+        });
+    }
+
     /** The user, 2026-09-28: a shopkeeper never turns to an invisible player, unless the rule lets it give them away. */
     @Test
     void aKeeperLooksPastTheInvisible() {
         round("ShopH", (game, a) -> {
             Entity keeper = keeperOf(game, a);
-            float facing = keeper.getPosition().yaw();
             a.teleport(keeper.getPosition().add(5, 0, 0).withView(0, 0)).join(); // five blocks east, off the spawn's line
             a.addEffect(new Potion(PotionEffect.INVISIBILITY, 0, 600, Potion.ICON_FLAG));
             a.setInvisible(true);
+            float towardA = keeper.getPosition().withLookAt(a.getPosition()).yaw();
             long until = game.tick() + 3;
             BedWarsRoundTest.tickUntil(game, "three looks", () -> game.tick() >= until);
-            assertEquals(facing, keeper.getPosition().yaw(), 0.5f, "still facing its spawn");
+            assertTrue(Math.abs(turn(keeper.getPosition().yaw(), towardA)) > 5, "the nearest it sees is someone else: yaw " + keeper.getPosition().yaw() + " toward a " + towardA);
             game.state().set(Scope.GAME, Keepers.LOOK_INVISIBLE, true);
             long later = game.tick() + 3;
             BedWarsRoundTest.tickUntil(game, "three more", () -> game.tick() >= later);
-            assertNotEquals(facing, keeper.getPosition().yaw(), 0.5f, "the rule lets it turn to them");
+            assertEquals(0, turn(keeper.getPosition().yaw(), towardA), 1.0f, "the rule lets it turn to them, the nearest");
         });
     }
 
@@ -267,6 +280,13 @@ class ShopTest extends HeadlessServerTest {
     private static String title(Player p) {
         Inventory open = Screens.inventory(p);
         return open == null ? "" : PlainTextComponentSerializer.plainText().serialize(open.getTitle());
+    }
+
+    private static float turn(float yaw, float toward) {
+        float d = (yaw - toward) % 360;
+        if (d > 180) d -= 360;
+        if (d < -180) d += 360;
+        return d;
     }
 
     private static Entity keeperOf(Game game, Player p) {

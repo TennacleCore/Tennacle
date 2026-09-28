@@ -39,7 +39,7 @@ import java.util.function.Supplier;
 /**
  * Figures standing at a map's points that a right click puts to work: shopkeepers. Scenery
  * ({@link WorldPolicy#INERT}), so no hit, shot, push or blast reaches them. Each faces its side's spawn and
- * turns to the nearest player it can see.
+ * turns to the nearest player it can see, at any distance (the user, 2026-09-28: no range, all the way round).
  */
 public final class Keepers implements GameModule {
 
@@ -54,7 +54,6 @@ public final class Keepers implements GameModule {
 
     private record Standing(PointMarker at, Use use) {}
 
-    private static final double SIGHT = 8; // vanilla's look-at-player range
     private static final String LOOK = "keepers:look";
     /** Blocks around a keeper, across and up, that a pearl may not land in; {@code 0} = none. */
     public static final StateKey<Double> SPACE = StateKey.of("keeper.space", Codec.DOUBLE, 1.5);
@@ -168,7 +167,7 @@ public final class Keepers implements GameModule {
 
     private @Nullable Player nearest(Entity body) {
         Player nearest = null;
-        double best = SIGHT * SIGHT;
+        double best = Double.MAX_VALUE;
         for (Player player : game.members()) {
             if (!seen(player) || player.getInstance() != body.getInstance()) continue;
             double distance = player.getPosition().distanceSquared(body.getPosition());
