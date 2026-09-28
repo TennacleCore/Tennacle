@@ -224,6 +224,7 @@ public final class Creatures implements GameModule {
         dragon.sides(sides);
         dragon.kind(MobKindConfig.builder()
                 .breaks(EVERY_BLOCK)
+                .biteOncePerCharge(true) // captured 2026-09-28: six charges reached a player, one bite each
                 .enchantBonus(false)
                 .wingLift(game.rules().resolve(Scope.GAME, DRAGONS_LIFT))
                 .targetSelector(Targets.PLAYERS)

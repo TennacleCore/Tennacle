@@ -190,11 +190,12 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   pushed us, though it passed within 0.7 to 6 blocks 15 times (cap, five games). Hits on a dragon (cap,
   `research/bedwars/creature_hits.py`): the head takes the hit in full and the other parts a quarter plus 1,
   as in vanilla, but Sharpness does not count: a Sharpness II wooden sword did 5 to the head and 2.25 to the
-  body twice each, where vanilla gives 7.5 and 2.875. Fireballs and TNT hurt it as in vanilla (our play). The user
-  (2026-09-28) sees ours bite a player several times in one charge and believes Hypixel's bites once; by their own
-  word that is a guess for a capture to settle. The logs so far hold the dragons' paths but no player movement,
-  so a charge cannot be matched to the hurts it caused; `capture-bedwars.js` now logs players' moves while a
-  dragon lives and the self position on every hurt, and the next Sudden Death through it is the test. Its
+  body twice each, where vanilla gives 7.5 and 2.875. Fireballs and TNT hurt it as in vanilla (our play). Captured
+  (a private game to Sudden Death, 2026-09-28, `dragon_hits.py` over the self's hurts with their positions and the
+  other player's moves): six charges reached a player, one bite each, the next one 14 to 47 s later; ours bit
+  several times a charge. The dragon's bite now lands once a victim a charge under `biteOncePerCharge` (the Bed
+  Wars kind; vanilla's every-tick bite under the hurt window stays the engine's default), a charge being one
+  flight target. Its
   flight fits vanilla's (random points within about 60 of the middle at y 70 to 120, or a player); whether it
   goes only for enemies does not show from one player's capture. Its own growl is the vanilla living sound at
   volume 5. From Sudden Death the board counts `More Dragons in 5:00` (cap): the second dragons come 5 real
@@ -1220,7 +1221,9 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   (ours: a generator's own drops carry a tag, nothing else does, and stacks of different provenance never
   merge).
 - **Spectating**: eliminated players spectate with a compass, a settings item, Play Again and Return to
-  Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap).
+  Lobby; spectators chat only with spectators. A cross-teaming warning prints (cap). Ours (2026-09-28): a dead
+  seat that rode spectator mode and came back saw its own body, the effect still on: Polyp's spectator switch
+  cleared the invisible flag on the way back; it keeps one the effect still grants.
 - **Disconnects**: `/rejoin` works while the bed stands; a rejoin adds a 10 s respawn; leaving counts as a
   death, final when bedless. `<player> disconnected.` (cap), the name in the side's color, the rest gray; back
   in, `<player> reconnected.` the same. Ours said it twice (the user, 2026-09-28: the look's `left!` and a death
