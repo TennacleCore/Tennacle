@@ -14,6 +14,7 @@ import net.minestom.server.instance.block.Block;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tennacle.commands.RulesCompletions;
+import tennacle.games.Match;
 
 import java.util.Collections;
 import java.util.List;
@@ -134,7 +135,7 @@ public final class Building {
             Point pos = e.getBlockPosition();
             boolean own = building.placed.contains(key(pos));
             List<String> may = game.rules().resolve(player, space.guarded(pos) ? BREAK : BREAK_OUTSIDE);
-            if (!game.rules().resolve(player, BUILD)) {
+            if (!Match.live(game) || !game.rules().resolve(player, BUILD)) {
                 refuse(e, REASON_BUILD);
                 return;
             }
@@ -184,7 +185,7 @@ public final class Building {
 
     /** Why {@code placer} may not place at {@code pos} (a {@code REASON_}), or null. */
     public @Nullable String refusal(@NotNull Player placer, @NotNull Point pos) {
-        if (!game.rules().resolve(placer, BUILD)) return REASON_BUILD;
+        if (!Match.live(game) || !game.rules().resolve(placer, BUILD)) return REASON_BUILD;
         if (space.reserved(pos)) return REASON_RESERVED;
         boolean allowed = space.buildable(placer, pos)
                 || (game.rules().resolve(placer, OUTSIDE) && space.inBand(placer, pos)); // off the region, still in the band

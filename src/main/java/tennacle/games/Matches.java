@@ -51,6 +51,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -423,16 +424,40 @@ public final class Matches {
 
     /** A game of {@code mode} under {@code platform} still filling up, or null. */
     public static @Nullable Game waiting(@NotNull Mode mode, @NotNull Platform platform) {
+        return waiting(mode, platform, null);
+    }
+
+    /** {@link #waiting(Mode, Platform)} on the map named, or on any when null. */
+    public static @Nullable Game waiting(@NotNull Mode mode, @NotNull Platform platform, @Nullable String map) {
         for (Game game : grotto.games()) {
             if (game.status() == Game.Status.OPEN && Match.opening(game) && modeOf(game) == mode
-                    && platformNameOf(game).equals(platform.name())) return game;
+                    && platformNameOf(game).equals(platform.name()) && (map == null || onMap(mode, game, map))) return game;
+        }
+        return null;
+    }
+
+    private static boolean onMap(Mode mode, Game game, String map) {
+        return mode.arena().named(map) == game.arena() || map.equalsIgnoreCase(game.arena().meta().name());
+    }
+
+    /** The pool's name for {@code word}: a name as listed, or one without the pool's prefix; null for none. */
+    public static @Nullable String mapNamed(@NotNull Mode mode, @NotNull String word) {
+        String lower = word.toLowerCase(Locale.ROOT);
+        for (String name : mode.arena().names()) {
+            if (name.equalsIgnoreCase(word) || name.toLowerCase(Locale.ROOT).endsWith("-" + lower)) return name;
         }
         return null;
     }
 
     /** A new game of {@code mode} on the pool's pick with nobody seated, its map built off the tick thread first. */
     public static @NotNull CompletableFuture<Game> open(@NotNull Mode mode, @NotNull Platform platform) {
-        return ready(mode, Options.NONE, List.of(), arena -> launch(mode, platform, arena, Options.NONE));
+        return open(mode, platform, null);
+    }
+
+    /** {@link #open(Mode, Platform)} on the map named, or on the pool's pick when null. */
+    public static @NotNull CompletableFuture<Game> open(@NotNull Mode mode, @NotNull Platform platform, @Nullable String map) {
+        Options options = map == null ? Options.NONE : new Options(map, null, Options.NONE.rules(), List.of(), List.of());
+        return ready(mode, options, List.of(), arena -> launch(mode, platform, arena, options));
     }
 
     /**

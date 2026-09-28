@@ -112,8 +112,9 @@ public final class Beds implements GameModule {
             if (owner == null) return; // a bed already taken leaves ordinary ground behind
             Player breaker = e.getPlayer();
             if (game.roster().slotOf(breaker) == null) return;
-            boolean mine = owner.equals(Match.teamOf(game, breaker));
             e.setCancelled(true); // both halves go together, so a half is never left standing
+            if (!Match.live(game)) return; // not in play before the start or after the end: Refusals says so
+            boolean mine = owner.equals(Match.teamOf(game, breaker));
             if (!game.rules().resolve(breaker, BREAK).contains(mine ? OWN : ENEMY)) return; // Refusals says so
             Refusals.handled(e); // cancelled to take the whole bed at once, not to turn them away
             if (stands(game, owner)) broke(owner, breaker, pos);

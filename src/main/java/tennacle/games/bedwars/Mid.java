@@ -120,7 +120,7 @@ final class Mid implements GameModule {
         Hologram lines = Hologram.at(drop, Match.scenery(game))
                 .line(NAME + LINE, Lines.tier(game, tier(game, kind)))
                 .line(NAME, Lines.generator(kind))
-                .line(NAME - LINE, Lines.spawnsIn(game, seconds(first)));
+                .line(NAME - LINE, Lines.spawnsIn(game, seconds(first + period(kind))));
         LivingEntity block = new LivingEntity(EntityType.ARMOR_STAND);
         block.setNoGravity(true);
         block.editEntityMeta(ArmorStandMeta.class, meta -> {
@@ -139,7 +139,8 @@ final class Mid implements GameModule {
         for (Display display : displays) {
             display.block().teleport(display.top().add(0, -BOB * turned / TURN, 0).withYaw((float) -turned));
             long due = display.generator().due();
-            if (due >= 0) display.lines().text(2, Lines.spawnsIn(game, seconds(due)));
+            // captured: before the first drop the count already runs to the second one
+            if (due >= 0) display.lines().text(2, Lines.spawnsIn(game, seconds(display.generator().dropped() ? due : due + display.generator().period())));
         }
     }
 

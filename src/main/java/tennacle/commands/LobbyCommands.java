@@ -107,6 +107,8 @@ public final class LobbyCommands {
     /** The game as a player knows it: its title, their teammates, their opponents - never the code, which rides the click. */
     static Component gameLine(Game game, Player me) {
         Mode mode = Matches.modeOf(game);
+        // a game of many sides names nobody: who else waits is theirs to show, and a duel's foe is the line's point
+        if (mode != null && mode.family() == Mode.Family.GAME) return aqua(mode.title());
         Slot mine = game.roster().slotOf(me);
         if (mine == null) mine = game.roster().reservedSlotOf(me.getUsername());
         String team = mine != null ? mine.team() : "";
@@ -178,7 +180,7 @@ public final class LobbyCommands {
                             .clickEvent(ClickEvent.suggestCommand(rejoin))
                             .hoverEvent(HoverEvent.showText(yellow("Puts ").append(aqua(rejoin)).append(yellow(" in your chat")))));
                 } else {
-                    Msg.say(p, "You left the game.");
+                    p.sendMessage(yellow("You left ").append(gameLine(game, p)).append(yellow(".")));
                 }
                 Matches.toLobby(p);
             };

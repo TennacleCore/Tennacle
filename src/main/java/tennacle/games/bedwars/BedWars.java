@@ -34,6 +34,7 @@ import tennacle.games.items.BridgeEgg;
 import tennacle.games.items.Creatures;
 import tennacle.games.items.PopupTower;
 import tennacle.games.items.Sponge;
+import tennacle.games.matchmaking.PartyExit;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.grotto.Body;
@@ -341,6 +342,7 @@ public final class BedWars {
                         Regions::of,
                         Traps::new,
                         HealPool::new,
+                        PartyExit::new,
                         () -> Staging.during(Match.OPENING).clear(LOBBY)
                                 .seating((g, p) -> g.module(Kits.class).apply(p)),
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),

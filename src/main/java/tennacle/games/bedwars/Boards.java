@@ -31,7 +31,7 @@ final class Boards {
         return Frames.hypixelGame("Bed Wars", b -> b
                 .rows(g -> Match.opening(g) ? 6 : 0, (g, me, i) -> switch (i) {
                     case 0 -> Frames.hypixelRow("Map: ", g.arena().meta().name());
-                    case 1 -> Frames.hypixelRow("Players: ", seated(g) + "/" + seats(g));
+                    case 1 -> Frames.hypixelRow("Players: ", Match.seated(g) + "/" + Match.seats(g));
                     case 3 -> Component.text(Countdown.left(g) < 0 ? "Waiting..." : "Starting in " + Countdown.left(g) + "s",
                             NamedTextColor.WHITE);
                     case 5 -> Frames.hypixelRow("Mode: ", mode);
@@ -50,17 +50,6 @@ final class Boards {
         Timeline timeline = game.module(Timeline.class);
         Timeline.Next next = timeline != null ? timeline.next() : null;
         return next == null ? Component.empty() : Frames.hypixelRow(next.label() + " in ", Frames.shortClock(next.left()));
-    }
-
-    private static int seated(Game game) {
-        int seated = 0;
-        for (Slot seat : game.roster().slots()) if (game.roster().ownerOf(seat) != null) seated++;
-        return seated;
-    }
-
-    private static int seats(Game game) {
-        int size = game.rules().resolve(Scope.GAME, Roster.TEAM_SIZE);
-        return size > 0 ? game.roster().teams().size() * size : game.roster().slots().size();
     }
 
     private static int kills(Game game, Player viewer) {

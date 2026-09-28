@@ -83,6 +83,24 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         return new Look(theme, death, verdict, count, sounds, chat, tab, tabHealth, hit, tiebreak, Map.copyOf(next));
     }
 
+    /** A seat taken while the game fills: the name as this look names players, then the count. */
+    public static @NotNull Component arrival(Game game, String name, int seated, int seats) {
+        Theme theme = Matches.lookOf(game).theme();
+        return switch (Matches.lookNameOf(game)) {
+            case "hypixel" -> Component.text(name + " has joined (" + seated + "/" + seats + ")!", NamedTextColor.AQUA);
+            default -> theme.value(name).append(theme.prose(" joined (" + seated + "/" + seats + ")."));
+        };
+    }
+
+    /** A seat given up while the game fills. */
+    public static @NotNull Component quit(Game game, String name) {
+        Theme theme = Matches.lookOf(game).theme();
+        return switch (Matches.lookNameOf(game)) {
+            case "hypixel" -> Component.text(name + " has quit!", NamedTextColor.AQUA);
+            default -> theme.value(name).append(theme.prose(" left."));
+        };
+    }
+
     /** A seat walked out on, or one re-claimed: the name as this look names players, then the fact. */
     public static @NotNull Component departure(Game game, Slot seat, String name, boolean back) {
         Theme theme = Matches.lookOf(game).theme();

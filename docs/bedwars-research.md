@@ -125,6 +125,15 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
     shares a team (both on Aqua).
   - Grotto's `Countdown` waits for `START_AT` seated players and stops short below it, the look saying so
     (2026-09-27); the pregame look and `/play bedwars` come with the mode.
+  - Ours, from the first playtest (2026-09-28): the board's `Players` row counts for everyone as seats come
+    and go (Grotto's scoreboard re-reads every row on a join or a leave); `<name> has joined (n/N)!` and
+    `<name> has quit!` in aqua while the game fills, through the look (`Look.arrival`, `Look.quit`); a seat left
+    while filling is freed, not held, so no rejoin is offered and the leave line names no one but the mode; a
+    party waits together and one member out takes the rest (`PartyExit`); nothing is placed or broken before
+    the start, beds included (`Building`, `Beds` read `Match.live`); `/play <mode> [map]` names the map, a
+    filling game on it joined first; the mid holograms count to the second drop from the start, the first
+    coming at once as captured. A lowered `flow.countdown.start-at` starts the count on the spot (Grotto), the
+    two-player test's way in. Hidden names for strangers are still to come.
 - Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
 
 ### 3.2 Start

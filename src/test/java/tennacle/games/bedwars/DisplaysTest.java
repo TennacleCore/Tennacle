@@ -70,6 +70,11 @@ class DisplaysTest extends HeadlessServerTest {
             assertEquals("Tier I", lines.get(0));
             assertEquals("Diamond", lines.get(1));
             assertTrue(lines.get(2).startsWith("Spawns in "), lines.toString());
+            // captured: the count runs to the second drop from the start, the first coming at once
+            int diamondIn = Integer.parseInt(lines.get(2).replaceAll("\\D", ""));
+            assertTrue(diamondIn >= 25 && diamondIn <= 31, "the second diamond, 601 ticks after the first: " + diamondIn);
+            int emeraldIn = Integer.parseInt(names(game, game.arena().markers(BedWars.EMERALD).getFirst().point()).get(2).replaceAll("\\D", ""));
+            assertTrue(emeraldIn >= 90 && emeraldIn <= 96, "the second emerald, 1301 ticks after the first at 0:30: " + emeraldIn);
             String before = lines.get(2);
             long until = game.tick() + 40;
             BedWarsRoundTest.tickUntil(game, "two seconds", () -> game.tick() >= until);
@@ -83,6 +88,7 @@ class DisplaysTest extends HeadlessServerTest {
             BedWarsRoundTest.tickUntil(game, "a turn", () -> game.tick() >= later);
             assertNotEquals(yaw, block.getPosition().yaw(), 1e-3, "the block turns");
         } finally {
+            tennacle.games.watch.Replays.discard(game); // no replay still writing into the temp dir as it goes
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();

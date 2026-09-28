@@ -65,6 +65,7 @@ public final class Generators implements GameModule {
         private ItemStack stack;
         private long period;
         private long due = -1;
+        private boolean dropped;
 
         private Generator(int index, Point at, ItemStack stack, long period, Pool pool) {
             this.index = index;
@@ -87,6 +88,7 @@ public final class Generators implements GameModule {
 
         /** The first drop {@code firstIn} ticks from now, then every period. */
         public void start(long firstIn) {
+            dropped = false;
             schedule(game.tick() + Math.max(1, firstIn));
         }
 
@@ -94,8 +96,18 @@ public final class Generators implements GameModule {
         public void restart() {
             game.state().alarms().cancel(ALARM + index);
             due = -1;
+            dropped = true;
             drop();
             schedule(game.tick() + period);
+        }
+
+        /** Whether a drop's time has come since the start; the first, captured, is off the countdown's clock. */
+        public boolean dropped() {
+            return dropped;
+        }
+
+        public long period() {
+            return period;
         }
 
         public void stop() {
@@ -126,6 +138,7 @@ public final class Generators implements GameModule {
         // a capped generator keeps its clock: the countdown restarts with no drop, as captured
         private void fire(long tick, CompoundBinaryTag payload) {
             if (payload.getLong("due") != due || game.decided() != null) return;
+            dropped = true;
             drop();
             schedule(tick + period);
         }

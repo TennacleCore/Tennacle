@@ -7,7 +7,9 @@ import io.github.term4.canvas.theme.Titles;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.outcome.Pressure;
 import io.github.term4.grotto.modules.flow.Phases;
+import io.github.term4.grotto.modules.flow.Staging;
 import io.github.term4.grotto.modules.flow.TimeLimit;
+import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
@@ -37,6 +39,25 @@ public final class Match {
 
     public static boolean opening(@NotNull Game game) {
         return Phases.is(game, OPENING);
+    }
+
+    /** Still filling up: a waiting room holding joins until the count. A launched match's own opening is not this. */
+    public static boolean filling(@NotNull Game game) {
+        Staging staging = game.module(Staging.class);
+        return staging != null && staging.waiting();
+    }
+
+    /** Seats with someone in them. */
+    public static int seated(@NotNull Game game) {
+        int seated = 0;
+        for (Slot seat : game.roster().slots()) if (game.roster().ownerOf(seat) != null) seated++;
+        return seated;
+    }
+
+    /** The seats the game fills toward: the team size rule a side, else the map's. */
+    public static int seats(@NotNull Game game) {
+        int size = game.rules().resolve(Scope.GAME, Roster.TEAM_SIZE);
+        return size > 0 ? game.roster().teams().size() * size : game.roster().slots().size();
     }
 
     // game.members(), not shard members: ghosts still get announcements and end-of-game cleanup; spectators watch along

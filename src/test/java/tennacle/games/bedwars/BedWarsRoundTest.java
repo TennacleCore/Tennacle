@@ -38,6 +38,12 @@ import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SetTitleTextPacket;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
+import tennacle.games.matchmaking.Parties;
+import io.github.term4.canvas.board.Boards;
+import net.minestom.server.entity.PlayerHand;
+import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.item.ItemStack;
+import net.kyori.adventure.text.Component;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +54,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /** A game fills in the room and opens at the count; a bed gone makes the next death the last, and the block ends it. */
 class BedWarsRoundTest extends HeadlessServerTest {
@@ -263,5 +271,136 @@ class BedWarsRoundTest extends HeadlessServerTest {
             }
         }
         assertTrue(done.get(), what);
+    }
+
+    @Test
+    void theWaitLetsNothingBreakOrBuild() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwHoldA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwHoldB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            assertTrue(Match.opening(game));
+            a.player.teleport(new Pos(11.5, 66, 2.5)).join(); // by the second side's bed, in a modern client's reach
+            BlockVec foot = new BlockVec(11, 65, 0);
+            var bed = new PlayerBlockBreakEvent(a.player, game.instance(), game.shard().getBlock(foot), Block.AIR, foot, BlockFace.TOP);
+            EventDispatcher.call(bed);
+            assertTrue(bed.isCancelled(), "no bed goes before the start");
+            assertTrue(Beds.stands(game, "2"));
+            a.player.setItemInMainHand(ItemStack.of(Material.WHITE_WOOL, 8));
+            var wool = new PlayerBlockPlaceEvent(a.player, game.instance(), Block.WHITE_WOOL, BlockFace.TOP, new BlockVec(11, 66, 2),
+                    new Pos(0.5, 1, 0.5), PlayerHand.MAIN);
+            EventDispatcher.call(wool);
+            assertTrue(wool.isCancelled(), "nor a block placed");
+            live(game);
+            a.player.teleport(new Pos(11.5, 66, 2.5)).join();
+            var again = new PlayerBlockBreakEvent(a.player, game.instance(), game.shard().getBlock(foot), Block.AIR, foot, BlockFace.TOP);
+            EventDispatcher.call(again);
+            assertFalse(Beds.stands(game, "2"), "in play, an enemy bed goes");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void theWaitSaysWhoComesAndGoes() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 7); // never enough to start
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            await("a seated", () -> Game.of(a.player) == game);
+            a.sent.clear();
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("b seated", () -> Game.of(b.player) == game);
+            assertTrue(plain(a).contains("BwGoB has joined (2/3)!"), plain(a).toString());
+            tickUntil(game, "both boards count two: " + board(a) + " / " + board(b), () -> board(a).contains("Players: 2/3") && board(b).contains("Players: 2/3"));
+            a.sent.clear();
+            b.sent.clear();
+            MinecraftServer.getCommandManager().execute(b.player, "l");
+            await("b out", () -> Game.of(b.player) == null);
+            assertTrue(plain(b).contains("You left Bed Wars Solo."), plain(b).toString());
+            assertFalse(plain(b).stream().anyMatch(l -> l.contains("rejoin")), "nothing to come back to: " + plain(b));
+            assertTrue(plain(a).contains("BwGoB has quit!"), plain(a).toString());
+            assertNull(game.roster().reservedSlotOf(b.player.getUsername()), "the seat is free, not held");
+            tickUntil(game, "the board counts one again", () -> board(a).contains("Players: 1/3"));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void aPartyLeavesTheWaitTogether() {
+        Mode doubles = Matches.mode("bedwars-doubles");
+        Game game = Matches.launch(doubles, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 7);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPtyA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPtyB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPtyC");
+        try {
+            MinecraftServer.getCommandManager().execute(a.player, "party BwPtyB");
+            MinecraftServer.getCommandManager().execute(b.player, "party join BwPtyA");
+            assertEquals(2, Parties.of(a.player).size(), "a party of two");
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            c.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player, b.player)));
+            assertTrue(Matches.enter(game, List.of(c.player)));
+            await("all seated", () -> Game.of(a.player) == game && Game.of(b.player) == game && Game.of(c.player) == game);
+            b.sent.clear();
+            MinecraftServer.getCommandManager().execute(a.player, "l");
+            await("the party is out", () -> Game.of(a.player) == null && Game.of(b.player) == null);
+            assertTrue(plain(b).contains("Your party left the game."), plain(b).toString());
+            assertSame(game, Game.of(c.player), "the other side stays");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            MinecraftServer.getCommandManager().execute(b.player, "party leave");
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+        }
+    }
+
+    @Test
+    void aWaitingGameIsFoundByItsMap() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        try {
+            assertSame(game, Matches.waiting(solo, Matches.platformFor(null)));
+            assertSame(game, Matches.waiting(solo, Matches.platformFor(null), game.arena().meta().name()));
+            assertNull(Matches.waiting(solo, Matches.platformFor(null), "nowhere"));
+            assertEquals("bedwars-dragonstar", Matches.mapNamed(solo, "dragonstar"), "a map goes by its name without the pool's prefix");
+            assertEquals("bedwars-dragonstar", Matches.mapNamed(solo, "BEDWARS-DRAGONSTAR"));
+            assertNull(Matches.mapNamed(solo, "atlantis"));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+        }
+    }
+
+    private static List<String> plain(FakePlayer p) {
+        return p.sent(SystemChatPacket.class).stream()
+                .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
+    }
+
+    /** The sidebar as {@code p} last saw it, a line a string. */
+    private static List<String> board(FakePlayer p) {
+        Boards.Rendered rendered = Boards.rendered(p.player);
+        if (rendered == null) return List.of();
+        return rendered.lines().stream().map(line -> PlainTextComponentSerializer.plainText().serialize(line).strip()).toList(); // the board pads its width
     }
 }
