@@ -16,6 +16,7 @@ import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.component.DataComponents;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
@@ -243,9 +244,15 @@ class UpgradesTest extends HeadlessServerTest {
         EventDispatcher.call(new InventoryPreClickEvent(open, p, new Click.Left(slot)));
     }
 
+    // n scheduler ticks straight through: a 600-tick wait under tickUntil's 8 s deadline hangs on Windows' timer
+    // whenever no process holds it at 1 ms (a game client does, so it passed only while one ran)
     private static void ticks(Game game, int n) {
         long until = game.tick() + n;
-        BedWarsRoundTest.tickUntil(game, n + " ticks", () -> game.tick() >= until);
+        for (int i = 0; i < n * 2 && game.tick() < until; i++) {
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+        }
+        assertTrue(game.tick() >= until, n + " ticks");
     }
 
     private static String title(Player p) {
