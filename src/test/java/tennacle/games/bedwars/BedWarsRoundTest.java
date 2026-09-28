@@ -31,6 +31,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.instance.Chunk;
@@ -68,6 +69,7 @@ import io.github.term4.polyp.mechanics.projectile.types.Pearl;
 import io.github.term4.polyp.mechanics.projectile.entities.PearlEntity;
 import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
+import io.github.term4.polyp.world.WorldPolicy;
 import io.github.term4.grotto.modules.combat.Respawns;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.Player;
@@ -367,6 +369,44 @@ class BedWarsRoundTest extends HeadlessServerTest {
             tickUntil(game, "b out", () -> Game.of(b.player) == null);
             assertNull(game.decided(), "a seat with a bed is held");
             assertEquals(List.of("BwGoneB disconnected."), lines(a, "BwGoneB"), "one line, Hypixel's");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    /** The user, 2026-09-28: two rejoiners waited side by side and could hit each other. Ghosts are in nobody's fight. */
+    @Test
+    void twoGhostsCannotFight() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwBackA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwBackB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            assertTrue(WorldPolicy.canAffect(a.player, b.player));
+            MinecraftServer.getCommandManager().execute(a.player, "l");
+            MinecraftServer.getCommandManager().execute(b.player, "l");
+            tickUntil(game, "both out", () -> Game.of(a.player) == null && Game.of(b.player) == null);
+            assertNotNull(game.roster().reservedSlotOf("BwBackA"), "a bedded seat is held");
+            assertTrue(game.join(a.player));
+            assertTrue(game.join(b.player));
+            tickUntil(game, "both waiting", () -> game.isGhost(a.player) && game.isGhost(b.player));
+            assertFalse(WorldPolicy.canAffect(a.player, b.player), "a ghost reaches no ghost");
+            assertFalse(WorldPolicy.canAffect(b.player, a.player));
+            float before = b.player.getHealth();
+            EventDispatcher.call(new EntityAttackEvent(a.player, b.player));
+            assertEquals(before, b.player.getHealth(), "the swing lands nothing");
+            tickUntil(game, "both back", () -> !game.isGhost(a.player) && !game.isGhost(b.player));
+            assertTrue(WorldPolicy.canAffect(a.player, b.player), "respawned, they fight again");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();

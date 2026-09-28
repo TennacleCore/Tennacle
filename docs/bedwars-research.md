@@ -381,7 +381,11 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   Four-team base boxes (cap, 4s private games on all 28 maps in rotation with Disable Block Protection and Max
   Team Upgrades, 2026-09-27, through the capture tool's zone check) follow the same rule: every axis closed on
   both sides is centered on the spawn block but one. Many four-team spawn points sit on a block's corner
-  (Lasagne's at 0.0, 65, -95.0), and their boxes are still centered on the block under it. On eight maps the
+  (Lasagne's at 0.0, 65, -95.0), and their boxes are still centered on the block under it. The corner is
+  Hypixel's own spot, not a rounding of ours: two Silver Birch captures (doubles 2026-09-27, solo 2026-09-28)
+  hold the player at exactly 34.00, 78, 85.00 and 85.00, 78, 34.00, the marker values, and 39 captured arenas
+  carry such spawns. Ours land there too; the user (2026-09-28) read an F3 at -33.000 / 78 / 85.000 as a bug,
+  then kept it: a recorded official spawn stands, integer or not (a centering pass was written and reverted). On eight maps the
   region runs down to the build floor or past it (our play: the floor floors it), so nothing below it goes in
   and its bottom never closes; a placement there draws both `You can't place blocks here!` and `You cannot
   build any further down!`. The arenas take the top's reach for a bottom never closed.
@@ -776,7 +780,10 @@ table above is the newest documented.
 - A lower armor tier than yours is refused with red `You already have a higher tier item.` and no sound; the
   tier you own with red `You've already purchased this item!` and `mob.endermen.portal` (cap, 2026-09-25).
 - Since 2023, a bought sword replaces the sword in your selected hotbar slot if it is better, and a better
-  sword picked up replaces your current one. A worse sword than yours can still be bought (our play).
+  sword picked up replaces your current one. A worse sword than yours can still be bought (our play). Ours
+  (2026-09-28, Grotto `Kit.ranked`): only the held slot's sword yields to a better bought one, and it moves to
+  the first empty slot (ASSUMED: the note says "replaces", and no capture shows what becomes of the old one);
+  a better sword than one sitting elsewhere lands as any item, as the swords capture below has it.
 - Swords, exactly (cap, 4v4v4v4 on Invasion and Jurassic 2026-09-27, `research/bedwars/swords.py`): a bought
   sword takes the wooden sword's slot when the wooden one is held, whatever the held slot, and the wooden one is
   gone. With no wooden sword it goes in like any item, the first empty slot: a second stone sword went to slot 3,
@@ -1234,7 +1241,10 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   module only counting the death and dropping a bedless seat (`Cause.departed`, which draws no line; a kill
   inside the credit window still says so). Back in (cap, Sky Rise 2026-09-25):
   `<player> reconnected.`, the death state, the countdown from 10, and yellow `You will respawn because you
-  still have a bed!` 0.14 s after the first count.
+  still have a bed!` 0.14 s after the first count. Two rejoiners of ours (the user, 2026-09-28) hovered
+  together and could hit each other: both bound to nothing, binding equality let them. A ghost is inert
+  (`WorldPolicy.INERT`) from `Game.ghost` to its unghost, leave or the game's end, Grotto's rule for every
+  wait, so no ghost reaches or is reached by anyone (`twoGhostsCannotFight`).
 - **AFK**: 4 minutes then a 10 s warning in 2017; we are not testing it. The warning reads bold red `You will
   be afk-ed in ` + bold yellow `10 seconds` + bold red `!` (cap, in game), then `note.pling` (volume 1,
   pitch 1.0) every 2 ticks until the player moves, up to 10 s (cap, 14 warnings); the candidate kick lines
