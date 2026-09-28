@@ -537,7 +537,10 @@ with identical numbers; every forge level bought one at a time and left to fill,
   wire carries a random yaw (vanilla's `EntityItem`), ours too since 2026-09-28. The user still sees Hypixel's
   pile as rotated and spread where ours sits identical; a 1.8 client spins and bobs each item off a random
   phase of its own (`RenderEntityItem`, `hoverStart`), so the difference is not in the positions we have. A
-  capture of a forge filling through our own server is owed to diff the wires.
+  capture of a forge filling through our own server is owed to diff the wires. A fresh drop cannot be picked up
+  for ten ticks (cap, 2026-09-27 and 2026-09-25: 8,499 forge items collected, the earliest 457 ms after their
+  spawn, the bulk at 460 to 500; ours went at 0 to 50 ms, a grab in the air), vanilla's dropped-item delay,
+  `generator.pickup-delay` (10) since 2026-09-28 at the user's call.
 - Emerald Forge adds an emerald spawner: 1300 ticks (65 s) at Emerald Forge, 701 (35 s) at Molten, as
   NamuWiki says. The cap is 3 (cap, Waterfall 2026-09-25: a Molten forge from the Max Team Upgrades
   modifier stopped with 3 emeralds lying, its iron and gold at the usual Molten 80 and 24), and 2 at Emerald

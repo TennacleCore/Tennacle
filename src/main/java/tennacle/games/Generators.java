@@ -1,6 +1,9 @@
 package tennacle.games;
 
 import io.github.term4.grotto.Game;
+import net.minestom.server.codec.Codec;
+import io.github.term4.grotto.state.StateKey;
+import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.polyp.entity.DroppedItemEntity;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
@@ -19,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
@@ -155,6 +159,14 @@ public final class Generators implements GameModule {
     private Predicate<ItemStack> shared = stack -> false;
     private Game game;
 
+    /** Ticks before a fresh drop can be picked up (captured: 10, vanilla's dropped item; none let a mid-air grab). */
+    public static final StateKey<Integer> PICKUP_DELAY = StateKey.of("generator.pickup-delay", Codec.INT, 10);
+
+    @Override
+    public @NotNull Set<StateKey<?>> rules() {
+        return Set.of(PICKUP_DELAY);
+    }
+
     public static @NotNull Generators of() {
         return new Generators();
     }
@@ -167,7 +179,8 @@ public final class Generators implements GameModule {
         Vec velocity = new Vec((rnd.nextDouble() - rnd.nextDouble()) * 0.1, 0.2, (rnd.nextDouble() - rnd.nextDouble()) * 0.1);
         // vanilla's random yaw, on the wire as Hypixel's is
         Pos pos = new Pos(at.x(), at.y(), at.z(), rnd.nextFloat() * 360f, 0f);
-        DroppedItemEntity item = DroppedItemEntity.spawn(game.shard(), pos, velocity, stack, null, 0);
+        DroppedItemEntity item = DroppedItemEntity.spawn(game.shard(), pos, velocity, stack, null,
+                game.rules().resolve(Scope.GAME, PICKUP_DELAY));
         if (item != null) {
             item.setMergeable(false);
             item.setVelocity(Vec.ZERO);

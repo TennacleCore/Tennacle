@@ -28,6 +28,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Drops on a clock under a lying cap, a restart, and a pickup shared with the teammates beside it. */
@@ -50,6 +52,21 @@ class GeneratorsTest extends HeadlessServerTest {
                 .filter(e -> e instanceof DroppedItemEntity item && item.getItemStack().material() == material
                         && e.getPosition().distance(at) <= 3)
                 .map(e -> (DroppedItemEntity) e).toList();
+    }
+
+    /** Captured: a forge item is collected no sooner than ten ticks after its spawn, never mid-air. */
+    @Test
+    void aFreshDropWaitsTenTicks() {
+        Game game = Matches.grotto().launch(type(Generators.of()), Matches.mode("bedfight").arena().get());
+        try {
+            Pos spawn = game.arena().meta().spawn();
+            DroppedItemEntity item = Generators.drop(game, new Vec(spawn.x(), spawn.y(), spawn.z()), ItemStack.of(Material.IRON_INGOT));
+            assertNotNull(item);
+            assertFalse(item.isPickable(), "nobody grabs it as it falls");
+            assertEquals(500L, item.getPickupDelay(), "ten ticks");
+        } finally {
+            game.end(Outcome.draw());
+        }
     }
 
     @Test
