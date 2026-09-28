@@ -122,8 +122,9 @@ public final class KitLayouts {
         Map<String, Integer> mine = of(p, kitId);
         if (mine != null) current.putAll(mine);
         Map<String, ItemStack> displays = kit.displays();
-        current.forEach((role, slot) ->
-                inv.setItemStack(slot, displays.getOrDefault(role, ItemStack.AIR).withTag(ROLE, role)));
+        current.forEach((role, slot) -> {
+            if (slot >= 0) inv.setItemStack(slot, displays.getOrDefault(role, ItemStack.AIR).withTag(ROLE, role));
+        });
         EDITING.put(p.getUuid(), new Edit(kitId, kit, stash));
         Msg.say(p, "Arrange the ", Msg.v(kitId), " kit, then close your inventory to save.");
     }
