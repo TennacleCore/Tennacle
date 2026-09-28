@@ -1,6 +1,10 @@
 package tennacle.lobby;
 
+import io.github.term4.polyp.MechanicsKeys;
+import io.github.term4.polyp.MechanicsProfile;
+import io.github.term4.polyp.mechanics.fluids.FluidsConfig;
 import io.github.term4.polyp.platform.player.Wardrobe;
+import io.github.term4.polyp.presets.vanilla18.Fluids;
 import tennacle.boot.Mechanics;
 
 import io.github.term4.polyp.tracking.ClientVersion;
@@ -35,6 +39,11 @@ public final class Playground {
         world.setExplosionSupplier(Mechanics.explosions.supplier()); // route instance.explode(...) through the system
         world.setGenerator(unit -> unit.modifier().fillHeight(0, 40, Block.OBSIDIAN));
         world.setChunkSupplier(LightingChunk::new);
+        // the pads' water column and the lanes' hand-set gradients stand as laid: the lobby's fluids never tick
+        FluidsConfig fluids = Fluids.config();
+        Mechanics.polyp.profiles().setInstance(world, MechanicsProfile.builder()
+                .set(MechanicsKeys.FLUIDS, fluids.toBuilder().defaults(fluids.defaults.toBuilder().updates(false).build()).build())
+                .build());
         if (testPads) buildTestPads(world);
         return world;
     }
@@ -52,7 +61,7 @@ public final class Playground {
             world.setBlock(29, 40, 0, Block.CACTUS);
             world.setBlock(29, 41, 0, Block.CACTUS);
         });
-        // enclosed lanes with a hand-set `level` gradient (Minestom does not spread fluids): a hit taken standing
+        // enclosed lanes with a hand-set `level` gradient (the lobby's fluids are frozen above): a hit taken standing
         // in a lane folds the flow term AWAY from the wool marker - compare to vanilla 1.8
         world.loadChunk(0, 0).thenRun(() -> {
             buildFlowLane(world,  2, 40,  4,  1,  0, 7, Block.RED_WOOL, true);    // EAST  (+X)
