@@ -126,10 +126,22 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     public static final String ADDRESS = "tennacle.net";
     public static final String STORE = "store.tennacle.net";
 
-    /** Renders a kill line; {@code winner}/{@code verb} null = a forfeit with no killer. */
+    /**
+     * Renders a kill line; {@code winner}/{@code verb} null = a forfeit with no killer. {@code tool} names what the
+     * winner killed with when it was not their hand - a creature of theirs, possessive.
+     */
     @FunctionalInterface
     public interface DeathLine {
-        Component render(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb);
+        Component render(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb,
+                         @Nullable String tool);
+
+        default Component render(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
+            return render(game, seat, loser, winner, verb, null);
+        }
+    }
+
+    static String winnerName(Player winner, @Nullable String tool) {
+        return tool == null ? winner.getUsername() : winner.getUsername() + "'s " + tool;
     }
 
     /** The end-of-match title as one side reads it. */
@@ -378,12 +390,13 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     }
 
     // the MineMen line shape - themed names, themed prose, an exclamation - on the game look's palette
-    private static Component minemenDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
+    private static Component minemenDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb,
+                                          @Nullable String tool) {
         Component name = Component.text(loser, game.roster().team(seat.team()).color());
         if (verb == null) return name.append(Component.text(" forfeited!", NamedTextColor.YELLOW));
         if (winner == null) return name.append(Component.text(" " + verb + "!", NamedTextColor.YELLOW));
         return name.append(Component.text(" " + verb + " ", NamedTextColor.YELLOW))
-                .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
+                .append(Component.text(winnerName(winner, tool), Match.teamColor(game, winner)))
                 .append(Component.text("!", NamedTextColor.YELLOW));
     }
 
@@ -398,13 +411,14 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     // captured: [gold]"IgnasSk"[gray]" was killed by "[aqua]"Dogln"[gray]"." - names are rank-colored on
     // hypixel and always "was killed by", whatever actually happened; aqua names here (no ranks)
-    private static Component hypixelDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
+    private static Component hypixelDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb,
+                                          @Nullable String tool) {
         Component name = Component.text(loser + " ", game.roster().team(seat.team()).color());
         if (verb == null) return name.append(Component.text("forfeited.", NamedTextColor.GRAY));
         // captured: "Dogln fell into the void." - a death nobody is credited for is no forfeit
         if (winner == null) return name.append(Component.text(verb + ".", NamedTextColor.GRAY));
         return name.append(Component.text(verb + " ", NamedTextColor.GRAY))
-                .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
+                .append(Component.text(winnerName(winner, tool), Match.teamColor(game, winner)))
                 .append(Component.text(".", NamedTextColor.GRAY));
     }
 
@@ -486,12 +500,13 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     }
 
     // captured: [red]"Dogln "[gray]"fell into the void." - team-colored names, gray prose, a period
-    private static Component scrimsDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb) {
+    private static Component scrimsDeath(Game game, Slot seat, String loser, @Nullable Player winner, @Nullable String verb,
+                                         @Nullable String tool) {
         Component line = Component.text(loser + " ", game.roster().team(seat.team()).color());
         if (verb == null) return line.append(Msg.SCRIMS.prose("forfeited."));
         if (winner == null) return line.append(Msg.SCRIMS.prose(verb + "."));
         return line.append(Msg.SCRIMS.prose(verb + " "))
-                .append(Component.text(winner.getUsername(), Match.teamColor(game, winner)))
+                .append(Component.text(winnerName(winner, tool), Match.teamColor(game, winner)))
                 .append(Msg.SCRIMS.prose("."));
     }
 }

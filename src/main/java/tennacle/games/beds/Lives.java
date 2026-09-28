@@ -19,18 +19,21 @@ import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
+import io.github.term4.polyp.api.event.damage.DamageAppliedEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * The one rule a bed mode turns on: a death while the side's bed stands respawns, and once it is gone the next
@@ -47,9 +50,13 @@ public final class Lives implements GameModule {
 
     /** A death as decided: {@code victim} still holds what they carried, a walk-out's included. */
     public record Death(@NotNull Game game, @NotNull Player victim, @NotNull Slot seat, @Nullable Player killer,
-                        boolean last) {}
+                        boolean last, @Nullable String tool) {}
+
+    /** A hit by something of a member's - a creature - answered for: whose, and what it is called. */
+    public record Blame(@NotNull Player by, @NotNull String tool) {}
 
     private final Counters counters;
+    private final List<Function<Entity, @Nullable Blame>> blames = new ArrayList<>();
     private final List<Consumer<Death>> onDeath = new ArrayList<>();
     private Game game;
     private Respawns respawns;
@@ -63,6 +70,21 @@ public final class Lives implements GameModule {
     public @NotNull Lives onDeath(@NotNull Consumer<Death> action) {
         onDeath.add(action);
         return this;
+    }
+
+    /** Answers for a damage source that is no player; the first resolver to know it wins. */
+    public @NotNull Lives blame(@NotNull Function<Entity, @Nullable Blame> resolver) {
+        blames.add(resolver);
+        return this;
+    }
+
+    private @Nullable Blame blame(@Nullable Entity source) {
+        if (source == null || source instanceof Player) return null;
+        for (Function<Entity, @Nullable Blame> resolver : blames) {
+            Blame blame = resolver.apply(source);
+            if (blame != null) return blame;
+        }
+        return null;
     }
 
     @Override
@@ -101,7 +123,17 @@ public final class Lives implements GameModule {
             if (!(e.target() instanceof Player victim) || game.roster().slotOf(victim) == null) return;
             e.cancel(); // the module decides between a respawn and the last death
             Player by = e.source() instanceof Player p && p != victim ? p : null;
-            killed(victim, by, by != null ? "was killed by" : "died");
+            Blame blame = by == null ? blame(e.source()) : null;
+            if (blame != null && blame.by() != victim) by = blame.by();
+            killed(victim, by, by != null ? "was killed by" : "died", by != null && blame != null ? blame.tool() : null);
+        });
+        // a creature's hit is its owner's for the credit, as an arrow's is its shooter's
+        game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
+            if (!e.outcome().landed() || e.dealt() <= 0 || !(e.target() instanceof Player victim) || e.source() instanceof Player) return;
+            Blame blame = blame(e.source());
+            if (blame != null && blame.by() != victim && game.roster().slotOf(blame.by()) != null) {
+                credit.record(victim, blame.by(), game.state().tick());
+            }
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
@@ -120,7 +152,7 @@ public final class Lives implements GameModule {
         Player by = credit.creditFor(player);
         String verb = by != null ? "was killed by" : "left the game";
         if (by != null) Match.addSeat(game, by, counters.kills());
-        died(new Death(game, player, seat, by, !Beds.stands(game, seat.team())));
+        died(new Death(game, player, seat, by, !Beds.stands(game, seat.team()), null));
         if (!Beds.stands(game, seat.team())) {
             game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
             if (by != null) Match.addSeat(game, by, counters.finalKills());
@@ -154,16 +186,16 @@ public final class Lives implements GameModule {
     public void fell(@NotNull Player player) {
         if (game.roster().slotOf(player) == null) return;
         Player by = credit.creditFor(player);
-        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void");
+        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null);
     }
 
     // a side with a bed respawns, a side without loses the seat
-    private void killed(Player victim, @Nullable Player by, String verb) {
+    private void killed(Player victim, @Nullable Player by, String verb, @Nullable String tool) {
         Slot seat = game.roster().slotOf(victim);
         if (seat == null) return;
         Match.addSeat(game, victim, counters.deaths());
         if (by != null) Match.addSeat(game, by, counters.kills());
-        died(new Death(game, victim, seat, by, !Beds.stands(game, seat.team())));
+        died(new Death(game, victim, seat, by, !Beds.stands(game, seat.team()), tool));
         spill(victim);
         if (victim.getOpenInventory() != null) victim.closeInventory(); // vanilla closes a window at a death
         if (!Beds.stands(game, seat.team())) {
@@ -171,14 +203,14 @@ public final class Lives implements GameModule {
             if (by != null) Match.addSeat(game, by, counters.finalKills());
             mark(victim, seat, by, verb);
             // the elimination says the line, in the look's own voice, and cues its own fall
-            standing.out(victim, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game)));
+            standing.out(victim, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game), tool));
             if (standing.standing(seat.team()) == 0) { // the side is gone, not just this seat
                 Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
                 if (banner != null) Match.say(game, banner);
             }
             return;
         }
-        Match.say(game, Matches.lookOf(game).death().render(game, seat, victim.getUsername(), by, verb));
+        Match.say(game, Matches.lookOf(game).death().render(game, seat, victim.getUsername(), by, verb, tool));
         Deaths.cue(game, victim, by);
         respawns.queue(victim);
     }

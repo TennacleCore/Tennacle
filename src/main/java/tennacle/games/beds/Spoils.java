@@ -32,6 +32,8 @@ public final class Spoils implements GameModule {
 
     /** Item keys, in the order their lines print; {@code only()}, nothing, by default. */
     public static final StateKey<KeySet> TO_KILLER = StateKey.of("combat.death.to-killer", KeySet.CODEC, KeySet.only());
+    /** What a death by a member's creature hands the creature's owner; nothing, as Hypixel (the user, 2026-09-28). */
+    public static final StateKey<KeySet> TO_OWNER = StateKey.of("combat.death.to-owner", KeySet.CODEC, KeySet.only());
 
     private final Map<Integer, List<ItemStack>> owed = new ConcurrentHashMap<>();
     private Game game;
@@ -39,7 +41,7 @@ public final class Spoils implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(TO_KILLER);
+        return Set.of(TO_KILLER, TO_OWNER);
     }
 
     @Override
@@ -56,7 +58,7 @@ public final class Spoils implements GameModule {
         Player killer = death.killer();
         Slot seat = killer != null && killer != death.victim() ? game.roster().slotOf(killer) : null;
         if (seat == null) return;
-        KeySet taken = game.rules().resolve(Scope.slot(death.seat().index()), TO_KILLER);
+        KeySet taken = game.rules().resolve(Scope.slot(death.seat().index()), death.tool() != null ? TO_OWNER : TO_KILLER);
         Map<Key, List<ItemStack>> kinds = take(death.victim(), taken);
         if (kinds.isEmpty()) return;
         boolean waiting = game.isGhost(killer) || respawns.isDead(killer);

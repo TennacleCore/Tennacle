@@ -129,7 +129,7 @@ public final class Presentation implements GameModule {
         Look look = Matches.lookOf(game);
         String name = player != null ? player.getUsername() : lastOwner(game, seat);
         if (name == null) return;
-        Component line = look.death().render(game, seat, name, cause.by(), cause.verb());
+        Component line = look.death().render(game, seat, name, cause.by(), cause.verb(), cause.tool());
         if (cause.note() != null) line = line.append(NOTE_GAP).append(Component.text(cause.note(), NamedTextColor.AQUA)
                 .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, true));
         Match.say(game, line);

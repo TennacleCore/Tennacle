@@ -27,6 +27,8 @@ public final class TestWiring {
         // the harness boots mechanics without the systems Mechanics.install() adds
         tennacle.boot.Mechanics.containers = io.github.term4.polyp.mechanics.containers.ContainerSystem.install(
                 tennacle.boot.Mechanics.polyp, io.github.term4.polyp.presets.vanilla18.Containers.config());
+        tennacle.boot.Mechanics.mobs = io.github.term4.polyp.mechanics.mobs.MobsSystem.install(
+                tennacle.boot.Mechanics.polyp, io.github.term4.polyp.presets.vanilla18.Mobs.config());
         io.github.term4.archipelago.shard.ShardTabList.install(); // the server's tab list: spawn/entry order is tested
         io.github.term4.polyp.platform.player.PlayerNames.visible(io.github.term4.archipelago.shard.ShardTabList::listed);
         ShardManager shards = new ShardManager();

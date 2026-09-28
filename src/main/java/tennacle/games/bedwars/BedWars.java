@@ -244,6 +244,8 @@ public final class BedWars {
                 .event("bed-gone-warning", null, 25L * 60 * 20).on("bed-gone-warning", Lines::bedsWarning)
                 .watched("bed-gone", "Bed Gone", g -> Beds.standing(g).isEmpty() ? -1 : Beds.fallsIn(g))
                 .event("sudden-death", "Sudden Death", 40L * 60 * 20).on("sudden-death", Lines::suddenDeath)
+                .on("sudden-death", Creatures::suddenDeath)
+                .event("more-dragons", "More Dragons", 45L * 60 * 20).on("more-dragons", Creatures::moreDragons)
                 .event("game-end", "Game End", 50L * 60 * 20).on("game-end", BedWars::end);
     }
 
@@ -346,6 +348,7 @@ public final class BedWars {
                         Compass::new,
                         Spoils::new,
                         MagicMilk::new,
+                        Creatures::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Staging staging = g.module(Staging.class);
                             if (staging != null && staging.waiting()) { // off the room's edge: back up, no death

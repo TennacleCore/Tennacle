@@ -48,6 +48,7 @@ final class Lines {
     /** 1.8 mob.chicken.plop at each laid block. */
     static final Sound EGG_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
     static final Sound TOWER_BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 0.8f, 50 / 63f);
+    static final Sound DRAGON_GROWL = Sound.sound(SoundEvent.ENTITY_ENDER_DRAGON_GROWL, Sound.Source.MASTER, 1f, 1f);
 
     private Lines() {}
 
@@ -101,7 +102,23 @@ final class Lines {
         Match.say(game, theme(game).bad("All beds will be destroyed in 5 minutes!"));
     }
 
-    /** Captured: red {@code Sudden Death} as a title, 10/30/10, no subtitle. The dragons are still to come. */
+    static Component creature(Game game, long lifeTicks) {
+        return theme(game).good("Your creature will fight for you for " + (lifeTicks / 20) + " seconds.");
+    }
+
+    /** Captured: red SUDDEN DEATH:, gold +, aqua 1, the side's dragon in its color. */
+    static Component suddenDeathDragon(Game game, Team team) {
+        return theme(game).bad("SUDDEN DEATH: ")
+                .append(Component.text("+", NamedTextColor.GOLD))
+                .append(Component.text("1 ", NamedTextColor.AQUA))
+                .append(Component.text(Palette.name(team) + " Dragon!", team.color()));
+    }
+
+    static Component moreDragons(Game game) {
+        return Component.text("MORE DRAGONS HAVE SPAWNED!", NamedTextColor.DARK_PURPLE, TextDecoration.BOLD);
+    }
+
+    /** Captured: red {@code Sudden Death} as a title, 10/30/10, no subtitle; the dragons are Creatures'. */
     static void suddenDeath(Game game) {
         Match.title(game, Title.title(theme(game).bad("Sudden Death"), Component.empty(), Match.times(game, 10, 30, 10)));
     }

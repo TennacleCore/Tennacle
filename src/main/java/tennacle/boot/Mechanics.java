@@ -19,6 +19,7 @@ import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
 import io.github.term4.polyp.mechanics.itemdamage.ItemDamageSystem;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.mechanics.knockback.KnockbackSystem;
+import io.github.term4.polyp.mechanics.mobs.MobsSystem;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
 import io.github.term4.polyp.platform.fixes.FixesLegacy;
 import io.github.term4.polyp.platform.fixes.FixToggleConfig;
@@ -43,6 +44,7 @@ public final class Mechanics {
     public static ExplosionSystem explosions;
     public static ProjectileSystem projectiles;
     public static ContainerSystem containers;
+    public static MobsSystem mobs;
     public static Polyp polyp;
 
     private Mechanics() {}
@@ -83,6 +85,7 @@ public final class Mechanics {
         DamageSystem.install(polyp);
         KnockbackSystem.install(polyp);
         projectiles = ProjectileSystem.install(polyp);
+        mobs = MobsSystem.install(polyp, io.github.term4.polyp.presets.vanilla18.Mobs.config());
         AttributeSystem.install(polyp);
         ConsumableSystem.install(polyp);
         BlockingSystem.install(polyp);
