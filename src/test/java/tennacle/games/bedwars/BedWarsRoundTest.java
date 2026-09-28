@@ -64,6 +64,13 @@ import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.types.explosion.ExplosionDamage;
 import net.minestom.server.entity.Entity;
 import java.util.ArrayList;
+import io.github.term4.polyp.mechanics.projectile.types.Pearl;
+import io.github.term4.polyp.mechanics.projectile.entities.PearlEntity;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
+import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
+import io.github.term4.grotto.modules.combat.Respawns;
+import net.minestom.server.entity.EquipmentSlot;
+import net.minestom.server.entity.Player;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -335,6 +342,14 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    private static int count(Player p, Material material) {
+        int n = 0;
+        for (int i = 0; i < 36; i++) {
+            if (p.getInventory().getItemStack(i).material() == material) n += p.getInventory().getItemStack(i).amount();
+        }
+        return n;
+    }
+
     private static int blocksIn(Game game, RegionMarker.Cuboid box) {
         int n = 0;
         for (int x = box.min().blockX(); x <= box.max().blockX(); x++) {
@@ -345,6 +360,69 @@ class BedWarsRoundTest extends HeadlessServerTest {
             }
         }
         return n;
+    }
+
+    @Test
+    void aPearlIntoAKeeperComesBack() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPearlA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPearlB");
+        ProjectileEntity pearl = null;
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            Pos from = a.player.getPosition();
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            pearl = projectiles.launch(ProjectileSnapshot.of(a.player, Pearl.INSTANCE).withItem(ItemStack.of(Material.ENDER_PEARL)).withConfig(Vanilla18.projectiles()));
+            assertNotNull(pearl, "the pearl flies");
+            Point shop = game.arena().marker(BedWars.SHOP, Match.teamOf(game, a.player)).point();
+            ((PearlEntity) pearl).teleportShooter(new Pos(shop.x(), shop.y(), shop.z()));
+            assertEquals(from, a.player.getPosition(), "nobody moves into a keeper's space");
+            assertEquals(1, count(a.player, Material.ENDER_PEARL), "and the pearl comes back");
+        } finally {
+            if (pearl != null) pearl.remove();
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void theLastDeathGhostsToo() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLastA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLastB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            String aTeam = Match.teamOf(game, a.player), bTeam = Match.teamOf(game, b.player);
+            live(game);
+            BlockVec bBed = game.arena().marker(BedWars.BED, bTeam).boxes().getFirst().min();
+            EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), Block.BLUE_BED, Block.AIR, bBed, BlockFace.TOP));
+            assertFalse(Beds.stands(game, bTeam));
+            game.module(Respawns.class).unprotect(b.player);
+            Mechanics.polyp.services().damage().apply(DamageSnapshot.of(b.player, MeleeDamage.INSTANCE).withSource(a.player).withAmount(100f));
+            assertEquals(Outcome.winner(aTeam), game.decided(), "the last death decides it");
+            tickUntil(game, "the loser ghosted", () -> game.isGhost(b.player));
+            assertTrue(b.player.getEquipment(EquipmentSlot.CHESTPLATE).isAir(), "a ghost wears nothing");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
     }
 
     @Test

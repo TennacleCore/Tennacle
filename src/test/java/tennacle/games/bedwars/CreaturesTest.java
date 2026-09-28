@@ -163,6 +163,27 @@ class CreaturesTest extends HeadlessServerTest {
         return n;
     }
 
+    /** Captured: 56 of 56 bedbugs moved within 1.4 s of spawning (median 150 ms), an enemy in reach or not. */
+    @Test
+    void aBedbugWithNobodyNearStillMoves() {
+        round("BugWander", (game, fa, fb) -> {
+            SilverfishEntity fish = game.module(Creatures.class).bedbug(fa.player, new Pos(-19.5, 65, 19.5)); // the far corner
+            assertNotNull(fish);
+            Pos from = fish.getPosition();
+            double moved = 0;
+            try {
+                for (int tick = 1; tick <= 40 && moved < 0.5; tick++) {
+                    ticks(game, 1);
+                    fish.tick(System.nanoTime());
+                    moved = fish.getPosition().distance(from);
+                }
+            } finally {
+                fish.remove();
+            }
+            assertTrue(moved >= 0.5, "a bedbug wanders within two seconds of its spawn, moved " + moved);
+        });
+    }
+
     private static void round(String name, Body body) {
         Mode solo = Matches.mode("bedwars-solo");
         Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());

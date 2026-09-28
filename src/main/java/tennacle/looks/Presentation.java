@@ -1,6 +1,7 @@
 package tennacle.looks;
 
 import tennacle.games.watch.Replays;
+import tennacle.games.watch.Spectators;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -57,7 +58,11 @@ public final class Presentation implements GameModule {
         game.state().alarms().register(GHOST_ALARM, (tick, payload) -> {
             UUID uuid = UUID.fromString(payload.getString("uuid"));
             Player p = game.firstMember(m -> m.getUuid().equals(uuid));
-            if (p != null) game.ghost(p);
+            if (p == null) return;
+            game.ghost(p);
+            // the eliminated wait as the dead do: a whole body in the wait's kit, not the corpse's armor (the user)
+            game.body().fresh(p);
+            Spectators.ghostKit(game, p);
         });
         LastStanding standing = game.module(LastStanding.class);
         if (standing != null) standing.onOut((g, seat, player, cause) -> out(g, seat, player, cause));

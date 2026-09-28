@@ -1,5 +1,13 @@
 package tennacle.games;
 
+import io.github.term4.polyp.api.event.projectile.PearlTeleportEvent;
+import io.github.term4.grotto.modules.gear.Kits;
+import io.github.term4.grotto.state.Scope;
+import io.github.term4.grotto.state.StateKey;
+import net.minestom.server.codec.Codec;
+import net.minestom.server.coordinate.Point;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.PosMarker;
@@ -23,6 +31,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -47,6 +56,8 @@ public final class Keepers implements GameModule {
 
     private static final double SIGHT = 8; // vanilla's look-at-player range
     private static final String LOOK = "keepers:look";
+    /** Blocks around a keeper, across and up, that a pearl may not land in; {@code 0} = none. */
+    public static final StateKey<Double> SPACE = StateKey.of("keeper.space", Codec.DOUBLE, 1.5);
 
     private final List<Post> posts = new ArrayList<>();
     private final Map<Entity, Standing> standing = new IdentityHashMap<>();
@@ -79,6 +90,11 @@ public final class Keepers implements GameModule {
     }
 
     @Override
+    public @NotNull Set<StateKey<?>> rules() {
+        return Set.of(SPACE);
+    }
+
+    @Override
     public void install(@NotNull Game game) {
         this.game = game;
         for (Post post : posts) {
@@ -107,6 +123,26 @@ public final class Keepers implements GameModule {
             game.state().alarms().arm(LOOK, tick + 1);
         });
         if (!standing.isEmpty()) game.state().alarms().arm(LOOK, game.tick() + 1);
+        // captured: a pearl cannot land in a shopkeeper's space; the user: it is refused and handed back, no use spent
+        game.on(PearlTeleportEvent.class, PearlTeleportEvent::shooter, e -> {
+            if (!(e.shooter() instanceof Player thrower) || game.roster().slotOf(thrower) == null || !inSpace(e.target())) return;
+            e.setCancelled(true);
+            ItemStack pearl = ItemStack.of(Material.ENDER_PEARL);
+            Kits kits = game.module(Kits.class);
+            if (kits == null || !kits.give(thrower, null, pearl)) thrower.getInventory().addItemStack(pearl);
+        });
+    }
+
+    /** Whether {@code at} lies within {@link #SPACE} of a keeper, across, or up from its feet. */
+    public boolean inSpace(@NotNull Point at) {
+        double space = game.rules().resolve(Scope.GAME, SPACE);
+        if (space <= 0) return false;
+        for (Standing post : standing.values()) {
+            Point feet = post.at().point();
+            if (Math.abs(at.x() - feet.x()) <= space && Math.abs(at.z() - feet.z()) <= space
+                    && at.y() >= feet.y() - space && at.y() <= feet.y() + 2 + space) return true;
+        }
+        return false;
     }
 
     @Override

@@ -8,6 +8,7 @@ import tennacle.games.items.BridgeEgg;
 import tennacle.games.map.Building;
 
 import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.polyp.mechanics.projectile.types.Fireball;
 import io.github.term4.polyp.mechanics.projectile.types.Egg;
 import net.minestom.server.network.packet.server.play.EntityEffectPacket;
@@ -17,6 +18,7 @@ import io.github.term4.polyp.platform.player.OptimizedPlayer;
 import net.minestom.server.potion.PotionEffect;
 import tennacle.boot.Mechanics;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.entities.ProjectileEntity;
 import io.github.term4.polyp.presets.vanilla18.Vanilla18;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -171,6 +173,46 @@ class StructuresTest extends HeadlessServerTest {
             } finally {
                 egg.remove();
             }
+        });
+    }
+
+    /** The egg moved by hand the way the server moves it: the first wool lands a step out, never under the throw. */
+    @Test
+    void theFirstWoolSitsAStepOut() {
+        round("EggC", (game, fa, fb) -> {
+            Player a = fa.player;
+            a.teleport(new Pos(0.5, 70, 0.5, 0, 0)).join();
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            Pos[] thrown = new Pos[1];
+            game.on(ProjectileLaunchEvent.class, ProjectileLaunchEvent::shooter, e -> thrown[0] = e.spawnPos());
+            ProjectileEntity egg = projectiles.launch(ProjectileSnapshot.of(a, Egg.INSTANCE).withItem(ItemStack.of(Material.EGG)).withConfig(Vanilla18.projectiles()));
+            assertNotNull(egg, "the egg flies");
+            assertNotNull(thrown[0]);
+            projectiles.firstStep(egg);
+            BlockVec first = null;
+            int at = 0;
+            try {
+                for (int tick = 1; tick <= 12 && first == null; tick++) {
+                    ticks(game, 1);
+                    egg.tick(System.nanoTime());
+                    for (int x = -6; x <= 6 && first == null; x++) {
+                        for (int z = -6; z <= 6 && first == null; z++) {
+                            for (int y = 60; y <= 72 && first == null; y++) {
+                                if (game.shard().getBlock(x, y, z).name().endsWith("_wool")) {
+                                    first = new BlockVec(x, y, z);
+                                    at = tick;
+                                }
+                            }
+                        }
+                    }
+                }
+            } finally {
+                egg.remove();
+            }
+            assertNotNull(first, "wool came");
+            double out = Math.hypot(first.x() + 0.5 - thrown[0].x(), first.z() + 0.5 - thrown[0].z());
+            assertTrue(out >= 1.0, "the first wool is a step out, not under the throw: " + first + " at tick " + at + ", " + out + " from " + thrown[0]);
+            assertTrue(at <= 8, "and comes within eight ticks, not " + at);
         });
     }
 

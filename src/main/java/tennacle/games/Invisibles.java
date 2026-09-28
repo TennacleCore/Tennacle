@@ -6,7 +6,7 @@ import io.github.term4.grotto.modules.view.Nametags;
 import io.github.term4.grotto.modules.combat.FriendlyFire;
 import io.github.term4.polyp.mechanics.attribute.defense.ProtectionCategory;
 import io.github.term4.grotto.state.StateKey;
-import io.github.term4.polyp.api.event.damage.DamageEvent;
+import io.github.term4.polyp.api.event.damage.DamageAppliedEvent;
 import java.util.HashSet;
 import tennacle.boot.Mechanics;
 import net.minestom.server.particle.Particle;
@@ -96,7 +96,9 @@ public final class Invisibles implements GameModule {
             if (!game.rules().resolve(walker, FOOTPRINTS)) return;
             footprint(walker, e.context().position());
         });
-        game.on(DamageEvent.class, DamageEvent::target, e -> {
+        // damage dealt, not a swing: a hit in the hurt window or one armor eats whole leaves the effect (the user)
+        game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
+            if (!e.outcome().landed() || e.dealt() <= 0) return;
             if (!(e.target() instanceof Player victim) || game.roster().slotOf(victim) == null) return;
             if (!victim.hasEffect(PotionEffect.INVISIBILITY) || !game.rules().resolve(victim, BREAKS_ON_DAMAGE)) return;
             boolean fire = e.type() != null && e.type().protectionCategories().contains(ProtectionCategory.FIRE);

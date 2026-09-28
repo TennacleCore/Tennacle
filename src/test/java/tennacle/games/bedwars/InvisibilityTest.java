@@ -22,6 +22,18 @@ import net.minestom.server.network.packet.server.play.TeamsPacket;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import org.junit.jupiter.api.BeforeAll;
+import io.github.term4.polyp.Polyp;
+import net.minestom.server.component.DataComponents;
+import net.minestom.server.item.component.PotionContents;
+import net.minestom.server.potion.PotionType;
+import net.minestom.server.event.item.PlayerFinishItemUseEvent;
+import net.minestom.server.entity.PlayerHand;
+import net.minestom.server.event.EventDispatcher;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
+import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
+import io.github.term4.polyp.mechanics.hunger.HungerSystem;
+import io.github.term4.polyp.presets.vanilla18.Consumables;
 import org.junit.jupiter.api.Test;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
@@ -44,6 +56,9 @@ class InvisibilityTest extends HeadlessServerTest {
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
+        // the harness boots no consumables; a drink needs them
+        if (Mechanics.polyp.module(HungerSystem.class) == null) HungerSystem.install(Mechanics.polyp);
+        if (Mechanics.polyp.module(ConsumableSystem.class) == null) ConsumableSystem.install(Mechanics.polyp, Consumables.config());
     }
 
     private interface Body {
@@ -68,7 +83,9 @@ class InvisibilityTest extends HeadlessServerTest {
             assertTrue(a.hasEffect(PotionEffect.INVISIBILITY), "a fall keeps it");
             fb.sent.clear();
             services.damage().apply(DamageSnapshot.of(a, MeleeDamage.INSTANCE).withSource(b).withAmount(1f));
-            assertFalse(a.hasEffect(PotionEffect.INVISIBILITY), "an enemy's hit breaks it");
+            assertTrue(a.hasEffect(PotionEffect.INVISIBILITY), "a hit the hurt window eats dealt nothing");
+            services.damage().apply(DamageSnapshot.of(a, MeleeDamage.INSTANCE).withSource(b).withAmount(3f));
+            assertFalse(a.hasEffect(PotionEffect.INVISIBILITY), "an enemy's hit that lands breaks it");
             assertTrue(chat(fa).contains("You took damage and lost your invisibility!"), chat(fa).toString());
             assertTrue(fb.sent(TeamsPacket.class).stream().anyMatch(t -> !t.teamName().endsWith("-")
                     && t.action() instanceof TeamsPacket.AddEntitiesToTeamAction add && add.entities().contains(a.getUsername())),
@@ -92,6 +109,26 @@ class InvisibilityTest extends HeadlessServerTest {
             assertTrue(flags != null && flags.value() instanceof Byte f && (f & 0x20) == 0, "a fellow dead sees the body: " + seen.entries());
             BedWarsRoundTest.tickUntil(game, "the respawn", () -> !respawns.isDead(a));
             assertFalse(a.hasEffect(PotionEffect.INVISIBILITY), "the respawn's body sheds it");
+        });
+    }
+
+    @Test
+    void aDrunkHandEmptiesForTheEnemy() {
+        round("DrinkA", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            Polyp.getInstance().clientInfo().setProtocol(a, 47);
+            Polyp.getInstance().clientInfo().setProtocol(b, 47);
+            ItemStack potion = ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS,
+                    new PotionContents(PotionType.SWIFTNESS));
+            a.getInventory().setItemStack(a.getHeldSlot(), potion);
+            assertTrue(a.getViewers().contains(b), "in view");
+            fb.sent.clear();
+            EventDispatcher.call(new PlayerFinishItemUseEvent(a, PlayerHand.MAIN, potion, 32L));
+            assertTrue(a.getItemInMainHand().isAir(), "the bottle goes with the drink");
+            List<EntityEquipmentPacket> hands = fb.sent(EntityEquipmentPacket.class).stream()
+                    .filter(p -> p.entityId() == a.getEntityId() && p.equipments().containsKey(EquipmentSlot.MAIN_HAND)).toList();
+            assertFalse(hands.isEmpty(), "the enemy is told about the hand");
+            assertTrue(hands.getLast().equipments().get(EquipmentSlot.MAIN_HAND).isAir(), "and sees it empty");
         });
     }
 
