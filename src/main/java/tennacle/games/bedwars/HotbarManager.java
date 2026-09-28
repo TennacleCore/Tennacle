@@ -3,7 +3,6 @@ package tennacle.games.bedwars;
 import tennacle.games.KitLayouts;
 import tennacle.games.bedwars.Wares.Tab;
 
-import io.github.term4.canvas.screen.ClickRule;
 import io.github.term4.canvas.screen.Items;
 import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
@@ -45,8 +44,9 @@ final class HotbarManager {
     private HotbarManager() {}
 
     static void open(Game game, Player viewer) {
-        // the viewer's own inventory stays shut: a held category must never land in it
-        Screen.Builder manager = Screen.rows(6).title(Component.text("Hotbar Manager")).ownClicks(ClickRule.DENY);
+        // the viewer's own inventory is theirs to arrange, but a held category must never land in it
+        Screen.Builder manager = Screen.rows(6).title(Component.text("Hotbar Manager"))
+                .ownClicks((v, click) -> v.getInventory().getCursorItem().getTag(HELD) == null);
         for (int i = 0; i < CATEGORIES.size(); i++) {
             Category category = CATEGORIES.get(i);
             manager.button(10 + i, pickable(category), (v, click) -> v.getInventory().setCursorItem(held(category)));

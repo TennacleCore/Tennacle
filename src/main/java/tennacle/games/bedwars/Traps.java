@@ -19,7 +19,6 @@ import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.BlockVec;
@@ -94,7 +93,6 @@ final class Traps implements GameModule {
     static final Refusal NO_BED = new Refusal("no-bed");
 
     private static final String ALARM = "traps:";
-    private static final Sound SET_OFF = Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 8f, 0.5f);
 
     private final Map<String, Regions.Area> areas = new HashMap<>();
     private final Map<String, Point> beds = new HashMap<>();
@@ -157,9 +155,7 @@ final class Traps implements GameModule {
         if (index >= queue.size() || !queue.get(index).by().equals(player.getUsername())) return false;
         Queued gone = queue.remove(index);
         store(game, team, queue);
-        player.sendMessage(Component.text("Removed ", NamedTextColor.RED)
-                .append(Component.text(gone.kind().title, NamedTextColor.GOLD))
-                .append(Component.text(" from the queue!", NamedTextColor.RED)));
+        player.sendMessage(Lines.trapRemoved(game, gone.kind().title));
         return true;
     }
 
@@ -221,13 +217,12 @@ final class Traps implements GameModule {
 
     // captured: the owners read it, the intruder only feels it
     private void setOff(String team, Kind kind) {
-        Title title = Title.title(Component.text("TRAP TRIGGERED!", NamedTextColor.RED),
-                Component.text("Your " + kind.title + " has been set off!"), Match.times(game, 5, 35, 10));
-        Component line = Component.text(kind.title + " was set off!", NamedTextColor.RED, TextDecoration.BOLD);
+        Title title = Lines.trapTriggered(game, kind.title);
+        Component line = Lines.trapSetOff(game, kind.title);
         forTeam(team, member -> {
             member.showTitle(title);
             member.sendMessage(line);
-            member.playSound(SET_OFF);
+            member.playSound(Lines.REFUSED);
         });
     }
 
@@ -236,18 +231,12 @@ final class Traps implements GameModule {
         Team theirs = game.roster().team(Match.teamOf(game, intruder));
         String name = theirs != null ? tennacle.looks.Palette.titled(theirs) : "";
         TextColor color = theirs != null ? theirs.color() : NamedTextColor.WHITE;
-        Title title = Title.title(Component.text("ALARM!!!", NamedTextColor.RED, TextDecoration.BOLD),
-                Component.text("Reveal trap set off by ").append(Component.text(name + " ", color)).append(Component.text("team!")),
-                Match.times(game, 5, 35, 10));
-        Component line = Component.text("Reveal trap set off by ", NamedTextColor.RED, TextDecoration.BOLD)
-                .append(Component.text(intruder.getUsername(), NamedTextColor.GRAY, TextDecoration.BOLD))
-                .append(Component.text(" from ", NamedTextColor.RED, TextDecoration.BOLD))
-                .append(Component.text(name, color, TextDecoration.BOLD))
-                .append(Component.text(" team!", NamedTextColor.RED, TextDecoration.BOLD));
+        Title title = Lines.alarm(game, name, color);
+        Component line = Lines.alarmLine(game, intruder.getUsername(), name, color);
         forTeam(team, member -> {
             member.showTitle(title);
             member.sendMessage(line);
-            member.playSound(SET_OFF);
+            member.playSound(Lines.REFUSED);
         });
         for (int note = 0; note <= 50; note++) {
             float pitch = (note % 2 == 0 ? 107 : 113) / 63f; // captured pitch bytes

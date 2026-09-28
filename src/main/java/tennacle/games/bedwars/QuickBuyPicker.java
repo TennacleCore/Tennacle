@@ -30,7 +30,7 @@ final class QuickBuyPicker {
             int index = i;
             picker.button(ItemShop.GRID[i], v -> pinned(game, v, index), (v, click) -> {
                 ItemShop.pin(v, index, ware.offer().id());
-                v.playSound(ItemShop.BOUGHT);
+                v.playSound(Lines.BOUGHT);
                 ItemShop.open(game, v, Tab.QUICK_BUY);
             });
         }

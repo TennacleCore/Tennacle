@@ -1,36 +1,135 @@
 package tennacle.games.bedwars;
 
 import tennacle.games.Match;
+import tennacle.games.Matches;
+import tennacle.games.shop.Price;
 
+import io.github.term4.canvas.theme.Theme;
 import io.github.term4.grotto.Game;
+import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
+import net.minestom.server.sound.SoundEvent;
 
-/** Bed Wars' captured lines for the timeline's events. */
+import java.util.List;
+
+/**
+ * Bed Wars' chat lines, titles and sounds, all captured on Hypixel: the parts the look's theme names (good, bad,
+ * prose, accent) through it, the colors no role carries (a purchase's gold, a generator's aqua) as captured.
+ */
 final class Lines {
 
     private static final String[] NUMERALS = {"I", "II", "III"};
 
+    // captured: volume 8, the pling at the 1.8 client's highest pitch and the portal at its lowest
+    static final Sound BOUGHT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 8f, 2f);
+    static final Sound REFUSED = Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 8f, 0.5f);
+
     private Lines() {}
+
+    private static Theme theme(Game game) {
+        return Matches.lookOf(game).theme();
+    }
 
     /** Captured: aqua or dark green {@code <Kind> Generators }, yellow {@code have been upgraded to Tier }, a red numeral. */
     static void tierUp(Game game, Mid.Kind kind, int tier) {
         boolean diamond = kind == Mid.Kind.DIAMOND;
         Match.say(game, Component.text(diamond ? "Diamond Generators " : "Emerald Generators ",
                         diamond ? NamedTextColor.AQUA : NamedTextColor.DARK_GREEN)
-                .append(Component.text("have been upgraded to Tier ", NamedTextColor.YELLOW))
-                .append(Component.text(NUMERALS[Math.max(1, Math.min(3, tier)) - 1], NamedTextColor.RED)));
+                .append(theme(game).accent("have been upgraded to Tier "))
+                .append(theme(game).bad(NUMERALS[Math.max(1, Math.min(3, tier)) - 1])));
     }
 
     /** Captured: red, in chat alone, five minutes before every bed goes. */
     static void bedsWarning(Game game) {
-        Match.say(game, Component.text("All beds will be destroyed in 5 minutes!", NamedTextColor.RED));
+        Match.say(game, theme(game).bad("All beds will be destroyed in 5 minutes!"));
     }
 
     /** Captured: red {@code Sudden Death} as a title, 10/30/10, no subtitle. The dragons are still to come. */
     static void suddenDeath(Game game) {
-        Match.title(game, Title.title(Component.text("Sudden Death", NamedTextColor.RED), Component.empty(),
-                Match.times(game, 10, 30, 10)));
+        Match.title(game, Title.title(theme(game).bad("Sudden Death"), Component.empty(), Match.times(game, 10, 30, 10)));
+    }
+
+    static Component purchased(Game game, String item) {
+        return theme(game).good("You purchased ").append(Component.text(item, NamedTextColor.GOLD));
+    }
+
+    /** The team's line when one of them buys an upgrade or a trap. */
+    static Component teamPurchased(Game game, String buyer, String item) {
+        return theme(game).good(buyer + " purchased ").append(Component.text(item, NamedTextColor.GOLD));
+    }
+
+    static Component shortOf(Game game, Price price, int missing) {
+        return theme(game).bad("You don't have enough " + price.currency().name(price.amount()) + "! Need " + missing + " more!");
+    }
+
+    static Component full(Game game) {
+        return theme(game).bad("Purchase Failed! Your inventory is full!");
+    }
+
+    static Component owned(Game game) {
+        return theme(game).bad("You've already purchased this item!");
+    }
+
+    static Component beyond(Game game) {
+        return theme(game).bad("You already have a higher tier item.");
+    }
+
+    static List<Component> emptyQuickBuySlot(Game game) {
+        return List.of(theme(game).bad("This is an empty Quick Buy slot!"),
+                Component.text("Shift Click on an item in the rest of the shop to fill it!", NamedTextColor.AQUA));
+    }
+
+    static Component upgradeShort(Game game) {
+        return theme(game).bad("You don't have enough resources to unlock that upgrade!");
+    }
+
+    static Component maxed(Game game) {
+        return theme(game).bad("You have already maxed out this upgrade!");
+    }
+
+    static Component queueFull(Game game) {
+        return theme(game).bad("Trap queue full!");
+    }
+
+    static Component noBed(Game game) {
+        return theme(game).bad("Can't be purchased without a bed!");
+    }
+
+    static Component tooFast(Game game) {
+        return theme(game).bad("Clicking too fast!");
+    }
+
+    static Component trapRemoved(Game game, String trap) {
+        return theme(game).bad("Removed ").append(Component.text(trap, NamedTextColor.GOLD)).append(theme(game).bad(" from the queue!"));
+    }
+
+    /** Captured: the owners' title, a plain subtitle, 5/35/10. */
+    static Title trapTriggered(Game game, String trap) {
+        return Title.title(theme(game).bad("TRAP TRIGGERED!"), Component.text("Your " + trap + " has been set off!"),
+                Match.times(game, 5, 35, 10));
+    }
+
+    static Component trapSetOff(Game game, String trap) {
+        return theme(game).bad(trap + " was set off!").decorate(TextDecoration.BOLD);
+    }
+
+    /** Captured: the Reveal trap's title names the intruder's team in its color. */
+    static Title alarm(Game game, String team, TextColor color) {
+        return Title.title(theme(game).bad("ALARM!!!").decorate(TextDecoration.BOLD),
+                Component.text("Reveal trap set off by ").append(Component.text(team + " ", color)).append(Component.text("team!")),
+                Match.times(game, 5, 35, 10));
+    }
+
+    static Component alarmLine(Game game, String intruder, String team, TextColor color) {
+        Theme theme = theme(game);
+        return theme.bad("Reveal trap set off by ").decorate(TextDecoration.BOLD)
+                .append(theme.prose(intruder).decorate(TextDecoration.BOLD))
+                .append(theme.bad(" from ").decorate(TextDecoration.BOLD))
+                .append(Component.text(team, color, TextDecoration.BOLD))
+                .append(theme.bad(" team!").decorate(TextDecoration.BOLD));
     }
 }

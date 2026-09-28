@@ -14,14 +14,12 @@ import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;
-import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
-import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -36,10 +34,6 @@ final class ItemShop {
 
     static final String FRONT = "bedwars:items";
     static final int[] GRID = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
-
-    // captured: volume 8, the pling at the 1.8 client's highest pitch and the portal at its lowest
-    static final Sound BOUGHT = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 8f, 2f);
-    static final Sound REFUSED = Sound.sound(SoundEvent.ENTITY_ENDERMAN_TELEPORT, Sound.Source.MASTER, 8f, 0.5f);
 
     private ItemShop() {}
 
@@ -200,9 +194,8 @@ final class ItemShop {
         if (click instanceof Click.Double) return; // the client's extra packet after two quick clicks; captured buying nothing
         if (ware == null) {
             if (tab != Tab.QUICK_BUY) return;
-            viewer.sendMessage(Component.text("This is an empty Quick Buy slot!", NamedTextColor.RED));
-            viewer.sendMessage(Component.text("Shift Click on an item in the rest of the shop to fill it!", NamedTextColor.AQUA));
-            viewer.playSound(REFUSED);
+            Lines.emptyQuickBuySlot(game).forEach(viewer::sendMessage);
+            viewer.playSound(Lines.REFUSED);
             return;
         }
         switch (click) {
@@ -232,31 +225,28 @@ final class ItemShop {
         Sale sale = shop.buy(viewer, offer, into);
         switch (sale) {
             case Sale.Sold sold -> {
-                viewer.sendMessage(Component.text("You purchased ", NamedTextColor.GREEN)
-                        .append(Component.text(name, NamedTextColor.GOLD)));
-                viewer.playSound(BOUGHT);
+                viewer.sendMessage(Lines.purchased(game, name));
+                viewer.playSound(Lines.BOUGHT);
             }
             case Sale.Short missing -> {
-                Price price = missing.price();
-                viewer.sendMessage(Component.text("You don't have enough " + price.currency().name(price.amount())
-                        + "! Need " + missing.missing() + " more!", NamedTextColor.RED));
-                viewer.playSound(REFUSED);
+                viewer.sendMessage(Lines.shortOf(game, missing.price(), missing.missing()));
+                viewer.playSound(Lines.REFUSED);
             }
-            case Sale.Refused refused -> refuse(viewer, refused.refusal());
+            case Sale.Refused refused -> refuse(game, viewer, refused.refusal());
         }
         Screens.repaint(viewer);
     }
 
     // captured: a lower armor tier refuses without a sound
-    private static void refuse(Player viewer, Refusal refusal) {
+    private static void refuse(Game game, Player viewer, Refusal refusal) {
         if (refusal == Refusal.FULL) {
-            viewer.sendMessage(Component.text("Purchase Failed! Your inventory is full!", NamedTextColor.RED));
-            viewer.playSound(REFUSED);
+            viewer.sendMessage(Lines.full(game));
+            viewer.playSound(Lines.REFUSED);
         } else if (refusal == Refusal.OWNED) {
-            viewer.sendMessage(Component.text("You've already purchased this item!", NamedTextColor.RED));
-            viewer.playSound(REFUSED);
+            viewer.sendMessage(Lines.owned(game));
+            viewer.playSound(Lines.REFUSED);
         } else if (refusal == Refusal.BEYOND) {
-            viewer.sendMessage(Component.text("You already have a higher tier item.", NamedTextColor.RED));
+            viewer.sendMessage(Lines.beyond(game));
         }
     }
 

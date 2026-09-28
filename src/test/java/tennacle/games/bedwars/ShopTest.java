@@ -183,6 +183,26 @@ class ShopTest extends HeadlessServerTest {
     }
 
     @Test
+    void ownInventoryStaysUsable() {
+        round("ShopG", (game, a) -> {
+            ItemShop.open(game, a, Wares.Tab.BLOCKS);
+            assertFalse(ownClick(a, new Click.Left(5)), "their own inventory");
+            assertTrue(ownClick(a, new Click.LeftShift(5)), "nothing crosses into the shop");
+            HotbarManager.open(game, a);
+            assertFalse(ownClick(a, new Click.Left(5)));
+            click(a, 10, new Click.Left(10)); // Blocks onto the cursor
+            assertTrue(ownClick(a, new Click.Left(5)), "a held category stays out of it");
+        });
+    }
+
+    // true = refused
+    private static boolean ownClick(Player p, Click click) {
+        var event = new InventoryPreClickEvent(p.getInventory(), p, click);
+        EventDispatcher.call(event);
+        return event.isCancelled();
+    }
+
+    @Test
     void speedLooksLikeHypixels() {
         var contents = Wares.of("speed").icons().getFirst().get(net.minestom.server.component.DataComponents.POTION_CONTENTS);
         assertEquals(net.minestom.server.potion.PotionType.FIRE_RESISTANCE, contents.potion(), "373:8195 on a 1.8 client");

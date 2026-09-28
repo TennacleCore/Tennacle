@@ -150,8 +150,8 @@ final class UpgradeShop {
         if (seat == null) return;
         Scope scope = Scope.slot(seat.index());
         if (game.tick() - game.state().get(scope, CLICKED) < GAP) {
-            viewer.sendMessage(Component.text("Clicking too fast!", NamedTextColor.RED));
-            viewer.playSound(ItemShop.REFUSED);
+            viewer.sendMessage(Lines.tooFast(game));
+            viewer.playSound(Lines.REFUSED);
             viewer.closeInventory();
             return;
         }
@@ -159,28 +159,27 @@ final class UpgradeShop {
         Sale sale = game.module(Shop.class).buy(viewer, offer);
         switch (sale) {
             case Sale.Sold sold -> {
-                Component line = Component.text(viewer.getUsername() + " purchased ", NamedTextColor.GREEN)
-                        .append(Component.text(name, NamedTextColor.GOLD));
+                Component line = Lines.teamPurchased(game, viewer.getUsername(), name);
                 String team = Match.teamOf(game, viewer);
                 for (Player member : game.members()) {
                     if (team.equals(Match.teamOf(game, member))) member.sendMessage(line);
                 }
-                viewer.playSound(ItemShop.BOUGHT);
+                viewer.playSound(Lines.BOUGHT);
             }
-            case Sale.Short ignored -> refuse(viewer, "You don't have enough resources to unlock that upgrade!");
+            case Sale.Short ignored -> refuse(viewer, Lines.upgradeShort(game));
             case Sale.Refused refused -> {
                 Refusal why = refused.refusal();
-                if (why == Refusal.OWNED) refuse(viewer, "You have already maxed out this upgrade!");
-                else if (why == Traps.QUEUE_FULL) refuse(viewer, "Trap queue full!");
-                else if (why == Traps.NO_BED) refuse(viewer, "Can't be purchased without a bed!");
+                if (why == Refusal.OWNED) refuse(viewer, Lines.maxed(game));
+                else if (why == Traps.QUEUE_FULL) refuse(viewer, Lines.queueFull(game));
+                else if (why == Traps.NO_BED) refuse(viewer, Lines.noBed(game));
             }
         }
         Screens.repaint(viewer);
     }
 
-    private static void refuse(Player viewer, String line) {
-        viewer.sendMessage(Component.text(line, NamedTextColor.RED));
-        viewer.playSound(ItemShop.REFUSED);
+    private static void refuse(Player viewer, Component line) {
+        viewer.sendMessage(line);
+        viewer.playSound(Lines.REFUSED);
     }
 
     private static Component diamonds(Price price) {
