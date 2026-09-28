@@ -2,6 +2,7 @@ package tennacle.games.beds;
 
 import tennacle.looks.Look;
 import tennacle.games.Matches;
+import tennacle.games.shop.ItemCurrency;
 import tennacle.looks.Palette;
 
 import io.github.term4.canvas.chat.ChatWidth;
@@ -12,7 +13,10 @@ import io.github.term4.grotto.roster.Team;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.Player;
+import net.minestom.server.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,6 +64,19 @@ public final class Banners {
                 .append(Component.text("TEAM ELIMINATED > ").decorate(TextDecoration.BOLD))
                 .append(Component.text(Palette.titled(side) + " Team ", side.color()))
                 .append(Component.text("has been eliminated!", NamedTextColor.RED)));
+    }
+
+    /**
+     * Captured hypixel: {@code +5 Iron} in the resource's own color. Anything that is no currency reads the same
+     * in white under each client's own name for it.
+     */
+    public static @NotNull Component spoil(ItemStack kind, int amount) {
+        ItemCurrency currency = ItemCurrency.of(kind.material());
+        if (currency != null) return Component.text("+" + amount + " " + currency.name(amount), currency.color());
+        Component custom = kind.get(DataComponents.CUSTOM_NAME);
+        Component name = custom != null ? Component.text(PlainTextComponentSerializer.plainText().serialize(custom))
+                : Component.translatable(kind.material().translationKey());
+        return Component.text("+" + amount + " ", NamedTextColor.WHITE).append(name);
     }
 
     /** How this network says a void death someone is credited for. */

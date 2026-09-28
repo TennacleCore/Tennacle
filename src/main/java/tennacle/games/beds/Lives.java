@@ -17,9 +17,11 @@ import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
 import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
+import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
@@ -162,6 +164,7 @@ public final class Lives implements GameModule {
         Match.addSeat(game, victim, counters.deaths());
         if (by != null) Match.addSeat(game, by, counters.kills());
         died(new Death(game, victim, seat, by, !Beds.stands(game, seat.team())));
+        spill(victim);
         if (victim.getOpenInventory() != null) victim.closeInventory(); // vanilla closes a window at a death
         if (!Beds.stands(game, seat.team())) {
             Match.addSeat(game, victim, counters.finalDeaths());
@@ -182,6 +185,12 @@ public final class Lives implements GameModule {
 
     private void died(Death death) {
         for (Consumer<Death> action : onDeath) action.accept(death);
+    }
+
+    // what falls where they died, after the killer's share: Polyp's death/spill, which kill() would have run
+    private static void spill(Player victim) {
+        DamageSystem damage = Polyp.getInstance().module(DamageSystem.class);
+        if (damage != null) damage.spill(victim);
     }
 
     // the death nobody comes back from: both sides of it, and the face to put on the bookmark

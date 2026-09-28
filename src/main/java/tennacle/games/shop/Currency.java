@@ -5,6 +5,8 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,6 +32,10 @@ public interface Currency {
 
     static @Nullable Currency of(@NotNull String id) {
         return Registry.BY_ID.get(id);
+    }
+
+    static @NotNull Collection<Currency> all() {
+        return List.copyOf(Registry.BY_ID.values());
     }
 
     final class Registry {

@@ -6,6 +6,7 @@ import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** A currency held as items of one material in the hotbar and main inventory, spent from the first slot on. */
 public record ItemCurrency(@NotNull String id, @NotNull Material material, @NotNull String singular,
@@ -32,6 +33,14 @@ public record ItemCurrency(@NotNull String id, @NotNull Material material, @NotN
             inv.setItemStack(i, now == in.amount() ? ItemStack.AIR : in.withAmount(in.amount() - now));
             amount -= now;
         }
+    }
+
+    /** The registered currency paid in {@code material}, or null. */
+    public static @Nullable ItemCurrency of(@NotNull Material material) {
+        for (Currency currency : Currency.all()) {
+            if (currency instanceof ItemCurrency item && item.material() == material) return item;
+        }
+        return null;
     }
 
     @Override

@@ -11,6 +11,7 @@ import tennacle.games.Presets;
 import tennacle.games.Timeline;
 import tennacle.games.beds.Beds;
 import tennacle.games.beds.Lives;
+import tennacle.games.beds.Spoils;
 import tennacle.games.map.Building;
 import tennacle.games.map.MapPool;
 import tennacle.games.matchmaking.Parties;
@@ -59,6 +60,7 @@ import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.MechanicsProfile;
+import io.github.term4.polyp.config.KeySet;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -293,6 +295,8 @@ public final class BedWars {
                 .rule(Respawns.REJOIN_TICKS, 200L)
                 .rule(Respawns.PROTECT_TICKS, 60L) // captured: 3 s, your own attack ends it
                 .rule(KillCredit.TICKS, 200L) // captured: the 10 s credit window
+                .rule(Spoils.TO_KILLER, KeySet.only(Resources.IRON.material().key(), Resources.GOLD.material().key(),
+                        Resources.DIAMOND.material().key(), Resources.EMERALD.material().key())) // captured, in this order
                 .rule(Beds.DESTROY, 30L * 60 * 20) // Bed Gone
                 .rule(Building.BREAK, List.of(Building.PLACED)) // the map's own blocks never come up; the beds are Beds'
                 .rule(Building.BREAK_OUTSIDE, List.of(Building.PLACED));
@@ -322,6 +326,7 @@ public final class BedWars {
                         () -> new Lives(COUNTERS).onDeath(Gear::died),
                         Chests::new,
                         Compass::new,
+                        Spoils::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Staging staging = g.module(Staging.class);
                             if (staging != null && staging.waiting()) { // off the room's edge: back up, no death
