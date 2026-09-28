@@ -221,6 +221,7 @@ class UpgradesTest extends HeadlessServerTest {
             a.sent.clear();
             body.run(game, a, b);
         } finally {
+            tennacle.games.watch.Replays.discard(game); // no replay still writing into the temp dir as it goes
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();

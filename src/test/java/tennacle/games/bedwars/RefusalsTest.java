@@ -89,6 +89,7 @@ class RefusalsTest extends HeadlessServerTest {
             brk(fa, game, new BlockVec(11, 64, 0));
             assertTrue(said(fa, "You can't break blocks here!"), chat(fa).toString());
         } finally {
+            tennacle.games.watch.Replays.discard(game); // no replay still writing into the temp dir as it goes
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             fa.player.remove();
             fb.player.remove();

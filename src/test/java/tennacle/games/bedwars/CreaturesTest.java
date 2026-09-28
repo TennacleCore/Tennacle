@@ -74,7 +74,8 @@ class CreaturesTest extends HeadlessServerTest {
             assertFalse(fish.sides().same(fish, fb.player), "never the other side's");
             assertTrue(chat(fa).contains("Your creature will fight for you for 15 seconds."), chat(fa).toString());
             Entity tag = game.instance().getEntities().stream()
-                    .filter(e -> e.getEntityType() == EntityType.ARMOR_STAND && Math.abs(e.getPosition().y() - (65 - 1.38)) < 0.01)
+                    .filter(e -> e.getEntityType() == EntityType.ARMOR_STAND
+                            && e.getPosition().distance(fish.getPosition().add(0, -1.38, 0)) < 0.3)
                     .findFirst().orElse(null);
             assertNotNull(tag, "the countdown stand 1.38 below");
             assertEquals("[■■■■■]", PlainTextComponentSerializer.plainText().serialize(tag.getCustomName()));
@@ -95,7 +96,8 @@ class CreaturesTest extends HeadlessServerTest {
             assertTrue(chat(fa).contains("Your creature will fight for you for 240 seconds."), chat(fa).toString());
             ticks(game, 2);
             Entity tag = game.instance().getEntities().stream()
-                    .filter(e -> e.getEntityType() == EntityType.ARMOR_STAND && e.getPosition().y() > 65.5)
+                    .filter(e -> e.getEntityType() == EntityType.ARMOR_STAND
+                            && e.getPosition().distance(golem.getPosition().add(0, 0.94, 0)) < 0.3) // not a shopkeeper's label
                     .findFirst().orElse(null);
             assertNotNull(tag, "the countdown stand over it");
             String text = PlainTextComponentSerializer.plainText().serialize(tag.getCustomName());
