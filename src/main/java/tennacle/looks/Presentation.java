@@ -214,12 +214,20 @@ public final class Presentation implements GameModule {
             @Override
             public void beat(@NotNull Game g, int n) {
                 Component line = look.count().number().apply(n);
+                Component digit = look.count().title() != null ? look.count().title().apply(n) : null;
                 Look.Count.Beat beat = look.count().beat();
-                Title title = look.count().title() != null ? Title.title(look.count().title().apply(n),
-                        Component.empty(), Match.times(g, beat.fadeIn(), beat.stay(), beat.fadeOut())) : null;
-                Match.say(g, line);
+                Title title = digit != null ? Title.title(digit, Component.empty(),
+                        Match.times(g, beat.fadeIn(), beat.stay(), beat.fadeOut())) : null;
+                if (line != null) Match.say(g, line);
                 if (title != null) Match.title(g, title);
+                if (line == null && title == null) return; // a silent beat
                 Match.each(g, p -> GameSounds.play(g, p, SoundSet.COUNTDOWN));
+            }
+
+            @Override
+            public void cancel(@NotNull Game g) {
+                Component line = look.count().cancelled();
+                if (line != null) Match.say(g, line);
             }
 
             @Override
