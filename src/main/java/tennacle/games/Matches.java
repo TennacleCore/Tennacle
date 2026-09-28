@@ -1,5 +1,11 @@
 package tennacle.games;
 
+import net.kyori.adventure.text.Component;
+import tennacle.looks.Palette;
+import java.util.ArrayList;
+import java.util.function.Function;
+import io.github.term4.grotto.roster.Roster;
+import io.github.term4.grotto.modules.flow.Countdown;
 import tennacle.games.matchmaking.Queues;
 import tennacle.games.watch.Spectators;
 import tennacle.games.watch.Replays;
@@ -203,7 +209,11 @@ public final class Matches {
 
     /** End screens carrying the game's look - what every mode's {@code Ends} starts from. */
     public static @NotNull Summary summary() {
-        return Summary.of().theme(g -> lookOf(g).theme()).clock(Match::playTime).kept(Replays::said);
+        return Summary.of().theme(g -> lookOf(g).theme()).clock(Match::playTime).kept(Replays::said)
+                .sideName((g, id) -> {
+                    Team team = g.roster().team(id);
+                    return Component.text(Palette.titled(team), team.color());
+                });
     }
 
     public static @NotNull Results results() {
@@ -360,6 +370,14 @@ public final class Matches {
     public static @NotNull CompletableFuture<Game> begin(@NotNull Mode mode, @NotNull Platform platform,
                                                          @NotNull List<? extends Collection<Player>> sides,
                                                          @NotNull Options options) {
+        List<Player> told = new ArrayList<>();
+        for (Collection<Player> side : sides) told.addAll(side);
+        return ready(mode, options, told, arena -> seat(mode, platform, sides, options, arena));
+    }
+
+    // the pool's pick, instantiated on a virtual thread when cold, then {@code then} on the next tick
+    private static CompletableFuture<Game> ready(Mode mode, Options options, Collection<Player> told,
+                                                 Function<Arena, Game> then) {
         Arena arena;
         try {
             arena = pick(mode, options);
@@ -368,15 +386,13 @@ public final class Matches {
         }
         if (arena.instantiated() != null) {
             try {
-                return CompletableFuture.completedFuture(seat(mode, platform, sides, options, arena));
+                return CompletableFuture.completedFuture(then.apply(arena));
             } catch (RuntimeException e) {
                 return CompletableFuture.failedFuture(e);
             }
         }
         CompletableFuture<Game> out = new CompletableFuture<>();
-        for (Collection<Player> side : sides) {
-            for (Player p : side) Msg.say(p, "Preparing ", Msg.v(arena.meta().name()), "...");
-        }
+        for (Player p : told) Msg.say(p, "Preparing ", Msg.v(arena.meta().name()), "...");
         Thread.ofVirtual().name("tennacle-map-" + mode.name()).start(() -> {
             try {
                 arena.instantiate();
@@ -386,13 +402,58 @@ public final class Matches {
             }
             MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
                 try {
-                    out.complete(seat(mode, platform, sides, options, arena));
+                    out.complete(then.apply(arena));
                 } catch (RuntimeException e) {
                     out.completeExceptionally(e);
                 }
             });
         });
         return out;
+    }
+
+    /** Whether {@code mode} fills up on its map - its count waits for players - rather than launching full. */
+    public static boolean joinable(@NotNull Mode mode) {
+        return mode.type().rules().get(Countdown.START_AT) instanceof Integer at && at > 0;
+    }
+
+    /** The most a team of {@code mode} seats: its team size rule, else its map's seats a side. */
+    public static int teamSize(@NotNull Mode mode) {
+        return mode.type().rules().get(Roster.TEAM_SIZE) instanceof Integer size && size > 0 ? size : seatsPerSide(mode);
+    }
+
+    /** A game of {@code mode} under {@code platform} still filling up, or null. */
+    public static @Nullable Game waiting(@NotNull Mode mode, @NotNull Platform platform) {
+        for (Game game : grotto.games()) {
+            if (game.status() == Game.Status.OPEN && Match.opening(game) && modeOf(game) == mode
+                    && platformNameOf(game).equals(platform.name())) return game;
+        }
+        return null;
+    }
+
+    /** A new game of {@code mode} on the pool's pick with nobody seated, its map built off the tick thread first. */
+    public static @NotNull CompletableFuture<Game> open(@NotNull Mode mode, @NotNull Platform platform) {
+        return ready(mode, Options.NONE, List.of(), arena -> launch(mode, platform, arena, Options.NONE));
+    }
+
+    /**
+     * Seats {@code side} together in a game still filling up, on the emptiest team with room for all of them;
+     * {@code false} when none has, or the game no longer waits.
+     */
+    public static boolean enter(@NotNull Game game, @NotNull Collection<Player> side) {
+        if (game.status() != Game.Status.OPEN || !Match.opening(game)) return false;
+        for (Player player : side) {
+            if (!player.isOnline() || grotto.engaged(player)) return false;
+        }
+        String team = game.roster().teamWithRoom(side.size(),
+                t -> game.rules().resolve(Scope.team(t), Roster.TEAM_SIZE));
+        if (team == null) return false;
+        for (Player player : side) {
+            Queues.dequeue(player);
+            Spectators.exit(player);
+            KitLayouts.cancel(player);
+            if (!game.join(player, team)) return false;
+        }
+        return true;
     }
 
     // the map the options name, else the pool's pick - chosen once, so a warm-up and its seating agree
