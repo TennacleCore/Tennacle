@@ -4,6 +4,7 @@ import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
+import io.github.term4.polyp.api.event.explosion.TntPrimeEvent;
 import io.github.term4.polyp.api.event.fluid.FluidSpreadEvent;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
@@ -159,6 +160,13 @@ public final class Building {
         });
         game.onWorld(FluidSpreadEvent.class, FluidSpreadEvent::world, e -> {
             if (building.stilled(e.to())) e.setCancelled(true);
+        });
+        // Polyp primes a placed TNT inside the placement, before this handler refuses the block: the same refusal
+        // first, and the refused placement then says why
+        game.onWorld(TntPrimeEvent.class, TntPrimeEvent::world, e -> {
+            if (e.cause() != TntPrimeEvent.Cause.PLACEMENT || e.blockPos() == null) return;
+            if (!(e.igniter() instanceof Player player) || game.roster().slotOf(player) == null) return;
+            if (building.refusal(player, e.blockPos()) != null) e.setCancelled(true);
         });
         game.onWorld(ExplosionEvent.class, ExplosionEvent::world, e -> {
             Player igniter = e.source() instanceof Player p && game.roster().slotOf(p) != null ? p : null;

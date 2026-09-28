@@ -17,6 +17,7 @@ import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
@@ -72,6 +73,7 @@ public final class PopupTower implements GameModule {
     }
 
     private static void spend(Player player, PlayerHand hand) {
+        if (player.getGameMode() == GameMode.CREATIVE) return; // as a block placement spends nothing there
         ItemStack held = hand == PlayerHand.MAIN ? player.getItemInMainHand() : player.getItemInOffHand();
         ItemStack left = held.amount() > 1 ? held.withAmount(held.amount() - 1) : ItemStack.AIR;
         if (hand == PlayerHand.MAIN) player.setItemInMainHand(left);

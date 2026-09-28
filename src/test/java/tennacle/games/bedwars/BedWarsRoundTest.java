@@ -71,6 +71,8 @@ import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
 import io.github.term4.grotto.modules.combat.Respawns;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.Player;
+import io.github.term4.polyp.entity.PrimedTnt;
+import io.github.term4.polyp.api.event.explosion.TntPrimeEvent;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -419,6 +421,37 @@ class BedWarsRoundTest extends HeadlessServerTest {
             tickUntil(game, "the loser ghosted", () -> game.isGhost(b.player));
             assertTrue(b.player.getEquipment(EquipmentSlot.CHESTPLATE).isAir(), "a ghost wears nothing");
         } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    /** A placed TNT primes inside the placement, before the block is refused: the prime takes the same refusal. */
+    @Test
+    void tntInABaseNeverPrimes() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwTntA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwTntB");
+        PrimedTnt open = null;
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            ExplosionSystem explosions = new ExplosionSystem(Mechanics.polyp, null);
+            PrimedTnt.Config tnt = explosions.resolveTnt(a.player, game.shard(), TntPrimeEvent.Cause.PLACEMENT);
+            BlockVec inBase = game.arena().marker(BedWars.BASE, Match.teamOf(game, b.player)).boxes().getFirst().min().add(1, 1, 1);
+            assertNull(PrimedTnt.spawn(explosions, game.shard(), inBase, tnt, a.player, TntPrimeEvent.Cause.PLACEMENT), "no TNT in a base");
+            open = PrimedTnt.spawn(explosions, game.shard(), new BlockVec(0, 66, -5), tnt, a.player, TntPrimeEvent.Cause.PLACEMENT);
+            assertNotNull(open, "the open deck takes one");
+        } finally {
+            if (open != null) open.remove();
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();

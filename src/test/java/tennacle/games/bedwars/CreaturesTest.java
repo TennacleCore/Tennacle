@@ -31,6 +31,8 @@ import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import net.minestom.server.potion.PotionEffect;
 import org.junit.jupiter.api.BeforeAll;
+import net.minestom.server.coordinate.BlockVec;
+import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -38,6 +40,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A bedbug and a defender wearing their side, a creature's kill credited to its owner without the loot, and Sudden Death's dragons. */
@@ -226,6 +229,32 @@ class CreaturesTest extends HeadlessServerTest {
                 assertFalse(fish.getActiveEffects().isEmpty(), "and keeps its swirl");
                 for (int i = 0; i < 25 && !fish.isRemoved(); i++) fish.tick(System.nanoTime());
                 assertTrue(fish.isRemoved(), "and goes after its twenty ticks");
+            } finally {
+                fish.remove();
+            }
+        });
+    }
+
+    /** Captured 2026-09-28: bedbugs walk up to a wall and face the enemy behind it, sight or none. */
+    @Test
+    void aBedbugTargetsThroughAWall() {
+        round("BugWall", (game, fa, fb) -> {
+            for (int z = -2; z <= 2; z++) {
+                for (int y = 65; y <= 67; y++) game.shard().setBlock(new BlockVec(4, y, z), Block.WHITE_WOOL);
+            }
+            SilverfishEntity fish = game.module(Creatures.class).bedbug(fa.player, new Pos(0.5, 65, 0.5)); // the enemy 7 blocks east, walled off
+            assertNotNull(fish);
+            try {
+                for (int tick = 1; tick <= 40 && fish.attackTarget() != fb.player; tick++) {
+                    ticks(game, 1);
+                    fish.tick(System.nanoTime());
+                }
+                assertSame(fb.player, fish.attackTarget(), "the enemy behind the wall is its target");
+                for (int tick = 1; tick <= 40; tick++) {
+                    ticks(game, 1);
+                    fish.tick(System.nanoTime());
+                }
+                assertTrue(fish.getPosition().x() > 2.0, "and it walks up to the wall: x " + fish.getPosition().x());
             } finally {
                 fish.remove();
             }

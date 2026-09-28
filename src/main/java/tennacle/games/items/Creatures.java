@@ -170,6 +170,7 @@ public final class Creatures implements GameModule {
         fish.kind(MobKindConfig.builder()
                 .maxHealth(game.rules().resolve(owner, BEDBUG_HEALTH))
                 .targetChance(1) // captured: a bedbug's first step comes 3 ticks after its spawn
+                .targetSight(false) // captured 2026-09-28: bedbugs walk to a wall and face the enemy behind it
                 .hidesInBlocks(false).callsFromBlocks(false)
                 .targetSelector(Targets.PLAYERS)
                 .attackable(Targets.ANY)
@@ -198,6 +199,7 @@ public final class Creatures implements GameModule {
         golem.kind(MobKindConfig.builder()
                 .maxHealth(game.rules().resolve(owner, DEFENDER_HEALTH))
                 .targetChance(1)
+                .targetSight(false) // captured 2026-09-28: a defender too
                 .speed(game.rules().resolve(owner, DEFENDER_SPEED))
                 .attackInterval(game.rules().resolve(owner, DEFENDER_SWING))
                 .seesInvisible(true)
