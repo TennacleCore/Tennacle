@@ -69,7 +69,8 @@ class HiddenNamesTest extends HeadlessServerTest {
             assertNotNull(alias, "a stranger");
             assertNotEquals("HideA", alias);
             assertNull(HiddenNames.aliasFor(game, a.player, a.player), "you read as yourself");
-            assertEquals(alias, lastListed(b, a.player.getUuid()), "listed under the alias");
+            assertEquals("§k" + alias, lastListed(b, a.player.getUuid()), "listed under the alias, obfuscated as captured");
+            assertTrue(lastListed(b, a.player.getUuid()).length() <= 16, "the 1.8 wire's cap on a profile name");
             assertTrue(lastEntry(b, a.player.getUuid()).properties().isEmpty(), "a default skin");
             assertTrue(b.sent(PlayerInfoRemovePacket.class).stream().anyMatch(r -> r.uuids().contains(a.player.getUuid())),
                     "the row goes first: a modern client keeps its first add");

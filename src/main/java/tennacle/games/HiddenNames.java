@@ -166,7 +166,8 @@ public final class HiddenNames implements GameModule {
         hidden.veiled.add(subject.getUuid());
         String alias = hidden.alias(viewer, subject);
         List<PlayerInfoUpdatePacket.Property> properties = hidden.skins() ? List.of() : entry.properties();
-        return new PlayerInfoUpdatePacket.Entry(entry.uuid(), alias != null ? alias : entry.username(), properties,
+        // captured: the profile name carries the obfuscation code, so the nameplate drawn from it churns too
+        return new PlayerInfoUpdatePacket.Entry(entry.uuid(), alias != null ? "§k" + alias : entry.username(), properties,
                 entry.listed(), entry.latency(), entry.gameMode(),
                 alias != null ? Component.text(alias, NamedTextColor.GRAY, TextDecoration.OBFUSCATED) : entry.displayName(),
                 entry.chatSession(), entry.listOrder(), entry.displayHat());
