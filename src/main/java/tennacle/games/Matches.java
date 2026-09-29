@@ -18,6 +18,7 @@ import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
 
+import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.barnacle.Arena;
 import io.github.term4.canvas.tab.TabList;
@@ -99,6 +100,7 @@ public final class Matches {
             if (player.getInstance() == lobby) { // Minestom rejects a same-instance setInstance: no spawn event either
                 player.teleport(lobbySpawn, Vec.ZERO);
                 Wardrobe.arrive(player, lobby);
+                ShardTabList.resync(player); // the spawn's own re-list, which a same-instance return never gets
             } else {
                 player.setVelocity(Vec.ZERO); // setInstance would carry the fall they left with
                 player.setInstance(lobby, lobbySpawn); // the lobby dresses the arrival
