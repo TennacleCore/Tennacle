@@ -187,7 +187,7 @@ public final class Lives implements GameModule {
 
     /** A member dropped under the void plane ({@code Limits}): the same end a killing blow gets. */
     public void fell(@NotNull Player player) {
-        if (game.roster().slotOf(player) == null) return;
+        if (game.roster().slotOf(player) == null || respawns.isDead(player)) return; // a waiting ghost cannot die again
         Player by = credit.creditFor(player);
         killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null);
     }
@@ -205,6 +205,9 @@ public final class Lives implements GameModule {
             Match.addSeat(game, victim, counters.finalDeaths());
             if (by != null) Match.addSeat(game, by, counters.finalKills());
             mark(victim, seat, by, verb);
+            // the user, 2026-09-29: the eliminated wait where a death waits, with the wait's compass, and never respawn
+            respawns.park(victim);
+            Spectators.ghostKit(game, victim);
             // the elimination says the line, in the look's own voice, and cues its own fall
             standing.out(victim, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game), tool));
             Component you = Banners.eliminatedYou(game);

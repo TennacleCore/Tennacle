@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import io.github.term4.polyp.mechanics.damage.types.fall.FallDamage;
 import io.github.term4.grotto.modules.flow.Staging;
 import tennacle.games.Match;
 import tennacle.games.HiddenNames;
@@ -711,6 +712,48 @@ class BedWarsRoundTest extends HeadlessServerTest {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();
+        }
+    }
+
+    /** The user, 2026-09-29: a final kill waits where a death waits, untouchable, and never comes back. */
+    @Test
+    void aFinalKillWaitsLikeADeath() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwParkA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwParkB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwParkC");
+        List<FakePlayer> all = List.of(a, b, c);
+        try {
+            for (FakePlayer p : all) p.player.setInstance(game.instance(), ROOM).join();
+            for (FakePlayer p : all) assertTrue(Matches.enter(game, List.of(p.player)));
+            await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            live(game);
+            String cTeam = Match.teamOf(game, c.player);
+            BlockVec cBed = game.arena().marker(BedWars.BED, cTeam).boxes().getFirst().min();
+            EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), game.shard().getBlock(cBed), Block.AIR, cBed, BlockFace.TOP));
+            assertFalse(Beds.stands(game, cTeam));
+            game.module(Respawns.class).unprotect(c.player);
+            Mechanics.polyp.services().damage().apply(DamageSnapshot.of(c.player, MeleeDamage.INSTANCE).withSource(a.player).withAmount(100f));
+            assertNull(game.decided(), "two sides still stand");
+
+            assertTrue(game.isGhost(c.player), "out of the fight at once, as a death is");
+            assertTrue(c.player.isAllowFlying() && c.player.isFlying(), "flying, and free to");
+            Pos landing = game.deadLanding(game.roster().slotOf(c.player));
+            assertNotNull(landing);
+            assertEquals(0, landing.distance(c.player.getPosition()), 0.01, "where a death waits");
+            assertTrue(c.player.getInventory().getItemStack(0).material() == Material.COMPASS, "the wait's compass");
+            float health = c.player.getHealth();
+            Mechanics.polyp.services().damage().apply(DamageSnapshot.of(c.player, FallDamage.INSTANCE).withAmount(10f));
+            assertEquals(health, c.player.getHealth(), 0.001f, "no fall hurts the out");
+            long past = game.state().tick() + 140;
+            tickUntil(game, "past a respawn's wait", () -> game.state().tick() >= past);
+            assertTrue(game.isGhost(c.player), "and nothing brings them back");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
         }
     }
 

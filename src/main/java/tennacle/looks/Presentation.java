@@ -155,7 +155,7 @@ public final class Presentation implements GameModule {
     /** The loser goes down: the death pose, then the ghosting. Once per player - a decision follows an elimination. */
     private void fall(Game game, Player player) {
         Mode mode = Matches.modeOf(game);
-        if ((mode != null && !mode.ghostLoser()) || !fallen.add(player.getUuid())) return;
+        if ((mode != null && !mode.ghostLoser()) || game.isGhost(player) || !fallen.add(player.getUuid())) return; // a ghost waits already
         // everyone watching (spectators included) sees a vanilla death: pose now, and the ghosting's destroy
         // packet lands at +20 ticks - right when a real corpse would poof. The loser gets no status 3, only the flight.
         EntityMetaDataPacket downed = downed(player);

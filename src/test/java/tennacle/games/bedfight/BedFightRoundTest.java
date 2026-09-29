@@ -479,6 +479,7 @@ class BedFightRoundTest extends HeadlessServerTest {
 
             break0(blue.player, new BlockVec(-7, 65, 0));
             assertFalse(Beds.stands(game, mine.team()), "their bed is gone");
+            game.module(Respawns.class).respawn(red.player); // back on their feet: a waiting ghost cannot die again
             blue.sent.clear();
             game.module(Lives.class).fell(red.player);
             List<String> last = said(blue).stream().filter(l -> l.contains("BedLineRed")).toList();
