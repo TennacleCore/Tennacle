@@ -884,8 +884,9 @@ Captured in a Solo game on 2026-09-24, with the player on Red and holding no res
   volume 8 with the pitch byte at 255 and 0, which the 1.8 client clamps to 2.0 and 0.5
   (`SoundManager.getNormalizedPitch`); volume 8 only stretches their range to 128 blocks.
 - The `Shift Click to add` line was missing on Permanent Chainmail and Iron Armor, Permanent Shears and both
-  tools, all five in that player's Quick Buy, while other Quick Buy items kept it. The rule is unknown. Decided
-  2026-09-28: ours shows it, and takes the pin, only on items not already in the player's Quick Buy.
+  tools, all five in that player's Quick Buy, while other Quick Buy items kept it. The rule is unknown. The user,
+  2026-09-29: every item on a category tab shows it and takes the pin, already in the Quick Buy or not; a Rotating
+  Items ware never does.
 - Items carry HideFlags 255. Potions are 373:8195 (Speed II), 373:8203 (Jump V) and 373:8206
   (Invisibility), with CustomPotionEffects (8195 is the fire resistance potion's value, which ours sends too:
   a fire resistance potion whose custom Speed II stands in for its own effect, 1.8's rule); the Dream Defender is spawn egg 383:99, the Bedbug a snowball, the

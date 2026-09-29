@@ -1,5 +1,7 @@
 package tennacle.games.bedwars;
 
+import net.kyori.adventure.text.Component;
+import net.minestom.server.component.DataComponents;
 import tennacle.games.Keepers;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -168,8 +170,14 @@ class ShopTest extends HeadlessServerTest {
             assertEquals(Material.RED_STAINED_GLASS_PANE, Screens.inventory(a).getItemStack(43).material(), "unpinned");
 
             ItemShop.open(game, a, Wares.Tab.BLOCKS);
+            List<Component> woolLore = Screens.inventory(a).getItemStack(19).get(DataComponents.LORE);
+            assertTrue(woolLore.stream().map(l -> PlainTextComponentSerializer.plainText().serialize(l))
+                    .anyMatch("Shift Click to add to Quick Buy"::equals), "any ware offers the pin: " + woolLore);
             click(a, 19, new Click.LeftShift(19)); // Wool, pinned already
-            assertEquals("Blocks", title(a), "a pinned ware takes no second pin");
+            assertEquals("Adding to Quick Buy...", title(a), "a pinned ware pins again");
+            click(a, 42, new Click.Left(42));
+            assertEquals("Quick Buy", title(a));
+            assertTrue(Screens.inventory(a).getItemStack(42).material().key().value().endsWith("_wool"), "into the slot picked");
 
             HotbarManager.open(game, a);
             click(a, 10, new Click.Left(10)); // Blocks onto the cursor
