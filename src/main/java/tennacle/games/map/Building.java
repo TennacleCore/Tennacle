@@ -72,6 +72,10 @@ public final class Building {
     /** A blast may take a reserved cell (a base box); off, those stand whatever else goes. */
     public static final StateKey<Boolean> BLAST_RESERVED = StateKey.of("space.blast.reserved", Codec.BOOLEAN, false);
 
+    /** A hand's placements and breaks, at the seat; a structure's blocks and a blast's are neither. */
+    public static final StateKey<Integer> PLACED_COUNT = StateKey.of("ledger.build.placed", Codec.INT, 0, true);
+    public static final StateKey<Integer> BROKEN_COUNT = StateKey.of("ledger.build.broken", Codec.INT, 0, true);
+
     /** Every rule this carries, for a type's declaration. */
     public static final Set<StateKey<?>> RULES = Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, FLOOR_DROPS, BREAK, BREAK_OUTSIDE, FLOW_RESERVED,
             BLAST, BLAST_RESERVED);
@@ -214,6 +218,7 @@ public final class Building {
                 return;
             }
             building.placed.add(key(e.getBlockPosition()));
+            Match.addSeat(game, player, PLACED_COUNT);
             touched.accept(player);
         });
         game.on(PlayerBlockBreakEvent.class, e -> {
@@ -237,6 +242,7 @@ public final class Building {
             }
             building.placed.remove(key(pos)); // after the refusal: a block that stays is still the one who placed it
             if (kind.equals(GRASS)) building.bare(pos);
+            Match.addSeat(game, player, BROKEN_COUNT);
             touched.accept(player);
         });
         game.onWorld(ItemSpawnEvent.class, ItemSpawnEvent::world, e -> {

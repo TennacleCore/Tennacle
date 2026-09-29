@@ -3,6 +3,7 @@ package tennacle.games.bedfight;
 import tennacle.boot.Mechanics;
 import tennacle.games.KitLayouts;
 import tennacle.games.Match;
+import tennacle.games.Hits;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.map.MapPool;
@@ -191,7 +192,7 @@ public final class BedFight {
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
                         () -> Kits.of(KIT),
                         Loadout::new,
-                        Rules::new, Presentation::new,
+                        Hits::new, Rules::new, Presentation::new,
                         () -> Refusals.of(Look::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))

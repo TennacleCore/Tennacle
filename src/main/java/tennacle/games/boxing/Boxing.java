@@ -20,6 +20,7 @@ import tennacle.boot.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Flags;
 import tennacle.games.Match;
+import tennacle.games.Hits;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.Ruleset;
@@ -75,11 +76,11 @@ import java.util.UUID;
  */
 public final class Boxing {
 
-    // match truth, at the seat - replayable, branch-safe
-    public static final StateKey<Integer> HITS = StateKey.of("ledger.boxing.hits", Codec.INT, 0, true);
-    public static final StateKey<Integer> SPRINT_HITS = StateKey.of("ledger.boxing.sprint-hits", Codec.INT, 0, true);
-    public static final StateKey<Integer> COMBO = StateKey.of("ledger.boxing.combo", Codec.INT, 0, true);
-    public static final StateKey<Integer> BEST_COMBO = StateKey.of("ledger.boxing.best-combo", Codec.INT, 0, true);
+    // match truth, at the seat: the shared counters, under boxing's names
+    public static final StateKey<Integer> HITS = Hits.LANDED;
+    public static final StateKey<Integer> SPRINT_HITS = Hits.SPRINT;
+    public static final StateKey<Integer> COMBO = Hits.COMBO;
+    public static final StateKey<Integer> BEST_COMBO = Hits.BEST_COMBO;
 
     /** No hunger drain and only swings hurt: what boxing IS, over whichever preset the platform names. */
     static final Ruleset BASE = Ruleset.named("boxing")
@@ -136,7 +137,7 @@ public final class Boxing {
                         Spectating::new, Sight::new, Presets::new,
                         Daylight::new,
                         () -> HealthDisplay.of().inTab(g -> Matches.lookOf(g).tabHealth()),
-                        () -> Kits.of(KIT), Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
+                        () -> Kits.of(KIT), Hits::new, Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle),
                         () -> Stats.of()

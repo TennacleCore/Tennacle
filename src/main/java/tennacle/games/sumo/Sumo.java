@@ -16,6 +16,7 @@ import tennacle.games.Presets;
 import tennacle.boot.Mechanics;
 import tennacle.games.Flags;
 import tennacle.games.Match;
+import tennacle.games.Hits;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.Ruleset;
@@ -41,7 +42,6 @@ import io.github.term4.polyp.MechanicsProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.minestom.server.codec.Codec;
 import net.minestom.server.entity.GameMode;
 
 import java.util.List;
@@ -54,8 +54,8 @@ import java.util.Map;
  */
 public final class Sumo {
 
-    public static final StateKey<Integer> SWINGS = StateKey.of("ledger.sumo.swings", Codec.INT, 0, true);
-    public static final StateKey<Integer> LANDED = StateKey.of("ledger.sumo.landed", Codec.INT, 0, true);
+    public static final StateKey<Integer> SWINGS = Hits.SWINGS;
+    public static final StateKey<Integer> LANDED = Hits.LANDED;
 
     /** Only swings hurt - a selection over the damage catalog, as a path. */
     static final Ruleset BASE = Ruleset.named("sumo")
@@ -101,7 +101,7 @@ public final class Sumo {
                             Rules rules = g.module(Rules.class);
                             if (rules != null) rules.fell(who);
                         })),
-                        KillCredit::new, Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
+                        KillCredit::new, Hits::new, Rules::new, Presentation::new, () -> Refusals.of(Look::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();

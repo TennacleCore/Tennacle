@@ -1,12 +1,10 @@
 package tennacle.games.boxing;
 
 
-import tennacle.games.Match;
+import tennacle.games.Cards;
 import tennacle.games.Matches;
 
-import io.github.term4.canvas.presets.HypixelCard;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.modules.flow.Bundle;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.outcome.Results;
 import io.github.term4.grotto.modules.view.Summary;
@@ -29,21 +27,17 @@ final class Ends {
     private Ends() {}
 
     static GameModule hypixel() {
-        Results records = Results.of().quiet().item(Ends::sword); // the name opens the frozen record, as the house card does
-        return Bundle.of(records, Matches.summary().hypixel("Boxing Duel")
-                        .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
-                        .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
-                        .row("W-Taps", (g, side, th, c) ->
-                                th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))))
-                        .after((g, me) -> HypixelCard.playAgain(
-                                Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " boxing -preset=hypixel"))
-                .click((g, name) -> records.viewCommand(name)));
+        return Cards.ends(Matches.summary().hypixel("Boxing Duel")
+                .row("Hits", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.HITS)))
+                .row("Best Combo", (g, side, th, c) -> th.value(stat(g, side.getFirst(), Boxing.BEST_COMBO)))
+                .row("W-Taps", (g, side, th, c) ->
+                        th.value(Boxing.wtap(stat(g, side.getFirst(), Boxing.HITS), stat(g, side.getFirst(), Boxing.SPRINT_HITS))))
+                .after(Cards.playAgain("boxing -preset=hypixel")), Ends::sword);
     }
 
-    // the scrims card on the house palette, and a name click opens the frozen record with the sword in it
+    // the scrims card on the house palette, with the sword in the record
     static GameModule tennacle() {
-        Results records = Results.of().quiet().item(Ends::sword); // first: the snapshot precedes the card, and cleanup
-        return Bundle.of(records, scrims().click((g, name) -> records.viewCommand(name)));
+        return Cards.ends(scrims(), Ends::sword);
     }
 
     static Summary scrims() {

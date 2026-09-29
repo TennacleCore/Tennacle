@@ -8,7 +8,6 @@ import io.github.term4.grotto.modules.combat.KillCredit;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.player.PlayerHandAnimationEvent;
 import org.jetbrains.annotations.NotNull;
 
 /** Shoves never hurt; a fall past the map's void plane is the elimination, credited to the last shove. */
@@ -19,13 +18,7 @@ public final class Rules implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         this.game = game;
-        game.on(DamageEvent.class, DamageEvent::target, e -> {
-            e.amount(0); // non-melee types are off in the world profile
-            if (e.source() instanceof Player attacker) Match.addSeat(game, attacker, Sumo.LANDED);
-        });
-        game.on(PlayerHandAnimationEvent.class, e -> {
-            if (Match.live(game)) Match.addSeat(game, e.getPlayer(), Sumo.SWINGS);
-        });
+        game.on(DamageEvent.class, DamageEvent::target, e -> e.amount(0)); // non-melee types are off in the world profile
     }
 
     /** A member dropped past the void plane ({@link io.github.term4.grotto.modules.space.Limits}). */

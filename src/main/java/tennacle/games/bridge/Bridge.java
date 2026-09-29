@@ -26,6 +26,7 @@ import tennacle.Msg;
 import tennacle.games.Flags;
 import tennacle.games.KitLayouts;
 import tennacle.games.Match;
+import tennacle.games.Hits;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 
@@ -236,7 +237,7 @@ public final class Bridge {
                         () -> Kits.of(KIT),
                         Loadout::new,
                         () -> Restock.of("arrow", Arrow.class, 70L), // 3.5s: the termbridge/hypixel return
-                        Rules::new, Presentation::new,
+                        Hits::new, Rules::new, Presentation::new,
                         Projectiles::new, // an arrow off a protected enemy vanishes; off a teammate it passes
                         () -> Refusals.of(Look::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted), // everyone gone: flow.abandon.empty, then closed

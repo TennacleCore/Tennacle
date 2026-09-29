@@ -1,65 +1,46 @@
 package tennacle.games.bedfight;
 
 import tennacle.games.beds.Beds;
-import tennacle.games.Match;
+import tennacle.games.Cards;
 import tennacle.games.Matches;
 
-import io.github.term4.canvas.presets.HypixelCard;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.modules.flow.Bundle;
 import io.github.term4.grotto.modules.outcome.Results;
 import io.github.term4.grotto.modules.view.Summary;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 
-import java.util.Locale;
-
 /** Bed fight's end screens, one per network. */
 final class Ends {
 
     private Ends() {}
 
-    // bridge's layout over bed fight's own; damage/pressure/blocks are filler until their mechanics land
+    // bridge's layout over bed fight's own
     static Summary scrims() {
-        return Matches.summary()
-                .row("Bed", "Whether the side still had one when the game ended",
-                        (g, side, th, color) -> bed(g, side.getFirst()))
-                .row("Damage", (g, side, th, color) -> th.hearts(0))
-                .row("Pressure", "The share of the game this side spent away from its own base",
-                        (g, side, th, color) -> th.value(Match.pressure(g, side.getFirst().team())))
-                .row("Blocks Placed", (g, side, th, color) -> th.value(0))
-                .row("Blocks Broken", (g, side, th, color) -> th.value(0))
-                .cardSection(
+        return Cards.scrims("Bed", "Whether the side still had one when the game ended",
+                        (g, side, th, color) -> bed(g, side.getFirst()),
                         (g, seat, th, side) -> th.prose("Bed: ").append(bed(g, seat)),
-                        (g, seat, th, side) -> th.prose("Damage: ").append(th.hearts(0)),
-                        (g, seat, th, side) -> th.prose("KDR: ").append(th.value(stat(g, seat, BedFight.KILLS)))
-                                .append(th.dim(" | ")).append(th.value(stat(g, seat, BedFight.DEATHS)))
-                                .append(th.dim(" (" + kdr(g, seat) + ")")))
+                        BedFight.KILLS, BedFight.DEATHS)
                 .cardSection(
                         (g, seat, th, side) -> th.prose("Beds Broken: ").append(th.value(stat(g, seat, BedFight.BEDS))),
-                        (g, seat, th, side) -> th.prose("Blocks Placed: ").append(th.value(0)),
-                        (g, seat, th, side) -> th.prose("Blocks Broken: ").append(th.value(0)));
+                        Cards.BLOCKS_PLACED_LINE, Cards.BLOCKS_BROKEN_LINE);
     }
 
-    // the scrims card on the house palette, and a name click opens the frozen record (minemen's screen)
+    // the scrims card on the house palette (minemen's screen)
     static GameModule tennacle() {
-        Results records = Results.of().quiet(); // first: the snapshot precedes the card, and cleanup
-        return Bundle.of(records, scrims().click((g, name) -> records.viewCommand(name)));
+        return Cards.ends(scrims());
     }
 
-    // captured: the BedWars Duel card - damage, melee accuracy, blocks placed, health regenerated
+    // captured: the BedWars Duel card; the regeneration stays a filler until it is counted
     static GameModule hypixel() {
-        Results records = Results.of().quiet(); // the name opens the frozen record, as the house card does
-        return Bundle.of(records, Matches.summary().hypixel("BedWars Duel")
-                        .row("Damage Dealt", (g, side, th, c) -> th.hearts(0))
-                        .row("Melee Accuracy", (g, side, th, c) -> th.value("0%"))
-                        .row("Blocks Placed", (g, side, th, c) -> th.value(0))
-                        .row("Health Regenerated", (g, side, th, c) -> th.hearts(0))
-                        .after((g, me) -> HypixelCard.playAgain(
-                                Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " bedfight -preset=hypixel"))
-                .click((g, name) -> records.viewCommand(name)));
+        return Cards.ends(Matches.summary().hypixel("BedWars Duel")
+                .row("Damage Dealt", Cards.DAMAGE)
+                .row("Melee Accuracy", Cards.MELEE_ACCURACY)
+                .row("Blocks Placed", Cards.BLOCKS_PLACED)
+                .row("Health Regenerated", (g, side, th, c) -> th.hearts(0))
+                .after(Cards.playAgain("bedfight -preset=hypixel")));
     }
 
     static Results minemen() {
@@ -69,11 +50,6 @@ final class Ends {
     // the board's own glyphs: a card reading Yes/No beside a scoreboard of checks read as two answers
     private static net.kyori.adventure.text.Component bed(Game game, Slot seat) {
         return Beds.stands(game, seat.team()) ? Boards.BED : Boards.GONE;
-    }
-
-    private static String kdr(Game game, Slot seat) {
-        int deaths = stat(game, seat, BedFight.DEATHS);
-        return String.format(Locale.ROOT, "%.1f", stat(game, seat, BedFight.KILLS) / (double) Math.max(1, deaths));
     }
 
     private static int stat(Game game, Slot seat, StateKey<Integer> key) {
