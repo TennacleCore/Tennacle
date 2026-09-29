@@ -40,7 +40,7 @@ class BowsTest extends HeadlessServerTest {
     @Test
     void anOwnArrowPassesThrough() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         try {
             var arrow = Mechanics.polyp.profiles().world(game.shard()).get(MechanicsKeys.PROJECTILES).typeConfig(Arrow.KEY);
             assertEquals(ProjectileTypeConfig.HitResponse.PASS_THROUGH, arrow.selfHit.constantOrNull());
@@ -52,7 +52,7 @@ class BowsTest extends HeadlessServerTest {
     @Test
     void aTeammatesArrowIsInert() {
         Mode doubles = Matches.mode("bedwars-doubles");
-        Game game = Matches.launch(doubles, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(doubles, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 2);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BowMateA");

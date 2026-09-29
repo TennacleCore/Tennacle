@@ -1,5 +1,9 @@
 package tennacle.games;
 
+import tennacle.games.matchmaking.Parties;
+import java.util.function.ToIntFunction;
+import java.util.UUID;
+import net.minestom.server.tag.Tag;
 import net.kyori.adventure.text.Component;
 import tennacle.looks.Palette;
 import java.util.ArrayList;
@@ -73,6 +77,9 @@ public final class Matches {
     private static final Logger LOGGER = LoggerFactory.getLogger(Matches.class);
 
     /** The active look's name, stamped at launch. */
+    // the side a player last came in with, so a draw can keep it whole
+    private static final Tag<UUID> SIDE = Tag.UUID("tennacle:side");
+
     public static final StateKey<String> LOOK = StateKey.of("ledger.match.look", Codec.STRING, "");
     /** The platform's name, stamped at launch - what a re-fold resolves the ruleset from. */
     public static final StateKey<String> PLATFORM = StateKey.of("ledger.match.platform", Codec.STRING, "");
@@ -481,16 +488,39 @@ public final class Matches {
         for (Player player : side) {
             if (!player.isOnline() || grotto.engaged(player)) return false;
         }
-        String team = game.roster().teamWithRoom(side.size(),
-                t -> game.rules().resolve(Scope.team(t), Roster.TEAM_SIZE));
-        if (team == null) return false;
+        ToIntFunction<String> size = t -> game.rules().resolve(Scope.team(t), Roster.TEAM_SIZE);
+        String team = game.roster().teamWithRoom(side.size(), size);
+        // teams drawn at the start: any free seats hold the side till then, and the draw puts it together
+        boolean anywhere = team == null && Staging.unsided(game)
+                && Match.seats(game) - Match.seated(game) >= side.size() && side.size() <= widest(game, size);
+        if (team == null && !anywhere) return false;
+        UUID together = UUID.randomUUID();
         for (Player player : side) {
             Queues.dequeue(player);
             Spectators.exit(player);
             KitLayouts.cancel(player);
-            if (!game.join(player, team)) return false;
+            player.setTag(SIDE, together);
+            String seat = team != null ? team : game.roster().teamWithRoom(1, size);
+            if (seat == null || !game.join(player, seat)) return false;
         }
         return true;
+    }
+
+    /** Whether {@code a} and {@code b} came in as one side, or share a party now: a draw keeps them on one team. */
+    public static boolean together(@NotNull Player a, @NotNull Player b) {
+        UUID side = a.getTag(SIDE);
+        return side != null && side.equals(b.getTag(SIDE)) || Parties.together(a, b);
+    }
+
+    // the most one team seats: a side past it never shares a team
+    private static int widest(Game game, ToIntFunction<String> size) {
+        int widest = 0;
+        for (Team team : game.roster().teams()) {
+            int seats = game.roster().seatsOf(team.id()).size();
+            int cap = size.applyAsInt(team.id());
+            widest = Math.max(widest, cap > 0 ? Math.min(cap, seats) : seats);
+        }
+        return widest;
     }
 
     // the map the options name, else the pool's pick - chosen once, so a warm-up and its seating agree

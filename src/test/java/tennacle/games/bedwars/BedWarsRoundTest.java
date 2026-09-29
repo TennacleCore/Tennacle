@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import io.github.term4.grotto.modules.flow.Staging;
 import tennacle.games.Match;
 import tennacle.games.HiddenNames;
 import tennacle.games.Matches;
@@ -167,7 +168,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void thePartyWaitsInTheRoomAndOpensTogether() {
         Mode doubles = Matches.mode("bedwars-doubles");
-        Game game = Matches.launch(doubles, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(doubles, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2); // a fixture of three seats, not sixteen
         game.state().set(Scope.GAME, Countdown.FROM, 2);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPartyA");
@@ -203,7 +204,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void anEggHitCreditsTheVoid() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwEggA");
@@ -237,7 +238,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aBrokenBedThenTheLastDeathEndsIt() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwSoloA");
@@ -276,8 +277,9 @@ class BedWarsRoundTest extends HeadlessServerTest {
             MinecraftServer.getSchedulerManager().processTickEnd(); // the block goes out at the end of the tick
             List<String> chat = a.sent(SystemChatPacket.class).stream()
                     .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
-            assertTrue(chat.stream().anyMatch(l -> l.contains("Bed Wars") && l.contains(" - BwSoloA")
-                    && l.contains("1st Killer - BwSoloA - 0")), "the block names the side and the killers: " + chat);
+            assertTrue(chat.stream().anyMatch(l -> l.strip().equals("Bed Wars")), "the header: " + chat);
+            assertTrue(chat.stream().anyMatch(l -> l.strip().endsWith(" - BwSoloA")), "the side: " + chat);
+            assertTrue(chat.stream().anyMatch(l -> l.strip().equals("1st Killer - BwSoloA - 0")), "a line a message, as captured: " + chat);
             assertEquals("VICTORY!", lastTitle(a), "the winner's title");
             assertEquals("GAME OVER!", lastTitle(b), "the loser's");
         } finally {
@@ -290,7 +292,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aBedlessLeaverIsTheLastDeath() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLeftA");
@@ -321,7 +323,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aHeldSeatFallsWithItsBed() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwHeldA");
@@ -351,7 +353,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aBlastTakesPlacedBlocksNotTheMap() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwBlastA");
@@ -379,7 +381,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void theRoomIsLaidFromItsOwnArena() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwRoomA");
@@ -405,7 +407,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aLeaverIsAnnouncedOnce() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoneA");
@@ -433,7 +435,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void twoGhostsCannotFight() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwBackA");
@@ -477,7 +479,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aDragonLeavesTheBedUnlessAllowed() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwDrgA");
@@ -517,7 +519,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void theHypixelFlavorTakesFireOnContact() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor("hypixel"), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor("hypixel"), fixture()));
         try {
             assertEquals("hypixel_bedwars", Matches.mechanicsNameOf(game), "the network's name, the mode's flavor");
             io.github.term4.polyp.mechanics.damage.DamageConfig damage =
@@ -537,7 +539,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aLadderFallsWithItsWall() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLadderA");
@@ -586,7 +588,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void placedSandFalls() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwSandA");
@@ -649,7 +651,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aPearlIntoAKeeperComesBack() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPearlA");
@@ -681,7 +683,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void theLastDeathGhostsToo() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLastA");
@@ -713,7 +715,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void tntInABaseNeverPrimes() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwTntA");
@@ -743,7 +745,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aFireballKillIsTheThrowers() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwFireA");
@@ -777,7 +779,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void forgesAndTheMiddleRunOnTheClock() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         game.state().set(Scope.GAME, StateKey.of("timeline.diamond-2", Codec.LONG, 0L), 60L);
@@ -814,7 +816,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void theTapeStartsAtGo() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwTapeA");
@@ -841,7 +843,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aLevelStaggersTheIron() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwStagA");
@@ -894,6 +896,12 @@ class BedWarsRoundTest extends HeadlessServerTest {
         return titles.isEmpty() ? "" : titles.getLast();
     }
 
+    /** Seats by arrival, the fixture's first side first: the draw at the start is PregameTest's. */
+    static Game byArrival(Game game) {
+        game.state().set(Scope.GAME, Staging.DRAW, false);
+        return game;
+    }
+
     static void live(Game game) {
         tickUntil(game, "the countdown ran out", () -> Match.live(game));
     }
@@ -916,7 +924,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void theWaitLetsNothingBreakOrBuild() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwHoldA");
@@ -954,7 +962,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void theWaitSaysWhoComesAndGoes() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 7); // never enough to start
         game.state().set(Scope.GAME, HiddenNames.HIDDEN, false); // a private game's real names
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoA");
@@ -988,7 +996,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aPartyLeavesTheWaitTogether() {
         Mode doubles = Matches.mode("bedwars-doubles");
-        Game game = Matches.launch(doubles, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(doubles, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 7);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPtyA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPtyB");
@@ -1020,7 +1028,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void standingStillStopsPickups() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         game.state().set(Scope.GAME, Idle.PICKUP, 40L);
@@ -1054,7 +1062,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void theConvertedMapsCarryCornerStairs() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), solo.arena().named("bedwars-dragonstar"));
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), solo.arena().named("bedwars-dragonstar")));
         try {
             int corners = 0;
             assertFalse(game.instance().getChunks().isEmpty(), "the map's chunks are loaded");
@@ -1079,7 +1087,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
     @Test
     void aWaitingGameIsFoundByItsMap() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
         try {
             assertSame(game, Matches.waiting(solo, Matches.platformFor(null)));
             assertSame(game, Matches.waiting(solo, Matches.platformFor(null), game.arena().meta().name()));

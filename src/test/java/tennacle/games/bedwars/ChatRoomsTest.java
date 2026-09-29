@@ -1,5 +1,7 @@
 package tennacle.games.bedwars;
 
+import java.util.Locale;
+import tennacle.looks.Palette;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -48,7 +50,8 @@ class ChatRoomsTest extends HeadlessServerTest {
     void teamRoomsAndShouts() {
         Mode doubles = Matches.mode("bedwars-doubles");
         Game game = Matches.launch(doubles, Matches.platformFor(null), BedWarsRoundTest.fixture());
-        game.state().set(Scope.GAME, Countdown.START_AT, 99); // fills, never starts
+        game.state().set(Scope.GAME, Countdown.START_AT, 99); // fills until the test starts it
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ChatA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ChatB");
         FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ChatC");
@@ -57,14 +60,23 @@ class ChatRoomsTest extends HeadlessServerTest {
             assertTrue(Matches.enter(game, List.of(a.player, b.player)));
             assertTrue(Matches.enter(game, List.of(c.player)));
             await("all seated", () -> Game.of(a.player) == game && Game.of(b.player) == game && Game.of(c.player) == game);
-            assertEquals(Match.teamOf(game, a.player), Match.teamOf(game, b.player), "a pair seats together");
+
+            Chat.Room room = Rooms.room(a.player, "hi all");
+            assertNotNull(room);
+            assertTrue(room.audience().contains(c.player), "no teams before the draw: the room hears");
+            assertEquals("ChatA: hi all", plain(room.line()), "and no team tag");
+
+            game.state().set(Scope.GAME, Countdown.START_AT, 3);
+            BedWarsRoundTest.live(game);
+            assertEquals(Match.teamOf(game, a.player), Match.teamOf(game, b.player), "a pair lands together");
             assertNotEquals(Match.teamOf(game, a.player), Match.teamOf(game, c.player));
 
-            Chat.Room room = Rooms.room(a.player, "push mid");
+            room = Rooms.room(a.player, "push mid");
             assertNotNull(room);
             assertTrue(room.audience().contains(a.player) && room.audience().contains(b.player), "the team hears");
             assertFalse(room.audience().contains(c.player), "the other side does not");
-            assertEquals("TEAM > ChatA: push mid", plain(room.line()));
+            String tag = "[" + Palette.titled(game.roster().team(Match.teamOf(game, a.player))).toUpperCase(Locale.ROOT) + "] ";
+            assertEquals(tag + "ChatA: push mid", plain(room.line()), "the game's own line");
 
             game.state().set(Scope.GAME, TeamChat.TEAM, false); // Solo's rule
             room = Rooms.room(a.player, "gg");

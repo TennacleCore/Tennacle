@@ -164,7 +164,7 @@ class CompassTest extends HeadlessServerTest {
 
     private static Game launch(String mode) {
         Mode type = Matches.mode(mode);
-        Game game = Matches.launch(type, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(type, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         return game;

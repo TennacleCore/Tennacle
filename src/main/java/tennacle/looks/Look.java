@@ -1,5 +1,6 @@
 package tennacle.looks;
 
+import io.github.term4.grotto.modules.flow.Staging;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -88,7 +89,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     public static @NotNull Component arrival(Game game, String name, int seated, int seats) {
         Theme theme = Matches.lookOf(game).theme();
         return switch (Matches.lookNameOf(game)) {
-            case "hypixel" -> Component.text(name + " has joined (" + seated + "/" + seats + ")!", NamedTextColor.AQUA);
+            case "hypixel" -> hypixelArrival(Component.text(name, NamedTextColor.GRAY), seated, seats);
             default -> theme.value(name).append(theme.prose(" joined (" + seated + "/" + seats + ")."));
         };
     }
@@ -97,7 +98,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     public static @NotNull Component quit(Game game, String name) {
         Theme theme = Matches.lookOf(game).theme();
         return switch (Matches.lookNameOf(game)) {
-            case "hypixel" -> Component.text(name + " has quit!", NamedTextColor.AQUA);
+            case "hypixel" -> hypixelQuit(Component.text(name, NamedTextColor.GRAY));
             default -> theme.value(name).append(theme.prose(" left."));
         };
     }
@@ -322,6 +323,9 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     // carries the team tag in its color instead (captured Solo: [49✫] [PINK] [VIP+] name: message, rankless here)
     private static Component hypixelChat(Game game, Player speaker, String message) {
         Mode mode = Matches.modeOf(game);
+        if (Staging.unsided(game)) { // no team to name before the draw
+            return Component.text(speaker.getUsername(), NamedTextColor.GRAY).append(Component.text(": " + message, NamedTextColor.WHITE));
+        }
         String side = mode != null && mode.family() == Mode.Family.GAME ? Match.teamOf(game, speaker) : "";
         Component tag = side.isEmpty() ? Component.text("[GAME] ", NamedTextColor.GREEN)
                 : Component.text("[" + Palette.titled(game.roster().team(side)).toUpperCase(Locale.ROOT) + "] ", game.roster().team(side).color());
@@ -329,10 +333,10 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .append(Component.text(": " + message, NamedTextColor.WHITE));
     }
 
-    /** Team chat: the captured hypixel shape (its quick messages ride it too), a tag elsewhere. */
+    /** Team chat: the game's own line, heard by the team alone (the user, 2026-09-29); a tag elsewhere. */
     public static @NotNull Component teamChat(Game game, Player speaker, String message) {
         return switch (Matches.lookNameOf(game)) {
-            case "hypixel" -> teamSays(game, speaker.getUsername(), Component.text(message, NamedTextColor.WHITE));
+            case "hypixel" -> hypixelChat(game, speaker, message);
             default -> Chat.tagged("team", speaker, message);
         };
     }
@@ -358,8 +362,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** A stranger's seat while a public game fills (captured): the alias gray and obfuscated, the rest yellow, the counts aqua. */
     public static @NotNull Component arrivalHidden(String alias, int seated, int seats) {
-        return Component.empty()
-                .append(Component.text(alias, NamedTextColor.GRAY, TextDecoration.OBFUSCATED))
+        return hypixelArrival(Component.text(alias, NamedTextColor.GRAY, TextDecoration.OBFUSCATED), seated, seats);
+    }
+
+    // captured: the name in its rank's color (rankless here: gray), the rest yellow, the counts aqua
+    private static Component hypixelArrival(Component name, int seated, int seats) {
+        return Component.empty().append(name)
                 .append(Component.text(" has joined (", NamedTextColor.YELLOW))
                 .append(Component.text(seated, NamedTextColor.AQUA))
                 .append(Component.text("/", NamedTextColor.YELLOW))
@@ -369,9 +377,11 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** A stranger's seat given up: the join line's colors (the quit itself uncaptured). */
     public static @NotNull Component quitHidden(String alias) {
-        return Component.empty()
-                .append(Component.text(alias, NamedTextColor.GRAY, TextDecoration.OBFUSCATED))
-                .append(Component.text(" has quit!", NamedTextColor.YELLOW));
+        return hypixelQuit(Component.text(alias, NamedTextColor.GRAY, TextDecoration.OBFUSCATED));
+    }
+
+    private static Component hypixelQuit(Component name) {
+        return Component.empty().append(name).append(Component.text(" has quit!", NamedTextColor.YELLOW));
     }
 
     // captured Bed Wars: the seat's counters, aqua labels and yellow counts on one line over the store line

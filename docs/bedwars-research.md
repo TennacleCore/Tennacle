@@ -1369,7 +1369,9 @@ www.hypixel.net           yellow
   Kills, Beds Broken, or the `/tabstats` pick) in those colors on one line over the store line.
 - **Chat**: Solo chat is global; team modes default to team chat with `/shout` on a 60 s cooldown. A
   captured Solo line reads `[49✫] [PINK] [VIP+] <name>: <message>` (level, team tag, rank). Ours (2026-09-29):
-  `chat.team` (team modes on, Solo off) keeps a member's line to their team in the captured `TEAM > ` shape;
+  `chat.team` (team modes on, Solo off) keeps a member's line to their team, the game's own line with its team
+  tag (the user, 2026-09-29; the captured `TEAM > ` shape is the quick messages' alone), and only once the teams
+  are drawn: before the start everyone in the room hears everyone, with no team tag;
   `/shout` reaches the whole game under a gold `[SHOUT] ` tag (cap, 2026-09-29: `[SHOUT] [YELLOW] [MVP+] Dogln: msg`,
   the tag gold, the team tag in its color, rank and name aqua or a rankless name gray, the message white), once per
   `chat.shout.cooldown` (1200); a game's global line carries the team tag in its color, rankless and levelless.

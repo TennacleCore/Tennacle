@@ -57,7 +57,7 @@ class RefusalsTest extends HeadlessServerTest {
     @Test
     void refusalsSayWhy() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer fa = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "RefuseA");
@@ -104,7 +104,7 @@ class RefusalsTest extends HeadlessServerTest {
     @Test
     void zonesAroundGeneratorsAndKeepers() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer fa = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ZoneA");
@@ -141,7 +141,7 @@ class RefusalsTest extends HeadlessServerTest {
     @Test
     void mapGrassBreaks() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer fa = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GrassA");
@@ -186,7 +186,7 @@ class RefusalsTest extends HeadlessServerTest {
     @Test
     void noDropsBelowTheFloor() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer fa = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DropA");

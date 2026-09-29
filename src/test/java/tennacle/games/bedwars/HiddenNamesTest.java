@@ -1,5 +1,9 @@
 package tennacle.games.bedwars;
 
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.Component;
+import net.minestom.server.network.packet.server.play.PlayerInfoRemovePacket;
+import net.minestom.server.entity.PlayerSkin;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -51,6 +55,7 @@ class HiddenNamesTest extends HeadlessServerTest {
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HideB");
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HideA");
+        a.player.setSkin(new PlayerSkin("textures", "signature"));
         try {
             b.player.setInstance(game.instance(), ROOM).join();
             assertTrue(Matches.enter(game, List.of(b.player)));
@@ -65,6 +70,13 @@ class HiddenNamesTest extends HeadlessServerTest {
             assertNotEquals("HideA", alias);
             assertNull(HiddenNames.aliasFor(game, a.player, a.player), "you read as yourself");
             assertEquals(alias, lastListed(b, a.player.getUuid()), "listed under the alias");
+            assertTrue(lastEntry(b, a.player.getUuid()).properties().isEmpty(), "a default skin");
+            assertTrue(b.sent(PlayerInfoRemovePacket.class).stream().anyMatch(r -> r.uuids().contains(a.player.getUuid())),
+                    "the row goes first: a modern client keeps its first add");
+            Component own = a.sent(SystemChatPacket.class).stream().map(SystemChatPacket::message)
+                    .filter(m -> PlainTextComponentSerializer.plainText().serialize(m).startsWith("HideA has joined")).findFirst().orElseThrow();
+            assertEquals(NamedTextColor.GRAY, own.children().getFirst().color(), "your own name: rankless gray");
+            assertEquals(NamedTextColor.YELLOW, own.children().get(1).color(), "the stranger line's colors");
             List<String> chat = chat(b);
             assertTrue(chat.contains(alias + " has joined (2/" + Match.seats(game) + ")!"), chat.toString());
             assertTrue(chat.stream().noneMatch(l -> l.contains("HideA")), chat.toString());
@@ -73,12 +85,23 @@ class HiddenNamesTest extends HeadlessServerTest {
             BedWarsRoundTest.live(game);
             assertNull(HiddenNames.aliasFor(game, b.player, a.player), "the real names take over");
             assertEquals("HideA", lastListed(b, a.player.getUuid()), "re-listed as themselves");
+            assertTrue(!lastEntry(b, a.player.getUuid()).properties().isEmpty(), "and in their own skin");
         } finally {
             tennacle.games.watch.Replays.discard(game);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    private static PlayerInfoUpdatePacket.Entry lastEntry(FakePlayer viewer, UUID subject) {
+        PlayerInfoUpdatePacket.Entry last = null;
+        for (PlayerInfoUpdatePacket packet : viewer.sent(PlayerInfoUpdatePacket.class)) {
+            if (!packet.actions().contains(PlayerInfoUpdatePacket.Action.ADD_PLAYER)) continue;
+            for (PlayerInfoUpdatePacket.Entry entry : packet.entries()) if (entry.uuid().equals(subject)) last = entry;
+        }
+        assertNotNull(last, "a row for the subject");
+        return last;
     }
 
     // the name the viewer's last ADD_PLAYER row for the subject carried

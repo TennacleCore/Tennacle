@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import io.github.term4.grotto.modules.flow.Staging;
 import io.github.term4.canvas.chat.Chat;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
@@ -44,7 +45,7 @@ public final class TeamChat implements GameModule {
 
     /** The team room a member's line goes to, or null when the whole game hears it. */
     public static Chat.@Nullable Room room(@NotNull Game game, @NotNull Player speaker, @NotNull String message) {
-        if (game.module(TeamChat.class) == null || !game.rules().resolve(Scope.GAME, TEAM)) return null;
+        if (!teamed(game)) return null;
         String team = Match.teamOf(game, speaker);
         if (team.isEmpty()) return null;
         List<Player> to = new ArrayList<>();
@@ -52,6 +53,11 @@ public final class TeamChat implements GameModule {
             if (team.equals(Match.teamOf(game, p))) to.add(p);
         });
         return new Chat.Room(to, Look.teamChat(game, speaker, message));
+    }
+
+    // before the draw a seat's team is a placeholder: the whole room hears everyone
+    private static boolean teamed(Game game) {
+        return game.module(TeamChat.class) != null && game.rules().resolve(Scope.GAME, TEAM) && !Staging.unsided(game);
     }
 
     /** {@code /shout <message>}: the whole game hears it. */
@@ -72,7 +78,7 @@ public final class TeamChat implements GameModule {
             Msg.fail(me, "You are not in a game.");
             return;
         }
-        if (game.module(TeamChat.class) == null || !game.rules().resolve(Scope.GAME, TEAM)) {
+        if (!teamed(game)) {
             Msg.fail(me, "Everyone in this game hears you already.");
             return;
         }

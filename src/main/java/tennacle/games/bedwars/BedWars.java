@@ -362,6 +362,8 @@ public final class BedWars {
                 .rule(Building.FLOOR_DROPS, false) // nothing drops below the build floor; the inventory stays usable (the user, 2026-09-29)
                 .rule(TeamChat.TEAM, size > 1) // Solo chat is global; a team mode talks to its team, /shout to all
                 .rule(HiddenNames.HIDDEN, true) // a public pregame: strangers read as random strings
+                .rule(HiddenNames.SKINS, true)
+                .rule(Staging.DRAW, true) // captured: no team shows until the start, a party lands together
                 .rule(Building.BREAK, List.of(Building.PLACED, Building.GRASS)) // the map's blocks never come up, its plants do; the beds are Beds'
                 .rule(Building.BLAST, List.of(Building.PLACED)) // a fireball or TNT takes placed blocks, never the map
                 .rule(Building.BREAK_OUTSIDE, List.of(Building.PLACED, Building.GRASS));
@@ -385,7 +387,7 @@ public final class BedWars {
                         PartyExit::new,
                         TeamChat::new, HiddenNames::new,
                         () -> Rooms.of(ROOMS, "bedwars", LOBBY), // before the seats open: the room is down as they do
-                        () -> Staging.during(Match.OPENING).clear(LOBBY)
+                        () -> Staging.during(Match.OPENING).clear(LOBBY).together(Matches::together)
                                 .seating((g, p) -> g.module(Kits.class).apply(p)),
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),
                         Respawns::manual,

@@ -46,7 +46,7 @@ class DisplaysTest extends HeadlessServerTest {
     @Test
     void keepersAndGeneratorsWearTheirLines() {
         Mode solo = Matches.mode("bedwars-solo");
-        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DisplayA");
