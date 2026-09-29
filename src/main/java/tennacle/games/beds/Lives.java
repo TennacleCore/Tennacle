@@ -148,6 +148,10 @@ public final class Lives implements GameModule {
         if (seat == null || !departure.reserved() || !Match.live(game) || game.decided() != null) return;
         // the seat is the departure's: by now the roster no longer answers for them
         Scope scope = Scope.slot(seat.index());
+        if (game.state().get(scope, LastStanding.OUT)) { // out already: nothing to count or announce, nothing to come back to
+            game.roster().release(seat);
+            return;
+        }
         game.state().set(scope, counters.deaths(), game.state().get(scope, counters.deaths()) + 1);
         Player by = credit.creditFor(player);
         String verb = by != null ? "was killed by" : "left the game";

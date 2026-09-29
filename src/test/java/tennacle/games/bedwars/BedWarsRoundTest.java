@@ -757,6 +757,44 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** The user, 2026-09-29: an eliminated player who leaves is out already, so the leave says nothing new. */
+    @Test
+    void anOutLeaverSaysNothingNew() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwOutA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwOutB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwOutC");
+        List<FakePlayer> all = List.of(a, b, c);
+        try {
+            for (FakePlayer p : all) p.player.setInstance(game.instance(), ROOM).join();
+            for (FakePlayer p : all) assertTrue(Matches.enter(game, List.of(p.player)));
+            await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            live(game);
+            String cTeam = Match.teamOf(game, c.player);
+            int cSeat = game.roster().slotOf(c.player).index();
+            BlockVec cBed = game.arena().marker(BedWars.BED, cTeam).boxes().getFirst().min();
+            EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), game.shard().getBlock(cBed), Block.AIR, cBed, BlockFace.TOP));
+            game.module(Respawns.class).unprotect(c.player);
+            a.sent.clear();
+            Mechanics.polyp.services().damage().apply(DamageSnapshot.of(c.player, MeleeDamage.INSTANCE).withSource(a.player).withAmount(100f));
+            assertEquals(1, lines(a, "has been eliminated!").size(), "the side goes once: " + lines(a, "eliminated"));
+
+            MinecraftServer.getCommandManager().execute(c.player, "l");
+            tickUntil(game, "c gone", () -> Game.of(c.player) == null && !game.isGhost(c.player));
+            assertEquals(1, lines(a, "has been eliminated!").size(), "and not again at the leave: " + lines(a, "eliminated"));
+            assertEquals(1, game.state().get(Scope.slot(cSeat), BedWars.FINAL_DEATHS), "one final death");
+            assertEquals(1, game.state().get(Scope.slot(cSeat), BedWars.DEATHS), "the leave is no death");
+            assertNull(game.decided(), "two sides still stand");
+            assertNull(game.roster().reservedFor(game.roster().slot(cSeat)), "nothing held to come back to");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
+        }
+    }
+
     /** A placed TNT primes inside the placement, before the block is refused: the prime takes the same refusal. */
     @Test
     void tntInABaseNeverPrimes() {
