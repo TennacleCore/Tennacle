@@ -1404,6 +1404,11 @@ www.hypixel.net           yellow
 - **Per-player settings** worth persisting: Quick Buy layout, Hotbar Manager slots.
 - The first pass keeps the stats alone (decision 6): no XP, levels, prestiges, achievements, quests,
   cosmetics, Slumber Hotel or tokens shop.
+- Ours (2026-09-29): the duels' stats endpoint, Grotto `Stats`, flushes a Bed Wars game's kills, deaths, final
+  kills, final deaths and beds broken to the vault (`bedwars:career-*`), and a decided game's win or loss
+  (`Stats.wins/losses`); `/stats [player]` (`games.Careers`) says every mode's line, boxing's and Bed Wars'. The
+  match-side counters themselves are the seat's ledger keys, so a replay carries them; melee and bow numbers are
+  `games.Hits`' for every duel, and a hand's blocks placed and broken are `Building`'s.
 
 ## 12. What we have captured already
 
