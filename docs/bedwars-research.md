@@ -1976,6 +1976,15 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
    3s one with 5 spawners on the ten maps played in both, and are taken to be on the rest (our play). Left:
    every guessed map, when it returns to rotation, and Tengshe, whose world the archive lacks.
    A walk past every base and generator would make the copied forge and generator points exact.
+   Hypixel's rotation of 2026-09-28 (the user, 2026-09-29) brings back twelve guessed maps: Cascade,
+   Highland Peaks, Lighthouse, Orbit, Pernicious, Speedway and Urban Plaza with 8 teams, and Crimson,
+   Eastwood, Nostalgia, Rise and Unturned with 4. Each needs the whole round the captured maps had: spawn,
+   forge and shopkeepers, forge spawners, both generator kinds, the base box, team seating and its build
+   limits. The archive holds two Pernicious worlds, so its capture also settles which one Hypixel runs.
+   Haven, Sky Festival and Yandi also enter, and the archive lacks all three, so like Tengshe they need a
+   world as well as a capture. Leaving: Amazon, Deadwood, Harvest, Lucky Rush, Mirage, Rooted, Serenity and
+   Silver Birch with 8 teams, Frogiton, Graveship, Harvesting, Horizon, Kubo, Lost Temple and Swashbuckle
+   with 4, and Tengshe. All of them are captured, so our rotation keeps them.
 8. **Which Hypixel maps, in which modes.** Decided 2026-09-27: the first rotation is the fully captured maps
    alone, each in the modes of its team count (8-team maps in Solo and Doubles, 4-team maps in 3s and 4s).
    Guessed maps stay out, and so does Tengshe for now.
