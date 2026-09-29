@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import net.minestom.server.potion.PotionEffect;
 import tennacle.games.beds.Beds;
 import tennacle.games.beds.Lives;
 import tennacle.games.Match;
@@ -476,6 +477,8 @@ class BedFightRoundTest extends HeadlessServerTest {
             game.module(Lives.class).fell(red.player);
             List<String> ordinary = said(blue).stream().filter(l -> l.contains("BedLineRed")).toList();
             assertEquals(List.of("BedLineRed fell into the void."), ordinary, "one line, the look's: " + said(blue));
+            assertFalse(red.player.hasEffect(PotionEffect.INVISIBILITY) || red.player.hasEffect(PotionEffect.NIGHT_VISION),
+                    "a duel's dead wear no potion, Bed Wars' do");
 
             break0(blue.player, new BlockVec(-7, 65, 0));
             assertFalse(Beds.stands(game, mine.team()), "their bed is gone");

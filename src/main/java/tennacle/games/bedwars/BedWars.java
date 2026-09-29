@@ -363,6 +363,8 @@ public final class BedWars {
                 .rule(TeamChat.TEAM, size > 1) // Solo chat is global; a team mode talks to its team, /shout to all
                 .rule(HiddenNames.HIDDEN, true) // a public pregame: strangers read as random strings
                 .rule(HiddenNames.SKINS, true)
+                .rule(Spectating.INVISIBLE, true) // captured: the dead wear both, at 32767
+                .rule(Spectating.NIGHT_VISION, true)
                 .rule(HealthDisplay.FROM, Match.LIVE) // captured: health under names and in the tab comes with the start
                 .rule(Staging.DRAW, true) // captured: no team shows until the start, a party lands together
                 .rule(Building.BREAK, List.of(Building.PLACED, Building.GRASS)) // the map's blocks never come up, its plants do; the beds are Beds'
