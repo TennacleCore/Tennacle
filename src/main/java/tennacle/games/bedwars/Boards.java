@@ -42,7 +42,7 @@ final class Boards {
                 }, Phases.PHASE, Countdown.LEFT)
                 .rows(g -> Match.opening(g) ? 0 : 2, (g, me, i) -> i == 1 ? Component.empty() : nextEvent(g))
                 .rows(g -> Match.opening(g) ? 0 : g.roster().teams().size(),
-                        (g, me, i) -> Rows.side(g, g.roster().teams().get(i).id(), me, Rows.BED_LOUD, Rows.GONE_LOUD),
+                        (g, me, i) -> Rows.side(g, g.roster().teams().get(i).id(), me),
                         Phases.PHASE, Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .rows(g -> Match.opening(g) ? 0 : 2, (g, me, i) -> i == 0 ? Component.empty()
                         : Frames.hypixelRow("Kills: ", Match.seatStat(g, me, BedWars.KILLS)), Phases.PHASE, BedWars.KILLS));

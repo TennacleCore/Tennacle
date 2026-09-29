@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.beds.Rows;
 import tennacle.games.Match;
 import tennacle.games.beds.Beds;
 import tennacle.games.Cards;
@@ -48,6 +49,6 @@ final class Ends {
 
     // the board's own glyphs: a card reading Yes/No beside a scoreboard of checks read as two answers
     private static net.kyori.adventure.text.Component bed(Game game, Slot seat) {
-        return Beds.stands(game, seat.team()) ? Boards.BED : Boards.GONE;
+        return Beds.stands(game, seat.team()) ? Rows.BED : Rows.GONE;
     }
 }
