@@ -6,8 +6,6 @@ import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.flow.Bundle;
 import io.github.term4.grotto.modules.outcome.Results;
 import io.github.term4.grotto.modules.view.Summary;
-import io.github.term4.grotto.roster.Slot;
-import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
@@ -36,24 +34,24 @@ public final class Cards {
     public static final Summary.SeatCell DAMAGE_LINE =
             (g, seat, th, side) -> th.prose("Damage: ").append(th.hearts(Hits.hearts(g, java.util.List.of(seat))));
     public static final Summary.SeatCell BLOCKS_PLACED_LINE =
-            (g, seat, th, side) -> th.prose("Blocks Placed: ").append(th.value(Hits.at(g, seat, Building.PLACED_COUNT)));
+            (g, seat, th, side) -> th.prose("Blocks Placed: ").append(th.value(Match.seatStat(g, seat, Building.PLACED_COUNT)));
     public static final Summary.SeatCell BLOCKS_BROKEN_LINE =
-            (g, seat, th, side) -> th.prose("Blocks Broken: ").append(th.value(Hits.at(g, seat, Building.BROKEN_COUNT)));
+            (g, seat, th, side) -> th.prose("Blocks Broken: ").append(th.value(Match.seatStat(g, seat, Building.BROKEN_COUNT)));
     /** Landed | taken. */
     public static final Summary.SeatCell HITS_LINE = (g, seat, th, side) -> th.prose("Hits: ")
-            .append(th.value(Hits.at(g, seat, Hits.LANDED))).append(th.dim(" | ")).append(th.value(Hits.at(g, seat, Hits.TAKEN)));
+            .append(th.value(Match.seatStat(g, seat, Hits.LANDED))).append(th.dim(" | ")).append(th.value(Match.seatStat(g, seat, Hits.TAKEN)));
     /** The share of hits taken behind a raised sword. */
     public static final Summary.SeatCell HITS_BLOCKED_LINE = (g, seat, th, side) -> th.prose("Hits Blocked: ")
-            .append(th.value(Hits.share(Hits.at(g, seat, Hits.BLOCKED), Hits.at(g, seat, Hits.TAKEN))));
+            .append(th.value(Hits.share(Match.seatStat(g, seat, Hits.BLOCKED), Match.seatStat(g, seat, Hits.TAKEN))));
     public static final Summary.SeatCell ARROWS_LINE = (g, seat, th, side) -> {
-        int hit = Hits.at(g, seat, Hits.ARROWS_HIT), shot = Hits.at(g, seat, Hits.ARROWS);
+        int hit = Match.seatStat(g, seat, Hits.ARROWS_HIT), shot = Match.seatStat(g, seat, Hits.ARROWS);
         return th.prose("Arrows: ").append(th.value(hit + "/" + shot)).append(th.dim(" (" + Hits.share(hit, shot) + ")"));
     };
 
     /** {@code kills | deaths (ratio)}. */
     public static @NotNull Summary.SeatCell kdr(@NotNull StateKey<Integer> kills, @NotNull StateKey<Integer> deaths) {
         return (g, seat, th, side) -> {
-            int k = Hits.at(g, seat, kills), d = Hits.at(g, seat, deaths);
+            int k = Match.seatStat(g, seat, kills), d = Match.seatStat(g, seat, deaths);
             return th.prose("KDR: ").append(th.value(k)).append(th.dim(" | ")).append(th.value(d))
                     .append(th.dim(" (" + String.format(Locale.ROOT, "%.1f", k / (double) Math.max(1, d)) + ")"));
         };
@@ -88,9 +86,5 @@ public final class Cards {
     /** Hypixel's play-again line under a duel card: {@code /duel <opponent> <words>}. */
     public static @NotNull BiFunction<Game, Player, Component> playAgain(@NotNull String words) {
         return (g, me) -> HypixelCard.playAgain(Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " " + words);
-    }
-
-    static int seatStat(@NotNull Game game, @NotNull Slot seat, @NotNull StateKey<Integer> key) {
-        return game.state().get(Scope.slot(seat.index()), key);
     }
 }

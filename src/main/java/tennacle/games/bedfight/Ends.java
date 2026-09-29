@@ -1,5 +1,6 @@
 package tennacle.games.bedfight;
 
+import tennacle.games.Match;
 import tennacle.games.beds.Beds;
 import tennacle.games.Cards;
 import tennacle.games.Matches;
@@ -9,8 +10,6 @@ import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.outcome.Results;
 import io.github.term4.grotto.modules.view.Summary;
 import io.github.term4.grotto.roster.Slot;
-import io.github.term4.grotto.state.Scope;
-import io.github.term4.grotto.state.StateKey;
 
 /** Bed fight's end screens, one per network. */
 final class Ends {
@@ -24,7 +23,7 @@ final class Ends {
                         (g, seat, th, side) -> th.prose("Bed: ").append(bed(g, seat)),
                         BedFight.KILLS, BedFight.DEATHS)
                 .cardSection(
-                        (g, seat, th, side) -> th.prose("Beds Broken: ").append(th.value(stat(g, seat, BedFight.BEDS))),
+                        (g, seat, th, side) -> th.prose("Beds Broken: ").append(th.value(Match.seatStat(g, seat, BedFight.BEDS))),
                         Cards.BLOCKS_PLACED_LINE, Cards.BLOCKS_BROKEN_LINE);
     }
 
@@ -50,9 +49,5 @@ final class Ends {
     // the board's own glyphs: a card reading Yes/No beside a scoreboard of checks read as two answers
     private static net.kyori.adventure.text.Component bed(Game game, Slot seat) {
         return Beds.stands(game, seat.team()) ? Boards.BED : Boards.GONE;
-    }
-
-    private static int stat(Game game, Slot seat, StateKey<Integer> key) {
-        return game.state().get(Scope.slot(seat.index()), key);
     }
 }

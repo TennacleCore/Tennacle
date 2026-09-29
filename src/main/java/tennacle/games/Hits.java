@@ -75,14 +75,10 @@ public final class Hits implements GameModule {
         });
     }
 
-    public static int at(@NotNull Game game, @NotNull Slot seat, @NotNull StateKey<Integer> key) {
-        return game.state().get(Scope.slot(seat.index()), key);
-    }
-
     /** Over a side: a 1v1 side is one seat, a team side sums its seats. */
     public static int sum(@NotNull Game game, @NotNull List<Slot> side, @NotNull StateKey<Integer> key) {
         int total = 0;
-        for (Slot seat : side) total += at(game, seat, key);
+        for (Slot seat : side) total += Match.seatStat(game, seat, key);
         return total;
     }
 

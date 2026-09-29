@@ -1,5 +1,7 @@
 package tennacle.games.items;
 
+import java.util.function.BiConsumer;
+import io.github.term4.grotto.modules.outcome.LastStanding;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
 import tennacle.games.beds.Lives;
@@ -76,6 +78,10 @@ public final class Creatures implements GameModule {
     /** Ticks between swings in reach; the hurt window paces what lands. */
     public static final StateKey<Integer> DEFENDER_SWING = StateKey.of("creatures.defender.swing", Codec.INT, 1);
     public static final StateKey<Double> DRAGONS_LIFT = StateKey.of("creatures.dragons.lift", Codec.DOUBLE, 0.4);
+    /** Dragons a wave puts over each standing side's spawn. */
+    public static final StateKey<Integer> DRAGONS_PER_TEAM = StateKey.of("creatures.dragons.per-team", Codec.INT, 1);
+    /** Over the side's spawn. */
+    public static final StateKey<Double> DRAGONS_HEIGHT = StateKey.of("creatures.dragons.height", Codec.DOUBLE, 15.0);
     /** A side may hurt its own dragon (the user, 2026-09-29); its own Bedbug and Dream Defender stay untouchable. */
     public static final StateKey<Boolean> DRAGONS_OWN_HITS = StateKey.of("creatures.dragons.own-hits", Codec.BOOLEAN, true);
 
@@ -112,7 +118,7 @@ public final class Creatures implements GameModule {
     @Override
     public @NotNull Set<StateKey<?>> rules() {
         return Set.of(BEDBUG_LIFE, BEDBUG_HEALTH, BEDBUG_STRENGTH, BEDBUG_RESISTANCE, DEFENDER_LIFE, DEFENDER_HEALTH,
-                DEFENDER_SPEED, DEFENDER_SWING, DRAGONS_LIFT, DRAGONS_OWN_HITS);
+                DEFENDER_SPEED, DEFENDER_SWING, DRAGONS_LIFT, DRAGONS_OWN_HITS, DRAGONS_PER_TEAM, DRAGONS_HEIGHT);
     }
 
     @Override
@@ -241,6 +247,25 @@ public final class Creatures implements GameModule {
         creatures.put(dragon, new Creature(dragon, team.id(), null, null, game.tick(), -1, null, 0));
         arm();
         return dragon;
+    }
+
+    /** A wave: {@link #DRAGONS_PER_TEAM} over every side still standing, each handed to {@code each}. */
+    public void wave(@NotNull BiConsumer<Team, EnderDragonEntity> each) {
+        LastStanding standing = game.module(LastStanding.class);
+        int perTeam = game.rules().resolve(Scope.GAME, DRAGONS_PER_TEAM);
+        double height = game.rules().resolve(Scope.GAME, DRAGONS_HEIGHT);
+        for (Team team : game.roster().teams()) {
+            if (standing != null && standing.standing(team.id()) == 0) continue;
+            Pos spawn = null;
+            for (Slot seat : game.roster().seatsOf(team.id())) {
+                if (seat.spawn() != null) {
+                    spawn = seat.spawn();
+                    break;
+                }
+            }
+            if (spawn == null) continue;
+            for (int i = 0; i < perTeam; i++) each.accept(team, dragon(team, spawn.add(0, height, 0)));
+        }
     }
 
     /** {@code <Team> <what>} in the side's color, the side's word bold. */

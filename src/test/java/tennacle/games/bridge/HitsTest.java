@@ -63,19 +63,19 @@ class HitsTest extends HeadlessServerTest {
                     .withSource(red.player).withAmount(3f));
             settle();
 
-            assertEquals(2, Hits.at(game, mine, Hits.SWINGS));
-            assertEquals(1, Hits.at(game, mine, Hits.LANDED), "the pipeline's verdict counts the hit");
-            assertEquals(1, Hits.at(game, mine, Hits.COMBO));
-            assertEquals(1, Hits.at(game, mine, Hits.BEST_COMBO));
-            assertEquals(1, Hits.at(game, theirs, Hits.TAKEN));
-            assertEquals(0, Hits.at(game, theirs, Hits.LANDED));
+            assertEquals(2, Match.seatStat(game, mine, Hits.SWINGS));
+            assertEquals(1, Match.seatStat(game, mine, Hits.LANDED), "the pipeline's verdict counts the hit");
+            assertEquals(1, Match.seatStat(game, mine, Hits.COMBO));
+            assertEquals(1, Match.seatStat(game, mine, Hits.BEST_COMBO));
+            assertEquals(1, Match.seatStat(game, theirs, Hits.TAKEN));
+            assertEquals(0, Match.seatStat(game, theirs, Hits.LANDED));
             float lost = before - blue.player.getHealth();
             assertTrue(lost > 0 && lost < 3f, "the kit's armor took some: " + lost);
             assertEquals(lost, game.state().get(Scope.slot(mine.index()), Hits.DEALT), 0.001f, "dealt is what the victim lost");
             assertEquals(String.format(java.util.Locale.ROOT, "%.1f", lost / 2), Hits.hearts(game, List.of(mine)), "in hearts");
-            assertEquals("50%", Hits.share(Hits.at(game, mine, Hits.LANDED), Hits.at(game, mine, Hits.SWINGS)));
+            assertEquals("50%", Hits.share(Match.seatStat(game, mine, Hits.LANDED), Match.seatStat(game, mine, Hits.SWINGS)));
             assertEquals("N/A", Hits.share(0, 0), "before the first try");
-            assertEquals(0, Hits.at(game, theirs, Hits.SWINGS), "the other seat never swung");
+            assertEquals(0, Match.seatStat(game, theirs, Hits.SWINGS), "the other seat never swung");
             assertEquals(1, Hits.sum(game, List.of(mine, theirs), Hits.LANDED), "a side sums its seats");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());

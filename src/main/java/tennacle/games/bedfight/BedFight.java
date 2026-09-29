@@ -61,7 +61,6 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
-import net.minestom.server.utils.Unit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,16 +101,12 @@ public final class BedFight {
     public static final StateKey<Integer> FINAL_DEATHS = StateKey.of("ledger.bedfight.final-deaths", Codec.INT, 0, true);
     static final Lives.Counters COUNTERS = new Lives.Counters(KILLS, DEATHS, FINAL_KILLS, FINAL_DEATHS);
 
-    private static final ItemStack SWORD = ItemStack.of(Material.WOODEN_SWORD)
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-    private static final ItemStack SHEARS = ItemStack.of(Material.SHEARS)
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-    private static final ItemStack PICKAXE = ItemStack.of(Material.WOODEN_PICKAXE)
-            .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 1)))
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-    private static final ItemStack AXE = ItemStack.of(Material.WOODEN_AXE)
-            .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 1)))
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+    private static final ItemStack SWORD = Kit.unbreakable(ItemStack.of(Material.WOODEN_SWORD));
+    private static final ItemStack SHEARS = Kit.unbreakable(ItemStack.of(Material.SHEARS));
+    private static final ItemStack PICKAXE = Kit.unbreakable(ItemStack.of(Material.WOODEN_PICKAXE)
+            .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 1))));
+    private static final ItemStack AXE = Kit.unbreakable(ItemStack.of(Material.WOODEN_AXE)
+            .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 1))));
 
     /** Bed fight's look under an arena's own: what a side builds with is wool in its tint. */
     static final Livery LOOK = new Livery(Map.of("blocks", "wool"));

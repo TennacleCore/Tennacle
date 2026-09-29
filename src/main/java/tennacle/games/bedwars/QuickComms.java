@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.beds.Beds;
 import tennacle.games.TeamBlocks;
 
 import tennacle.games.Match;
@@ -98,7 +99,7 @@ final class QuickComms {
                 // captured: the name less one trailing "!"
                 Component message = Lines.said(game, say.title.substring(0, say.title.length() - 1), Component.empty());
                 boolean base = say.aim == Aim.BASE;
-                send(game, viewer, message, base ? Compass.base(game, Match.teamOf(game, viewer)) : null,
+                send(game, viewer, message, base ? Beds.base(game, Match.teamOf(game, viewer)) : null,
                         base ? Lines.said(game, "your base ", Component.empty()) : null);
             }
         }
@@ -113,7 +114,7 @@ final class QuickComms {
             window.button(slot++, option(wool, say.lead, name), (v, click) -> {
                 if (click instanceof Click.Double) return;
                 v.closeInventory();
-                send(game, v, Lines.said(game, say.lead, name), Compass.base(game, team.id()),
+                send(game, v, Lines.said(game, say.lead, name), Beds.base(game, team.id()),
                         Lines.said(game, Palette.titled(team) + " ", Component.empty()));
             });
         }

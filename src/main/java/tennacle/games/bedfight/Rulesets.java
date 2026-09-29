@@ -35,8 +35,8 @@ final class Rulesets {
                     .rule(io.github.term4.grotto.modules.combat.Respawns.REJOIN_TICKS, 200L) // bedwars: ten, not five
                     .path("damage/enabledTypes", "with(minecraft:fall)") // a hypixel bed fight bridges at its own risk
                     .over(BASE),
-            "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18").over(BASE),
-            "minemen", Ruleset.named("minemen").rule(Presets.KEY, "mmc18").over(BASE));
+            "scrims", Presets.variant("scrims", BASE),
+            "minemen", Presets.variant("minemen", BASE));
 
     /** The platform rulesets, each over {@link #BASE}; a platform naming none of them plays the base. */
     static Map<String, Ruleset> variants() {

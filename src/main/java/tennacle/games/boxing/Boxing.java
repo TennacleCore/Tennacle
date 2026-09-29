@@ -42,9 +42,7 @@ import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.modules.outcome.Score;
 import io.github.term4.grotto.modules.outcome.Stats;
 import io.github.term4.grotto.modules.flow.TimeLimit;
-import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.SlotLayout;
-import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.grotto.vault.VaultKey;
 import io.github.term4.polyp.MechanicsProfile;
@@ -62,7 +60,6 @@ import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.potion.PotionEffect;
-import net.minestom.server.utils.Unit;
 
 import java.util.List;
 import java.util.Map;
@@ -91,10 +88,7 @@ public final class Boxing {
             .rule(HealthDisplay.SURFACES, List.of());
 
     /** What each platform IS, over the base: a hit's reach and reset are its preset's, so the preset is the mode. */
-    private static final Map<String, Ruleset> VARIANTS = Map.of(
-            "hypixel", Ruleset.named("hypixel").rule(Presets.KEY, "hypixel").over(BASE),
-            "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18").over(BASE),
-            "minemen", Ruleset.named("minemen").rule(Presets.KEY, "mmc18").over(BASE));
+    private static final Map<String, Ruleset> VARIANTS = Presets.variants(BASE);
 
     // career truth, in the vault
     public static final VaultKey<Integer> CAREER_HITS = VaultKey.of("boxing:career-hits", Codec.INT, 0);
@@ -102,12 +96,11 @@ public final class Boxing {
     public static final VaultKey<Integer> CAREER_COMBO = VaultKey.of("boxing:career-best-combo", Codec.INT, 0);
 
     // deals nothing (amount is zeroed) - it's the 1.8 block-hit sprint-reset tool
-    private static final ItemStack SWORD = ItemStack.of(Material.DIAMOND_SWORD)
+    private static final ItemStack SWORD = Kit.unbreakable(ItemStack.of(Material.DIAMOND_SWORD)
             .with(DataComponents.CUSTOM_NAME, Component.text("Boxing Sword", NamedTextColor.YELLOW, TextDecoration.BOLD)
                     .decoration(TextDecoration.ITALIC, false))
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(
-                    Enchantment.SHARPNESS, 10, Enchantment.UNBREAKING, 10)))
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+                    Enchantment.SHARPNESS, 10, Enchantment.UNBREAKING, 10))));
     // Speed II rides the kit: a player reads it as part of the gloves
     private static final Kit KIT = Kit.of("boxing").item(0, SWORD).effect(PotionEffect.SPEED, 1);
 
@@ -154,15 +147,6 @@ public final class Boxing {
         Duels.mode(boxing);
         Flags.offer(boxing, "preset");
         registerStats();
-    }
-
-    static int hits(Game game, Player player) {
-        return player == null ? 0 : seatStat(game, player, HITS);
-    }
-
-    static int seatStat(Game game, Player player, StateKey<Integer> key) {
-        Slot seat = game.roster().slotOf(player);
-        return seat == null ? 0 : game.state().get(Scope.slot(seat.index()), key);
     }
 
     static String wtap(int hits, int sprint) {

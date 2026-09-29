@@ -13,7 +13,6 @@ import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.registry.RegistryKey;
-import net.minestom.server.utils.Unit;
 
 import java.util.List;
 import java.util.Map;
@@ -107,11 +106,6 @@ final class Gear {
     }
 
     /** Nothing a seat wears or swings wears out. */
-    static ItemStack unbreakable(Game game, Slot seat, ItemStack item) {
-        return item.has(DataComponents.MAX_DAMAGE) && !item.has(DataComponents.UNBREAKABLE)
-                ? item.with(DataComponents.UNBREAKABLE, Unit.INSTANCE) : item;
-    }
-
     static void died(Lives.Death death) {
         if (death.last()) return;
         Game game = death.game();

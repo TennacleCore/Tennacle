@@ -13,11 +13,8 @@ import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.view.Scoreboard;
 import io.github.term4.grotto.roster.Roster;
-import io.github.term4.grotto.roster.Slot;
-import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minestom.server.entity.Player;
 
 /**
  * The captured Bed Wars board: while the game fills, the map, the seats taken and the count; in play, a row a
@@ -48,7 +45,7 @@ final class Boards {
                         (g, me, i) -> Rows.side(g, g.roster().teams().get(i).id(), me, Rows.BED_LOUD, Rows.GONE_LOUD),
                         Phases.PHASE, Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .rows(g -> Match.opening(g) ? 0 : 2, (g, me, i) -> i == 0 ? Component.empty()
-                        : Frames.hypixelRow("Kills: ", kills(g, me)), Phases.PHASE, BedWars.KILLS));
+                        : Frames.hypixelRow("Kills: ", Match.seatStat(g, me, BedWars.KILLS)), Phases.PHASE, BedWars.KILLS));
     }
 
     // captured: the next event alone, "Diamond II in 5:22"
@@ -56,10 +53,5 @@ final class Boards {
         Timeline timeline = game.module(Timeline.class);
         Timeline.Next next = timeline != null ? timeline.next() : null;
         return next == null ? Component.empty() : Frames.hypixelRow(next.label() + " in ", Frames.shortClock(next.left()));
-    }
-
-    private static int kills(Game game, Player viewer) {
-        Slot seat = viewer != null ? game.roster().slotOf(viewer) : null;
-        return seat != null ? game.state().get(Scope.slot(seat.index()), BedWars.KILLS) : 0;
     }
 }

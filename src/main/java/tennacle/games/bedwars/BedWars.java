@@ -97,7 +97,6 @@ import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.potion.PotionEffect;
-import net.minestom.server.utils.Unit;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -149,8 +148,7 @@ public final class BedWars {
     public static final StateKey<Integer> BEDS = StateKey.of("ledger.bedwars.beds", Codec.INT, 0, true);
     static final Lives.Counters COUNTERS = new Lives.Counters(KILLS, DEATHS, FINAL_KILLS, FINAL_DEATHS);
 
-    private static final ItemStack SWORD = ItemStack.of(Material.WOODEN_SWORD)
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+    private static final ItemStack SWORD = Kit.unbreakable(ItemStack.of(Material.WOODEN_SWORD));
 
     // the shop's team blocks, in the team's color
     static final Livery LOOK = new Livery(Map.of(TeamBlocks.WOOL.name(), "wool", TeamBlocks.CLAY.name(), "terracotta",
@@ -172,7 +170,7 @@ public final class BedWars {
             .role("utility", ItemStack.of(Material.TNT))
             .layouts((g, p) -> KitLayouts.of(p, "bedwars"))
             .skin(Skins.skin())
-            .stamp(Gear::unbreakable)
+            .stamp(Kit.UNBREAKABLE)
             .stamp(Upgrades::sharpened, Upgrades.SHARPNESS)
             .stamp(Upgrades::reinforced, Upgrades.PROTECTION)
             .stamp(Upgrades::cushioned, Upgrades.CUSHIONED)
@@ -375,7 +373,7 @@ public final class BedWars {
                         Compass::new,
                         Spoils::new,
                         MagicMilk::new,
-                        Creatures::new, Dragons::new,
+                        Creatures::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
                             Lives lives = g.module(Lives.class);
                             if (lives != null) lives.fell(who);

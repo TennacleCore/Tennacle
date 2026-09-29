@@ -82,7 +82,6 @@ import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
-import net.minestom.server.utils.Unit;
 
 import java.util.List;
 import java.util.Map;
@@ -121,13 +120,10 @@ public final class Bridge {
     /** The player's cage cosmetic: a variant group in the cages arena; "" = default. */
     public static final VaultKey<String> CAGE_CHOICE = VaultKey.of("bridge:cage", Codec.STRING, "");
 
-    private static final ItemStack SWORD = ItemStack.of(Material.IRON_SWORD)
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-    private static final ItemStack BOW = ItemStack.of(Material.BOW)
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
-    private static final ItemStack PICKAXE = ItemStack.of(Material.DIAMOND_PICKAXE)
-            .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2)))
-            .with(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+    private static final ItemStack SWORD = Kit.unbreakable(ItemStack.of(Material.IRON_SWORD));
+    private static final ItemStack BOW = Kit.unbreakable(ItemStack.of(Material.BOW));
+    private static final ItemStack PICKAXE = Kit.unbreakable(ItemStack.of(Material.DIAMOND_PICKAXE)
+            .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.EFFICIENCY, 2))));
     /** Bridge's look under an arena's own: blocks are terracotta in the team's tint, cages wool. The cage's
      *  family is only what makes the role resolve whole - an accented cell keeps its own material. */
     static final Livery LOOK = new Livery(Map.of("blocks", "terracotta", "cage", "wool"));

@@ -1,8 +1,8 @@
 package tennacle.games.items;
 
+import tennacle.games.Throttle;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
 import io.github.term4.polyp.mechanics.projectile.types.Fireball;
@@ -26,6 +26,8 @@ public final class Fireballs implements GameModule {
     /** Slowness level from 1; {@code 0} = no slowness. */
     public static final StateKey<Integer> SLOWNESS_LEVEL = StateKey.of("fireball.slowness.level", Codec.INT, 2);
 
+    private static final StateKey<Long> USED = Throttle.stamp("ledger.items.fireball.used");
+
     private Throttle throttle;
 
     @Override
@@ -35,10 +37,10 @@ public final class Fireballs implements GameModule {
 
     @Override
     public void install(@NotNull Game game) {
-        throttle = new Throttle(game, COOLDOWN);
+        throttle = Throttle.of(game, USED, COOLDOWN);
         game.on(ProjectileLaunchEvent.class, ProjectileLaunchEvent::shooter, e -> {
             if (!(e.shooter() instanceof Player thrower) || !(e.snapshot().type() instanceof Fireball) || game.isGhost(thrower)) return;
-            if (!throttle.allow(thrower)) {
+            if (!throttle.pass(thrower, left -> thrower.sendMessage(ItemLines.of(game).wait(game, throttle.cooldown(thrower))))) {
                 e.setCancelled(true);
                 return;
             }
@@ -47,10 +49,5 @@ public final class Fireballs implements GameModule {
             if (ticks <= 0 || level <= 0) return;
             thrower.addEffect(new Potion(PotionEffect.SLOWNESS, level - 1, (int) ticks, (byte) (Potion.PARTICLES_FLAG | Potion.ICON_FLAG)));
         });
-    }
-
-    @Override
-    public void onEnd(@NotNull Game game, @NotNull Outcome outcome) {
-        throttle.clear();
     }
 }

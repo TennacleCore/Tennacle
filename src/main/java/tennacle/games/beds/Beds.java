@@ -1,5 +1,9 @@
 package tennacle.games.beds;
 
+import io.github.term4.grotto.Markers;
+import io.github.term4.barnacle.marker.PosMarker;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.coordinate.Pos;
 import io.github.term4.polyp.api.event.mobs.MobBreakBlockEvent;
 import org.jetbrains.annotations.Nullable;
 import tennacle.games.Match;
@@ -88,6 +92,41 @@ public final class Beds implements GameModule {
     public Beds(@NotNull MarkerKey<RegionMarker> key, @NotNull StateKey<Integer> broken) {
         this.key = key;
         this.broken = broken;
+    }
+
+    /** {@code team}'s bed while it stands, else null. */
+    public @Nullable RegionMarker bed(@NotNull String team) {
+        return stands(game, team) ? game.arena().marker(key, team) : null;
+    }
+
+    /** A side's base: its bed's corner while it stands, else its spawn. */
+    public static @Nullable Pos base(@NotNull Game game, @NotNull String team) {
+        Beds beds = game.module(Beds.class);
+        RegionMarker bed = beds != null ? beds.bed(team) : null;
+        if (bed != null) {
+            BlockVec min = bed.bounds().min();
+            return new Pos(min.x() + 0.5, min.y(), min.z() + 0.5);
+        }
+        PosMarker spawn = game.arena().marker(Markers.SPAWN, team);
+        return spawn != null ? spawn.pos() : null;
+    }
+
+    /** The center of {@code bed}'s head block, or of its first cell when no block there says which; null for none. */
+    public static @Nullable Point head(@NotNull Game game, @Nullable RegionMarker bed) {
+        if (bed == null) return null;
+        Point any = null;
+        for (RegionMarker.Cuboid box : bed.boxes()) {
+            for (int x = box.min().blockX(); x <= box.max().blockX(); x++) {
+                for (int y = box.min().blockY(); y <= box.max().blockY(); y++) {
+                    for (int z = box.min().blockZ(); z <= box.max().blockZ(); z++) {
+                        Point cell = new BlockVec(x, y, z);
+                        if (any == null) any = cell;
+                        if ("head".equals(game.shard().getBlock(cell).getProperty("part"))) return new Vec(x + 0.5, y + 0.5, z + 0.5);
+                    }
+                }
+            }
+        }
+        return any != null ? new Vec(any.x() + 0.5, any.y() + 0.5, any.z() + 0.5) : null;
     }
 
     /** Told the side whose bed just went, however it went - the clock or an enemy pick. */

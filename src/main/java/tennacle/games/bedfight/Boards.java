@@ -10,7 +10,6 @@ import io.github.term4.grotto.modules.view.Scoreboard;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.modules.outcome.LastStanding;
-import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.Component;
@@ -48,7 +47,7 @@ final class Boards {
                 .blank()
                 .rows(Boards::sides, (g, me, i) -> sideLine(g, teamAt(g, i), me, BED_LOUD, GONE_LOUD), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .ownBlank()
-                .own((g, me) -> Frames.hypixelRow("Kills: ", kills(g, me)), BedFight.KILLS));
+                .own((g, me) -> Frames.hypixelRow("Kills: ", Match.seatStat(g, me, BedFight.KILLS)), BedFight.KILLS));
     }
 
     // uncaptured (the minemen bed fight capture is empty): the minemen frame around the scrims rows
@@ -58,18 +57,13 @@ final class Boards {
                 .blank()
                 .rows(Boards::sides, (g, me, i) -> sideLine(g, teamAt(g, i), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD)
                 .ownBlank()
-                .own((g, me) -> Frames.minemenRow("Kills: ", kills(g, me)), BedFight.KILLS));
+                .own((g, me) -> Frames.minemenRow("Kills: ", Match.seatStat(g, me, BedFight.KILLS)), BedFight.KILLS));
     }
 
     private static void rows(Scoreboard b) {
         b.line((g, me) -> clockLine(g, "Bed gone in ")) // no watched key: a clock is the board's own timer to refresh
                 .blank()
                 .rows(Boards::sides, (g, me, i) -> sideLine(g, teamAt(g, i), me, BED, GONE), Beds.STANDS, LastStanding.OUT, Respawns.DEAD);
-    }
-
-    private static int kills(Game game, Player viewer) {
-        Slot seat = viewer != null ? game.roster().slotOf(viewer) : null;
-        return seat != null ? game.state().get(Scope.slot(seat.index()), BedFight.KILLS) : 0;
     }
 
     // no clock, or nothing left for one to take: the match's own stopwatch, counting up

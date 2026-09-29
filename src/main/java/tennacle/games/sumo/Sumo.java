@@ -65,10 +65,7 @@ public final class Sumo {
             .rule(HealthDisplay.SURFACES, List.of());
 
     /** What each platform IS, over the base: the shove is its knockback, so the preset is the mode. */
-    private static final Map<String, Ruleset> VARIANTS = Map.of(
-            "hypixel", Ruleset.named("hypixel").rule(Presets.KEY, "hypixel").over(BASE),
-            "scrims", Ruleset.named("scrims").rule(Presets.KEY, "scrims18").over(BASE),
-            "minemen", Ruleset.named("minemen").rule(Presets.KEY, "mmc18").over(BASE));
+    private static final Map<String, Ruleset> VARIANTS = Presets.variants(BASE);
 
     private Sumo() {}
 

@@ -1,19 +1,15 @@
 package tennacle.games.bedwars;
 
 import tennacle.games.Match;
-import tennacle.games.beds.Beds;
 import tennacle.games.beds.Lives;
 import tennacle.games.shop.Price;
 import tennacle.games.watch.Lineup;
 
-import io.github.term4.barnacle.marker.PosMarker;
-import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.canvas.screen.Items;
 import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Markers;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.modules.flow.Phases;
@@ -26,7 +22,6 @@ import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.codec.Codec;
-import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerHand;
@@ -194,17 +189,6 @@ final class Compass implements GameModule {
         if (target == null) return;
         int meters = (int) player.getPosition().distance(target.getPosition());
         player.sendActionBar(Lines.tracking(target.getUsername(), game.roster().team(tracked).color(), meters));
-    }
-
-    /** A side's base on a compass: its bed while it stands, else its spawn. */
-    static @Nullable Pos base(Game game, String team) {
-        RegionMarker bed = Beds.stands(game, team) ? game.arena().marker(BedWars.BED, team) : null;
-        if (bed != null) {
-            BlockVec min = bed.bounds().min();
-            return new Pos(min.x() + 0.5, min.y(), min.z() + 0.5);
-        }
-        PosMarker spawn = game.arena().marker(Markers.SPAWN, team);
-        return spawn != null ? spawn.pos() : null;
     }
 
     /** The teams still in the game but {@code viewer}'s. */

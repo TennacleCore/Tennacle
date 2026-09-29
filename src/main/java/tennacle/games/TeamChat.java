@@ -3,14 +3,12 @@ package tennacle.games;
 import io.github.term4.canvas.chat.Chat;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
-import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tennacle.Msg;
@@ -34,7 +32,7 @@ public final class TeamChat implements GameModule {
     /** Ticks between one player's shouts. */
     public static final StateKey<Long> SHOUT_COOLDOWN = StateKey.of("chat.shout.cooldown", Codec.LONG, 1200L);
 
-    private static final Tag<Long> LAST_SHOUT = Tag.Long("tennacle:last-shout");
+    private static final StateKey<Long> SHOUTED = Throttle.stamp("ledger.chat.shouted");
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
@@ -43,11 +41,6 @@ public final class TeamChat implements GameModule {
 
     @Override
     public void install(@NotNull Game game) {}
-
-    @Override
-    public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
-        player.removeTag(LAST_SHOUT); // another game's clock
-    }
 
     /** The team room a member's line goes to, or null when the whole game hears it. */
     public static Chat.@Nullable Room room(@NotNull Game game, @NotNull Player speaker, @NotNull String message) {
@@ -83,14 +76,8 @@ public final class TeamChat implements GameModule {
             Msg.fail(me, "Everyone in this game hears you already.");
             return;
         }
-        long cooldown = game.rules().resolve(Scope.GAME, SHOUT_COOLDOWN);
-        Long last = me.getTag(LAST_SHOUT);
-        if (last != null && game.tick() - last < cooldown) {
-            long seconds = (cooldown - (game.tick() - last) + 19) / 20;
-            Msg.fail(me, "You can shout again in ", Msg.v(seconds + "s"), ".");
-            return;
-        }
-        me.setTag(LAST_SHOUT, game.tick());
+        if (!Throttle.of(game, SHOUTED, SHOUT_COOLDOWN).pass(me,
+                left -> Msg.fail(me, "You can shout again in ", Msg.v((left + 19) / 20 + "s"), "."))) return;
         Component line = Look.shout(game, me, message);
         game.forEachAudience(p -> p.sendMessage(line));
         Replays.said(game, line);

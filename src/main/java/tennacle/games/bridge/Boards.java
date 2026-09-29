@@ -1,5 +1,6 @@
 package tennacle.games.bridge;
 
+import tennacle.games.Match;
 import tennacle.looks.Palette;
 import tennacle.Msg;
 import tennacle.looks.Frames;
@@ -12,7 +13,6 @@ import io.github.term4.grotto.modules.flow.TimeLimit;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
-import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -54,7 +54,7 @@ final class Boards {
                 .line((g, me) -> circles(g, teamAt(g, 0), Msg.HYPIXEL, false), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> circles(g, teamAt(g, 1), Msg.HYPIXEL, false), Bridge.GOALS, Score.TARGET)
                 .ownBlank()
-                .own((g, me) -> Frames.hypixelRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
+                .own((g, me) -> Frames.hypixelRow("Kills: ", Match.seatStat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .own((g, me) -> Frames.hypixelRow("Goals: ", myTeamGoals(g, me)), Bridge.GOALS));
     }
 
@@ -64,7 +64,7 @@ final class Boards {
                 .line((g, me) -> circles(g, teamAt(g, 1), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
                 .line((g, me) -> circles(g, teamAt(g, 0), Msg.MINEMEN, true), Bridge.GOALS, Score.TARGET)
                 .ownBlank()
-                .own((g, me) -> Frames.minemenRow("Kills: ", mySeat(g, me, Bridge.KILLS)), Bridge.KILLS)
+                .own((g, me) -> Frames.minemenRow("Kills: ", Match.seatStat(g, me, Bridge.KILLS)), Bridge.KILLS)
                 .blank()
                 .line((g, me) -> Frames.minemenRow("Time Left: ", Frames.timeLeft(g))));
     }
@@ -102,11 +102,6 @@ final class Boards {
         Component label = Component.text(tag, team.color());
         if (boldLabel) label = label.decorate(TextDecoration.BOLD);
         return Component.empty().append(label).append(theme.circles(goals, target, team.color()));
-    }
-
-    private static int mySeat(Game game, Player me, StateKey<Integer> key) {
-        Slot seat = game.roster().slotOf(me);
-        return seat != null ? game.state().get(Scope.slot(seat.index()), key) : 0;
     }
 
 

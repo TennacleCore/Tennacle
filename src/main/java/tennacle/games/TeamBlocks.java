@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import org.jetbrains.annotations.Nullable;
+import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Role;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;
@@ -20,6 +22,11 @@ public final class TeamBlocks {
     public static @NotNull Material material(@NotNull Game game, @NotNull Slot seat, @NotNull Role<Role.Fill> role) {
         Team team = game.roster().team(seat.team());
         return team.livery().get(role).material();
+    }
+
+    /** As {@link #material(Game, Slot, Role)}, with {@code fallback}'s for a viewer with no seat. */
+    public static @NotNull Material material(@NotNull Game game, @Nullable Slot seat, @NotNull Role<Role.Fill> role, @NotNull Livery fallback) {
+        return seat == null ? fallback.get(role).material() : material(game, seat, role);
     }
 
     /** The seat's side's wool as a block, for what a build lays. */

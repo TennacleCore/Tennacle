@@ -1,12 +1,12 @@
 package tennacle.games.items;
 
+import tennacle.games.Throttle;
 import tennacle.games.TeamBlocks;
 import tennacle.games.map.Building;
 import tennacle.games.map.Structures;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
-import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
@@ -44,6 +44,8 @@ public final class BridgeEgg implements GameModule {
     static final Sound BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
 
     private Game game;
+    private static final StateKey<Long> USED = Throttle.stamp("ledger.items.egg.used");
+
     private Throttle throttle;
     private Structures structures;
     private Building building;
@@ -56,7 +58,7 @@ public final class BridgeEgg implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         this.game = game;
-        throttle = new Throttle(game, COOLDOWN);
+        throttle = Throttle.of(game, USED, COOLDOWN);
         structures = game.module(Structures.class);
         building = Building.of(game);
         if (structures == null || building == null) throw new IllegalStateException("BridgeEgg needs the mode's building rules and Structures installed before it");
@@ -71,14 +73,9 @@ public final class BridgeEgg implements GameModule {
         });
     }
 
-    @Override
-    public void onEnd(@NotNull Game game, @NotNull Outcome outcome) {
-        throttle.clear();
-    }
-
     /** One throw a cooldown; a refused throw is told so and keeps its egg. */
     public boolean allow(Player thrower) {
-        return throttle.allow(thrower);
+        return throttle.pass(thrower, left -> thrower.sendMessage(ItemLines.of(game).wait(game, throttle.cooldown(thrower))));
     }
 
     /** Follows {@code egg} from the next tick, laying {@code thrower}'s wool under its path from a tick past {@code thrown}. */

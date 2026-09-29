@@ -16,7 +16,6 @@ import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.roster.Slot;
-import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -282,13 +281,8 @@ final class Wares {
     private static BiFunction<Game, Player, ItemStack> teamBlock(Role<Role.Fill> role, int count) {
         return (game, buyer) -> {
             Slot seat = game.roster().slotOf(buyer);
-            return ItemStack.of(teamMaterial(game, seat, role), count);
+            return ItemStack.of(TeamBlocks.material(game, seat, role, BedWars.LOOK), count);
         };
-    }
-
-    static Material teamMaterial(Game game, @Nullable Slot seat, Role<Role.Fill> role) {
-        Team team = seat != null ? game.roster().team(seat.team()) : null;
-        return (team != null ? team.livery() : BedWars.LOOK).get(role).material();
     }
 
 

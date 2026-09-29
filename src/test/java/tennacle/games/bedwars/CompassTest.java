@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.beds.Beds;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -148,7 +149,7 @@ class CompassTest extends HeadlessServerTest {
             assertTrue(chat(fb).contains("TEAM > CommsA: I'm defending"), chat(fb).toString());
             assertTrue(chat(fa).contains("Targeting your base on the compass now!"), chat(fa).toString());
             assertTrue(chat(fc).stream().noneMatch(l -> l.startsWith("TEAM > ")), "the other side hears nothing");
-            assertEquals(Compass.base(game, team), Lineup.aimOf(a).get());
+            assertEquals(Beds.base(game, team), Lineup.aimOf(a).get());
 
             QuickComms.open(game, a);
             click(a, 14); // I'm collecting resources!

@@ -1,5 +1,8 @@
 package tennacle.games;
 
+import java.util.Map;
+import java.util.HashMap;
+import tennacle.games.Ruleset;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.state.Scope;
@@ -24,6 +27,20 @@ import java.util.Set;
 public final class Presets implements GameModule {
 
     public static final StateKey<String> KEY = StateKey.of("match.mechanics", Codec.STRING, "");
+    /** Each platform's mechanics preset. */
+    public static final Map<String, String> MECHANICS = Map.of("hypixel", "hypixel", "scrims", "scrims18", "minemen", "mmc18");
+
+    /** {@code platform}'s ruleset over {@code base} when its whole delta is the mechanics. */
+    public static @NotNull Ruleset variant(@NotNull String platform, @NotNull Ruleset base) {
+        return Ruleset.named(platform).rule(KEY, MECHANICS.get(platform)).over(base);
+    }
+
+    /** Every platform over {@code base}, mechanics alone. */
+    public static @NotNull Map<String, Ruleset> variants(@NotNull Ruleset base) {
+        Map<String, Ruleset> out = new HashMap<>();
+        for (String platform : MECHANICS.keySet()) out.put(platform, variant(platform, base));
+        return Map.copyOf(out);
+    }
 
     /** The builder the fold starts from: the named preset, else the mode's profile. */
     public static @NotNull MechanicsProfile.Builder builderFor(@NotNull Game game, @NotNull Mode mode) {

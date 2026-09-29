@@ -152,6 +152,16 @@ public final class Match {
         return team.isEmpty() ? "" : Palette.name(game.roster().team(team));
     }
 
+    /** A per-seat counter for {@code player}; a seatless player (spectator), or none, reads 0. */
+    public static int seatStat(@NotNull Game game, @Nullable Player player, @NotNull StateKey<Integer> key) {
+        Slot seat = player != null ? game.roster().slotOf(player) : null;
+        return seat == null ? 0 : seatStat(game, seat, key);
+    }
+
+    public static int seatStat(@NotNull Game game, @NotNull Slot seat, @NotNull StateKey<Integer> key) {
+        return game.state().get(Scope.slot(seat.index()), key);
+    }
+
     /** Bumps a per-seat counter for {@code player}; a seatless player (spectator) counts nothing. */
     public static void addSeat(@NotNull Game game, @NotNull Player player, @NotNull StateKey<Integer> key) {
         Slot seat = game.roster().slotOf(player);

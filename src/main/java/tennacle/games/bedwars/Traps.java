@@ -6,7 +6,6 @@ import tennacle.games.shop.Offer;
 import tennacle.games.shop.Price;
 import tennacle.games.shop.Refusal;
 
-import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.space.Regions;
@@ -21,9 +20,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.codec.Codec;
-import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
-import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.Material;
@@ -119,7 +116,7 @@ final class Traps implements GameModule {
         if (regions == null) throw new IllegalStateException("Traps needs Regions installed before it");
         double radius = game.rules().resolve(Scope.GAME, RADIUS);
         for (Team team : game.roster().teams()) {
-            Point head = head(game.arena().marker(BedWars.BED, team.id()));
+            Point head = Beds.head(game, game.arena().marker(BedWars.BED, team.id()));
             if (head == null) continue;
             Regions.Area area = Regions.Area.ball(head, radius);
             areas.put(team.id(), area);
@@ -258,24 +255,6 @@ final class Traps implements GameModule {
         for (Player member : game.members()) {
             if (team.equals(Match.teamOf(game, member))) action.accept(member);
         }
-    }
-
-    // captured: the ball centers on the bed's head block
-    private @Nullable Point head(@Nullable RegionMarker bed) {
-        if (bed == null) return null;
-        Point any = null;
-        for (RegionMarker.Cuboid box : bed.boxes()) {
-            for (int x = box.min().blockX(); x <= box.max().blockX(); x++) {
-                for (int y = box.min().blockY(); y <= box.max().blockY(); y++) {
-                    for (int z = box.min().blockZ(); z <= box.max().blockZ(); z++) {
-                        Point cell = new BlockVec(x, y, z);
-                        if (any == null) any = cell;
-                        if ("head".equals(game.shard().getBlock(cell).getProperty("part"))) return new Vec(x + 0.5, y + 0.5, z + 0.5);
-                    }
-                }
-            }
-        }
-        return any != null ? new Vec(any.x() + 0.5, any.y() + 0.5, any.z() + 0.5) : null;
     }
 
     /** A trap bought into the buyer's team's queue. */

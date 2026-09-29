@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.Throttle;
 import tennacle.games.Match;
 import tennacle.games.bedwars.Upgrades.Upgrade;
 import tennacle.games.shop.Offer;
@@ -14,7 +15,6 @@ import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;
-import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -148,14 +148,11 @@ final class UpgradeShop {
         if (click instanceof Click.Double) return;
         Slot seat = game.roster().slotOf(viewer);
         if (seat == null) return;
-        Scope scope = Scope.slot(seat.index());
-        if (game.tick() - game.state().get(scope, CLICKED) < GAP) {
+        if (!Throttle.fixed(game, CLICKED, GAP).pass(viewer, left -> {
             viewer.sendMessage(Lines.tooFast(game));
             viewer.playSound(Lines.REFUSED);
             viewer.closeInventory();
-            return;
-        }
-        game.state().set(scope, CLICKED, game.tick());
+        })) return;
         Sale sale = game.module(Shop.class).buy(viewer, offer);
         switch (sale) {
             case Sale.Sold sold -> {
