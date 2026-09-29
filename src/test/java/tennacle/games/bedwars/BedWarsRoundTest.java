@@ -810,6 +810,33 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** The wait is no part of the tape (the user, 2026-09-29): the recording starts as the seats open, not at the launch. */
+    @Test
+    void theTapeStartsAtGo() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwTapeA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwTapeB");
+        try {
+            assertFalse(tennacle.games.watch.Replays.recording(game), "nothing rolls at the launch");
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            assertFalse(tennacle.games.watch.Replays.recording(game), "nor while the room fills");
+            live(game);
+            assertTrue(tennacle.games.watch.Replays.recording(game), "from GO");
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
     /** Captured: a level bought fires the first iron spawner at once and the others nine ticks apart. */
     @Test
     void aLevelStaggersTheIron() {

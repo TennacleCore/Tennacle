@@ -260,26 +260,26 @@ public final class Matches {
     /** {@link #launch} with a request's {@link Options}: its rules as the first live modifier. */
     public static @NotNull Game launch(@NotNull Mode mode, @NotNull Platform platform, @NotNull Arena arena,
                                        @NotNull Options options) {
-        return grotto.launch(mode.type(), arena, null, g -> {
+        Game game = grotto.launch(mode.type(), arena, null, g -> {
             // a mode that names its own look keeps it under every preset: without captures there is nothing
             // for a platform's look to be faithful TO, and only its mechanics are worth copying
             g.state().set(Scope.GAME, LOOK, mode.look() != null ? mode.look() : platform.look());
             g.state().set(Scope.GAME, PLATFORM, platform.name());
             if (!options.rules().isEmpty()) modifiers.put(g.id(), options.rules());
             fold(g);
-            // the recording and its spool are started here but the ctor's failure path cannot reach them:
-            // a launch that throws after this would leave a spool the next boot files as a replay of nothing
             try {
-                Staging staging = g.module(Staging.class);
-                if (staging != null && staging.waiting()) staging.onOpened(Replays::record); // the wait is no part of the tape
-                else Replays.record(g);
                 for (Consumer<Game> hook : options.atLaunch()) hook.accept(g);
             } catch (RuntimeException | Error t) {
-                Replays.discard(g);
                 modifiers.remove(g.id());
                 throw t;
             }
         });
+        // after the modules, which is when a wait exists to ask: the wait is no part of the tape, so a waiting
+        // game's recording starts as its seats open (the user, 2026-09-29: it had started at the launch)
+        Staging staging = game.module(Staging.class);
+        if (staging != null && staging.waiting()) staging.onOpened(Replays::record);
+        else Replays.record(game);
+        return game;
     }
 
     /** Folds the game's ruleset (and any live modifiers) into its world profile and seeds it. */
