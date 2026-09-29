@@ -125,27 +125,14 @@ public final class Rules implements GameModule {
             refit(game, player);
         });
         respawns.onDead((player, seat) -> Spectators.ghostKit(game, player)); // the wait: a compass to the living, nothing else
-        game.on(DamageEvent.class, DamageEvent::target, e -> {
-            if (!(e.target() instanceof Player victim)) return;
-            Slot seat = game.roster().slotOf(victim);
-            if (seat == null) return;
-            // arrows resolve source to the shooter (snapshot contract), so this credits bow kills too
-            Player source = e.source() instanceof Player p ? p : null;
-            if (source == victim) return; // a bow boost: never a "hit" - no credit, no protection forfeit
-            if (source != null) respawns.unprotect(source); // swinging forfeits your own protection
-            if (respawns.isProtected(victim) || game.decided() != null) e.cancel(); // no flash, no sound, no i-frame
+        game.on(DamageEvent.class, DamageEvent::target, e -> { // protection is Respawns' own gate
+            if (e.target() instanceof Player victim && game.roster().slotOf(victim) != null && game.decided() != null) e.cancel();
         });
         game.on(FatalDamageEvent.class, FatalDamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim)) return;
             if (game.roster().slotOf(victim) == null) return;
             e.cancel(); // a kill respawns behind protection - never the death screen
             killed(game, victim, e.source() instanceof Player by && by != victim ? by : null, shotRange(e));
-        });
-        game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
-            if (!(e.target() instanceof Player victim)) return;
-            Player source = e.source() instanceof Player p ? p : null;
-            if (source == victim) return; // protection never blocks your own boost
-            if (respawns.isProtected(victim)) e.setCancelled(true);
         });
         Building.install(game, new Building.Space() {
             @Override public boolean buildable(@NotNull Player placer, @NotNull Point pos) {

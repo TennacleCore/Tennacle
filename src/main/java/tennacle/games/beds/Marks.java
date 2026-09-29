@@ -1,4 +1,4 @@
-package tennacle.games.bedfight;
+package tennacle.games.beds;
 
 import tennacle.games.watch.Remote;
 
@@ -21,11 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** What the replay's bookmark screen shows for a bed taken and a death nobody came back from. */
-final class Marks {
+public final class Marks {
 
     private Marks() {}
 
-    static @NotNull ItemStack render(@NotNull Replay.Bookmark mark, @NotNull Theme theme) {
+    public static @NotNull ItemStack render(@NotNull Replay.Bookmark mark, @NotNull Theme theme) {
         return switch (mark.name()) {
             case "bed" -> bed(mark, theme);
             case "final" -> lastDeath(mark, theme);

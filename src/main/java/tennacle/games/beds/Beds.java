@@ -29,6 +29,8 @@ import org.jetbrains.annotations.NotNull;
 import net.kyori.adventure.title.Title;
 import java.util.function.Predicate;
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.function.Consumer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,15 +57,19 @@ public final class Beds implements GameModule {
             StateKey.of("beds.break", Codec.STRING.list(), List.of(ENEMY));
     /** A dragon (any block-eating mob) takes a bed it flies through; off, the bed stands and slows it. */
     public static final StateKey<Boolean> DRAGONS = StateKey.of("beds.dragons", Codec.BOOLEAN, false);
+    /** Ticks before the fall that {@link #warning} runs; {@code 0} = never. */
+    public static final StateKey<Long> WARNING = StateKey.of("beds.warning", Codec.LONG, 5L * 60 * 20);
     /** Both bed sounds at the listener's own block (captured Hypixel Bed Wars); off, at the bed (bed fight, MineMen). */
     public static final StateKey<Boolean> SOUND_LISTENER = StateKey.of("beds.sound.listener", Codec.BOOLEAN, false);
 
     static {
         tennacle.commands.RulesCompletions.words(BREAK.id(), List.of(OWN, ENEMY));
     }
-    private static final StateKey<Long> FALLS_AT = StateKey.of("ledger.bedfight.beds-at", Codec.LONG, -1L);
-    private static final StateKey<Long> STARTED = StateKey.of("ledger.bedfight.beds-from", Codec.LONG, -1L);
-    private static final String FALL_ALARM = "bedfight:bed-destruction";
+    private static final StateKey<Long> FALLS_AT = StateKey.of("ledger.beds.at", Codec.LONG, -1L);
+    private static final StateKey<Long> STARTED = StateKey.of("ledger.beds.from", Codec.LONG, -1L);
+    private static final String FALL_ALARM = "beds:destruction";
+    private static final String WARN_ALARM = "beds:warning";
+    private final List<Consumer<Game>> warnings = new ArrayList<>();
 
     private static final Sound BROKEN = Sound.sound(SoundEvent.ENTITY_ENDER_DRAGON_GROWL, Sound.Source.MASTER, 1f, 1f);
     private static final Sound LOST_BED = Sound.sound(SoundEvent.ENTITY_WITHER_DEATH, Sound.Source.MASTER, 1f, 1f);
@@ -92,7 +98,7 @@ public final class Beds implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(DESTROY, BREAK, DRAGONS, SOUND_LISTENER);
+        return Set.of(DESTROY, BREAK, DRAGONS, SOUND_LISTENER, WARNING);
     }
 
     @Override
@@ -147,7 +153,11 @@ public final class Beds implements GameModule {
             });
         }
         game.state().alarms().register(FALL_ALARM, (tick, payload) -> fall());
+        game.state().alarms().register(WARN_ALARM, (tick, payload) -> {
+            for (Consumer<Game> warning : warnings) warning.accept(game);
+        });
         game.rules().watch(DESTROY, (scope, value) -> rearm());
+        game.rules().watch(WARNING, (scope, value) -> rearm());
         Phases phases = game.module(Phases.class);
         if (phases == null || Phases.is(game, Match.LIVE)) start();
         else phases.onEnter(Match.LIVE, g -> start());
@@ -173,6 +183,7 @@ public final class Beds implements GameModule {
         long from = game.state().get(Scope.GAME, STARTED);
         if (from < 0 || standing(game).isEmpty()) return; // before the clock starts, or nothing left to take
         long ticks = game.rules().resolve(Scope.GAME, DESTROY);
+        game.state().alarms().cancel(WARN_ALARM);
         if (ticks < 0) {
             game.state().set(Scope.GAME, FALLS_AT, -1L);
             game.state().alarms().cancel(FALL_ALARM);
@@ -181,6 +192,14 @@ public final class Beds implements GameModule {
         long at = from + ticks;
         game.state().set(Scope.GAME, FALLS_AT, at);
         game.state().alarms().arm(FALL_ALARM, at);
+        long warn = game.rules().resolve(Scope.GAME, WARNING);
+        if (warn > 0 && at - warn > game.state().tick()) game.state().alarms().arm(WARN_ALARM, at - warn);
+    }
+
+    /** Runs {@code action} {@link #WARNING} ticks before the beds fall (Bed Wars' 25:00 line). */
+    public @NotNull Beds warning(@NotNull Consumer<Game> action) {
+        warnings.add(action);
+        return this;
     }
 
     // every side at once, so nobody is the one who lost their bed to the clock

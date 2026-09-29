@@ -13,6 +13,7 @@ import tennacle.games.Presets;
 import tennacle.games.Skins;
 import tennacle.games.Timeline;
 import tennacle.games.beds.Beds;
+import tennacle.games.beds.Marks;
 import tennacle.games.beds.Lives;
 import tennacle.games.beds.Spoils;
 import tennacle.games.map.HotArena;
@@ -38,6 +39,7 @@ import io.github.term4.barnacle.marker.RegionMarker;
 import tennacle.games.TeamBlocks;
 import tennacle.games.items.BridgeEgg;
 import tennacle.games.items.Creatures;
+import tennacle.games.items.TntMark;
 import tennacle.games.items.Fireballs;
 import tennacle.games.items.PopupTower;
 import tennacle.games.items.Sponge;
@@ -258,7 +260,6 @@ public final class BedWars {
                 .event("emerald-2", "Emerald II", 12L * 60 * 20).on("emerald-2", g -> tier(g, Mid.Kind.EMERALD, 2))
                 .event("diamond-3", "Diamond III", 18L * 60 * 20).on("diamond-3", g -> tier(g, Mid.Kind.DIAMOND, 3))
                 .event("emerald-3", "Emerald III", 24L * 60 * 20).on("emerald-3", g -> tier(g, Mid.Kind.EMERALD, 3))
-                .event("bed-gone-warning", null, 25L * 60 * 20).on("bed-gone-warning", Lines::bedsWarning)
                 .watched("bed-gone", "Bed Gone", g -> Beds.standing(g).isEmpty() ? -1 : Beds.fallsIn(g))
                 .event("sudden-death", "Sudden Death", 40L * 60 * 20).on("sudden-death", Lines::suddenDeath)
                 .on("sudden-death", Dragons::suddenDeath)
@@ -368,7 +369,7 @@ public final class BedWars {
                         Respawns::manual,
                         KillCredit::new,
                         FriendlyFire::new,
-                        () -> new Beds(BED, BEDS),
+                        () -> new Beds(BED, BEDS).warning(Lines::bedsWarning), // five minutes before the clock, wherever it stands
                         () -> new Lives(COUNTERS).onDeath(Gear::died),
                         Chests::new,
                         Compass::new,
@@ -376,11 +377,6 @@ public final class BedWars {
                         MagicMilk::new,
                         Creatures::new, Dragons::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {
-                            Staging staging = g.module(Staging.class);
-                            if (staging != null && staging.waiting()) { // off the room's edge: back up, no death
-                                staging.recall(who);
-                                return;
-                            }
                             Lives lives = g.module(Lives.class);
                             if (lives != null) lives.fell(who);
                         })),
@@ -391,7 +387,7 @@ public final class BedWars {
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
                         () -> new Loadout().kept(Gear::kept),
                         Idle::new,
-                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, Presentation::new,
+                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, TntMark::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Boards.hypixel(label))
@@ -408,6 +404,7 @@ public final class BedWars {
                 .mechanics("hypixel", "hypixel_bedwars") // the user, 2026-09-28: fire takes on contact, the pearl lands game-wide
                 .tabStats(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Final Kills", FINAL_KILLS),
                         new Mode.SeatStat("Beds Broken", BEDS))
+                .marks(Marks::render)
                 .build();
         Matches.register(mode);
     }

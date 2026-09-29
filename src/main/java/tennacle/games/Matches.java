@@ -127,7 +127,9 @@ public final class Matches {
     public static void fell(@NotNull Player p, @NotNull java.util.function.BiConsumer<Game, Player> seated) {
         Game game = Game.of(p);
         if (game != null) {
-            seated.accept(game, p);
+            Staging staging = game.module(Staging.class);
+            if (staging != null && staging.waiting()) staging.recall(p); // off the room's edge: back up, no death
+            else seated.accept(game, p);
             return;
         }
         Game watched = grotto.spectating(p);

@@ -116,12 +116,8 @@ public final class Lives implements GameModule {
             kits().refit(player); // the kit comes back whole on every spawn
         });
         respawns.onDead((player, seat) -> Spectators.ghostKit(game, player)); // the wait holds a compass, nothing else
-        game.on(DamageEvent.class, DamageEvent::target, e -> {
-            if (!(e.target() instanceof Player victim) || game.roster().slotOf(victim) == null) return;
-            Player source = e.source() instanceof Player p ? p : null;
-            if (source == victim) return;
-            if (source != null) respawns.unprotect(source); // swinging forfeits your own protection
-            if (respawns.isProtected(victim) || game.decided() != null) e.cancel();
+        game.on(DamageEvent.class, DamageEvent::target, e -> { // protection is Respawns' own gate
+            if (e.target() instanceof Player victim && game.roster().slotOf(victim) != null && game.decided() != null) e.cancel();
         });
         game.on(FatalDamageEvent.class, FatalDamageEvent::target, e -> {
             if (!(e.target() instanceof Player victim) || game.roster().slotOf(victim) == null) return;

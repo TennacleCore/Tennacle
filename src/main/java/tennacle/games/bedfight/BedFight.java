@@ -14,6 +14,7 @@ import tennacle.looks.Palette;
 import tennacle.looks.Presentation;
 import tennacle.games.Presets;
 import tennacle.games.beds.Beds;
+import tennacle.games.beds.Marks;
 import tennacle.games.beds.Lives;
 import tennacle.games.beds.Spoils;
 import io.github.term4.bloom.mapmaking.Teams;
