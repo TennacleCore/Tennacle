@@ -1,5 +1,8 @@
 package tennacle.games.map;
 
+import io.github.term4.barnacle.marker.LimitMarker;
+import io.github.term4.barnacle.marker.MarkerKey;
+import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.state.Scope;
@@ -104,6 +107,64 @@ public final class Building {
         default boolean aboveHeight(@NotNull Player placer, @NotNull Point pos) {
             return false;
         }
+    }
+
+    /** The floor and the ceiling a seat builds between: the map's, or the seat's own {@link #FLOOR}/{@link #HEIGHT}. */
+    public static final class Band {
+        private final Game game;
+        private final int floorY;
+        private final int ceilingY;
+
+        public Band(@NotNull Game game, int floorY, int ceilingY) {
+            this.game = game;
+            this.floorY = floorY;
+            this.ceilingY = ceilingY;
+        }
+
+        /** Between the mode's two limit planes. */
+        public static @NotNull Band of(@NotNull Game game, @NotNull MarkerKey<LimitMarker> floor, @NotNull MarkerKey<LimitMarker> height) {
+            return new Band(game, (int) Math.ceil(plane(game, floor)), (int) Math.floor(plane(game, height)));
+        }
+
+        public int floor(@NotNull Player placer) {
+            int rule = game.rules().resolve(placer, FLOOR);
+            return rule >= 0 ? rule : floorY;
+        }
+
+        public int ceiling(@NotNull Player placer) {
+            int rule = game.rules().resolve(placer, HEIGHT);
+            return rule >= 0 ? rule : ceilingY;
+        }
+
+        public boolean contains(@NotNull Player placer, @NotNull Point pos) {
+            return pos.blockY() >= floor(placer) && pos.blockY() <= ceiling(placer);
+        }
+
+        public boolean below(@NotNull Player placer, @NotNull Point pos) {
+            return pos.blockY() < floor(placer);
+        }
+
+        public boolean above(@NotNull Player placer, @NotNull Point pos) {
+            return pos.blockY() > ceiling(placer);
+        }
+
+        /** Inside one of {@code region}'s boxes: a flat (1-tall) box, what the wand draws over a deck, is an X/Z slice through the band; a taller one is its own volume. */
+        public boolean covers(@NotNull RegionMarker region, @NotNull Player placer, @NotNull Point pos) {
+            for (RegionMarker.Cuboid box : region.boxes()) {
+                if (pos.blockX() < box.min().blockX() || pos.blockX() > box.max().blockX()
+                        || pos.blockZ() < box.min().blockZ() || pos.blockZ() > box.max().blockZ()) continue;
+                if (box.min().blockY() == box.max().blockY() ? contains(placer, pos)
+                        : pos.blockY() >= box.min().blockY() && pos.blockY() <= box.max().blockY()) return true;
+            }
+            return false;
+        }
+    }
+
+    /** A limit marker's pinned y. */
+    public static double plane(@NotNull Game game, @NotNull MarkerKey<LimitMarker> key) {
+        Double y = game.arena().markers(key).getFirst().y();
+        if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
+        return y;
     }
 
     /** A module that keeps cells clear wherever it is installed, beside the {@link Space}'s own. */
@@ -285,14 +346,22 @@ public final class Building {
         placed.clear();
     }
 
-    /** A {@link Space} from three lambdas, for a mode with nothing reserved. */
-    public static @NotNull Space space(@NotNull BiPredicate<Player, Point> buildable,
-                                       @NotNull BiPredicate<Player, Point> inBand,
+    /** A {@link Space} over {@code band}, for a mode with nothing reserved. */
+    public static @NotNull Space space(@NotNull Band band, @NotNull BiPredicate<Player, Point> buildable,
                                        @NotNull Predicate<Point> guarded) {
+        return space(band, buildable, guarded, pos -> false);
+    }
+
+    /** A {@link Space} over {@code band}: the floor and height answers are the band's, the rest the mode's. */
+    public static @NotNull Space space(@NotNull Band band, @NotNull BiPredicate<Player, Point> buildable,
+                                       @NotNull Predicate<Point> guarded, @NotNull Predicate<Point> reserved) {
         return new Space() {
             @Override public boolean buildable(@NotNull Player placer, @NotNull Point pos) { return buildable.test(placer, pos); }
-            @Override public boolean inBand(@NotNull Player placer, @NotNull Point pos) { return inBand.test(placer, pos); }
+            @Override public boolean inBand(@NotNull Player placer, @NotNull Point pos) { return band.contains(placer, pos); }
             @Override public boolean guarded(@NotNull Point pos) { return guarded.test(pos); }
+            @Override public boolean reserved(@NotNull Point pos) { return reserved.test(pos); }
+            @Override public boolean belowFloor(@NotNull Player placer, @NotNull Point pos) { return band.below(placer, pos); }
+            @Override public boolean aboveHeight(@NotNull Player placer, @NotNull Point pos) { return band.above(placer, pos); }
         };
     }
 

@@ -16,8 +16,6 @@ import tennacle.games.map.Building;
 import tennacle.games.watch.Spectators;
 import io.github.term4.canvas.Canvas;
 
-import io.github.term4.barnacle.marker.LimitMarker;
-import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
@@ -66,8 +64,6 @@ public final class Rules implements GameModule {
     private static final Sound ARROW_BACK =
             Sound.sound(SoundEvent.ENTITY_ITEM_PICKUP, Sound.Source.MASTER, 1f, 1f);
 
-    private int minBuildY;
-    private int maxBuildY;
     // the build and break rules are Building's: bed fight declares the same six ids
     public static final StateKey<Boolean> BUILD = Building.BUILD;
     public static final StateKey<Integer> HEIGHT = Building.HEIGHT;
@@ -118,8 +114,7 @@ public final class Rules implements GameModule {
                 }
             }
         }
-        minBuildY = floor; // never beneath the bridge's underside
-        maxBuildY = (int) Math.floor(plane(game, Bridge.HEIGHT));
+        Building.Band band = new Building.Band(game, floor, (int) Math.floor(Building.plane(game, Bridge.HEIGHT))); // never beneath the underside
         respawns.onRespawn((player, seat) -> {
             Lineup.unaim(player); // the compass aim of the life they just lost
             refit(game, player);
@@ -134,16 +129,8 @@ public final class Rules implements GameModule {
             e.cancel(); // a kill respawns behind protection - never the death screen
             killed(game, victim, e.source() instanceof Player by && by != victim ? by : null, shotRange(e));
         });
-        Building.install(game, new Building.Space() {
-            @Override public boolean buildable(@NotNull Player placer, @NotNull Point pos) {
-                return Rules.this.buildable(build, pos, placer);
-            }
-            @Override public boolean inBand(@NotNull Player placer, @NotNull Point pos) {
-                return Rules.this.inBand(pos, placer);
-            }
-            @Override public boolean guarded(@NotNull Point pos) { return inBridge(game, pos); }
-            @Override public boolean reserved(@NotNull Point pos) { return onASpawn(game, pos); }
-        }, respawns::unprotect);
+        Building.install(game, Building.space(band, (placer, pos) -> band.covers(build, placer, pos),
+                pos -> inBridge(game, pos), pos -> onASpawn(game, pos)), respawns::unprotect);
         st.alarms().register(FIREWORK_ALARM, (tick, payload) -> {
             String team = payload.getString("team");
             Fireworks.burst(game.shard(), center(game), List.of(NamedTextColor.WHITE, game.roster().team(team).color()));
@@ -219,12 +206,6 @@ public final class Rules implements GameModule {
         kits.refit(player); // targeted: only the slots that changed, never a full inventory resend
     }
 
-    private static double plane(Game game, MarkerKey<LimitMarker> key) {
-        Double y = game.arena().markers(key).getFirst().y();
-        if (y == null) throw new IllegalStateException(key.id() + " must pin y (/marker limit " + key.id() + " y=<n>)");
-        return y;
-    }
-
     /** Horizontal blocks between where a projectile was loosed and where it struck; {@code -1} if it was not one. */
     private static double shotRange(FatalDamageEvent e) {
         if (!(e.detail() instanceof ProjectileEntity projectile)) return -1;
@@ -243,30 +224,6 @@ public final class Rules implements GameModule {
             Match.addSeat(game, by, Bridge.KILLS);
         }
         Match.say(game, Banners.killedLine(game, victim, by, range));
-    }
-
-    // a flat (1-tall) box is an X/Z slice under the global band; a taller box is its own 3D volume,
-    // for maps whose buildable ceiling varies along the bridge
-    private boolean buildable(RegionMarker build, Point pos, Player placer) {
-        for (RegionMarker.Cuboid box : build.boxes()) {
-            if (pos.blockX() < box.min().blockX() || pos.blockX() > box.max().blockX()
-                    || pos.blockZ() < box.min().blockZ() || pos.blockZ() > box.max().blockZ()) continue;
-            boolean flat = box.min().blockY() == box.max().blockY();
-            int lo = flat ? minBuildY : box.min().blockY();
-            int hi = flat ? ceiling(placer) : box.max().blockY();
-            if (pos.blockY() >= lo && pos.blockY() <= hi) return true;
-        }
-        return false;
-    }
-
-    // the band's top: the marker, or the rule when one is set - the placer's own, so a seat can carry its own
-    private int ceiling(Player placer) {
-        int rule = game.rules().resolve(placer, HEIGHT);
-        return rule >= 0 ? rule : maxBuildY;
-    }
-
-    private boolean inBand(Point pos, Player placer) {
-        return pos.blockY() >= minBuildY && pos.blockY() <= ceiling(placer);
     }
 
     // the respawn landings are Respawns.BUILD_OVER's; a cage is bridge's own
