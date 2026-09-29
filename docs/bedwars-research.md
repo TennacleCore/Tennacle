@@ -1238,6 +1238,9 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   they died, in their armor. The elimination's ghosting ran (`Presentation`, twenty ticks after the death pose)
   but dressed nobody; now the eliminated wait as the dead do, a whole body in the wait's kit
   (`Spectators.ghostKit`), the same in every mode that ghosts its losers.
+- **Bows** (the user, 2026-09-28): no player bows themselves or a teammate. Ours: the arrow's own shooter
+  passes through it (`projectiles/minecraft:arrow/selfHit` `pass_through`, as bridge on Hypixel), and a
+  teammate's arrow is inert under `FriendlyFire`, damage and push alike (`BowsTest`).
 - **Kill credit**: a mob's kill goes to its owner, fall deaths pay the attacker, a deflected fireball
   credits the deflector, zero-damage projectiles grant void credit, a suicide right after losing the bed
   credits the bed breaker. Ours (2026-09-28): a fireball's or a TNT's kill is its thrower's or igniter's, the

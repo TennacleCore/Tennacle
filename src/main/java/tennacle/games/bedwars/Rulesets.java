@@ -24,6 +24,8 @@ final class Rulesets {
             .path("hunger/naturalRegen", true)
             // captured: a placed bucket leaves nothing behind; the user (2026-09-28): neither does a drunk potion
             .path("fluids/bucketKept", false)
+            // the user (2026-09-28): no bow boost; a teammate's arrow is FriendlyFire's
+            .path("projectiles/minecraft:arrow/selfHit", "pass_through")
             .path("consumables/minecraft:potion/remainder", false)
             // the user's rule: a refused placement or break sounds to nobody but its own client
             .path("fx/polyp:block_place_refused", "to(predicted-for(source), place-sound)")
