@@ -41,6 +41,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -306,6 +307,51 @@ class CreaturesTest extends HeadlessServerTest {
                 fish.remove();
             }
         });
+    }
+
+    /** The user, 2026-09-28: a defender fights players only, never a Bedbug or a dragon, not even back when one hurts it. */
+    @Test
+    void aDefenderFightsPlayersOnly() {
+        round("GolemOnly", (game, fa, fb) -> {
+            Creatures creatures = game.module(Creatures.class);
+            fb.player.teleport(new Pos(-19.5, 65, -19.5)).join(); // past the golem's 16 blocks
+            IronGolemEntity golem = creatures.defender(fa.player, new Pos(0.5, 65, 0.5));
+            SilverfishEntity fish = creatures.bedbug(fb.player, new Pos(2.5, 65, 0.5));
+            EnderDragonEntity dragon = EnderDragonEntity.spawn(Mechanics.mobs, game.shard(), new Pos(0.5, 72, 6.5));
+            assertNotNull(golem);
+            assertNotNull(fish);
+            try {
+                tickGolem(game, golem, 20);
+                assertNotSame(fish, golem.attackTarget(), "an enemy's Bedbug is no target");
+                assertNotSame(dragon, golem.attackTarget(), "nor a dragon");
+                hit(golem, fish);
+                tickGolem(game, golem, 15); // past the hurt window, so the next hit lands
+                assertNotSame(fish, golem.attackTarget(), "not even back");
+                hit(golem, dragon);
+                tickGolem(game, golem, 15);
+                assertNotSame(dragon, golem.attackTarget());
+                fb.player.teleport(new Pos(3.5, 65, 0.5)).join();
+                tickGolem(game, golem, 20);
+                assertSame(fb.player, golem.attackTarget(), "an enemy player is");
+            } finally {
+                golem.remove();
+                fish.remove();
+                dragon.remove();
+            }
+        });
+    }
+
+    private static void tickGolem(Game game, IronGolemEntity golem, int n) {
+        for (int tick = 1; tick <= n; tick++) {
+            ticks(game, 1);
+            golem.tick(System.nanoTime());
+        }
+    }
+
+    // a creature's hit on the golem, through the damage pipeline
+    private static void hit(IronGolemEntity golem, net.minestom.server.entity.LivingEntity by) {
+        Mechanics.polyp.services().damage().apply(io.github.term4.polyp.mechanics.damage.DamageSnapshot.of(golem, MobDamage.INSTANCE)
+                .withSource(by).withAmount(1f));
     }
 
     private static void round(String name, Body body) {

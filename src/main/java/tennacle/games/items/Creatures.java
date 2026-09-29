@@ -86,7 +86,6 @@ public final class Creatures implements GameModule {
     private static final double STAND_TEXT = 1.975 + 0.5;
     private static final double BEDBUG_TAG = -1.38 + STAND_TEXT, DEFENDER_TAG = 0.94 + STAND_TEXT;
     private static final int BEDBUG_SQUARES = 5, DEFENDER_SQUARES = 10;
-    private static final Predicate<LivingEntity> DEFENDER_TARGETS = e -> e instanceof Player || e instanceof MobEntity mob && mob.hostile();
     private static final Predicate<Block> EVERY_BLOCK = block -> true;
 
     private record Creature(MobEntity mob, String team, @Nullable Slot seat, @Nullable String tool, long born, long life,
@@ -205,8 +204,8 @@ public final class Creatures implements GameModule {
                 .speed(game.rules().resolve(owner, DEFENDER_SPEED))
                 .attackInterval(game.rules().resolve(owner, DEFENDER_SWING))
                 .seesInvisible(true) // the user, 2026-09-28: a creature hunts an invisible player as any other
-                .targetSelector(DEFENDER_TARGETS)
-                .attackable(Targets.ANY)
+                .targetSelector(Targets.PLAYERS)
+                .attackable(Targets.PLAYERS) // the user, 2026-09-28: never a Bedbug or a dragon, not even back when one hurts it
                 .build());
         if (golem.getEntityMeta() instanceof LivingEntityMeta meta) {
             meta.setEffectParticles(List.of(EffectParticles.swirl(DEFENDER_SWIRL, false)));
