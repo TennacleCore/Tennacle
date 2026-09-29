@@ -280,6 +280,9 @@ class BedWarsRoundTest extends HeadlessServerTest {
             assertTrue(chat.stream().anyMatch(l -> l.strip().equals("Bed Wars")), "the header: " + chat);
             assertTrue(chat.stream().anyMatch(l -> l.strip().endsWith(" - BwSoloA")), "the side: " + chat);
             assertTrue(chat.stream().anyMatch(l -> l.strip().equals("1st Killer - BwSoloA - 0")), "a line a message, as captured: " + chat);
+            int header = chat.indexOf(chat.stream().filter(l -> l.strip().equals("Bed Wars")).findFirst().orElseThrow());
+            assertTrue(chat.get(header + 1).isEmpty() && chat.get(header + 3).isEmpty() && chat.get(header + 4).strip().startsWith("1st Killer"),
+                    "a blank line after the header and between the winners and the killers: " + chat);
             assertEquals("VICTORY!", lastTitle(a), "the winner's title");
             assertEquals("GAME OVER!", lastTitle(b), "the loser's");
         } finally {
