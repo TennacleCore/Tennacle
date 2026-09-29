@@ -1725,7 +1725,8 @@ are relative to each repo's main source root.
   turns and mirrors, which fits 4- and 8-way maps.
 - **Replay**: item entities, TNT, mobs and NPCs, every block write (explosions included), container
   slots, chat, titles and the sidebar all record today.
-- **Replay start** (the user, 2026-09-28): the waiting room is no part of a game. Ours: a Bed Wars tape starts
+- **Replay start** (the user, 2026-09-28): the waiting room is no part of a game. Ours (fixed 2026-09-29: the launch had
+  asked the wait before the modules installed, so every tape began at the launch): a Bed Wars tape starts
   as the seats open (`Staging.onOpened`), the lineup stamped whole; a mode with no room records from the launch.
 - **Holograms on 1.8**: the proxy's ViaBackwards has `map-display-entities: true`, so a modern text
   display reaches a 1.8 client as armor stands.
