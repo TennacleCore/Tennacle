@@ -333,9 +333,9 @@ public final class BedWars {
                 .rule(Spoils.TO_KILLER, KeySet.only(Resources.IRON.material().key(), Resources.GOLD.material().key(),
                         Resources.DIAMOND.material().key(), Resources.EMERALD.material().key())) // captured, in this order
                 .rule(Beds.DESTROY, 30L * 60 * 20) // Bed Gone
-                .rule(Building.BREAK, List.of(Building.PLACED)) // the map's own blocks never come up; the beds are Beds'
+                .rule(Building.BREAK, List.of(Building.PLACED, Building.GRASS)) // the map's blocks never come up, its plants do; the beds are Beds'
                 .rule(Building.BLAST, List.of(Building.PLACED)) // a fireball or TNT takes placed blocks, never the map
-                .rule(Building.BREAK_OUTSIDE, List.of(Building.PLACED));
+                .rule(Building.BREAK_OUTSIDE, List.of(Building.PLACED, Building.GRASS));
         if (teams == 4) fourTeam(builder);
         GameType type = builder.modules(Ends::hypixel, // first: the snapshot precedes cleanup
                         () -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER),

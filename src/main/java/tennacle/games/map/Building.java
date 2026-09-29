@@ -5,7 +5,9 @@ import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
 import io.github.term4.polyp.api.event.explosion.TntPrimeEvent;
+import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
 import io.github.term4.polyp.api.event.fluid.FluidSpreadEvent;
+import net.kyori.adventure.key.Key;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.coordinate.Point;
@@ -47,6 +49,10 @@ public final class Building {
     public static final String PLACED = "placed";
     /** The map's own. */
     public static final String MAP = "map";
+    /** The map's grass and its kin, which a placement replaces anyway; comes up empty-handed. Never a flower or a snow layer. */
+    public static final String GRASS = "grass";
+    private static final Set<Key> GRASSES = Set.of(Block.SHORT_GRASS.key(), Block.TALL_GRASS.key(), Block.FERN.key(),
+            Block.LARGE_FERN.key(), Block.DEAD_BUSH.key(), Block.BUSH.key(), Block.SHORT_DRY_GRASS.key(), Block.TALL_DRY_GRASS.key());
 
     /** What may be broken inside the mode's guarded regions; a kind nobody names stays standing. */
     public static final StateKey<List<String>> BREAK = StateKey.of("space.break", Codec.STRING.list(), List.of(PLACED, MAP));
@@ -65,8 +71,8 @@ public final class Building {
             BLAST, BLAST_RESERVED);
 
     static {
-        RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP));
-        RulesCompletions.words(BREAK_OUTSIDE.id(), List.of(PLACED, MAP));
+        RulesCompletions.words(BREAK.id(), List.of(PLACED, MAP, GRASS));
+        RulesCompletions.words(BREAK_OUTSIDE.id(), List.of(PLACED, MAP, GRASS));
         RulesCompletions.words(BLAST.id(), List.of(PLACED, MAP));
     }
 
@@ -109,6 +115,9 @@ public final class Building {
     private static final Map<Game, Building> BY_GAME = Collections.synchronizedMap(new WeakHashMap<>());
 
     private final it.unimi.dsi.fastutil.longs.LongSet placed = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+    // cells whose break comes up empty-handed, by the tick of the break: Polyp drops at that tick's end
+    private final it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap bare = new it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap();
+    private long bareAge = -1;
     private final List<Predicate<Point>> stills = new java.util.ArrayList<>();
     private final Game game;
     private final Space space;
@@ -121,6 +130,7 @@ public final class Building {
     private Building(Game game, Space space) {
         this.game = game;
         this.space = space;
+        bare.defaultReturnValue(-1);
     }
 
     /**
@@ -156,12 +166,18 @@ public final class Building {
                 refuse(e, REASON_RESERVED);
                 return;
             }
-            if (!may.contains(own ? PLACED : MAP)) {
+            String kind = own ? PLACED : GRASSES.contains(e.getBlock().key()) ? GRASS : MAP;
+            if (!may.contains(kind) && !(kind.equals(GRASS) && may.contains(MAP))) {
                 refuse(e, own ? REASON_PLACED : REASON_MAP);
                 return;
             }
             building.placed.remove(key(pos)); // after the refusal: a block that stays is still the one who placed it
+            if (kind.equals(GRASS)) building.bare(pos);
             touched.accept(player);
+        });
+        game.onWorld(ItemSpawnEvent.class, ItemSpawnEvent::world, e -> {
+            if (e.cause() != ItemSpawnEvent.Cause.BLOCK_DROP) return;
+            if (building.bare.get(key(e.position())) == e.world().worldAge()) e.setCancelled(true);
         });
         game.onWorld(FluidSpreadEvent.class, FluidSpreadEvent::world, e -> {
             if (building.stilled(e.to())) e.setCancelled(true);
@@ -181,6 +197,15 @@ public final class Building {
             for (Point pos : e.blocks()) building.placed.remove(key(pos));
         });
         return building;
+    }
+
+    private void bare(Point pos) {
+        long now = game.shard().worldAge();
+        if (now != bareAge) {
+            bare.clear();
+            bareAge = now;
+        }
+        bare.put(key(pos), now);
     }
 
     // asked per check: a reserving module may install after the mode's rules

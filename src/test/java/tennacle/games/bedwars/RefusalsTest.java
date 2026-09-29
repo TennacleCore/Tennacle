@@ -13,6 +13,8 @@ import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
+import io.github.term4.polyp.entity.DroppedItemEntity;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
@@ -21,6 +23,8 @@ import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.network.packet.server.play.SoundEffectPacket;
@@ -132,6 +136,59 @@ class RefusalsTest extends HeadlessServerTest {
         }
     }
 
+    /** The map's grass comes up, empty-handed, unless a reserved cell holds it; a flower is the map's (the user, 2026-09-28). */
+    @Test
+    void mapGrassBreaks() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer fa = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GrassA");
+        FakePlayer fb = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GrassB");
+        try {
+            fa.player.setInstance(game.instance(), ROOM).join();
+            fb.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(fa.player)));
+            assertTrue(Matches.enter(game, List.of(fb.player)));
+            await("both seated", () -> Game.of(fa.player) == game && Game.of(fb.player) == game);
+            BedWarsRoundTest.live(game);
+            Player a = fa.player;
+            a.teleport(new Pos(0.5, 65, 0.5)).join();
+            game.shard().setBlock(new BlockVec(1, 65, 0), Block.TALL_GRASS.withProperty("half", "upper"));
+            brk(fa, game, new BlockVec(1, 65, 0), false);
+            assertFalse(said(fa, "You can"), "nothing to say: " + chat(fa));
+            assertTrue(drop(game, a, new Pos(1.4, 65.3, 0.6)).isCancelled(), "empty-handed");
+            assertFalse(drop(game, a, new Pos(2.4, 65.3, 0.6)).isCancelled(), "another cell's drop lands");
+
+            place(fa, fb, game, new BlockVec(1, 65, 1), false);
+            brk(fa, game, new BlockVec(1, 65, 1), false);
+            assertFalse(drop(game, a, new Pos(1.4, 65.3, 1.6)).isCancelled(), "a placed block's drop lands");
+
+            game.shard().setBlock(new BlockVec(2, 65, 0), Block.POPPY);
+            brk(fa, game, new BlockVec(2, 65, 0), true);
+            assertTrue(said(fa, "You can only break blocks placed by a player!"), chat(fa).toString());
+
+            // the fixture's diamond generator drops at 0, 65, -16: its cube reaches 3 out every way
+            a.teleport(new Pos(3.5, 65, -13.5)).join();
+            game.shard().setBlock(new BlockVec(2, 65, -15), Block.SHORT_GRASS);
+            brk(fa, game, new BlockVec(2, 65, -15), true);
+            assertTrue(said(fa, "You can't break blocks here!"), chat(fa).toString());
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            fa.player.remove();
+            fb.player.remove();
+        }
+    }
+
+    // the drop Polyp would spawn at the tick's end for a block broken at that cell
+    private static ItemSpawnEvent drop(Game game, Player breaker, Pos at) {
+        var item = new DroppedItemEntity(ItemStack.of(Material.WHEAT_SEEDS), null);
+        var event = new ItemSpawnEvent(item, ItemSpawnEvent.Cause.BLOCK_DROP, breaker, game.shard(), at);
+        EventDispatcher.call(event);
+        return event;
+    }
+
     private static void place(FakePlayer p, FakePlayer other, Game game, BlockVec at, boolean refused) {
         p.sent.clear();
         other.sent.clear();
@@ -143,10 +200,15 @@ class RefusalsTest extends HeadlessServerTest {
     }
 
     private static void brk(FakePlayer p, Game game, BlockVec at) {
+        brk(p, game, at, true);
+    }
+
+    private static void brk(FakePlayer p, Game game, BlockVec at, boolean refused) {
         p.sent.clear();
         var event = new PlayerBlockBreakEvent(p.player, game.instance(), game.shard().getBlock(at), Block.AIR, at, BlockFace.TOP);
         EventDispatcher.call(event);
-        assertTrue(event.isCancelled(), at.toString());
+        assertEquals(refused, event.isCancelled(), at.toString());
+        if (!refused) game.shard().setBlock(at, Block.AIR);
         settle();
     }
 

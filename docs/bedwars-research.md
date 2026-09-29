@@ -467,7 +467,10 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   refused at 65 with `You cannot build any further down!`.
 - **Breaking**: only player-placed blocks. Refusal line (cap): `You can only break blocks placed by a
   player!`. Inside a generator's area it is red `You can't break blocks here!` (cap, Waterfall's emerald
-  platform); neither plays a sound. Plants outside protected areas break without drops (off 2022).
+  platform); neither plays a sound. Plants outside protected areas break without drops (off 2022). Ours (the
+  user, 2026-09-28): `space.break` and `space.break.outside` name `grass` (short and tall grass, ferns, dead
+  bushes and their modern kin; never a flower or a snow layer), a reserved cell still refuses, and the break
+  drops nothing (`Building` cancels that tick's block drop at the cell).
 - **Void**: below the minimum build limit a player cannot drop items or open the inventory (wiki), which
   stops resource denial. Below y 0 a player dies at the next once-a-second check, with no damage on the way
   down (cap, twelve falls). On Waterfall all five of ours died on the same tick of a 20-tick beat, 0.08 to
