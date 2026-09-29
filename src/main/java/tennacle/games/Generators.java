@@ -14,6 +14,7 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.ItemEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.entity.EntityItemMergeEvent;
+import io.github.term4.polyp.api.event.item.ItemPickupEvent;
 import net.minestom.server.event.item.PickupItemEvent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.tag.Tag;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.ToIntFunction;
 import java.util.function.Predicate;
 
 /**
@@ -157,6 +159,7 @@ public final class Generators implements GameModule, Building.Reserves {
 
     private final List<Generator> generators = new ArrayList<>();
     private double shareRadius = -1;
+    private @Nullable ToIntFunction<ItemStack> carry;
     private Predicate<ItemStack> shared = stack -> false;
     private Game game;
 
@@ -198,6 +201,23 @@ public final class Generators implements GameModule, Building.Reserves {
         return this;
     }
 
+    /** A member holding more than {@code limit} of a generated stack's material picks up no more of it ({@code -1} =
+     *  no limit); the split copies stop too. Captured: one still goes in at the limit, nothing past it, silently. */
+    public @NotNull Generators carry(@NotNull ToIntFunction<ItemStack> limit) {
+        this.carry = limit;
+        return this;
+    }
+
+    private boolean over(Player player, ItemStack stack) {
+        int limit = carry == null ? -1 : carry.applyAsInt(stack);
+        if (limit < 0) return false;
+        int held = 0;
+        for (ItemStack held0 : player.getInventory().getItemStacks()) {
+            if (held0.material() == stack.material()) held += held0.amount();
+        }
+        return held > limit;
+    }
+
     public @NotNull Pool pool(int cap) {
         return new Pool(cap);
     }
@@ -235,6 +255,11 @@ public final class Generators implements GameModule, Building.Reserves {
         game.on(EntityItemMergeEvent.class, e -> {
             if (e.getEntity().getTag(MADE_BY) != e.getMerged().getTag(MADE_BY)) e.setCancelled(true);
         });
+        // before the pickup lands: a generated stack past the picker's carry limit stays where it lies
+        game.on(ItemPickupEvent.class, ItemPickupEvent::getPlayer, e -> {
+            if (carry == null || e.item().getTag(MADE_BY) == null) return;
+            if (over(e.getPlayer(), e.stack())) e.setCancelled(true);
+        });
         // Polyp's pickup runs first and cancels a full inventory, so this is a pickup that landed
         game.on(PickupItemEvent.class, PickupItemEvent::getLivingEntity, e -> {
             if (shareRadius < 0 || !(e.getLivingEntity() instanceof Player picker)) return;
@@ -245,6 +270,7 @@ public final class Generators implements GameModule, Building.Reserves {
             for (Player mate : game.members()) {
                 if (mate == picker || !team.equals(Match.teamOf(game, mate))) continue;
                 if (mate.getPosition().distance(item.getPosition()) > shareRadius) continue;
+                if (over(mate, e.getItemStack())) continue;
                 mate.getInventory().addItemStack(e.getItemStack());
             }
         });

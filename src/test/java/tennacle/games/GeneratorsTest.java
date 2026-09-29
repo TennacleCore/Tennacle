@@ -2,6 +2,7 @@ package tennacle.games;
 
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
+import io.github.term4.polyp.api.event.item.ItemPickupEvent;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameType;
 import io.github.term4.grotto.Markers;
@@ -45,6 +46,42 @@ class GeneratorsTest extends HeadlessServerTest {
                 .rule(Countdown.FROM, 1).rule(Countdown.GRACE, 1L).rule(Countdown.INTERVAL, 1L)
                 .modules(() -> Phases.of(Match.OPENING, Match.LIVE, Match.OVER), Countdown::of, () -> generators)
                 .build();
+    }
+
+    /** Captured: one more goes in at the limit, nothing past it; the picker's split copies stop the same way. */
+    @Test
+    void aCarryLimitHoldsThePickup() {
+        Game game = Matches.grotto().launch(type(Generators.of().carry(stack -> stack.material() == Material.IRON_INGOT ? 2 : -1)),
+                Matches.mode("bedfight").arena().get());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "GenCap");
+        try {
+            p.player.setInstance(game.instance(), game.arena().meta().spawn()).join();
+            assertTrue(game.join(p.player));
+            Pos spawn = game.roster().slotOf(p.player).spawn();
+            p.player.teleport(spawn.add(6, 0, 0)).join();
+            Point at = new Vec(spawn.blockX() + 0.5, spawn.blockY(), spawn.blockZ() + 0.5);
+            Generators generators = game.module(Generators.class);
+            Generators.Generator g = generators.add(at, ItemStack.of(Material.IRON_INGOT), 1, generators.pool(64));
+            g.start(1);
+            TimelineTest.tickUntil(game, "a drop", () -> g.lying() >= 1);
+            DroppedItemEntity item = lying(game, at, Material.IRON_INGOT).getFirst();
+
+            p.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 2));
+            ItemPickupEvent atTheLimit = new ItemPickupEvent(p.player, item);
+            EventDispatcher.call(atTheLimit);
+            assertFalse(atTheLimit.isCancelled(), "one still goes in at the limit");
+            p.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 1));
+            ItemPickupEvent pastIt = new ItemPickupEvent(p.player, item);
+            EventDispatcher.call(pastIt);
+            assertTrue(pastIt.isCancelled(), "past it, nothing more");
+            ItemPickupEvent gold = new ItemPickupEvent(p.player, item);
+            gold.stack(ItemStack.of(Material.GOLD_INGOT));
+            EventDispatcher.call(gold);
+            assertFalse(gold.isCancelled(), "another material has its own limit");
+        } finally {
+            p.player.remove();
+            game.end(Outcome.draw());
+        }
     }
 
     private static List<DroppedItemEntity> lying(Game game, Point at, Material material) {

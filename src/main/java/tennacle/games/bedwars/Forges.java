@@ -46,6 +46,11 @@ final class Forges implements GameModule {
     static final StateKey<Long> BOOST = StateKey.of("forge.boost", Codec.LONG, 600L);
     static final StateKey<Long> BOOST_IRON = StateKey.of("forge.boost.iron", Codec.LONG, 21L);
     static final StateKey<Long> BOOST_GOLD = StateKey.of("forge.boost.gold", Codec.LONG, 126L);
+    /** Captured (Lucky Rush 2026-09-24): one more goes in at 512 iron and at 64 gold, nothing past. */
+    static final StateKey<Integer> CARRY_IRON = StateKey.of("forge.carry.iron", Codec.INT, 512);
+    static final StateKey<Integer> CARRY_GOLD = StateKey.of("forge.carry.gold", Codec.INT, 64);
+    /** Ticks between a side's iron spawners after a level is bought (captured 9 at Iron Forge); {@code 0} = together. */
+    static final StateKey<Long> STAGGER = StateKey.of("forge.stagger", Codec.LONG, 9L);
     /** The first fill's iron cap. */
     static final StateKey<Integer> BOOST_CAP = StateKey.of("forge.boost.cap", Codec.INT, 64);
 
@@ -69,7 +74,8 @@ final class Forges implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(IRON_PERIOD, GOLD_PERIOD, EMERALD_PERIOD, IRON_CAP, GOLD_CAP, EMERALD_CAP, BOOST, BOOST_IRON, BOOST_GOLD, BOOST_CAP);
+        return Set.of(IRON_PERIOD, GOLD_PERIOD, EMERALD_PERIOD, IRON_CAP, GOLD_CAP, EMERALD_CAP, BOOST, BOOST_IRON, BOOST_GOLD, BOOST_CAP,
+                CARRY_IRON, CARRY_GOLD, STAGGER);
     }
 
     @Override
@@ -93,18 +99,20 @@ final class Forges implements GameModule {
             Generators.Generator emerald = generators.add(forge.point(), EMERALD, 1, emeraldPool);
             forges.put(team.id(), new Forge(iron, ironPool, gold, goldPool, emerald, emeraldPool));
         }
+        generators.carry(stack -> stack.material() == Material.IRON_INGOT ? game.rules().resolve(Scope.GAME, CARRY_IRON)
+                : stack.material() == Material.GOLD_INGOT ? game.rules().resolve(Scope.GAME, CARRY_GOLD) : -1);
         for (StateKey<?> key : rules()) game.rules().watch(key, (scope, value) -> forges.keySet().forEach(this::retime));
-        // captured: a level bought spawns at once, then runs at the new pace
+        // captured: a level bought spawns at once, then runs at the new pace, the iron spawners drifting apart
         game.rules().watch(LEVEL, (scope, value) -> {
             if (!(scope instanceof Scope.Team team) || !forges.containsKey(team.id())) return;
             retime(team.id());
-            restart(forges.get(team.id()));
+            restart(forges.get(team.id()), game.rules().resolve(Scope.GAME, STAGGER));
         });
         game.state().alarms().register(BOOST_ALARM, (tick, payload) -> {
             // captured: the boost's end spawns on the spot, then the level's own pace
             for (String team : forges.keySet()) {
                 retime(team);
-                restart(forges.get(team));
+                restart(forges.get(team), 0);
             }
         });
         if (Phases.is(game, Match.LIVE)) start();
@@ -150,8 +158,13 @@ final class Forges implements GameModule {
         }
     }
 
-    private void restart(Forge forge) {
-        for (Generators.Generator g : forge.iron()) g.restart();
+    private void restart(Forge forge, long stagger) {
+        int i = 0;
+        for (Generators.Generator g : forge.iron()) {
+            if (stagger > 0 && i > 0) g.start(i * stagger);
+            else g.restart();
+            i++;
+        }
         forge.gold().restart();
         if (forge.emerald() != null && period(EMERALD_PERIOD, level(game, teamOf(forge))) > 0) forge.emerald().restart();
     }
