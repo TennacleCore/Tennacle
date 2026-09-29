@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import io.github.term4.canvas.screen.Items;
 import tennacle.games.Skins;
 import tennacle.games.shop.Goods;
 import tennacle.games.shop.Offer;
@@ -34,8 +35,6 @@ import net.minestom.server.registry.RegistryKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -136,7 +135,7 @@ final class Wares {
                 "Diamond leggings and boots which", "you will always crush with."); // sic
         add(new Ware(Rank.at("shears", Gear.SHEARS, Rank.Holder.SEAT, 1, Price.of(20, IRON)), Tab.TOOLS,
                 List.of("Permanent Shears"), Ware.fixed(List.of(ItemStack.of(Material.SHEARS))),
-                gray("Great to get rid of wool. You will", "always spawn with these shears."), true));
+                Items.gray("Great to get rid of wool. You will", "always spawn with these shears."), true));
         tool("pickaxe", Gear.PICKAXE, Gear.PICKAXES, List.of("Wooden Pickaxe (Efficiency I)", "Iron Pickaxe (Efficiency II)",
                 "Golden Pickaxe (Efficiency III, Sharpness II)", "Diamond Pickaxe (Efficiency III)"));
         tool("axe", Gear.AXE, Gear.AXES, List.of("Wooden Axe (Efficiency I)", "Stone Axe (Efficiency I)",
@@ -249,12 +248,12 @@ final class Wares {
                               BiFunction<Game, Player, ItemStack> icon, Material plain, Price price, String role,
                               String... description) {
         ROLES.putIfAbsent(plain, role);
-        add(new Ware(Goods.of(id, price, role, stack), tab, List.of(name), List.of(icon), gray(description), false));
+        add(new Ware(Goods.of(id, price, role, stack), tab, List.of(name), List.of(icon), Items.gray(description), false));
     }
 
     private static void armor(String id, String name, Material icon, int tier, Price price, String... description) {
         add(new Ware(Rank.at(id, Gear.ARMOR, Rank.Holder.SEAT, tier, price), Tab.ARMOR, List.of(name),
-                Ware.fixed(List.of(ItemStack.of(icon))), gray(description), true));
+                Ware.fixed(List.of(ItemStack.of(icon))), Items.gray(description), true));
     }
 
     private static void tool(String id, StateKey<Integer> ladder, List<ItemStack> tiers,
@@ -285,10 +284,4 @@ final class Wares {
         };
     }
 
-
-    private static List<Component> gray(String... lines) {
-        List<Component> out = new ArrayList<>();
-        Arrays.stream(lines).forEach(line -> out.add(Component.text(line, NamedTextColor.GRAY)));
-        return List.copyOf(out);
-    }
 }

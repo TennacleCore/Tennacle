@@ -1,5 +1,8 @@
 package tennacle.games.boxing;
 
+import java.util.concurrent.CompletableFuture;
+import net.minestom.server.command.CommandSender;
+import tennacle.games.Careers;
 import tennacle.games.map.HotArena;
 import tennacle.games.matchmaking.Parties;
 import tennacle.games.matchmaking.Duels;
@@ -11,11 +14,8 @@ import io.github.term4.grotto.modules.flow.Abandonment;
 import io.github.term4.grotto.roster.Roster;
 import io.github.term4.grotto.modules.view.Refusals;
 import io.github.term4.grotto.modules.view.Sight;
-import io.github.term4.polyp.platform.player.PlayerNames;
 import io.github.term4.bloom.mapmaking.Teams;
 import tennacle.games.Presets;
-import tennacle.commands.Commands;
-import tennacle.commands.AppCommand;
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Flags;
@@ -49,9 +49,7 @@ import io.github.term4.polyp.MechanicsProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
-import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
@@ -146,48 +144,18 @@ public final class Boxing {
                 .build();
         Duels.mode(boxing);
         Flags.offer(boxing, "preset");
-        registerStats();
+        Careers.sheet("boxing", Boxing::career);
     }
 
     static String wtap(int hits, int sprint) {
         return hits > 0 ? Math.round(sprint * 100.0 / hits) + "%" : "N/A";
     }
 
-    /** {@code /stats [player]}: career boxing numbers off the vault - w-tap % derives at display. */
-    private static void registerStats() {
-        AppCommand stats = Commands.player("stats", "Career boxing numbers.")
-                .usage("/stats [player]", "yours, or theirs")
-                .featured();
-        var name = ArgumentType.Word("player");
-        name.setSuggestionCallback(PlayerNames.suggest());
-        stats.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) show(p, p.getUsername(), p.getUuid());
+    // the career line: w-tap % derives at display
+    private static CompletableFuture<Void> career(CommandSender to, UUID uuid, String username) {
+        return Careers.read(Matches.grotto().vault(), uuid, List.of(CAREER_HITS, CAREER_SPRINT, CAREER_COMBO)).thenAccept(v -> {
+            String wtap = v[0] > 0 ? Math.round(v[1] * 100.0 / v[0]) + "%" : "-";
+            Msg.say(to, Msg.v(username), " boxing: ", Msg.v(v[0]), " hits, ", Msg.v(wtap), " w-tap, best combo ", Msg.v(v[2]), ".");
         });
-        stats.addSyntax((sender, ctx) -> {
-            Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(ctx.get(name));
-            if (target == null) {
-                Msg.fail(sender, "No player named ", Msg.v(ctx.get(name)), ".");
-                return;
-            }
-            show(sender, target.getUsername(), target.getUuid());
-        }, name);
-        Commands.register(stats);
-    }
-
-    private static void show(Object to, String username, UUID uuid) {
-        var vault = Matches.grotto().vault();
-        var sender = (net.minestom.server.command.CommandSender) to;
-        vault.get(uuid, CAREER_HITS)
-                .thenCompose(hits -> vault.get(uuid, CAREER_SPRINT)
-                        .thenCompose(sprint -> vault.get(uuid, CAREER_COMBO)
-                                .thenAccept(combo -> {
-                                    String wtap = hits > 0 ? Math.round(sprint * 100.0 / hits) + "%" : "-";
-                                    Msg.say(sender, Msg.v(username), ": ", Msg.v(hits), " hits, ", Msg.v(wtap),
-                                            " w-tap, best combo ", Msg.v(combo), ".");
-                                })))
-                .exceptionally(failed -> { // an unread failure here is a command that answers nothing at all
-                    Msg.fail(sender, "Could not read those stats.");
-                    return null;
-                });
     }
 }

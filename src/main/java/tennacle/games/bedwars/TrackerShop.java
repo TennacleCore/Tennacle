@@ -60,7 +60,7 @@ final class TrackerShop {
 
     static ItemStack back(String to) {
         return Items.bare(Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)),
-                List.of(ItemShop.gray(to))));
+                List.of(Items.gray(to))));
     }
 
     private static ItemStack icon(Game game, Player viewer, Team team) {
@@ -70,7 +70,7 @@ final class TrackerShop {
         boolean affordable = price.currency().held(viewer) >= price.amount();
         List<Component> lore = new ArrayList<>(Compass.trackerLore());
         lore.add(Component.empty());
-        lore.add(ItemShop.gray("Cost: ").append(Component.text(price.amount() + " " + price.currency().name(price.amount()),
+        lore.add(Items.gray("Cost: ").append(Component.text(price.amount() + " " + price.currency().name(price.amount()),
                 price.currency().color())));
         lore.add(Component.empty());
         lore.add(!open ? Component.text("Unlocks when all enemy beds are destroyed!", NamedTextColor.RED)

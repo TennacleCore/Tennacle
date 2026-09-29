@@ -55,7 +55,7 @@ final class UpgradeShop {
         ItemStack pane = Items.lore(Items.named(Material.GRAY_STAINED_GLASS_PANE, Component.text("⬆ ", NamedTextColor.DARK_GRAY)
                         .append(Component.text("Purchasable", NamedTextColor.GRAY))),
                 List.of(Component.text("⬇ ", NamedTextColor.DARK_GRAY).append(Component.text("Traps Queue", NamedTextColor.GRAY))));
-        for (int i = 27; i < 36; i++) window.item(i, pane);
+        window.row(3, pane);
         for (int i = 0; i < QUEUE.length; i++) {
             int index = i;
             window.button(QUEUE[i], v -> queued(game, v, index), (v, click) -> {
@@ -78,17 +78,17 @@ final class UpgradeShop {
         boolean maxed = rank.refusal(game, viewer) == Refusal.OWNED;
         Price price = rank.price(game, viewer);
         boolean affordable = held(viewer, price);
-        List<Component> lore = new ArrayList<>(ItemShop.gray(upgrade.description().toArray(String[]::new)));
+        List<Component> lore = new ArrayList<>(Items.gray(upgrade.description().toArray(String[]::new)));
         lore.add(Component.empty());
         if (upgrade.single()) {
-            lore.add(ItemShop.gray("Cost: ").append(diamonds(price)));
+            lore.add(Items.gray("Cost: ").append(diamonds(price)));
         } else {
             List<Price> prices = game.rules().resolve(viewer, rank.pricesRule());
             for (int tier = 1; tier <= upgrade.tiers().size(); tier++) {
                 NamedTextColor done = tier <= bought ? NamedTextColor.GREEN : NamedTextColor.GRAY;
                 Price at = prices.get(Math.min(tier, prices.size()) - 1);
                 lore.add(Component.text("Tier " + tier + ": " + upgrade.tiers().get(tier - 1), done)
-                        .append(ItemShop.gray(", ")).append(diamonds(at)));
+                        .append(Items.gray(", ")).append(diamonds(at)));
             }
         }
         lore.add(Component.empty());
@@ -105,9 +105,9 @@ final class UpgradeShop {
         Price price = offer.price(game, viewer);
         boolean bed = offer.refusal(game, viewer) != Traps.NO_BED;
         boolean affordable = held(viewer, price);
-        List<Component> lore = new ArrayList<>(ItemShop.gray(kind.description.toArray(String[]::new)));
+        List<Component> lore = new ArrayList<>(Items.gray(kind.description.toArray(String[]::new)));
         lore.add(Component.empty());
-        lore.add(ItemShop.gray("Cost: ").append(diamonds(price)));
+        lore.add(Items.gray("Cost: ").append(diamonds(price)));
         lore.add(Component.empty());
         lore.add(!bed ? Component.text("Can't be purchased without a bed!", NamedTextColor.RED)
                 : affordable ? Component.text("Click to purchase!", NamedTextColor.YELLOW)
@@ -121,12 +121,12 @@ final class UpgradeShop {
         String first = ORDINAL[index];
         if (index < queue.size()) {
             Traps.Queued trap = queue.get(index);
-            List<Component> lore = new ArrayList<>(ItemShop.gray(trap.kind().description.toArray(String[]::new)));
+            List<Component> lore = new ArrayList<>(Items.gray(trap.kind().description.toArray(String[]::new)));
             lore.add(Component.empty());
-            lore.add(ItemShop.gray("The " + first + " enemy to walk into your"));
-            lore.add(ItemShop.gray("base will trigger this trap!"));
+            lore.add(Items.gray("The " + first + " enemy to walk into your"));
+            lore.add(Items.gray("base will trigger this trap!"));
             lore.add(Component.empty());
-            lore.add(ItemShop.gray("Queued by: ").append(Component.text(trap.by(), NamedTextColor.AQUA)));
+            lore.add(Items.gray("Queued by: ").append(Component.text(trap.by(), NamedTextColor.AQUA)));
             lore.add(Component.empty());
             lore.add(Component.text("Right Click to remove! ", NamedTextColor.YELLOW)
                     .append(Component.text("(No refund)", NamedTextColor.DARK_GRAY)));
@@ -135,11 +135,11 @@ final class UpgradeShop {
                     Component.text("Trap #" + (index + 1) + ": " + trap.kind().title, NamedTextColor.GREEN)), lore));
         }
         List<Price> prices = game.rules().resolve(viewer, Traps.PRICES);
-        List<Component> lore = new ArrayList<>(ItemShop.gray("The " + first + " enemy to walk into your", "base will trigger this trap!"));
+        List<Component> lore = new ArrayList<>(Items.gray("The " + first + " enemy to walk into your", "base will trigger this trap!"));
         lore.add(Component.empty());
-        lore.addAll(ItemShop.gray("Purchasing a trap will queue it here.", "Its cost will scale based on the", "number of traps queued."));
+        lore.addAll(Items.gray("Purchasing a trap will queue it here.", "Its cost will scale based on the", "number of traps queued."));
         lore.add(Component.empty());
-        lore.add(ItemShop.gray("Next trap: ").append(diamonds(prices.get(Math.min(queue.size(), prices.size() - 1)))));
+        lore.add(Items.gray("Next trap: ").append(diamonds(prices.get(Math.min(queue.size(), prices.size() - 1)))));
         ItemStack stack = Items.counted(ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS), index + 1);
         return Items.lore(Items.named(stack, Component.text("Trap #" + (index + 1) + ": No Trap!", NamedTextColor.RED)), lore);
     }
@@ -149,34 +149,25 @@ final class UpgradeShop {
         Slot seat = game.roster().slotOf(viewer);
         if (seat == null) return;
         if (!Throttle.fixed(game, CLICKED, GAP).pass(viewer, left -> {
-            viewer.sendMessage(Lines.tooFast(game));
-            viewer.playSound(Lines.REFUSED);
+            Lines.refused(viewer, Lines.tooFast(game));
             viewer.closeInventory();
         })) return;
         Sale sale = game.module(Shop.class).buy(viewer, offer);
         switch (sale) {
             case Sale.Sold sold -> {
                 Component line = Lines.teamPurchased(game, viewer.getUsername(), name);
-                String team = Match.teamOf(game, viewer);
-                for (Player member : game.members()) {
-                    if (team.equals(Match.teamOf(game, member))) member.sendMessage(line);
-                }
+                Match.each(game, Match.teamOf(game, viewer), member -> member.sendMessage(line));
                 viewer.playSound(Lines.BOUGHT);
             }
-            case Sale.Short ignored -> refuse(viewer, Lines.upgradeShort(game));
+            case Sale.Short ignored -> Lines.refused(viewer, Lines.upgradeShort(game));
             case Sale.Refused refused -> {
                 Refusal why = refused.refusal();
-                if (why == Refusal.OWNED) refuse(viewer, Lines.maxed(game));
-                else if (why == Traps.QUEUE_FULL) refuse(viewer, Lines.queueFull(game));
-                else if (why == Traps.NO_BED) refuse(viewer, Lines.noBed(game));
+                if (why == Refusal.OWNED) Lines.refused(viewer, Lines.maxed(game));
+                else if (why == Traps.QUEUE_FULL) Lines.refused(viewer, Lines.queueFull(game));
+                else if (why == Traps.NO_BED) Lines.refused(viewer, Lines.noBed(game));
             }
         }
         Screens.repaint(viewer);
-    }
-
-    private static void refuse(Player viewer, Component line) {
-        viewer.sendMessage(line);
-        viewer.playSound(Lines.REFUSED);
     }
 
     private static Component diamonds(Price price) {

@@ -65,6 +65,13 @@ public final class Match {
         game.forEachAudience(action);
     }
 
+    /** Every member of {@code team}, ghosts included. */
+    public static void each(@NotNull Game game, @NotNull String team, @NotNull Consumer<Player> action) {
+        for (Player member : game.members()) {
+            if (team.equals(teamOf(game, member))) action.accept(member);
+        }
+    }
+
     /** Everyone in the game reads {@code line}, and the replay keeps it. */
     public static void say(@NotNull Game game, @NotNull Component line) {
         each(game, p -> p.sendMessage(line));

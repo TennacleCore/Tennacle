@@ -54,18 +54,18 @@ final class HotbarManager {
         ItemStack pane = Items.lore(Items.named(Material.GRAY_STAINED_GLASS_PANE, Component.text("⬆ ", NamedTextColor.DARK_GRAY)
                         .append(Component.text("Categories", NamedTextColor.GRAY))),
                 List.of(Component.text("⬇ ", NamedTextColor.DARK_GRAY).append(Component.text("Hotbar", NamedTextColor.GRAY))));
-        for (int i = 18; i < 27; i++) manager.item(i, pane);
+        manager.row(2, pane);
         for (int slot = 0; slot < 9; slot++) {
             int hotbar = slot;
             manager.button(27 + slot, v -> placed(game, v, hotbar), (v, click) -> place(game, v, hotbar));
         }
         manager.button(48, Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)),
-                List.of(ItemShop.gray("To Quick Buy"))), (v, click) -> {
+                List.of(Items.gray("To Quick Buy"))), (v, click) -> {
             v.getInventory().setCursorItem(ItemStack.AIR); // a swapped window drops the cursor
             ItemShop.open(game, v, Tab.QUICK_BUY);
         });
         manager.button(50, Items.lore(Items.named(Material.BARRIER, Component.text("Reset to Default", NamedTextColor.RED)),
-                List.of(ItemShop.gray("Reset your hotbar to the default."))), (v, click) -> {
+                List.of(Items.gray("Reset your hotbar to the default."))), (v, click) -> {
             v.getInventory().setCursorItem(ItemStack.AIR);
             KitLayouts.set(v, BedWars.KIT.id(), Map.of());
             Screens.repaint(v);
@@ -75,8 +75,8 @@ final class HotbarManager {
 
     private static ItemStack pickable(Category category) {
         return Items.bare(Items.lore(Items.named(category.icon(), Component.text(category.name(), NamedTextColor.GREEN)),
-                List.of(ItemShop.gray("Drag this to a hotbar slot below to"), ItemShop.gray("favor that slot when purchasing an"),
-                        ItemShop.gray("item in this category or on spawn."), Component.empty(),
+                List.of(Items.gray("Drag this to a hotbar slot below to"), Items.gray("favor that slot when purchasing an"),
+                        Items.gray("item in this category or on spawn."), Component.empty(),
                         Component.text("Click to drag!", NamedTextColor.YELLOW))));
     }
 
@@ -88,7 +88,7 @@ final class HotbarManager {
         Category category = in(game, viewer, hotbar);
         if (category == null) return ItemStack.AIR;
         return Items.bare(Items.lore(Items.named(category.icon(), Component.text(category.name(), NamedTextColor.GREEN)),
-                List.of(ItemShop.gray(category.name() + " items will prioritize this slot!"), Component.empty(),
+                List.of(Items.gray(category.name() + " items will prioritize this slot!"), Component.empty(),
                         Component.text("Click to remove!", NamedTextColor.YELLOW))));
     }
 

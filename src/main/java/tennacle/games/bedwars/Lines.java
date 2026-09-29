@@ -118,6 +118,18 @@ final class Lines {
         Match.title(game, Title.title(theme(game).bad("Sudden Death"), Component.empty(), Match.times(game, 10, 30, 10)));
     }
 
+    /** {@code line} with the purchase's pling. */
+    static void bought(Player viewer, Component line) {
+        viewer.sendMessage(line);
+        viewer.playSound(BOUGHT);
+    }
+
+    /** {@code line} with the refusal's sound. */
+    static void refused(Player viewer, Component line) {
+        viewer.sendMessage(line);
+        viewer.playSound(REFUSED);
+    }
+
     static Component purchased(Game game, String item) {
         return theme(game).good("You purchased ").append(Component.text(item, NamedTextColor.GOLD));
     }

@@ -115,7 +115,7 @@ final class Compass implements GameModule {
         Screen.Builder window = Screen.rows(3).title(Component.text("Tracker & Communication"));
         if (teams) {
             window.button(11, Items.bare(Items.lore(Items.named(Material.EMERALD, Component.text("Quick Communications", NamedTextColor.GREEN)),
-                    List.of(ItemShop.gray("Send highlighted chat messages to"), ItemShop.gray("your teammates!"), Component.empty(),
+                    List.of(Items.gray("Send highlighted chat messages to"), Items.gray("your teammates!"), Component.empty(),
                             Component.text("Click to open!", NamedTextColor.YELLOW)))),
                     (v, click) -> QuickComms.open(game, v));
         }
@@ -128,7 +128,7 @@ final class Compass implements GameModule {
     }
 
     static List<Component> trackerLore() {
-        return ItemShop.gray(TRACKER_LORE.toArray(String[]::new));
+        return Items.gray(TRACKER_LORE.toArray(String[]::new));
     }
 
     /** Points {@code player}'s compass by what their seat asked for last. */

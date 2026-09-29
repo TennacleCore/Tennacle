@@ -55,13 +55,13 @@ final class ItemShop {
             page.button(45, Items.bare(Items.lore(Items.named(Material.COMPASS, Component.text("Tracker Shop", NamedTextColor.GREEN)),
                     Compass.trackerLore())), (viewer, click) -> TrackerShop.open(game, viewer, false));
             page.button(53, Items.lore(Items.named(Material.BLAZE_POWDER, Component.text("Hotbar Manager", NamedTextColor.GREEN)),
-                    List.of(gray("Edit preferred slots for your items"), gray("per category."), Component.empty(),
+                    List.of(Items.gray("Edit preferred slots for your items"), Items.gray("per category."), Component.empty(),
                             Component.text("Click to edit!", NamedTextColor.YELLOW))),
                     (viewer, click) -> HotbarManager.open(game, viewer));
         }
         if (open == Tab.ROTATING) {
             page.item(49, Items.lore(Items.named(Material.PAPER, Component.text("What are Rotating Items?", NamedTextColor.GREEN)),
-                    gray("Rotating Items are items that are", "only available for a limited amount of",
+                    Items.gray("Rotating Items are items that are", "only available for a limited amount of",
                             "time. They may disappear and be", "replaced with another temporary", "item at any time.")));
         }
         return page.build();
@@ -104,9 +104,9 @@ final class ItemShop {
         if (ware == null) return tab == Tab.QUICK_BUY ? emptySlot() : ItemStack.AIR;
         List<Component> lore = header(game, viewer, ware);
         if (ware.upgradable()) {
-            lore.addAll(gray("This is an upgradable item.", "It will lose 1 tier upon death!"));
+            lore.addAll(Items.gray("This is an upgradable item.", "It will lose 1 tier upon death!"));
             lore.add(Component.empty());
-            lore.addAll(gray("You will permanently respawn with at", "least the lowest tier."));
+            lore.addAll(Items.gray("You will permanently respawn with at", "least the lowest tier."));
             lore.add(Component.empty());
         }
         // decided 2026-09-28: a ware already pinned takes no second pin
@@ -186,7 +186,7 @@ final class ItemShop {
         return Items.lore(Items.named(Material.RED_STAINED_GLASS_PANE, Component.text("Empty slot!", NamedTextColor.RED)),
                 List.of(Component.text("This is a Quick Buy Slot! ", NamedTextColor.GRAY)
                                 .append(Component.text("Shift Click", NamedTextColor.AQUA)),
-                        gray("any item in the shop to add it here.")));
+                        Items.gray("any item in the shop to add it here.")));
     }
 
     private static void press(Game game, Player viewer, Tab tab, int index, Click click) {
@@ -224,14 +224,8 @@ final class ItemShop {
         Offer offer = ware.offer();
         Sale sale = shop.buy(viewer, offer, into);
         switch (sale) {
-            case Sale.Sold sold -> {
-                viewer.sendMessage(Lines.purchased(game, name));
-                viewer.playSound(Lines.BOUGHT);
-            }
-            case Sale.Short missing -> {
-                viewer.sendMessage(Lines.shortOf(game, missing.price(), missing.missing()));
-                viewer.playSound(Lines.REFUSED);
-            }
+            case Sale.Sold sold -> Lines.bought(viewer, Lines.purchased(game, name));
+            case Sale.Short missing -> Lines.refused(viewer, Lines.shortOf(game, missing.price(), missing.missing()));
             case Sale.Refused refused -> refuse(game, viewer, refused.refusal());
         }
         Screens.repaint(viewer);
@@ -239,15 +233,9 @@ final class ItemShop {
 
     // captured: a lower armor tier refuses without a sound
     private static void refuse(Game game, Player viewer, Refusal refusal) {
-        if (refusal == Refusal.FULL) {
-            viewer.sendMessage(Lines.full(game));
-            viewer.playSound(Lines.REFUSED);
-        } else if (refusal == Refusal.OWNED) {
-            viewer.sendMessage(Lines.owned(game));
-            viewer.playSound(Lines.REFUSED);
-        } else if (refusal == Refusal.BEYOND) {
-            viewer.sendMessage(Lines.beyond(game));
-        }
+        if (refusal == Refusal.FULL) Lines.refused(viewer, Lines.full(game));
+        else if (refusal == Refusal.OWNED) Lines.refused(viewer, Lines.owned(game));
+        else if (refusal == Refusal.BEYOND) viewer.sendMessage(Lines.beyond(game));
     }
 
     static String roman(int n) {
@@ -259,15 +247,5 @@ final class ItemShop {
             case 5 -> "V";
             default -> Integer.toString(n);
         };
-    }
-
-    static Component gray(String line) {
-        return Component.text(line, NamedTextColor.GRAY);
-    }
-
-    static List<Component> gray(String... lines) {
-        List<Component> out = new ArrayList<>();
-        for (String line : lines) out.add(gray(line));
-        return out;
     }
 }

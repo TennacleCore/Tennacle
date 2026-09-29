@@ -1,5 +1,12 @@
 package tennacle.games.bedwars;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.UUID;
+import net.minestom.server.command.CommandSender;
+import io.github.term4.grotto.vault.VaultKey;
+import io.github.term4.grotto.modules.outcome.Stats;
+import tennacle.Msg;
+import tennacle.games.Careers;
 import tennacle.boot.Mechanics;
 import tennacle.games.Generators;
 import tennacle.games.Idle;
@@ -148,6 +155,15 @@ public final class BedWars {
     public static final StateKey<Integer> BEDS = StateKey.of("ledger.bedwars.beds", Codec.INT, 0, true);
     static final Lives.Counters COUNTERS = new Lives.Counters(KILLS, DEATHS, FINAL_KILLS, FINAL_DEATHS);
 
+    // career truth, in the vault
+    public static final VaultKey<Integer> CAREER_KILLS = VaultKey.of("bedwars:career-kills", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_DEATHS = VaultKey.of("bedwars:career-deaths", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_FINAL_KILLS = VaultKey.of("bedwars:career-final-kills", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_FINAL_DEATHS = VaultKey.of("bedwars:career-final-deaths", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_BEDS = VaultKey.of("bedwars:career-beds", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_WINS = VaultKey.of("bedwars:career-wins", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_LOSSES = VaultKey.of("bedwars:career-losses", Codec.INT, 0);
+
     private static final ItemStack SWORD = Kit.unbreakable(ItemStack.of(Material.WOODEN_SWORD));
 
     // the shop's team blocks, in the team's color
@@ -249,6 +265,14 @@ public final class BedWars {
         mode("bedwars-3s", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
         mode("bedwars-4s", "Bed Wars 4v4v4v4", "4v4v4v4", "4v4v4v4", "bedwars-4v4v4v4", 4, 4);
         Rooms.warm(ROOMS); // off the boot thread, not off the first game's clock
+        Careers.sheet("bedwars", BedWars::career);
+    }
+
+    private static CompletableFuture<Void> career(CommandSender to, UUID uuid, String username) {
+        return Careers.read(Matches.grotto().vault(), uuid, List.of(CAREER_WINS, CAREER_LOSSES, CAREER_KILLS, CAREER_DEATHS,
+                CAREER_FINAL_KILLS, CAREER_FINAL_DEATHS, CAREER_BEDS)).thenAccept(v -> Msg.say(to, Msg.v(username), " Bed Wars: ",
+                Msg.v(v[0]), " wins, ", Msg.v(v[1]), " losses, ", Msg.v(v[2]), " kills, ", Msg.v(v[3]), " deaths, ",
+                Msg.v(v[4]), " final kills, ", Msg.v(v[5]), " final deaths, ", Msg.v(v[6]), " beds broken."));
     }
 
     // captured: the timeline's events, the middle's tiers among them
@@ -388,6 +412,9 @@ public final class BedWars {
                         Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, TntMark::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
+                        () -> Stats.of().counter(KILLS, CAREER_KILLS).counter(DEATHS, CAREER_DEATHS)
+                                .counter(FINAL_KILLS, CAREER_FINAL_KILLS).counter(FINAL_DEATHS, CAREER_FINAL_DEATHS)
+                                .counter(BEDS, CAREER_BEDS).wins(CAREER_WINS).losses(CAREER_LOSSES),
                         () -> Boards.hypixel(label))
                 .build();
         Rulesets.check(Mechanics.polyp.profiles().global(), type);

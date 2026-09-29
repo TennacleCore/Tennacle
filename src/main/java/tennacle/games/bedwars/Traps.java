@@ -225,10 +225,9 @@ final class Traps implements GameModule {
     private void setOff(String team, Kind kind) {
         Title title = Lines.trapTriggered(game, kind.title);
         Component line = Lines.trapSetOff(game, kind.title);
-        forTeam(team, member -> {
+        Match.each(game, team, member -> {
             member.showTitle(title);
-            member.sendMessage(line);
-            member.playSound(Lines.REFUSED);
+            Lines.refused(member, line);
         });
     }
 
@@ -239,21 +238,14 @@ final class Traps implements GameModule {
         TextColor color = theirs != null ? theirs.color() : NamedTextColor.WHITE;
         Title title = Lines.alarm(game, name, color);
         Component line = Lines.alarmLine(game, intruder.getUsername(), name, color);
-        forTeam(team, member -> {
+        Match.each(game, team, member -> {
             member.showTitle(title);
-            member.sendMessage(line);
-            member.playSound(Lines.REFUSED);
+            Lines.refused(member, line);
         });
         for (int note = 0; note <= 50; note++) {
             float pitch = (note % 2 == 0 ? 107 : 113) / 63f; // captured pitch bytes
             game.state().alarms().arm(ALARM + "bell:" + team, game.tick() + 2L * note + 1,
                     CompoundBinaryTag.builder().putFloat("pitch", pitch).build());
-        }
-    }
-
-    private void forTeam(String team, java.util.function.Consumer<Player> action) {
-        for (Player member : game.members()) {
-            if (team.equals(Match.teamOf(game, member))) action.accept(member);
         }
     }
 

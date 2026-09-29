@@ -1,5 +1,6 @@
 package tennacle.boot;
 
+import tennacle.games.Careers;
 import tennacle.GameIds;
 import tennacle.Msg;
 import tennacle.PlayerPrefs;
@@ -268,8 +269,9 @@ public final class TestServer {
         GrottoCommands.register(); // /grotto: spectate, and a game id from a board code
         LobbyCommands.register(); // /spawn|/lobby|/l - a seated player departs their game first
         TeamChat.register(); // /shout: past team chat, the whole game
+        Careers.register(); // /stats: every mode's career line
         Sumo.install();   // ring-out over a void plane; the platform picks the knockback
-        Boxing.install(); // speed 2, first to 10 hits; /stats for career numbers
+        Boxing.install(); // speed 2, first to 10 hits
         Bridge.install(); // blue vs red, first to five goals
         BedFight.install(); // break the bed, then eliminate
         tennacle.games.bedwars.BedWars.install(); // Hypixel's, on its maps: /play bedwars-solo

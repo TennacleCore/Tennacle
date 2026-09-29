@@ -82,8 +82,8 @@ final class QuickComms {
 
     private static ItemStack icon(Say say) {
         List<Component> lore = new ArrayList<>();
-        if (say.aim == Aim.TEAM) lore.add(ItemShop.gray("You will be able to select the Team."));
-        if (say.aim == Aim.RESOURCE) lore.addAll(ItemShop.gray("You will be able to select the", "Resource."));
+        if (say.aim == Aim.TEAM) lore.add(Items.gray("You will be able to select the Team."));
+        if (say.aim == Aim.RESOURCE) lore.addAll(Items.gray("You will be able to select the", "Resource."));
         lore.add(Component.empty());
         lore.add(Component.text("Click to send!", NamedTextColor.YELLOW));
         return Items.bare(Items.lore(Items.named(say.icon, Component.text(say.title, NamedTextColor.GREEN)), lore));
@@ -142,8 +142,8 @@ final class QuickComms {
     private static ItemStack option(ItemStack icon, String lead, Component what) {
         Component message = Component.text(lead, NamedTextColor.GREEN).append(what);
         List<Component> lore = List.of(
-                ItemShop.gray("Click to send the message: \"").append(message).append(ItemShop.gray("\"")),
-                ItemShop.gray("to your teammates!"),
+                Items.gray("Click to send the message: \"").append(message).append(Items.gray("\"")),
+                Items.gray("to your teammates!"),
                 Component.empty(),
                 Component.text("Click to send!", NamedTextColor.YELLOW));
         return Items.bare(Items.lore(Items.named(icon, message), lore));
@@ -157,12 +157,10 @@ final class QuickComms {
             sender.playSound(Lines.ORB);
         }
         Component line = Lines.teamSays(game, sender.getUsername(), message);
-        String team = Match.teamOf(game, sender);
-        for (Player member : game.members()) {
-            if (!team.equals(Match.teamOf(game, member))) continue;
+        Match.each(game, Match.teamOf(game, sender), member -> {
             member.sendMessage(line);
             member.playSound(Lines.ORB);
-        }
+        });
     }
 
     // iron and gold at the side's own forge, diamonds and emeralds at the nearest generator
