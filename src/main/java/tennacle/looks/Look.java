@@ -352,6 +352,16 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .build();
     }
 
+    /** A spectator's line: on hypixel a gray {@code [SPECTATOR] } before the name (uncaptured), a tag elsewhere. */
+    public static @NotNull Component spectatorChat(Game game, Player speaker, String message) {
+        return switch (Matches.lookNameOf(game)) {
+            case "hypixel" -> Component.text("[SPECTATOR] ", NamedTextColor.GRAY)
+                    .append(Component.text(speaker.getUsername(), NamedTextColor.GRAY))
+                    .append(Component.text(": " + message, NamedTextColor.WHITE));
+            default -> Chat.tagged("spec", speaker, message);
+        };
+    }
+
     /** A shout to the whole game. Captured 2026-09-29: gold {@code [SHOUT] }, then the game line as it is. */
     public static @NotNull Component shout(Game game, Player speaker, String message) {
         return switch (Matches.lookNameOf(game)) {

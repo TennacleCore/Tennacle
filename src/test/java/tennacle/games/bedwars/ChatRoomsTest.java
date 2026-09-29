@@ -1,5 +1,7 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.beds.Lives;
+import io.github.term4.grotto.modules.outcome.LastStanding;
 import java.util.Locale;
 import tennacle.looks.Palette;
 import io.github.term4.archipelago.shard.ShardManager;
@@ -29,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A team mode talks to its team in the captured shape, Solo to everyone; a shout reaches all, once a cooldown. */
@@ -99,6 +102,52 @@ class ChatRoomsTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
             c.player.remove();
+        }
+    }
+
+    @Test
+    void theOutTalkApart() {
+        Mode doubles = Matches.mode("bedwars-doubles");
+        Game game = Matches.launch(doubles, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 99);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "OutA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "OutB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "OutC");
+        FakePlayer d = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "OutD");
+        List<FakePlayer> all = List.of(a, b, c, d);
+        try {
+            for (FakePlayer p : all) p.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player, b.player)));
+            assertTrue(Matches.enter(game, List.of(c.player)));
+            assertTrue(Matches.enter(game, List.of(d.player)));
+            await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            game.state().set(Scope.GAME, Countdown.START_AT, 4);
+            BedWarsRoundTest.live(game);
+
+            game.module(LastStanding.class).out(d.player, LastStanding.Cause.eliminated(null, "was eliminated"));
+            assertNull(game.decided(), "two sides still stand");
+            Chat.Room room = Rooms.room(d.player, "gg");
+            assertNotNull(room);
+            assertTrue(room.audience().contains(d.player));
+            assertFalse(room.audience().contains(a.player) || room.audience().contains(c.player), "the living never hear the out");
+            assertEquals("[SPECTATOR] OutD: gg", plain(room.line()));
+
+            game.module(Lives.class).fell(b.player); // the bed stands: a death to come back from
+            room = Rooms.room(b.player, "rush");
+            assertNotNull(room);
+            assertTrue(room.audience().contains(a.player) && room.audience().contains(b.player), "a respawning death keeps its team");
+            assertFalse(room.audience().contains(c.player));
+
+            a.sent.clear();
+            d.sent.clear();
+            TeamChat.shout(d.player, "hey");
+            assertTrue(chat(a).stream().noneMatch(l -> l.contains("hey")), "nor a shout from the out");
+            assertTrue(chat(d).stream().anyMatch(l -> l.contains("can't shout")), chat(d).toString());
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
         }
     }
 

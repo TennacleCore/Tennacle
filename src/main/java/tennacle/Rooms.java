@@ -82,6 +82,7 @@ public final class Rooms {
         if (party != null) return new Chat.Room(party, Parties.chatLine(me, message));
         Game game = gameOf(me);
         if (game != null) {
+            if (TeamChat.benched(game, me)) return TeamChat.spectatorRoom(game, me, message);
             Chat.Room team = TeamChat.room(game, me, message);
             if (team != null) return team; // a team's own words: not the tape's
             List<Player> to = new ArrayList<>();
@@ -91,7 +92,7 @@ public final class Rooms {
             return new Chat.Room(to, line);
         }
         Game watched = Matches.grotto().spectating(me);
-        if (watched != null) return new Chat.Room(watched.spectators(), Chat.tagged("spec", me, message));
+        if (watched != null) return TeamChat.spectatorRoom(watched, me, message);
         Object room = roomOf(me);
         List<Player> to = new ArrayList<>();
         for (Player other : MinecraftServer.getConnectionManager().getOnlinePlayers()) {

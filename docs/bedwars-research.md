@@ -1380,7 +1380,10 @@ www.hypixel.net           yellow
   are drawn: before the start everyone in the room hears everyone, with no team tag;
   `/shout` reaches the whole game under a gold `[SHOUT] ` tag (cap, 2026-09-29: `[SHOUT] [YELLOW] [MVP+] Dogln: msg`,
   the tag gold, the team tag in its color, rank and name aqua or a rankless name gray, the message white), once per
-  `chat.shout.cooldown` (1200); a game's global line carries the team tag in its color, rankless and levelless.
+  `chat.shout.cooldown` (1200); a game's global line carries the team tag in its color, rankless and levelless. A
+  final-killed player talks in the spectators' room with the watchers until the game is decided, never heard by
+  the living, and cannot shout (`chat.spectators`, the user 2026-09-29; the gray `[SPECTATOR] ` line uncaptured); a
+  death with a respawn to come keeps its team chat.
 - **Titles** (cap, every title in nine BedWars captures, `research/bedwars/titles_sounds.py`): each is
   written up with its feature. The countdown digits (fade 0/20/20), `YOU DIED!` over the respawn count
   (0/30/0), `RESPAWNED!` (5/30/5), `TRAP TRIGGERED!`, `ALARM!!!`, `BED DESTROYED!` over `You will no longer
