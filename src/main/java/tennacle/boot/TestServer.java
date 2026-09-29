@@ -55,6 +55,7 @@ import tennacle.commands.PresetCommands;
 import tennacle.commands.SimTpsCommands;
 import tennacle.commands.SpectateCommands;
 import tennacle.lobby.Welcome;
+import tennacle.games.TeamChat;
 import tennacle.games.Matches;
 import io.github.term4.archipelago.Storage;
 import tennacle.games.boxing.Boxing;
@@ -266,6 +267,7 @@ public final class TestServer {
         AuditCommands.register(); // /audit: the server's worlds (instances, games, shard trees, players)
         GrottoCommands.register(); // /grotto: spectate, and a game id from a board code
         LobbyCommands.register(); // /spawn|/lobby|/l - a seated player departs their game first
+        TeamChat.register(); // /shout: past team chat, the whole game
         Sumo.install();   // ring-out over a void plane; the platform picks the knockback
         Boxing.install(); // speed 2, first to 10 hits; /stats for career numbers
         Bridge.install(); // blue vs red, first to five goals

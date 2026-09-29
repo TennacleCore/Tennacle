@@ -292,13 +292,7 @@ final class Lines {
 
     /** Captured: the team chat's own prefix; Hypixel's rank-colored name is a rankless gray one here. */
     static Component teamSays(Game game, String sender, Component message) {
-        Theme theme = theme(game);
-        return Component.text()
-                .append(theme.good("TEAM > ").decorate(TextDecoration.BOLD))
-                .append(theme.prose(sender))
-                .append(Component.text(": ", NamedTextColor.WHITE))
-                .append(message)
-                .build();
+        return Look.teamSays(game, sender, message);
     }
 
     /** A quick message: its words green, {@code what} (a team, a resource) as it is styled. */

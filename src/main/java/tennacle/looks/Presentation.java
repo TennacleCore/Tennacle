@@ -2,6 +2,7 @@ package tennacle.looks;
 
 import tennacle.games.watch.Replays;
 import tennacle.games.watch.Spectators;
+import tennacle.games.HiddenNames;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -103,7 +104,10 @@ public final class Presentation implements GameModule {
         TabList.refresh(player); // the seat line leaves with the seat
         if (departure.seat() == null) return;
         if (Match.filling(game)) {
-            Match.say(game, Look.quit(game, player.getUsername()));
+            Match.say(game, viewer -> {
+                String alias = HiddenNames.aliasFor(game, viewer, player);
+                return alias != null ? Look.quitHidden(alias) : Look.quit(game, player.getUsername());
+            });
             return;
         }
         // a freed seat is a forfeit, and the elimination says so; a held one is only a walk-out
@@ -186,7 +190,13 @@ public final class Presentation implements GameModule {
     public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
         TabList.refresh(player);
         if (reclaimed) Match.say(game, Look.departure(game, slot, player.getUsername(), true));
-        else if (Match.filling(game)) Match.say(game, Look.arrival(game, player.getUsername(), Match.seated(game), Match.seats(game)));
+        else if (Match.filling(game)) {
+            int seated = Match.seated(game), seats = Match.seats(game);
+            Match.say(game, viewer -> {
+                String alias = HiddenNames.aliasFor(game, viewer, player);
+                return alias != null ? Look.arrivalHidden(alias, seated, seats) : Look.arrival(game, player.getUsername(), seated, seats);
+            });
+        }
     }
 
     @Override

@@ -19,6 +19,7 @@ import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.sound.Sound;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -249,14 +250,11 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                             Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_HAT, Sound.Source.MASTER, 20f, 1f))
                     .cue(SoundSet.SCORED_BEAT, FIREWORK)
                     .cue(SoundSet.KILL, DING), // the ding on kill credit
-            // captured: green [GAME], then rank + name (no ranks here: gray name), white message
-            (g, speaker, message) -> Component.text("[GAME] ", NamedTextColor.GREEN)
-                    .append(Component.text(speaker.getUsername(), NamedTextColor.GRAY))
-                    .append(Component.text(": " + message, NamedTextColor.WHITE)),
-            // captured: green "You are playing on" + bold yellow address; red pitch + bold yellow store
+            Look::hypixelChat,
+            // captured: green "You are playing on" + bold yellow address; the seat's counters, then red pitch + bold yellow store
             new Tab(p -> Component.text("You are playing on ", NamedTextColor.GREEN)
                             .append(Component.text(ADDRESS.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD)),
-                    p -> Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED)
+                    p -> hypixelStats(p).append(Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED))
                             .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak).with(COUNT_DOTS, true).with(INTRO_BEFORE_CAGES, true).with(GOAL_FIREWORKS, true).with(GOAL_BANNER, "hypixel");
 
     /** The house look: the gradient on titles, light gray prose, light blue values, names in their team's tint. */
@@ -318,6 +316,81 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     private static Component white(Object v) {
         return Component.text(String.valueOf(v), NamedTextColor.WHITE);
+    }
+
+    // captured duels: green [GAME], then rank + name (no ranks here: gray name), white message; a game of teams
+    // carries the team tag in its color instead (captured Solo: [49✫] [PINK] [VIP+] name: message, rankless here)
+    private static Component hypixelChat(Game game, Player speaker, String message) {
+        Mode mode = Matches.modeOf(game);
+        String side = mode != null && mode.family() == Mode.Family.GAME ? Match.teamOf(game, speaker) : "";
+        Component tag = side.isEmpty() ? Component.text("[GAME] ", NamedTextColor.GREEN)
+                : Component.text("[" + Palette.titled(game.roster().team(side)).toUpperCase(Locale.ROOT) + "] ", game.roster().team(side).color());
+        return tag.append(Component.text(speaker.getUsername(), NamedTextColor.GRAY))
+                .append(Component.text(": " + message, NamedTextColor.WHITE));
+    }
+
+    /** Team chat: the captured hypixel shape (its quick messages ride it too), a tag elsewhere. */
+    public static @NotNull Component teamChat(Game game, Player speaker, String message) {
+        return switch (Matches.lookNameOf(game)) {
+            case "hypixel" -> teamSays(game, speaker.getUsername(), Component.text(message, NamedTextColor.WHITE));
+            default -> Chat.tagged("team", speaker, message);
+        };
+    }
+
+    /** Captured hypixel: bold good {@code TEAM > }, the sender as prose, a white colon, the message. */
+    public static @NotNull Component teamSays(Game game, String sender, Component message) {
+        Theme theme = Matches.lookOf(game).theme();
+        return Component.text()
+                .append(theme.good("TEAM > ").decorate(TextDecoration.BOLD))
+                .append(theme.prose(sender))
+                .append(Component.text(": ", NamedTextColor.WHITE))
+                .append(message)
+                .build();
+    }
+
+    /** A shout to the whole game: hypixel's game line under a bold gold SHOUT tag (the tag's look is uncaptured). */
+    public static @NotNull Component shout(Game game, Player speaker, String message) {
+        return switch (Matches.lookNameOf(game)) {
+            case "hypixel" -> Component.text("[SHOUT] ", NamedTextColor.GOLD, TextDecoration.BOLD)
+                    .append(hypixelChat(game, speaker, message).decoration(TextDecoration.BOLD, false));
+            default -> Chat.tagged("shout", speaker, message);
+        };
+    }
+
+    /** A stranger's seat while a public game fills (captured): the alias gray and obfuscated, the rest yellow, the counts aqua. */
+    public static @NotNull Component arrivalHidden(String alias, int seated, int seats) {
+        return Component.empty()
+                .append(Component.text(alias, NamedTextColor.GRAY, TextDecoration.OBFUSCATED))
+                .append(Component.text(" has joined (", NamedTextColor.YELLOW))
+                .append(Component.text(seated, NamedTextColor.AQUA))
+                .append(Component.text("/", NamedTextColor.YELLOW))
+                .append(Component.text(seats, NamedTextColor.AQUA))
+                .append(Component.text(")!", NamedTextColor.YELLOW));
+    }
+
+    /** A stranger's seat given up: the join line's colors (the quit itself uncaptured). */
+    public static @NotNull Component quitHidden(String alias) {
+        return Component.empty()
+                .append(Component.text(alias, NamedTextColor.GRAY, TextDecoration.OBFUSCATED))
+                .append(Component.text(" has quit!", NamedTextColor.YELLOW));
+    }
+
+    // captured Bed Wars: the seat's counters, aqua labels and yellow counts on one line over the store line
+    private static Component hypixelStats(Player viewer) {
+        Game game = Game.of(viewer);
+        if (game == null || game.status() != Game.Status.OPEN) return Component.empty();
+        Mode mode = Matches.modeOf(game);
+        Slot seat = game.roster().slotOf(viewer);
+        if (mode == null || seat == null) return Component.empty();
+        List<Mode.SeatStat> stats = TabStats.chosen(viewer, mode);
+        if (stats.isEmpty()) return Component.empty();
+        TextComponent.Builder line = Component.text();
+        for (int i = 0; i < stats.size(); i++) {
+            Mode.SeatStat stat = stats.get(i);
+            line.append(Component.text((i > 0 ? " " : "") + stat.label() + ": ", NamedTextColor.AQUA))
+                    .append(Component.text(String.valueOf(game.state().get(Scope.slot(seat.index()), stat.key())), NamedTextColor.YELLOW));
+        }
+        return line.append(Component.newline()).build();
     }
 
     // bedwars' tab line for the viewer's own seat - "Kills: 0 Deaths: 0 Goals: 0" - the counters they picked

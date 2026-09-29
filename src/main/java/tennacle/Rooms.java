@@ -6,6 +6,7 @@ import tennacle.games.watch.Replays;
 import tennacle.looks.Look;
 import io.github.term4.canvas.tab.TabList;
 import net.kyori.adventure.text.Component;
+import tennacle.games.TeamChat;
 import tennacle.games.Matches;
 
 import io.github.term4.archipelago.shard.Shard;
@@ -71,11 +72,18 @@ public final class Rooms {
         return lookFor(viewer).tab().footer().apply(viewer);
     }
 
+    /** The room {@code me}'s line goes to, as the chat policy decides it. */
+    public static Chat.@Nullable Room room(@NotNull Player me, @NotNull String message) {
+        return of(me, message);
+    }
+
     private static Chat.@Nullable Room of(@NotNull Player me, @NotNull String message) {
         List<Player> party = Parties.chatRoom(me); // /chat party: the party hears everything, wherever they are
         if (party != null) return new Chat.Room(party, Parties.chatLine(me, message));
         Game game = gameOf(me);
         if (game != null) {
+            Chat.Room team = TeamChat.room(game, me, message);
+            if (team != null) return team; // a team's own words: not the tape's
             List<Player> to = new ArrayList<>();
             game.forEachAudience(to::add);
             Component line = Matches.lookOf(game).chat().render(game, me, message);

@@ -27,9 +27,12 @@ final class Boards {
 
     private Boards() {}
 
+    /** Captured: the pregame board's last row before the site line. */
+    private static final String VERSION = "v1.11.2";
+
     static Scoreboard hypixel(String mode) {
         return Frames.hypixelGame("Bed Wars", b -> b
-                .rows(g -> Match.opening(g) ? 6 : 0, (g, me, i) -> switch (i) {
+                .rows(g -> Match.opening(g) ? 7 : 0, (g, me, i) -> switch (i) {
                     case 0 -> Frames.hypixelRow("Map: ", g.arena().meta().name());
                     case 1 -> Frames.hypixelRow("Players: ", Match.seated(g) + "/" + Match.seats(g));
                     // captured: white "Starting in ", the seconds green
@@ -37,6 +40,7 @@ final class Boards {
                             : Component.text("Starting in ", NamedTextColor.WHITE)
                                     .append(Component.text(Countdown.left(g) + "s", NamedTextColor.GREEN));
                     case 5 -> Frames.hypixelRow("Mode: ", mode);
+                    case 6 -> Frames.hypixelRow("Version: ", VERSION);
                     default -> Component.empty();
                 }, Phases.PHASE, Countdown.LEFT)
                 .rows(g -> Match.opening(g) ? 0 : 2, (g, me, i) -> i == 1 ? Component.empty() : nextEvent(g))
