@@ -795,6 +795,42 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** Captured: Hypixel sends a bed or elimination line alone; the user, 2026-09-29: split them like the blocks. */
+    @Test
+    void theBedLinesStandAlone() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null), fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLineA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLineB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwLineC");
+        List<FakePlayer> all = List.of(a, b, c);
+        try {
+            for (FakePlayer p : all) p.player.setInstance(game.instance(), ROOM).join();
+            for (FakePlayer p : all) assertTrue(Matches.enter(game, List.of(p.player)));
+            await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            live(game);
+            BlockVec cBed = game.arena().marker(BedWars.BED, Match.teamOf(game, c.player)).boxes().getFirst().min();
+            a.sent.clear();
+            EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), game.shard().getBlock(cBed), Block.AIR, cBed, BlockFace.TOP));
+            game.module(Respawns.class).unprotect(c.player);
+            Mechanics.polyp.services().damage().apply(DamageSnapshot.of(c.player, MeleeDamage.INSTANCE).withSource(a.player).withAmount(100f));
+            List<String> said = a.sent(SystemChatPacket.class).stream()
+                    .map(m -> PlainTextComponentSerializer.plainText().serialize(m.message())).toList();
+            for (String headline : List.of("BED DESTRUCTION > ", "TEAM ELIMINATED > ")) {
+                int at = -1;
+                for (int i = 0; i < said.size() && at < 0; i++) if (said.get(i).startsWith(headline)) at = i;
+                assertTrue(at > 0 && at + 1 < said.size(), "a message that opens on " + headline + said);
+                assertEquals("", said.get(at - 1), "a blank message over it: " + said);
+                assertFalse(said.get(at).contains("\n"), "the line alone: " + said.get(at));
+                assertEquals("", said.get(at + 1), "and one under it: " + said);
+            }
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
+        }
+    }
+
     /** A placed TNT primes inside the placement, before the block is refused: the prime takes the same refusal. */
     @Test
     void tntInABaseNeverPrimes() {

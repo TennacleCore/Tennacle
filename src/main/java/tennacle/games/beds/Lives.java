@@ -166,8 +166,7 @@ public final class Lives implements GameModule {
                     : LastStanding.Cause.departed());
             game.roster().release(seat); // the hold is for a seat with a bed to come back to
             if (standing.standing(seat.team()) == 0) {
-                Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
-                if (banner != null) Match.say(game, banner);
+                Match.say(game, Banners.eliminated(game, game.roster().team(seat.team())));
             }
             return;
         }
@@ -217,8 +216,7 @@ public final class Lives implements GameModule {
             Component you = Banners.eliminatedYou(game);
             if (you != null) victim.sendMessage(you);
             if (standing.standing(seat.team()) == 0) { // the side is gone, not just this seat
-                Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
-                if (banner != null) Match.say(game, banner);
+                Match.say(game, Banners.eliminated(game, game.roster().team(seat.team())));
             }
             return;
         }

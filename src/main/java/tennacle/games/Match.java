@@ -79,6 +79,11 @@ public final class Match {
         Replays.said(game, line);
     }
 
+    /** {@link #say} each of {@code lines}, a message each. */
+    public static void say(@NotNull Game game, @NotNull List<Component> lines) {
+        for (Component line : lines) say(game, line);
+    }
+
     /** A line that reads differently per viewer (the opponent's name): each gets theirs, the replay keeps {@link #reference}'s. */
     public static void say(@NotNull Game game, @NotNull Function<Player, @Nullable Component> line) {
         each(game, p -> {

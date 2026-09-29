@@ -20,40 +20,42 @@ import net.minestom.server.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+
 /**
  * A bed mode's lines per network: the bed that went, the side that went with it, and the void's wording. A look's
  * {@link Look#BED_BANNER} picks hypixel's or minemen's captured headlines, or bridge's ruled banner: the line alone,
- * centered between the theme's rules.
+ * centered between the theme's rules. A banner is its messages, in order.
  */
 public final class Banners {
 
     private Banners() {}
 
     /** Captured hypixel; minemen carries its own everywhere. */
-    public static @NotNull Component bedBroken(Game game, Team side, Player breaker) {
+    public static @NotNull List<Component> bedBroken(Game game, Team side, Player breaker) {
         return bedBroken(game, side, Component.text(breaker.getUsername(), tennacle.games.Match.teamColor(game, breaker)));
     }
 
     /** The bed line for any taker: a player's colored name, or a creature's. */
-    public static @NotNull Component bedBroken(Game game, Team side, Component who) {
+    public static @NotNull List<Component> bedBroken(Game game, Team side, Component who) {
         if (ruled(game)) {
-            return ruled(Component.empty()
+            return List.of(ruled(Component.empty()
                     .append(Component.text(Palette.titled(side) + " Bed ", side.color()))
-                    .append(prose(game, "was destroyed by ")).append(who).append(prose(game, "!")));
+                    .append(prose(game, "was destroyed by ")).append(who).append(prose(game, "!"))));
         }
         // minemen's guillemet takes no trailing space, so its bed carries the leading one
         String bed = minemen(game) ? " " + Palette.titled(side) + " Bed" : Palette.titled(side) + " Bed ";
-        return framed(Component.empty().append(headline(game))
+        return framed(game, Component.empty().append(headline(game))
                 .append(Component.text(bed, side.color()))
                 .append(prose(game, minemen(game) ? " was destroyed by " : "was destroyed by "))
                 .append(who).append(prose(game, "!")));
     }
 
     /** Every bed at once, on the destruction clock: captured hypixel, the headline over the mode's own words elsewhere. */
-    public static @NotNull Component bedsFell(Game game) {
-        if (hypixel(game)) return Component.text("All beds have been destroyed!", NamedTextColor.RED, TextDecoration.BOLD);
-        if (ruled(game)) return ruled(prose(game, "Every bed was destroyed!"));
-        return framed(Component.empty().append(headline(game))
+    public static @NotNull List<Component> bedsFell(Game game) {
+        if (hypixel(game)) return List.of(Component.text("All beds have been destroyed!", NamedTextColor.RED, TextDecoration.BOLD));
+        if (ruled(game)) return List.of(ruled(prose(game, "Every bed was destroyed!")));
+        return framed(game, Component.empty().append(headline(game))
                 .append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!")));
     }
 
@@ -63,13 +65,13 @@ public final class Banners {
     }
 
     /** Captured hypixel; minemen names no elimination in bed fight, so it gets none. */
-    public static @Nullable Component eliminated(Game game, Team side) {
-        if (minemen(game)) return null;
+    public static @NotNull List<Component> eliminated(Game game, Team side) {
+        if (minemen(game)) return List.of();
         if (ruled(game)) {
-            return ruled(Component.text(Palette.titled(side) + " Team ", side.color())
-                    .append(prose(game, "has been eliminated!")));
+            return List.of(ruled(Component.text(Palette.titled(side) + " Team ", side.color())
+                    .append(prose(game, "has been eliminated!"))));
         }
-        return framed(Component.empty()
+        return framed(game, Component.empty()
                 .append(Component.text("TEAM ELIMINATED > ").decorate(TextDecoration.BOLD))
                 .append(Component.text(Palette.titled(side) + " Team ", side.color()))
                 .append(Component.text("has been eliminated!", NamedTextColor.RED)));
@@ -111,9 +113,10 @@ public final class Banners {
                 .append(Component.newline()).append(Msg.SCRIMS.rule());
     }
 
-    // captured minemen: a banner arrives with a blank line over and under it, so it reads apart from the chat
-    private static Component framed(Component line) {
-        return Component.text("\n").append(line).append(Component.text("\n"));
+    // a blank line over and under: one message on minemen's wire, three on hypixel's (the line captured alone)
+    private static List<Component> framed(Game game, Component line) {
+        if (hypixel(game)) return List.of(Component.empty(), line, Component.empty());
+        return List.of(Component.text("\n").append(line).append(Component.text("\n")));
     }
 
     // minemen: light purple bold over a gray guillemet; everywhere else the captured hypixel plain bold. Bold is
