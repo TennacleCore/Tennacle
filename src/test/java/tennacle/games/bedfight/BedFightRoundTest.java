@@ -499,9 +499,9 @@ class BedFightRoundTest extends HeadlessServerTest {
         }
     }
 
-    /** The house look wears what the capture taught: the bed headline, and the note after the last line. */
+    /** The user, 2026-09-29: the house prints Hypixel's bed lines, headline and all. */
     @Test
-    void theHouseWearsTheRuledBanner() {
+    void theHouseWearsHypixelsLines() {
         Mode bedfight = Matches.mode("bedfight");
         Game game = Matches.launch(bedfight, Matches.platformFor(null), fixture());
         FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HouseBedRed");
@@ -527,18 +527,16 @@ class BedFightRoundTest extends HeadlessServerTest {
 
             blue.sent.clear();
             break0(blue.player, new BlockVec(-7, 65, 0));
-            String banner = said(blue).stream().filter(l -> l.contains("was destroyed by"))
-                    .findFirst().orElse("");
-            assertTrue(banner.contains(side + " Bed was destroyed by HouseBedBlue!"),
-                    "the house says it plainly, with no captured headline: " + said(blue));
-            assertTrue(banner.startsWith("-") && banner.endsWith("-"),
-                    "between the theme's rules, the way bridge's banners read: " + banner);
+            assertTrue(said(blue).stream().anyMatch(l -> l.equals("BED DESTRUCTION > " + side + " Bed was destroyed by HouseBedBlue!")),
+                    "Hypixel's bed line: " + said(blue));
 
             blue.sent.clear();
             game.module(Lives.class).fell(red.player);
             assertEquals(List.of("HouseBedRed fell into the void. FINAL KILL!"),
                     said(blue).stream().filter(l -> l.contains("HouseBedRed")).toList(),
                     "one line, with the note: " + said(blue));
+            assertTrue(said(blue).stream().anyMatch(l -> l.equals("TEAM ELIMINATED > " + side + " Team has been eliminated!")),
+                    "and Hypixel's elimination: " + said(blue));
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();

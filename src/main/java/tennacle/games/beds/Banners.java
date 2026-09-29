@@ -21,9 +21,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A bed mode's lines per network: the bed that went, the side that went with it, and the void's wording.
- * Minemen and hypixel wear their captured headlines; every other look reads the way bridge's banners do -
- * the line alone, centered between the theme's rules.
+ * A bed mode's lines per network: the bed that went, the side that went with it, and the void's wording. A look's
+ * {@link Look#BED_BANNER} picks hypixel's or minemen's captured headlines, or bridge's ruled banner: the line alone,
+ * centered between the theme's rules.
  */
 public final class Banners {
 
@@ -137,10 +137,10 @@ public final class Banners {
     }
 
     private static boolean minemen(Game game) {
-        return Matches.lookOf(game).cue(Look.NAMED_ACCENT);
+        return "minemen".equals(Matches.lookOf(game).cue(Look.BED_BANNER));
     }
 
     static boolean hypixel(Game game) {
-        return Matches.lookOf(game).cue(Look.COUNT_DOTS);
+        return "hypixel".equals(Matches.lookOf(game).cue(Look.BED_BANNER));
     }
 }

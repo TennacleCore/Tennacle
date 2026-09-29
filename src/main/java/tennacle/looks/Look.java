@@ -70,6 +70,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     public static final Cue<Boolean> GOAL_FIREWORKS = new Cue<>("goal-fireworks", false);
     /** Which goal banner this look prints; the modes register their own renderers under it. */
     public static final Cue<String> GOAL_BANNER = new Cue<>("goal-banner", "scrims");
+    /** Which bed lines this look prints: hypixel's or minemen's captured ones, else the ruled banner. */
+    public static final Cue<String> BED_BANNER = new Cue<>("bed-banner", "ruled");
 
     /** This look's answer, or the cue's fallback. */
     @SuppressWarnings("unchecked")
@@ -231,7 +233,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             SoundSet.of().cue(SoundSet.COUNTDOWN, MMC_TICK).cue(SoundSet.START, MMC_GO)
                     .cue(SoundSet.KILL, DING), // the ding on kill credit
             (g, speaker, message) -> Chat.plain(speaker, message),
-            new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak).with(NAMED_ACCENT, true).with(GOAL_BANNER, "minemen");
+            new Tab(p -> minemenHeader(), p -> minemenFooter()), false, Look::minemenHit, Look::minemenTiebreak).with(NAMED_ACCENT, true).with(GOAL_BANNER, "minemen").with(BED_BANNER, "minemen");
 
     /** Team-colored names, gray prose, gold Victory!/red Defeat - the scrims profile. */
     public static final Look SCRIMS = new Look(Msg.SCRIMS, Look::scrimsDeath, Look::scrimsVerdict,
@@ -256,7 +258,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             new Tab(p -> Component.text("You are playing on ", NamedTextColor.GREEN)
                             .append(Component.text(ADDRESS.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD)),
                     p -> hypixelStats(p).append(Component.text("Ranks, Boosters & MORE! ", NamedTextColor.RED))
-                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak).with(COUNT_DOTS, true).with(INTRO_BEFORE_CAGES, true).with(GOAL_FIREWORKS, true).with(GOAL_BANNER, "hypixel");
+                            .append(Component.text(STORE.toUpperCase(Locale.ROOT), NamedTextColor.YELLOW, TextDecoration.BOLD))), true, Look::hypixelHit, Look::hypixelTiebreak).with(COUNT_DOTS, true).with(INTRO_BEFORE_CAGES, true).with(GOAL_FIREWORKS, true).with(GOAL_BANNER, "hypixel").with(BED_BANNER, "hypixel");
 
     /** The house look: the gradient on titles, light gray prose, light blue values, names in their team's tint. */
     public static final Look TENNACLE = new Look(Msg.THEME, Look::scrimsDeath, Look::scrimsVerdict,
@@ -264,7 +266,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             Look::scrimsChat,
             new Tab(Look::houseHeader,
                     p -> seatStats(p).append(Component.newline()).append(Msg.THEME.accent(STORE))),
-            true, Look::scrimsHit, Look::tennacleTiebreak);
+            true, Look::scrimsHit, Look::tennacleTiebreak).with(BED_BANNER, "hypixel"); // the user, 2026-09-29
 
     // the tiebreaker call - the same beat in each network's palette, so a theme swap carries it
     private static Call scrimsTiebreak(Game game, boolean flat) {
