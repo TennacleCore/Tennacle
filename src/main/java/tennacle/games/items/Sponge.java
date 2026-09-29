@@ -117,6 +117,7 @@ public final class Sponge implements GameModule {
                         building.vanish(cell);
                     } else if (Fluids.waterlogged(block)) {
                         game.shard().setBlock(cell, block.withProperty("waterlogged", "false"));
+                        game.shard().applyPhysics(cell);
                     } else if (block.air()) {
                         clouds.add(new ParticlePacket(Particle.CLOUD, false, true, cell.add(0.5, 0.5, 0.5),
                                 new Vec(0.08, 0.08, 0.08), 0.04f, 4));

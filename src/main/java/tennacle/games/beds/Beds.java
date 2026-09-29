@@ -227,6 +227,7 @@ public final class Beds implements GameModule {
         cells.entrySet().removeIf(cell -> {
             if (!cell.getValue().equals(team)) return false;
             game.shard().setBlock(cell.getKey(), Block.AIR);
+            game.shard().applyPhysics(cell.getKey());
             return true;
         });
     }

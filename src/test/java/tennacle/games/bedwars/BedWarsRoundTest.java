@@ -569,6 +569,43 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** A routed placement's own rule starts the fall (the user, 2026-09-28: sand hung until something beside it changed). */
+    @Test
+    void placedSandFalls() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwSandA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwSandB");
+        net.minestom.server.event.EventNode<net.minestom.server.event.Event> routing = io.github.term4.archipelago.shard.Shard.blockRouting();
+        MinecraftServer.getGlobalEventHandler().addChild(routing); // the packet path, as the server boots it
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            a.player.teleport(new Pos(2.5, 65, 7.5)).join();
+            BlockVec wall = new BlockVec(2, 66, 5);
+            game.shard().setBlock(wall.sub(0, 1, 0), Block.WHITE_WOOL);
+            game.shard().setBlock(wall, Block.WHITE_WOOL);
+            a.player.setItemInMainHand(ItemStack.of(Material.SAND, 8));
+            // on the wall's east face, air under the cell
+            MinecraftServer.getGlobalEventHandler().call(new net.minestom.server.event.player.PlayerPacketEvent(a.player,
+                    new net.minestom.server.network.packet.client.play.ClientPlayerBlockPlacementPacket(
+                            PlayerHand.MAIN, wall, BlockFace.EAST, 1f, 0.5f, 0.5f, false, false, 1)));
+            tickUntil(game, "the sand falls; chat " + plain(a), () -> game.instance().getEntities().stream()
+                    .anyMatch(e -> e instanceof io.github.term4.polyp.entity.FallingBlockEntity));
+        } finally {
+            MinecraftServer.getGlobalEventHandler().removeChild(routing);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
     /** The chat lines {@code p} was sent that name {@code who}, as plain text. */
     private static List<String> lines(FakePlayer p, String who) {
         return p.sent(SystemChatPacket.class).stream()

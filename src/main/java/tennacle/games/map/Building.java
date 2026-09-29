@@ -207,10 +207,11 @@ public final class Building {
         return () -> stills.remove(area);
     }
 
-    /** Takes the block at {@code pos} away, a member's mark with it (a sponge that is done, the water it drank). */
+    /** Takes the block at {@code pos} away, a member's mark with it, and tells its neighbors (a sponge that is done, the water it drank). */
     public void vanish(@NotNull Point pos) {
         game.shard().setBlock(pos, Block.AIR);
         placed.remove(key(pos));
+        game.shard().applyPhysics(pos);
     }
 
     // Refusals says so, in the mode's words for the reason

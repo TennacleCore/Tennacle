@@ -92,6 +92,30 @@ class SpongeTest extends HeadlessServerTest {
         });
     }
 
+    /** The run a drunk source fed dries up past the cube (the user, 2026-09-28: it stood until a block went in). */
+    @Test
+    void aDrunkSourceTakesItsRun() {
+        round("SpongeD", (game, fa, fb) -> {
+            Mechanics.fluids.place(game.shard(), new BlockVec(0, 65, -8), Block.WATER);
+            ticks(game, 40);
+            BlockVec east = new BlockVec(6, 65, -8), west = new BlockVec(-5, 65, -8);
+            assertTrue(game.shard().getBlock(east).compare(Block.WATER), "the run reached 6 out");
+            assertTrue(game.shard().getBlock(west).compare(Block.WATER));
+            fa.player.teleport(new Pos(1.5, 66, -10.5, 0, 0)).join();
+            fa.player.setItemInMainHand(ItemStack.of(Material.SPONGE, 4));
+            BlockVec p = new BlockVec(1, 65, -8); // the cube reaches x -3..5: the source inside, the run's ends out
+            var event = new PlayerBlockPlaceEvent(fa.player, game.instance(), Block.SPONGE, BlockFace.TOP, p, new Pos(0.5, 1, 0.5), PlayerHand.MAIN);
+            EventDispatcher.call(event);
+            assertFalse(event.isCancelled(), "the sponge lands: " + chat(fa));
+            game.shard().setBlock(p, Block.SPONGE);
+            ticks(game, 40);
+            assertEquals(Block.AIR, game.shard().getBlock(p), "the sponge is done");
+            ticks(game, 60);
+            assertTrue(game.shard().getBlock(east).isAir(), "the run past the cube dried up: " + game.shard().getBlock(east));
+            assertTrue(game.shard().getBlock(west).isAir(), "both ways: " + game.shard().getBlock(west));
+        });
+    }
+
     /** A game on the server clock has no tick of its own: the instance's pass carries its water (the user's no-flow). */
     @Test
     void waterFlowsOnTheServerClock() {

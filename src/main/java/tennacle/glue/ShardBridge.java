@@ -14,7 +14,6 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.entity.Player;
-import net.minestom.server.instance.Instance;
 import net.minestom.server.timer.TaskSchedule;
 
 /**
@@ -39,17 +38,17 @@ public final class ShardBridge {
         org.everbuild.blocksandstuff.blocks.util.InteractionWorlds.setResolver(interaction ->
                 interaction.getPlayer().getTag(MechanicsWorld.ENTITY_TAG) instanceof Shard s
                         ? new io.github.term4.archipelago.shard.ShardBlockView(s) : null);
-        // gravity blocks fall as Polyp's 1.8 entity, into the shard the trigger came from (lobby included)
-        org.everbuild.blocksandstuff.blocks.util.FallingBlocks.setHandler((getter, pos, block) ->
-                MinecraftServer.getSchedulerManager().buildTask(() -> {
-                    Shard shard = Shard.of(getter);
-                    MechanicsWorld world = shard != null ? shard
-                            : getter instanceof Instance in ? MechanicsWorld.of(in) : null;
-                    if (world == null) return;
-                    if (!world.getBlock(pos).compare(block)) return;
-                    if (!FallingBlockEntity.canFallInto(world.getBlock(pos.add(0, -1, 0)))) return;
-                    FallingBlockEntity.spawn(world, pos, world.getBlock(pos));
-                }).delay(TaskSchedule.tick((int) org.everbuild.blocksandstuff.blocks.util.FallingBlocks.FALL_DELAY_TICKS)).schedule());
+        // gravity blocks fall as Polyp's 1.8 entity into the world behind the rule's view; a routed placement's own
+        // rule reads a staging view, not the shard's
+        org.everbuild.blocksandstuff.blocks.util.FallingBlocks.setHandler((getter, pos, block) -> {
+            MechanicsWorld world = MechanicsWorld.ofView(getter);
+            if (world == null) return;
+            MinecraftServer.getSchedulerManager().buildTask(() -> {
+                if (!world.getBlock(pos).compare(block)) return;
+                if (!FallingBlockEntity.canFallInto(world.getBlock(pos.add(0, -1, 0)))) return;
+                FallingBlockEntity.spawn(world, pos, world.getBlock(pos));
+            }).delay(TaskSchedule.tick((int) org.everbuild.blocksandstuff.blocks.util.FallingBlocks.FALL_DELAY_TICKS)).schedule();
+        });
         // a shard hop re-points the profile scope chain with NO profile change and NO spawn, so the player-platform
         // push (simulated-TPS tick rate, compat, platform config) would keep the previous world's state
         EventNode<Event> node = EventNode.all("bridge:shards");
