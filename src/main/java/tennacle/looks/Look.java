@@ -182,12 +182,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 Match.times(game, 0, 40, 10));
     }
 
-    /** The start countdown's voice: chat line and title per beat (null = a silent beat), the at-zero line,
-     *  and the line for a count stopped short of players. */
+    /** The start countdown's voice: chat line and title per beat (null = a silent beat), the at-zero lines a
+     *  message each, and the line for a count stopped short of players. */
     public record Count(@NotNull IntFunction<@Nullable Component> number,
                         @Nullable IntFunction<@Nullable Component> title,
                         @NotNull Beat beat,
-                        @NotNull BiFunction<Game, Player, @Nullable Component> started,
+                        @NotNull BiFunction<Game, Player, List<Component>> started,
                         @Nullable Component cancelled) {
 
         /** How long a beat's title holds, in client ticks. */
@@ -195,12 +195,12 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
         /** The captured hypixel timing, which a look with no beat title never reads. */
         public Count(@NotNull IntFunction<@Nullable Component> number, @Nullable IntFunction<@Nullable Component> title,
-                     @NotNull BiFunction<Game, Player, @Nullable Component> started) {
+                     @NotNull BiFunction<Game, Player, List<Component>> started) {
             this(number, title, new Beat(0, 20, 20), started, null);
         }
 
         public Count(@NotNull IntFunction<@Nullable Component> number, @Nullable IntFunction<@Nullable Component> title,
-                     @NotNull Beat beat, @NotNull BiFunction<Game, Player, @Nullable Component> started) {
+                     @NotNull Beat beat, @NotNull BiFunction<Game, Player, List<Component>> started) {
             this(number, title, beat, started, null);
         }
     }
@@ -221,7 +221,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     private static SoundSet plings() {
         return SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO);
     }
-    private static final Count SCRIMS_COUNT = new Count(Look::scrimsNumber, null, (g, p) -> null);
+    private static final Count SCRIMS_COUNT = new Count(Look::scrimsNumber, null, (g, p) -> List.of());
 
     /** Yellow names, gray prose, VICTORY!/DEFEATED! - the minemen profile. Chat and tab are server-wide there. */
     public static final Look MINEMEN = new Look(Msg.MINEMEN, Look::minemenDeath, Look::minemenVerdict,
@@ -229,7 +229,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
             new Count(n -> Component.text(n + "...", NamedTextColor.YELLOW),
                     n -> Component.text(n, NamedTextColor.YELLOW).decorate(TextDecoration.BOLD),
                     new Count.Beat(0, 40, 0),
-                    (g, p) -> Component.text("Match started!", NamedTextColor.GREEN)),
+                    (g, p) -> List.of(Component.text("Match started!", NamedTextColor.GREEN))),
             SoundSet.of().cue(SoundSet.COUNTDOWN, MMC_TICK).cue(SoundSet.START, MMC_GO)
                     .cue(SoundSet.KILL, DING), // the ding on kill credit
             (g, speaker, message) -> Chat.plain(speaker, message),
@@ -556,15 +556,15 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         return Component.text(n, n >= 4 ? NamedTextColor.YELLOW : NamedTextColor.RED);
     }
 
-    private static @Nullable Component hypixelStarted(Game game, Player viewer) {
+    private static List<Component> hypixelStarted(Game game, Player viewer) {
         Mode mode = Matches.modeOf(game);
-        if (mode == null || mode.intro().isEmpty()) return null;
+        if (mode == null || mode.intro().isEmpty()) return List.of();
         boolean duel = mode.family() == Mode.Family.DUEL;
         String title = duel ? Character.toUpperCase(mode.name().charAt(0)) + mode.name().substring(1) + " Duel" : mode.banner();
         HypixelIntro intro = HypixelIntro.of(title);
         mode.intro().forEach(intro::line);
         Player foe = duel ? Match.opponent(game, viewer) : null; // captured: a game's banner names no opponent
-        return intro.opponent(foe != null ? foe.getUsername() : null).render();
+        return intro.opponent(foe != null ? foe.getUsername() : null).lines();
     }
 
     // captured: gray "Cages open in ", the count green at 5-4, yellow 3-2, red at 1; silent at zero

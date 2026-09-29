@@ -255,7 +255,7 @@ public final class Presentation implements GameModule {
                 // captured: the beat title fades out empty (10, 0, 10)
                 Title clear = look.count().title() != null ? Title.title(Component.empty(), Component.empty(),
                         Match.times(g, 10, 0, 10)) : null;
-                Match.say(g, p -> look.count().started().apply(g, p));
+                Match.sayLines(g, p -> look.count().started().apply(g, p));
                 if (clear != null) Match.title(g, clear);
                 Match.each(g, p -> GameSounds.play(g, p, SoundSet.START));
             }

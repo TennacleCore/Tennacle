@@ -1,5 +1,7 @@
 package tennacle.games.bedwars;
 
+import net.minestom.server.network.packet.server.play.SystemChatPacket;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.network.packet.server.play.DisplayScoreboardPacket;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -61,12 +63,47 @@ class PregameTest extends HeadlessServerTest {
             game.state().set(Scope.GAME, Countdown.START_AT, 3);
             BedWarsRoundTest.live(game);
             assertEquals(Match.teamOf(game, a.player), Match.teamOf(game, b.player), "a side lands together");
+            List<String> order = game.roster().teams().stream().map(t -> t.id()).toList();
+            assertEquals(order.subList(0, 2), List.of(Match.teamOf(game, a.player), Match.teamOf(game, c.player)),
+                    "the first teams fill, as arrivals seat");
             assertTrue(a.sent(DisplayScoreboardPacket.class).stream().anyMatch(d -> d.position() == BELOW_NAME),
                     "health under names from the start");
             for (FakePlayer p : all) {
                 assertNotNull(p.player.getDisplayName(), "the team's color from the start");
                 assertEquals(game.roster().team(Match.teamOf(game, p.player)).color(), p.player.getDisplayName().color());
             }
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
+        }
+    }
+
+    /** Captured: Hypixel sends the start block a line a message; the user, 2026-09-29: sent whole, it wrapped. */
+    @Test
+    void theStartGoesByLine() {
+        Game game = Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null), BedWarsRoundTest.fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PreLineA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PreLineB");
+        List<FakePlayer> all = List.of(a, b);
+        try {
+            for (FakePlayer p : all) p.player.setInstance(game.instance(), ROOM).join();
+            for (FakePlayer p : all) assertTrue(Matches.enter(game, List.of(p.player)));
+            await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            BedWarsRoundTest.live(game);
+            List<String> said = a.sent(SystemChatPacket.class).stream()
+                    .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
+            String headline = " ".repeat(34) + "Bed Wars";
+            int at = said.indexOf(headline);
+            assertTrue(at > 0, "the headline a message of its own: " + said);
+            String rule = "\u25ac".repeat(64);
+            assertEquals(List.of(rule, headline, "",
+                    " ".repeat(5) + "Protect your bed and destroy the enemy beds.",
+                    " ".repeat(6) + "Upgrade yourself and your team by collecting",
+                    " ".repeat(4) + "Iron, Gold, Emerald and Diamond from generators",
+                    " ".repeat(18) + "to access powerful upgrades.", "", rule), said.subList(at - 1, at + 8));
         } finally {
             tennacle.games.watch.Replays.discard(game);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());

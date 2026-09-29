@@ -240,7 +240,7 @@ public final class Cages implements GameModule {
         if (!introShown) {
             introShown = true;
             if (Matches.lookOf(game).cue(Look.INTRO_BEFORE_CAGES)) { // captured: right before the first cage beat
-                Match.say(game, p -> Matches.lookOf(game).count().started().apply(game, p));
+                Match.sayLines(game, p -> Matches.lookOf(game).count().started().apply(game, p));
             }
         }
         if (n > 0) {

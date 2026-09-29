@@ -21,6 +21,7 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -87,6 +88,13 @@ public final class Match {
         Player seat = reference(game);
         Component kept = seat != null ? line.apply(seat) : null;
         if (kept != null) Replays.said(game, kept);
+    }
+
+    /** {@link #say} a block a line a message, as the networks send one. */
+    public static void sayLines(@NotNull Game game, @NotNull Function<Player, List<Component>> lines) {
+        each(game, p -> lines.apply(p).forEach(p::sendMessage));
+        Player seat = reference(game);
+        if (seat != null) lines.apply(seat).forEach(line -> Replays.said(game, line));
     }
 
     /** Everyone in the game sees {@code title}, and the replay keeps it. */
