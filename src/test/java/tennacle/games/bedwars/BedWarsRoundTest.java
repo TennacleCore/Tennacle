@@ -1,6 +1,7 @@
 package tennacle.games.bedwars;
 
 import tennacle.games.Match;
+import tennacle.games.HiddenNames;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
@@ -53,6 +54,8 @@ import net.minestom.server.event.player.PlayerMoveEvent;
 import tennacle.games.watch.Replays;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SetTitleTextPacket;
+import net.minestom.server.network.packet.server.play.SoundEffectPacket;
+import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import tennacle.games.matchmaking.Parties;
 import io.github.term4.canvas.board.Boards;
@@ -254,10 +257,20 @@ class BedWarsRoundTest extends HeadlessServerTest {
             EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), Block.BLUE_BED, Block.AIR, bBed, BlockFace.TOP));
             assertFalse(Beds.stands(game, bTeam), "the bed went");
             assertEquals(1, game.state().get(Scope.slot(game.roster().slotOf(a.player).index()), BedWars.BEDS));
+            // captured: the side that lost it hears the wither from its own block, not the bed
+            var loss = b.sent(SoundEffectPacket.class).stream()
+                    .filter(sp -> SoundEvent.ENTITY_WITHER_DEATH.equals(sp.soundEvent())).toList();
+            assertFalse(loss.isEmpty(), "the loser hears the wither");
+            assertEquals(0, Vec.fromPoint(loss.getLast().origin()).distance(b.player.getPosition()), 0.13, "from their own block");
+            String footer = PlainTextComponentSerializer.plainText().serialize(tennacle.looks.Look.HYPIXEL.tab().footer().apply(a.player));
+            assertTrue(footer.startsWith("Kills: 0 Final Kills: 0 Beds Broken: 1"), footer);
 
             a.sent.clear();
             b.sent.clear();
             game.module(Lives.class).fell(b.player);
+            assertTrue(b.sent(SystemChatPacket.class).stream()
+                    .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message()))
+                    .anyMatch("You have been eliminated!"::equals), "the victim's own line");
             assertEquals(Outcome.winner(aTeam), game.decided(), "the last death ends it");
             assertEquals(1, game.state().get(Scope.slot(game.roster().slotOf(b.player).index()), BedWars.FINAL_DEATHS));
             MinecraftServer.getSchedulerManager().processTickEnd(); // the block goes out at the end of the tick
@@ -797,6 +810,51 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** Captured: a level bought fires the first iron spawner at once and the others nine ticks apart. */
+    @Test
+    void aLevelStaggersTheIron() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwStagA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwStagB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            String team = Match.teamOf(game, a.player);
+            Point forge = game.arena().marker(BedWars.FORGE, team).point();
+            tickUntil(game, "the boost's first wave", () -> lying(game, forge, Material.IRON_INGOT) >= 3);
+            int before = lying(game, forge, Material.IRON_INGOT);
+            game.state().set(Scope.team(team), Forges.LEVEL, 1);
+            assertEquals(before + 1, lying(game, forge, Material.IRON_INGOT), "the first spawner fires at once");
+            int second = ticksUntil(game, () -> lying(game, forge, Material.IRON_INGOT) >= before + 2);
+            assertTrue(second >= 9 && second <= 10, "the second nine ticks on, not with the first: " + second);
+            int third = ticksUntil(game, () -> lying(game, forge, Material.IRON_INGOT) >= before + 3);
+            assertTrue(third >= 8 && third <= 10, "the third nine more on: " + third);
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    // ticks until done, thirty at most: the clock the game rides, one tick a turn
+    private static int ticksUntil(Game game, Supplier<Boolean> done) {
+        int n = 0;
+        while (!done.get() && n < 30) {
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            n++;
+        }
+        return n;
+    }
+
     private static int lying(Game game, Point at, Material material) {
         return (int) game.instance().getEntities().stream()
                 .filter(e -> e instanceof DroppedItemEntity item && item.getItemStack().material() == material
@@ -871,6 +929,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
         Mode solo = Matches.mode("bedwars-solo");
         Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
         game.state().set(Scope.GAME, Countdown.START_AT, 7); // never enough to start
+        game.state().set(Scope.GAME, HiddenNames.HIDDEN, false); // a private game's real names
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoA");
         FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwGoB");
         try {

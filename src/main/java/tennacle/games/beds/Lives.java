@@ -211,6 +211,8 @@ public final class Lives implements GameModule {
             mark(victim, seat, by, verb);
             // the elimination says the line, in the look's own voice, and cues its own fall
             standing.out(victim, LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game), tool));
+            Component you = Banners.eliminatedYou(game);
+            if (you != null) victim.sendMessage(you);
             if (standing.standing(seat.team()) == 0) { // the side is gone, not just this seat
                 Component banner = Banners.eliminated(game, game.roster().team(seat.team()));
                 if (banner != null) Match.say(game, banner);

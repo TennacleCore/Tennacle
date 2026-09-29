@@ -12,6 +12,7 @@ import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.instance.block.Block;
@@ -44,6 +45,8 @@ public final class Building {
     public static final StateKey<Integer> FLOOR = StateKey.of("space.build.floor", Codec.INT, -1);
     /** May place outside the mode's build region - still under the height and above the floor. */
     public static final StateKey<Boolean> OUTSIDE = StateKey.of("space.build.outside", Codec.BOOLEAN, false);
+    /** May drop an item below the floor; off, the drop is refused (Hypixel) and the inventory itself stays usable. */
+    public static final StateKey<Boolean> FLOOR_DROPS = StateKey.of("space.floor.drops", Codec.BOOLEAN, true);
 
     /** A block a member put there. */
     public static final String PLACED = "placed";
@@ -67,7 +70,7 @@ public final class Building {
     public static final StateKey<Boolean> BLAST_RESERVED = StateKey.of("space.blast.reserved", Codec.BOOLEAN, false);
 
     /** Every rule this carries, for a type's declaration. */
-    public static final Set<StateKey<?>> RULES = Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, BREAK, BREAK_OUTSIDE, FLOW_RESERVED,
+    public static final Set<StateKey<?>> RULES = Set.of(BUILD, HEIGHT, FLOOR, OUTSIDE, FLOOR_DROPS, BREAK, BREAK_OUTSIDE, FLOW_RESERVED,
             BLAST, BLAST_RESERVED);
 
     static {
@@ -181,6 +184,11 @@ public final class Building {
         });
         game.onWorld(FluidSpreadEvent.class, FluidSpreadEvent::world, e -> {
             if (building.stilled(e.to())) e.setCancelled(true);
+        });
+        game.on(ItemDropEvent.class, e -> {
+            Player player = e.getPlayer();
+            if (game.roster().slotOf(player) == null || game.rules().resolve(player, FLOOR_DROPS)) return;
+            if (space.belowFloor(player, player.getPosition())) e.setCancelled(true);
         });
         // Polyp primes a placed TNT inside the placement, before this handler refuses the block: the same refusal
         // first, and the refused placement then says why

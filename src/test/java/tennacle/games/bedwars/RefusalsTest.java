@@ -21,6 +21,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.EventDispatcher;
+import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.item.ItemStack;
@@ -173,6 +174,39 @@ class RefusalsTest extends HeadlessServerTest {
             game.shard().setBlock(new BlockVec(2, 65, -15), Block.SHORT_GRASS);
             brk(fa, game, new BlockVec(2, 65, -15), true);
             assertTrue(said(fa, "You can't break blocks here!"), chat(fa).toString());
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            fa.player.remove();
+            fb.player.remove();
+        }
+    }
+
+    /** Below the build floor a drop is refused; the inventory itself stays usable (the user, 2026-09-29). */
+    @Test
+    void noDropsBelowTheFloor() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer fa = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DropA");
+        FakePlayer fb = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DropB");
+        try {
+            fa.player.setInstance(game.instance(), ROOM).join();
+            fb.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(fa.player)));
+            assertTrue(Matches.enter(game, List.of(fb.player)));
+            await("both seated", () -> Game.of(fa.player) == game && Game.of(fb.player) == game);
+            BedWarsRoundTest.live(game);
+            Player a = fa.player;
+            a.teleport(new Pos(0.5, 55, 0.5)).join();
+            ItemDropEvent low = new ItemDropEvent(a, ItemStack.of(Material.IRON_INGOT));
+            EventDispatcher.call(low);
+            assertTrue(low.isCancelled(), "nothing drops below the build floor");
+            a.teleport(new Pos(0.5, 70, 0.5)).join();
+            ItemDropEvent high = new ItemDropEvent(a, ItemStack.of(Material.IRON_INGOT));
+            EventDispatcher.call(high);
+            assertFalse(high.isCancelled(), "above it, a drop is a drop");
         } finally {
             tennacle.games.watch.Replays.discard(game);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());

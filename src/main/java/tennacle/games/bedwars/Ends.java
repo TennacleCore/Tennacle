@@ -15,6 +15,7 @@ final class Ends {
     static GameModule hypixel() {
         Results records = Results.of().quiet(); // first: the snapshot precedes the block, and cleanup
         return Bundle.of(records, Matches.summary().hypixelGame("Bed Wars")
-                .top("Killer", 3, (g, seat) -> g.state().get(Scope.slot(seat.index()), BedWars.KILLS)));
+                .top("Killer", 3, (g, seat) -> g.state().get(Scope.slot(seat.index()), BedWars.KILLS))
+                .click((g, name) -> records.viewCommand(name))); // a name opens the frozen record, as the duels' cards do
     }
 }

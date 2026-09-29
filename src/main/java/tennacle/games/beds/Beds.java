@@ -55,6 +55,8 @@ public final class Beds implements GameModule {
             StateKey.of("beds.break", Codec.STRING.list(), List.of(ENEMY));
     /** A dragon (any block-eating mob) takes a bed it flies through; off, the bed stands and slows it. */
     public static final StateKey<Boolean> DRAGONS = StateKey.of("beds.dragons", Codec.BOOLEAN, false);
+    /** Both bed sounds at the listener's own block (captured Hypixel Bed Wars); off, at the bed (bed fight, MineMen). */
+    public static final StateKey<Boolean> SOUND_LISTENER = StateKey.of("beds.sound.listener", Codec.BOOLEAN, false);
 
     static {
         tennacle.commands.RulesCompletions.words(BREAK.id(), List.of(OWN, ENEMY));
@@ -90,7 +92,7 @@ public final class Beds implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(DESTROY, BREAK, DRAGONS);
+        return Set.of(DESTROY, BREAK, DRAGONS, SOUND_LISTENER);
     }
 
     @Override
@@ -241,9 +243,13 @@ public final class Beds implements GameModule {
     private void broke(String owner, Component by, @Nullable String byTeam, Point bed) {
         erase(owner);
         Team broken = game.roster().team(owner);
-        // both networks: the side that lost it hears the wither, everyone else the dragon, each from the bed
-        game.forEachAudience(viewer -> viewer.playSound(owner.equals(Match.teamOf(game, viewer)) ? LOST_BED : BROKEN,
-                bed.blockX() + 0.5, bed.blockY() + 0.5, bed.blockZ() + 0.5));
+        // both networks: the side that lost it hears the wither, everyone else the dragon
+        boolean atListener = game.rules().resolve(Scope.GAME, SOUND_LISTENER);
+        game.forEachAudience(viewer -> {
+            Sound sound = owner.equals(Match.teamOf(game, viewer)) ? LOST_BED : BROKEN;
+            if (atListener) viewer.playSound(sound);
+            else viewer.playSound(sound, bed.blockX() + 0.5, bed.blockY() + 0.5, bed.blockZ() + 0.5);
+        });
         told(owner::equals);
         Match.say(game, Banners.bedBroken(game, broken, by));
         Team side = byTeam != null && !byTeam.isEmpty() ? game.roster().team(byTeam) : null;

@@ -62,7 +62,7 @@ final class Dragons implements GameModule {
             if (spawn == null) continue;
             for (int i = 0; i < perTeam; i++) {
                 creatures.dragon(team, spawn.add(0, height, 0));
-                if (!more) Match.say(game, Lines.suddenDeathDragon(game, team));
+                Match.say(game, Lines.suddenDeathDragon(game, team));
             }
         }
         Match.each(game, p -> p.playSound(Lines.DRAGON_GROWL));

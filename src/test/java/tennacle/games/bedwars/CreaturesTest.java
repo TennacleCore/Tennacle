@@ -21,6 +21,9 @@ import io.github.term4.polyp.mechanics.damage.types.mob.MobDamage;
 import io.github.term4.polyp.mechanics.mobs.kinds.EnderDragonEntity;
 import io.github.term4.polyp.mechanics.mobs.kinds.IronGolemEntity;
 import io.github.term4.polyp.mechanics.mobs.kinds.SilverfishEntity;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
@@ -85,6 +88,11 @@ class CreaturesTest extends HeadlessServerTest {
                     .findFirst().orElse(null);
             assertNotNull(tag, "the countdown stand 1.38 below");
             assertEquals("[■■■■■]", PlainTextComponentSerializer.plainText().serialize(tag.getCustomName()));
+            ticks(game, 5);
+            assertEquals(0, gray(tag.getCustomName()), "the clock leaves the squares lit");
+            fish.setHealth(4f);
+            ticks(game, 1);
+            assertEquals(2, gray(tag.getCustomName()), "half its health: two squares gray");
             game.state().set(Scope.GAME, Creatures.BEDBUG_LIFE, 3L);
             SilverfishEntity brief = creatures.bedbug(fa.player, new Pos(2.5, 65, 0.5));
             ticks(game, 5);
@@ -352,6 +360,16 @@ class CreaturesTest extends HeadlessServerTest {
     private static void hit(IronGolemEntity golem, net.minestom.server.entity.LivingEntity by) {
         Mechanics.polyp.services().damage().apply(io.github.term4.polyp.mechanics.damage.DamageSnapshot.of(golem, MobDamage.INSTANCE)
                 .withSource(by).withAmount(1f));
+    }
+
+    // the squares a tag draws gray, the health it lost
+    private static int gray(Component text) {
+        int n = 0;
+        if (text instanceof TextComponent t && NamedTextColor.GRAY.equals(t.color())) {
+            n += (int) t.content().chars().filter(ch -> ch == '■').count();
+        }
+        for (Component child : text.children()) n += gray(child);
+        return n;
     }
 
     private static void round(String name, Body body) {

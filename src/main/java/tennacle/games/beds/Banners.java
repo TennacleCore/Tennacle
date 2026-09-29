@@ -57,6 +57,11 @@ public final class Banners {
                 .append(prose(game, minemen(game) ? " Every bed was destroyed!" : "Every bed was destroyed!")));
     }
 
+    /** Captured hypixel: the victim's own red line at a final death; nowhere else. */
+    public static @Nullable Component eliminatedYou(Game game) {
+        return hypixel(game) ? Component.text("You have been eliminated!", NamedTextColor.RED) : null;
+    }
+
     /** Captured hypixel; minemen names no elimination in bed fight, so it gets none. */
     public static @Nullable Component eliminated(Game game, Team side) {
         if (minemen(game)) return null;

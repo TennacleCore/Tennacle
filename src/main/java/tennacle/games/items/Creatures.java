@@ -32,6 +32,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Player;
@@ -269,7 +270,7 @@ public final class Creatures implements GameModule {
             for (Entity stand : tag.stands()) stand.teleport(at);
             long left = creature.left(game.tick());
             tag.text(0, BEDBUG.equals(creature.tool())
-                    ? squares(creature.team(), (int) Math.ceil(left * (double) BEDBUG_SQUARES / creature.life()), BEDBUG_SQUARES)
+                    ? squares(creature.team(), lit(mob.getHealth(), (float) mob.getAttributeValue(Attribute.MAX_HEALTH), BEDBUG_SQUARES), BEDBUG_SQUARES)
                     : defenderTag(creature.team(), left, mob.getHealth()));
         }
         if (!creatures.isEmpty()) game.state().alarms().arm(TICK, game.tick() + 1);
@@ -283,6 +284,11 @@ public final class Creatures implements GameModule {
     private void retire(Creature creature) {
         creatures.remove(creature.mob());
         if (creature.tag() != null) creature.tag().remove();
+    }
+
+    // the user, 2026-09-29: a bedbug's squares gray from damage, never the clock
+    private static int lit(float health, float max, int total) {
+        return max <= 0 ? total : Math.min(total, (int) Math.ceil(health * total / max));
     }
 
     // captured: 240.0s [■■■■■■■■■■], the time in the side's color, a square a level per 2 health, the rest gray
