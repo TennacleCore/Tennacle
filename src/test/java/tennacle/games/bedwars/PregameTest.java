@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import net.minestom.server.network.packet.server.play.DisplayScoreboardPacket;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PregameTest extends HeadlessServerTest {
 
     private static final Pos ROOM = new Pos(0.5, 100, 0.5);
+    private static final int BELOW_NAME = 2;
 
     @org.junit.jupiter.api.io.TempDir
     static java.nio.file.Path replays;
@@ -53,10 +55,14 @@ class PregameTest extends HeadlessServerTest {
             assertTrue(Matches.enter(game, List.of(c.player)));
             await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
             for (FakePlayer p : all) assertNull(p.player.getDisplayName(), "no team color in the room");
+            assertTrue(a.sent(DisplayScoreboardPacket.class).stream().noneMatch(d -> d.position() == BELOW_NAME),
+                    "no health under a name in the room");
 
             game.state().set(Scope.GAME, Countdown.START_AT, 3);
             BedWarsRoundTest.live(game);
             assertEquals(Match.teamOf(game, a.player), Match.teamOf(game, b.player), "a side lands together");
+            assertTrue(a.sent(DisplayScoreboardPacket.class).stream().anyMatch(d -> d.position() == BELOW_NAME),
+                    "health under names from the start");
             for (FakePlayer p : all) {
                 assertNotNull(p.player.getDisplayName(), "the team's color from the start");
                 assertEquals(game.roster().team(Match.teamOf(game, p.player)).color(), p.player.getDisplayName().color());

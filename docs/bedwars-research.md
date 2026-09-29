@@ -138,6 +138,12 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   party a fresh alias of 5 to 11 letters and digits, gray and obfuscated in the tab, over the head and in the join
   and quit lines, the real names back as the game opens; a stranger's own chat line keeps the real name (the user,
   2026-09-29: only the join and quit lines are obfuscated, never pregame chat).
+  - Ours, from the user's pregame review (2026-09-29): no team is drawn before the start (`flow.staging.draw`):
+    every seat reads plain white on one neutral team, chat reaches the whole room with no team tag, and at GO the
+    teams are drawn with each party or side whole, the biggest first, ties on a random team. Strangers wear a
+    default skin (`view.skins.hidden`) and their tab entry is named `§k` + the alias, as captured, so the nameplate
+    churns. Health under names and in the tab comes with the start (`view.health.from`; captured, the objectives
+    arrive right after the start banner). Your own join line keeps the stranger line's colors, the name gray.
 - Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
 
 ### 3.2 Start
