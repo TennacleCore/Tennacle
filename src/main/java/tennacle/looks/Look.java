@@ -348,11 +348,10 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
                 .build();
     }
 
-    /** A shout to the whole game: hypixel's game line under a bold gold SHOUT tag (the tag's look is uncaptured). */
+    /** A shout to the whole game. Captured 2026-09-29: gold {@code [SHOUT] }, then the game line as it is. */
     public static @NotNull Component shout(Game game, Player speaker, String message) {
         return switch (Matches.lookNameOf(game)) {
-            case "hypixel" -> Component.text("[SHOUT] ", NamedTextColor.GOLD, TextDecoration.BOLD)
-                    .append(hypixelChat(game, speaker, message).decoration(TextDecoration.BOLD, false));
+            case "hypixel" -> Component.text("[SHOUT] ", NamedTextColor.GOLD).append(hypixelChat(game, speaker, message));
             default -> Chat.tagged("shout", speaker, message);
         };
     }

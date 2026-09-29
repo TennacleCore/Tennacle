@@ -166,6 +166,21 @@ class CreaturesTest extends HeadlessServerTest {
             EnderDragonEntity first = dragons.getFirst();
             assertEquals(80.0, first.getPosition().y(), 0.01, "fifteen over the side's spawn");
             assertFalse(first.sides().same(first, fa.player) && first.sides().same(first, fb.player), "one side's, not both");
+            // the user, 2026-09-29: a side may hit its own dragon, by the rule
+            EnderDragonEntity own = first.sides().same(first, fa.player) ? first : dragons.get(1);
+            assertTrue(own.sides().same(own, fa.player), "a side's own dragon");
+            var services = Mechanics.polyp.services();
+            game.module(Respawns.class).unprotect(fa.player); // spawn protection holds a swing back
+            float health = own.getHealth();
+            own.hitPart(own.getEntityId() + 1); // the head, as a client's swing names it
+            services.damage().apply(io.github.term4.polyp.mechanics.damage.DamageSnapshot.of(own, MobDamage.INSTANCE).withSource(fa.player).withAmount(1f));
+            assertTrue(own.getHealth() < health, "its own side's hit lands");
+            game.state().set(Scope.GAME, Creatures.DRAGONS_OWN_HITS, false);
+            health = own.getHealth();
+            own.hitPart(own.getEntityId() + 1);
+            services.damage().apply(io.github.term4.polyp.mechanics.damage.DamageSnapshot.of(own, MobDamage.INSTANCE).withSource(fa.player).withAmount(1f));
+            assertEquals(health, own.getHealth(), 0.001f, "the rule off: untouchable like a Bedbug");
+            game.state().set(Scope.GAME, Creatures.DRAGONS_OWN_HITS, true);
             Dragons.moreDragons(game);
             assertEquals(4, creatures.count(), "the wave adds one a side");
             assertTrue(chat(fa).contains("MORE DRAGONS HAVE SPAWNED!"), chat(fa).toString());

@@ -76,6 +76,8 @@ public final class Creatures implements GameModule {
     /** Ticks between swings in reach; the hurt window paces what lands. */
     public static final StateKey<Integer> DEFENDER_SWING = StateKey.of("creatures.defender.swing", Codec.INT, 1);
     public static final StateKey<Double> DRAGONS_LIFT = StateKey.of("creatures.dragons.lift", Codec.DOUBLE, 0.4);
+    /** A side may hurt its own dragon (the user, 2026-09-29); its own Bedbug and Dream Defender stay untouchable. */
+    public static final StateKey<Boolean> DRAGONS_OWN_HITS = StateKey.of("creatures.dragons.own-hits", Codec.BOOLEAN, true);
 
     /** Captured swirls: the bedbug's is what its two effects blend to; the golem's shows with no effect behind it. */
     static final int DEFENDER_SWIRL = 5134171;
@@ -110,7 +112,7 @@ public final class Creatures implements GameModule {
     @Override
     public @NotNull Set<StateKey<?>> rules() {
         return Set.of(BEDBUG_LIFE, BEDBUG_HEALTH, BEDBUG_STRENGTH, BEDBUG_RESISTANCE, DEFENDER_LIFE, DEFENDER_HEALTH,
-                DEFENDER_SPEED, DEFENDER_SWING, DRAGONS_LIFT);
+                DEFENDER_SPEED, DEFENDER_SWING, DRAGONS_LIFT, DRAGONS_OWN_HITS);
     }
 
     @Override
@@ -140,10 +142,11 @@ public final class Creatures implements GameModule {
             player.setItemInMainHand(held.amount() > 1 ? held.withAmount(held.amount() - 1) : ItemStack.AIR);
             defender(player, new Pos(at.blockX() + 0.5, at.blockY(), at.blockZ() + 0.5));
         });
-        // its own side never hurts it: not by hand, not by bow
+        // its own side never hurts it: not by hand, not by bow; a dragon by the rule
         game.on(PreDamageEvent.class, PreDamageEvent::target, e -> {
             Creature creature = e.target() instanceof MobEntity mob ? creatures.get(mob) : null;
             if (creature == null || e.source() == null) return;
+            if (creature.mob() instanceof EnderDragonEntity && game.rules().resolve(Scope.GAME, DRAGONS_OWN_HITS)) return;
             Object side = sides.of(e.source());
             if (side != null && side.equals(creature.team())) e.setCancelled(true);
         });
@@ -220,7 +223,7 @@ public final class Creatures implements GameModule {
         return golem;
     }
 
-    /** A side's dragon: it eats every block, ignores a blade's enchant, and never touches its own. */
+    /** A side's dragon: it eats every block, ignores a blade's enchant, and never touches its own, who may still hit it. */
     public EnderDragonEntity dragon(Team team, Pos at) {
         EnderDragonEntity dragon = EnderDragonEntity.spawn(Mechanics.mobs, game.shard(), at);
         dragon.sides(sides);

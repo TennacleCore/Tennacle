@@ -205,7 +205,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   them, so its own hurt window is not what holds vanilla's every-tick push back. A pass pushes once, on the
   bite, at the wing's strength when the player stands under a wing (2.61 at 1.5 blocks, 4.08 at 1) and the
   bite's 0.4 otherwise; a Red dragon flew through an enemy at 1.1 blocks six times and pushed him once. Ours
-  now pushes once a victim a charge (`pushOncePerCharge`, the Bed Wars kind). Beds: Hypixel's dragons never
+  now pushes once a victim a charge (`pushOncePerCharge`, the Bed Wars kind). A side may hit its own dragon (the user,
+  2026-09-29; `creatures.dragons.own-hits`, on), where its own Bedbug and Dream Defender stay untouchable. Beds: Hypixel's dragons never
   meet one (Bed Destruction runs first), so `beds.dragons` (the user, 2026-09-28, for modifiers) is off by
   default and a bed stands against a dragon, slowing it as bedrock would; on, the dragon takes the whole bed
   and the line names it (Polyp's `MobBreakBlockEvent`, one per block, cancellable). Its
@@ -800,7 +801,7 @@ table above is the newest documented.
 | Pickaxe, axe | drop one tier; tier I is permanent |
 | Swords | lost; the wooden sword comes back whenever no better sword is held (our play: there is always at least the wooden one) |
 | Bows, arrows, blocks, potions, utilities | lost, not dropped |
-| Compass | given back; a bought tracker is lost. One team at a time (the user, 2026-09-28): buying the team already tracked is refused, our line `You are already tracking that team!`; Hypixel lets that purchase through and charges again, a bug of theirs the user keeps out (2026-09-29); tracking several, or a cheaper swap between teams, is an idea for later, not now |
+| Compass | given back; a bought tracker is lost. One team at a time (the user, 2026-09-28): buying the team already tracked is refused with red `You are already tracking that team!` (cap, 2026-09-29: Hypixel's own line, right after `You purchased Red Tracking`); the user has also seen that re-sale go through there and keeps it out as Hypixel's bug; tracking several, or a cheaper swap between teams, is an idea for later, not now |
 | Iron, gold, diamonds, emeralds | to the killer (section 8) |
 | Ender chest, team chest | untouched (the ender chest is dumped at a final death) |
 
@@ -1369,7 +1370,8 @@ www.hypixel.net           yellow
 - **Chat**: Solo chat is global; team modes default to team chat with `/shout` on a 60 s cooldown. A
   captured Solo line reads `[49✫] [PINK] [VIP+] <name>: <message>` (level, team tag, rank). Ours (2026-09-29):
   `chat.team` (team modes on, Solo off) keeps a member's line to their team in the captured `TEAM > ` shape;
-  `/shout` reaches the whole game under a bold gold `[SHOUT]` tag (its look uncaptured), once per
+  `/shout` reaches the whole game under a gold `[SHOUT] ` tag (cap, 2026-09-29: `[SHOUT] [YELLOW] [MVP+] Dogln: msg`,
+  the tag gold, the team tag in its color, rank and name aqua or a rankless name gray, the message white), once per
   `chat.shout.cooldown` (1200); a game's global line carries the team tag in its color, rankless and levelless.
 - **Titles** (cap, every title in nine BedWars captures, `research/bedwars/titles_sounds.py`): each is
   written up with its feature. The countdown digits (fade 0/20/20), `YOU DIED!` over the respawn count
@@ -1437,6 +1439,7 @@ www.hypixel.net           yellow
 | 2026-09-25 Solo, Deadwood twice, private games with `Respawn Time: 1 Second`, the first also with Max Team Upgrades (`capture-bedwars.js`) | Dream Defender and bedbug damage against every armor tier and Protection level, the Reinforced Armor helmet bug, effect re-sends |
 | 2026-09-25 Doubles, Ironclad, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | the golden apple, the fireball's cooldown line, a trap bought with an intruder inside, the Heal Pool's 30 s re-send |
 | 2026-09-25 Solo, Sky Rise, a private game with `Respawn Time: 1 Second` and Max Team Upgrades (`capture-bedwars.js`) | bedbugs and Dream Defenders, ours and an enemy's; invisibility from both sides; the second dragons at 45:00; the bridge egg cooldown; the rejoin respawn; the bucket, deposit and height refusals; Speed II and Jump V. Its 1 s respawns are the modifier's |
+| 2026-09-29 a private game with fast events, every player's moves logged (`capture-bedwars.js --moves`) | the `/shout` line, the tracker's refusal after a purchase, an ender chest dump at a final kill, Sudden Death and More Dragons on the board; no dragon reached us, so their hits per charge stay at the 2026-09-28 count |
 
 Explosions, the BedWars fireball and the pearl landing were captured earlier and live in Polyp's `hypixel`
 preset. Nothing yet covers most potion effects or most sounds.
