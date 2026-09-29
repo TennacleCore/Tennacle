@@ -39,7 +39,8 @@ import java.util.Set;
 final class TrackerShop {
 
     static final Refusal BEDS_STAND = new Refusal("beds-stand");
-    /** One team at a time (the user, 2026-09-28); tracking several, or a cheaper swap, is for later. */
+    /** One team at a time (the user, 2026-09-28); tracking several, or a cheaper swap, is for later. Hypixel sells the
+     *  tracked team again and charges for it, a bug of theirs kept out (the user, 2026-09-29). */
     static final Refusal TRACKING = new Refusal("tracking");
 
     private TrackerShop() {}

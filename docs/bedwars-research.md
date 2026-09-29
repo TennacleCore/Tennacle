@@ -136,7 +136,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
     coming at once as captured. A lowered `flow.countdown.start-at` starts the count on the spot (Grotto), the
     two-player test's way in. Hidden names (2026-09-29): `view.names.hidden` (on) gives every member outside your
   party a fresh alias of 5 to 11 letters and digits, gray and obfuscated in the tab, over the head and in the join
-  and quit lines, the real names back as the game opens; a stranger's own chat line keeps the real name (uncaptured).
+  and quit lines, the real names back as the game opens; a stranger's own chat line keeps the real name (the user,
+  2026-09-29: only the join and quit lines are obfuscated, never pregame chat).
 - Soft matchmaking by BedWars level (brackets 1-10, 10-50, 50+, opened to all after 30 s waiting, off).
 
 ### 3.2 Start
@@ -799,7 +800,7 @@ table above is the newest documented.
 | Pickaxe, axe | drop one tier; tier I is permanent |
 | Swords | lost; the wooden sword comes back whenever no better sword is held (our play: there is always at least the wooden one) |
 | Bows, arrows, blocks, potions, utilities | lost, not dropped |
-| Compass | given back; a bought tracker is lost. One team at a time (the user, 2026-09-28): buying the team already tracked is refused, our line `You are already tracking that team!` (Hypixel's uncaptured); tracking several, or a cheaper swap between teams, is an idea for later, not now |
+| Compass | given back; a bought tracker is lost. One team at a time (the user, 2026-09-28): buying the team already tracked is refused, our line `You are already tracking that team!`; Hypixel lets that purchase through and charges again, a bug of theirs the user keeps out (2026-09-29); tracking several, or a cheaper swap between teams, is an idea for later, not now |
 | Iron, gold, diamonds, emeralds | to the killer (section 8) |
 | Ender chest, team chest | untouched (the ender chest is dumped at a final death) |
 
