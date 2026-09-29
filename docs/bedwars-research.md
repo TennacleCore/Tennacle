@@ -195,7 +195,8 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   other player's moves): six charges reached a player, one bite each, the next one 14 to 47 s later; ours bit
   several times a charge. The dragon's bite now lands once a victim a charge under `biteOncePerCharge` (the Bed
   Wars kind; vanilla's every-tick bite under the hurt window stays the engine's default), a charge being one
-  flight target. The push the same way (the user, 2026-09-28: ours pushed more; all four dragon captures,
+  flight target, and a retarget re-arms only a victim the dragon is 10 blocks clear of: vanilla retargets every
+  tick while its target is in reach, and ours re-armed the victim under it each time (2026-09-28). The push the same way (the user, 2026-09-28: ours pushed more; all four dragon captures,
   `dragon_gate.py`): of about 270 samples with a player inside vanilla's wing zones, 24 carried a velocity
   packet and 22 of those a hurt too, the dragon itself hit within the last half second in only a tenth of
   them, so its own hurt window is not what holds vanilla's every-tick push back. A pass pushes once, on the
@@ -398,6 +399,13 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   region runs down to the build floor or past it (our play: the floor floors it), so nothing below it goes in
   and its bottom never closes; a placement there draws both `You can't place blocks here!` and `You cannot
   build any further down!`. The arenas take the top's reach for a bottom never closed.
+- **Zones, ours (2026-09-28)**: the generator cubes and shopkeeper columns above were never built, on any map;
+  the user found it on Orchestra v2's diamond and emerald generators. `Generators` now reserves
+  `generator.reserve` (3) blocks every way from each drop point's block (the forge's gold and emerald point and
+  each iron point included), and `Keepers` a column `keeper.reserve` (1) out and `keeper.reserve.height` (5)
+  below and above each keeper's feet, `-1` for none. Both answer `Building.Reserves`, which `Building` asks
+  beside the mode's own boxes, so the refusal lines are the zone's. Water stops at them and a blast spares them
+  as at a base box (ASSUMED: captured for the base boxes only).
 - **Refusals, ours (2026-09-28)**: the refusing rule names why (`Building`: reserved zone, floor, height, off
   the circle, a map block), and Bed Wars' `Lines.refusal` picks the captured copy by it: `You can't place blocks
   here!` and `You can't break blocks here!` for a zone, `You cannot build any further down!` under the floor,
@@ -1236,7 +1244,9 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   death line `was killed by` with no tool (`Lives.blame` falls back to what `FriendlyFire.attributed` names; the
   user saw such kills uncredited). The credit window is 10 s (cap, 2026-09-25): nine void deaths 3.5 to 9.96 s after
   the victim's last hurt read `was knocked into the void by`, five at 10.77 to 16.9 s read `fell into the
-  void.`
+  void.` A hit that lands dealing nothing (an egg, a snowball, a Bedbug's snowball) credits its thrower like any
+  other (the user, 2026-09-28: none did). `KillCredit` skipped every hit that dealt nothing, and a killing blow a
+  mode cancels reports the same zero, so Polyp's applied damage event now says which it was (`fatalCancelled`).
 - **Final kills**: a death with the bed gone eliminates. Bold aqua ` FINAL KILL!` follows the death line;
   the victim reads red `You have been eliminated!`; the last member out prints
   `TEAM ELIMINATED > <Team> Team has been eliminated!` (cap). Just before the final-kill line the victim's

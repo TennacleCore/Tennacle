@@ -97,6 +97,11 @@ public final class Building {
         }
     }
 
+    /** A module that keeps cells clear wherever it is installed, beside the {@link Space}'s own. */
+    public interface Reserves {
+        boolean reserves(@NotNull Point pos);
+    }
+
     /** The reasons a refusal carries ({@link Refusals#because}), for a mode's line to pick its copy by. */
     public static final String REASON_BUILD = "build", REASON_RESERVED = "reserved", REASON_FLOOR = "floor",
             REASON_HEIGHT = "height", REASON_OUTSIDE = "outside", REASON_MAP = "map", REASON_PLACED = "placed";
@@ -147,7 +152,7 @@ public final class Building {
                 refuse(e, REASON_BUILD);
                 return;
             }
-            if (!own && space.reserved(pos)) {
+            if (!own && building.reserved(pos)) {
                 refuse(e, REASON_RESERVED);
                 return;
             }
@@ -172,15 +177,24 @@ public final class Building {
             Player igniter = e.source() instanceof Player p && game.roster().slotOf(p) != null ? p : null;
             List<String> may = igniter != null ? game.rules().resolve(igniter, BLAST) : game.rules().resolve(Scope.GAME, BLAST);
             boolean reserved = igniter != null ? game.rules().resolve(igniter, BLAST_RESERVED) : game.rules().resolve(Scope.GAME, BLAST_RESERVED);
-            e.blocks().removeIf(pos -> !reserved && space.reserved(pos) || !may.contains(building.placed(pos) ? PLACED : MAP));
+            e.blocks().removeIf(pos -> !reserved && building.reserved(pos) || !may.contains(building.placed(pos) ? PLACED : MAP));
             for (Point pos : e.blocks()) building.placed.remove(key(pos));
         });
         return building;
     }
 
+    // asked per check: a reserving module may install after the mode's rules
+    private boolean reserved(Point pos) {
+        if (space.reserved(pos)) return true;
+        for (Reserves module : game.modules(Reserves.class)) {
+            if (module.reserves(pos)) return true;
+        }
+        return false;
+    }
+
     // a cell no fluid may run into: a reserved one under the rule, or one a module holds
     private boolean stilled(Point pos) {
-        if (!game.rules().resolve(Scope.GAME, FLOW_RESERVED) && space.reserved(pos)) return true;
+        if (!game.rules().resolve(Scope.GAME, FLOW_RESERVED) && reserved(pos)) return true;
         for (Predicate<Point> still : stills) {
             if (still.test(pos)) return true;
         }
@@ -208,7 +222,7 @@ public final class Building {
     /** Why {@code placer} may not place at {@code pos} (a {@code REASON_}), or null. */
     public @Nullable String refusal(@NotNull Player placer, @NotNull Point pos) {
         if (!Match.live(game) || !game.rules().resolve(placer, BUILD)) return REASON_BUILD;
-        if (space.reserved(pos)) return REASON_RESERVED;
+        if (reserved(pos)) return REASON_RESERVED;
         boolean allowed = space.buildable(placer, pos)
                 || (game.rules().resolve(placer, OUTSIDE) && space.inBand(placer, pos)); // off the region, still in the band
         if (allowed) return null;

@@ -26,6 +26,7 @@ import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import net.minestom.server.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tennacle.games.map.Building;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -41,7 +42,7 @@ import java.util.function.Supplier;
  * ({@link WorldPolicy#INERT}), so no hit, shot, push or blast reaches them. Each faces its side's spawn and
  * turns to the nearest player it can see, at any distance (the user, 2026-09-28: no range, all the way round).
  */
-public final class Keepers implements GameModule {
+public final class Keepers implements GameModule, Building.Reserves {
 
     /** What a right click on a keeper does. */
     @FunctionalInterface
@@ -59,6 +60,10 @@ public final class Keepers implements GameModule {
     public static final StateKey<Double> SPACE = StateKey.of("keeper.space", Codec.DOUBLE, 1.5);
     /** A keeper turns to an invisible player too, giving them away; off (Hypixel), it never does. */
     public static final StateKey<Boolean> LOOK_INVISIBLE = StateKey.of("keeper.look.invisible", Codec.BOOLEAN, false);
+    /** Blocks out around a keeper's feet that nobody builds in (captured: 1, a 3 x 3 column); {@code -1} = none. */
+    public static final StateKey<Integer> RESERVE = StateKey.of("keeper.reserve", Codec.INT, 1);
+    /** How far below and above a keeper's feet that column runs (captured: 5). */
+    public static final StateKey<Integer> RESERVE_HEIGHT = StateKey.of("keeper.reserve.height", Codec.INT, 5);
 
     private final List<Post> posts = new ArrayList<>();
     private final Map<Entity, Standing> standing = new IdentityHashMap<>();
@@ -92,7 +97,7 @@ public final class Keepers implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SPACE, LOOK_INVISIBLE);
+        return Set.of(SPACE, LOOK_INVISIBLE, RESERVE, RESERVE_HEIGHT);
     }
 
     @Override
@@ -142,6 +147,19 @@ public final class Keepers implements GameModule {
             Point feet = post.at().point();
             if (Math.abs(at.x() - feet.x()) <= space && Math.abs(at.z() - feet.z()) <= space
                     && at.y() >= feet.y() - space && at.y() <= feet.y() + 2 + space) return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean reserves(@NotNull Point pos) {
+        int reach = game != null ? game.rules().resolve(Scope.GAME, RESERVE) : -1;
+        if (reach < 0) return false;
+        int height = game.rules().resolve(Scope.GAME, RESERVE_HEIGHT);
+        for (Standing post : standing.values()) {
+            Point feet = post.at().point();
+            if (Math.abs(pos.blockX() - feet.blockX()) <= reach && Math.abs(pos.blockZ() - feet.blockZ()) <= reach
+                    && Math.abs(pos.blockY() - feet.blockY()) <= height) return true;
         }
         return false;
     }

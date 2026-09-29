@@ -133,7 +133,7 @@ public final class Lives implements GameModule {
         });
         // a creature's hit is its owner's for the credit, as an arrow's is its shooter's
         game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
-            if (!e.outcome().landed() || e.dealt() <= 0 || !(e.target() instanceof Player victim) || e.source() instanceof Player) return;
+            if (!e.outcome().landed() || e.fatalCancelled() || !(e.target() instanceof Player victim) || e.source() instanceof Player) return;
             Blame blame = blame(e.source());
             if (blame != null && blame.by() != victim && game.roster().slotOf(blame.by()) != null) {
                 credit.record(victim, blame.by(), game.state().tick());

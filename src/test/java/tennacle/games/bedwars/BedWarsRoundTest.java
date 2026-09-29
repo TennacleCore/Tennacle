@@ -198,6 +198,40 @@ class BedWarsRoundTest extends HeadlessServerTest {
     }
 
     @Test
+    void anEggHitCreditsTheVoid() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwEggA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwEggB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            // the damage call a thrown egg or snowball makes: it lands and deals nothing
+            io.github.term4.polyp.Polyp.getInstance().services().damage().apply(DamageSnapshot.of(b.player,
+                    io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage.INSTANCE)
+                    .withSource(a.player).withAmount(0f));
+            a.sent.clear();
+            game.module(Lives.class).fell(b.player);
+            assertEquals(1, game.state().get(Scope.slot(game.roster().slotOf(a.player).index()), BedWars.KILLS),
+                    "the void death is the thrower's kill");
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            List<String> chat = a.sent(SystemChatPacket.class).stream()
+                    .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
+            assertTrue(chat.stream().anyMatch(l -> l.contains("BwEggB was knocked into the void by BwEggA")), chat.toString());
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
     void aBrokenBedThenTheLastDeathEndsIt() {
         Mode solo = Matches.mode("bedwars-solo");
         Game game = Matches.launch(solo, Matches.platformFor(null), fixture());

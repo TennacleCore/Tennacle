@@ -19,6 +19,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tennacle.games.map.Building;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.function.Predicate;
  * how often and how many is the mode's, changed live. A pickup of one of these copies to teammates near the
  * item when {@link #share} says so.
  */
-public final class Generators implements GameModule {
+public final class Generators implements GameModule, Building.Reserves {
 
     /** How near a generator its items count against the cap, and a teammate a pickup, in blocks. */
     private static final double NEAR = 3.0;
@@ -161,10 +162,12 @@ public final class Generators implements GameModule {
 
     /** Ticks before a fresh drop can be picked up (captured: 10, vanilla's dropped item; none let a mid-air grab). */
     public static final StateKey<Integer> PICKUP_DELAY = StateKey.of("generator.pickup-delay", Codec.INT, 10);
+    /** Blocks out from a generator's item block, every way, that nobody builds in (captured: 3, a 7 x 7 x 7 cube); {@code -1} = none. */
+    public static final StateKey<Integer> RESERVE = StateKey.of("generator.reserve", Codec.INT, 3);
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(PICKUP_DELAY);
+        return Set.of(PICKUP_DELAY, RESERVE);
     }
 
     public static @NotNull Generators of() {
@@ -211,6 +214,18 @@ public final class Generators implements GameModule {
     /** The generator {@code item} came out of, or null. */
     public @Nullable Generator made(@NotNull ItemEntity item) {
         return item.getTag(MADE_BY);
+    }
+
+    @Override
+    public boolean reserves(@NotNull Point pos) {
+        int reach = game != null ? game.rules().resolve(Scope.GAME, RESERVE) : -1;
+        if (reach < 0) return false;
+        for (Generator generator : generators) {
+            Point at = generator.at;
+            if (Math.abs(pos.blockX() - at.blockX()) <= reach && Math.abs(pos.blockY() - at.blockY()) <= reach
+                    && Math.abs(pos.blockZ() - at.blockZ()) <= reach) return true;
+        }
+        return false;
     }
 
     @Override

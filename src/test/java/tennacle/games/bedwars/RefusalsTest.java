@@ -96,6 +96,42 @@ class RefusalsTest extends HeadlessServerTest {
         }
     }
 
+    @Test
+    void zonesAroundGeneratorsAndKeepers() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = Matches.launch(solo, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer fa = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ZoneA");
+        FakePlayer fb = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ZoneB");
+        try {
+            fa.player.setInstance(game.instance(), ROOM).join();
+            fb.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(fa.player)));
+            assertTrue(Matches.enter(game, List.of(fb.player)));
+            await("both seated", () -> Game.of(fa.player) == game && Game.of(fb.player) == game);
+            BedWarsRoundTest.live(game);
+            Player a = fa.player;
+            // the fixture's diamond generator drops at 0, 65, -16: its cube reaches 3 out every way
+            a.teleport(new Pos(5.5, 65, -13.5)).join();
+            place(fa, fb, game, new BlockVec(3, 65, -16), true);
+            assertTrue(said(fa, "You can't place blocks here!"), chat(fa).toString());
+            place(fa, fb, game, new BlockVec(4, 65, -16), false);
+            // red's shopkeeper stands at -13, 65, 4: a 3 x 3 column from 5 below its feet to 5 above
+            a.teleport(new Pos(-9.5, 65, 6.5)).join();
+            place(fa, fb, game, new BlockVec(-12, 65, 5), true);
+            place(fa, fb, game, new BlockVec(-11, 65, 5), false);
+            a.teleport(new Pos(-10.5, 69, 6.5)).join();
+            place(fa, fb, game, new BlockVec(-13, 70, 4), true);
+            place(fa, fb, game, new BlockVec(-13, 71, 4), false);
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            fa.player.remove();
+            fb.player.remove();
+        }
+    }
+
     private static void place(FakePlayer p, FakePlayer other, Game game, BlockVec at, boolean refused) {
         p.sent.clear();
         other.sent.clear();
