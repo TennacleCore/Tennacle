@@ -51,6 +51,27 @@ class DuelRequestTest extends HeadlessServerTest {
         return Game.of(p.player);
     }
 
+    /** A mode that fills a waiting room is /play's: /duel and /queue turn it away. */
+    @Test
+    void aFillModeIsPlays() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(600.5, 65, 600.5), "FillA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(602.5, 65, 602.5), "FillB");
+        try {
+            a.sent.clear();
+            b.sent.clear();
+            MinecraftServer.getCommandManager().execute(a.player, "duel FillB bedwars-solo");
+            MinecraftServer.getCommandManager().execute(a.player, "queue bedwars-solo");
+            assertEquals(2, plain(a).stream().filter(l -> l.contains("fills up through /play bedwars-solo")).count(),
+                    "both turned away: " + plain(a));
+            assertTrue(plain(b).stream().noneMatch(l -> l.contains("FillA")), "no request reached them: " + plain(b));
+            assertFalse(Matches.launchedFull().contains("bedwars-solo"));
+            assertTrue(Matches.launchedFull().contains("bridge"));
+        } finally {
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
     @Test
     void theAcceptIsAClick() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(600.5, 65, 600.5), "ReqA");

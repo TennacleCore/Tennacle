@@ -1,5 +1,11 @@
 package tennacle.games.bedwars;
 
+import java.util.concurrent.TimeUnit;
+import java.time.LocalDate;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import org.junit.jupiter.api.io.TempDir;
+import tennacle.storage.MatchLog;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.network.packet.server.play.DisplayScoreboardPacket;
@@ -104,6 +110,34 @@ class PregameTest extends HeadlessServerTest {
                     " ".repeat(6) + "Upgrade yourself and your team by collecting",
                     " ".repeat(4) + "Iron, Gold, Emerald and Diamond from generators",
                     " ".repeat(18) + "to access powerful upgrades.", "", rule), said.subList(at - 1, at + 8));
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
+        }
+    }
+
+    /** The audit, 2026-09-29: a game that fills its seats through /play never reached the match log. */
+    @Test
+    void theFillIsLogged(@TempDir Path dir) throws Exception {
+        MatchLog.install(dir);
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "LogA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "LogB");
+        List<FakePlayer> all = List.of(a, b);
+        try {
+            for (FakePlayer p : all) p.player.setInstance(game.instance(), ROOM).join();
+            for (FakePlayer p : all) assertTrue(Matches.enter(game, List.of(p.player)));
+            await("both seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            BedWarsRoundTest.live(game);
+            MatchLog.ended(game, Outcome.draw());
+            assertTrue(MatchLog.flush(5, TimeUnit.SECONDS));
+            String logged = Files.readString(dir.resolve(LocalDate.now() + ".jsonl"));
+            assertTrue(logged.contains("\"mode\":\"bedwars-solo\""), logged);
+            assertTrue(logged.contains("\"LogA\"") && logged.contains("\"LogB\""), "both sides: " + logged);
         } finally {
             tennacle.games.watch.Replays.discard(game);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());

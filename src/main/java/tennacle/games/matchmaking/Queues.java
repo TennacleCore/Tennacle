@@ -48,7 +48,7 @@ public final class Queues {
                 .usage("/queue leave", "step out of it")
                 .featured();
         var mode = ArgumentType.Word("mode");
-        mode.setSuggestionCallback(Completions.of(Matches::modes));
+        mode.setSuggestionCallback(Completions.of(Matches::launchedFull));
         var platform = ArgumentType.Word("platform");
         platform.setSuggestionCallback(Completions.of(Matches::platforms));
         queue.addSyntax((sender, ctx) -> {
@@ -97,7 +97,11 @@ public final class Queues {
     private static void enqueue(Player me, String modeName, @Nullable String platformName) {
         Mode mode = Matches.mode(modeName);
         if (mode == null) {
-            Msg.fail(me, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", Matches.modes())), ".");
+            Msg.fail(me, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", Matches.launchedFull())), ".");
+            return;
+        }
+        if (Matches.joinable(mode)) {
+            Msg.fail(me, Msg.v(mode.title()), " fills up through ", Msg.run("/play " + mode.name()), ".");
             return;
         }
         if (platformName != null && Matches.platform(platformName) == null) {

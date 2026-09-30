@@ -164,6 +164,11 @@ public final class Matches {
         return modes.keySet();
     }
 
+    /** The modes /duel and /queue start: a game launched with every seat taken, never one that fills a waiting room. */
+    public static @NotNull List<String> launchedFull() {
+        return modes.values().stream().filter(mode -> !joinable(mode)).map(Mode::name).sorted().toList();
+    }
+
     public static @Nullable Platform platform(@NotNull String name) {
         return platforms.get(name);
     }
@@ -286,9 +291,26 @@ public final class Matches {
         // after the modules, which is when a wait exists to ask: the wait is no part of the tape, so a waiting
         // game's recording starts as its seats open (the user, 2026-09-29: it had started at the launch)
         Staging staging = game.module(Staging.class);
-        if (staging != null && staging.waiting()) staging.onOpened(Replays::record);
-        else Replays.record(game);
+        if (staging != null && staging.waiting()) {
+            staging.onOpened(Replays::record);
+            // no seat() for a filling game: the match starts as its seats open
+            staging.onOpened(g -> MatchLog.started(g, mode.name(), platform.name(), drawnSides(g)));
+        } else Replays.record(game);
         return game;
+    }
+
+    // one side a team, in team order and empty ones kept: the log reads a winner by that order
+    private static List<List<Player>> drawnSides(Game game) {
+        List<List<Player>> sides = new ArrayList<>();
+        for (Team team : game.roster().teams()) {
+            List<Player> side = new ArrayList<>();
+            for (Player member : game.members()) {
+                Slot seat = game.roster().slotOf(member);
+                if (seat != null && seat.team().equals(team.id())) side.add(member);
+            }
+            sides.add(side);
+        }
+        return sides;
     }
 
     /** Folds the game's ruleset (and any live modifiers) into its world profile and seeds it. */

@@ -76,7 +76,7 @@ public final class Duels {
         var name = ArgumentType.Word("player");
         name.setSuggestionCallback(PlayerNames.suggest());
         var mode = ArgumentType.Word("mode");
-        mode.setSuggestionCallback(Completions.of(Matches::modes)); // modes register after this command does
+        mode.setSuggestionCallback(Completions.of(Matches::launchedFull)); // modes register after this command does
         var options = ArgumentType.StringArray("options");
         options.setSuggestionCallback((sender, ctx, suggestion) -> {
             Mode picked = Matches.mode(ctx.get(mode));
@@ -92,8 +92,8 @@ public final class Duels {
         AppCommand flags = Commands.player("flags", "The flags a mode's duels take.")
                 .usage("/flags [mode]", "one mode's, or every mode's");
         var which = ArgumentType.Word("mode");
-        which.setSuggestionCallback(Completions.of(Matches::modes));
-        flags.setDefaultExecutor((sender, ctx) -> Matches.modes().forEach(m -> listFlags(sender, m)));
+        which.setSuggestionCallback(Completions.of(Matches::launchedFull));
+        flags.setDefaultExecutor((sender, ctx) -> Matches.launchedFull().forEach(m -> listFlags(sender, m)));
         flags.addSyntax((sender, ctx) -> listFlags(sender, ctx.get(which)), which);
         Commands.register(flags);
     }
@@ -108,7 +108,7 @@ public final class Duels {
         Player target = online(me, targetName);
         if (target == null) return;
         Msg.fail(me, "The duel menu is not made yet. Pick a mode: ",
-                Msg.run("/duel " + target.getUsername() + " <" + String.join("|", Matches.modes()) + ">"));
+                Msg.run("/duel " + target.getUsername() + " <" + String.join("|", Matches.launchedFull()) + ">"));
     }
 
     private static void accept(Player me, String fromName) {
@@ -137,7 +137,11 @@ public final class Duels {
         }
         Mode mode = Matches.mode(modeName);
         if (mode == null) {
-            Msg.fail(me, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", Matches.modes())), ".");
+            Msg.fail(me, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", Matches.launchedFull())), ".");
+            return;
+        }
+        if (Matches.joinable(mode)) {
+            Msg.fail(me, Msg.v(mode.title()), " fills up through ", Msg.run("/play " + mode.name()), ".");
             return;
         }
         Options options;
