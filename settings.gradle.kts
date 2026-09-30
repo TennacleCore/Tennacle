@@ -52,3 +52,5 @@ if (file("../Canvas").exists()) {
         }
     }
 }
+
+include("core", "party", "games", "lobby", "server")
