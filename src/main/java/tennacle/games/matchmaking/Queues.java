@@ -79,7 +79,7 @@ public final class Queues {
         }
         if (gone == null) return false;
         changed();
-        Msg.say(player, "Left the ", Msg.v(gone.label()), " queue.");
+        Msg.say(player, "You have been removed from the queue.");
         return true;
     }
 
@@ -178,7 +178,7 @@ public final class Queues {
             }
         }
         if (teams == null || !teams.get(0).contains(mine) && !teams.get(1).contains(mine)) {
-            Msg.ok(me, "Queued for ", Msg.v(label), ". ", Msg.run("/lobby"), " to step out.");
+            Msg.ok(me, "You are now queued for " + label + ".");
         }
         if (teams != null) start(mode, platform, label, players(teams.get(0), parties), players(teams.get(1), parties));
         changed();

@@ -7,24 +7,17 @@ import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.canvas.screen.Tab;
 import io.github.term4.canvas.theme.Theme;
-import io.github.term4.grotto.Game;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerSkin;
-import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import tennacle.commands.SpectateCommands;
 import tennacle.games.Careers;
 import tennacle.games.KitLayouts;
-import tennacle.games.Match;
-import tennacle.games.Matches;
-import tennacle.games.Mode;
-import tennacle.games.matchmaking.Parties;
 import tennacle.games.watch.ReplayCatalog;
 
 import java.time.Instant;
@@ -37,25 +30,23 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** The ender chest: your profile, your party, your replays, the games on now, your kits. */
+/** The ender chest: your stats, your replays, your kits. */
 public final class MainMenu {
 
     private static final int[] PAGE = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
     private static final ItemStack PANE = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
-    private static final ItemStack OPEN_PANE = ItemStack.of(Material.LIGHT_BLUE_STAINED_GLASS_PANE);
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("MMM d · HH:mm", Locale.ENGLISH)
+    private static final ItemStack OPEN_PANE = ItemStack.of(Material.LIME_STAINED_GLASS_PANE);
+    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ENGLISH)
             .withZone(ZoneId.systemDefault());
     private static final Map<UUID, Map<String, int[]>> CAREERS = new ConcurrentHashMap<>();
     private static final java.util.Set<String> READING = ConcurrentHashMap.newKeySet();
     private static volatile ReplayCatalog catalog = ReplayCatalog.SAMPLES;
 
     private static final List<Tab> TABS = List.of(
-            new Tab("profile", v -> Items.head(v.getSkin(), Component.empty()), "Profile", "Your numbers in every game.",
+            new Tab("profile", v -> Items.head(v.getSkin(), Component.empty()), "Profile", "Your stats in every game.",
                     v -> profile(v.getUuid(), v.getUsername(), true)),
-            new Tab("party", v -> ItemStack.of(Material.CAKE), "Party", "Who you play with.", MainMenu::party),
-            new Tab("replays", v -> ItemStack.of(Material.CLOCK), "Replays", "Games you played.", v -> replays(v, 0)),
-            new Tab("live", v -> ItemStack.of(Material.ENDER_EYE), "Live games", "Watch a game now.", v -> live(0)),
-            new Tab("kits", v -> ItemStack.of(Material.ANVIL), "Kits", "Your layout for each game.", v -> kits()));
+            new Tab("replays", v -> ItemStack.of(Material.BOOK), "Replays", "Watch the games you played.", v -> replays(v, 0)),
+            new Tab("kits", v -> ItemStack.of(Material.ANVIL), "Kits", "Edit your layout for each game.", v -> kits()));
 
     private MainMenu() {}
 
@@ -69,25 +60,22 @@ public final class MainMenu {
     }
 
     private static Screen.Builder hub(String tab, String title) {
-        return Screen.rows(6).title(Component.text("Menu · " + title)).tabs(TABS, tab, PANE, OPEN_PANE)
-                .item(5, v -> Entry.of(Material.GRAY_STAINED_GLASS_PANE).name(Canvas.themeFor(v).dim("Cosmetics"))
-                        .text("Coming later.").render(v))
-                .close(53);
+        return Screen.rows(6).title(Component.text(title)).tabs(TABS, tab, PANE, OPEN_PANE).close(49);
     }
 
-    /** {@code name}'s numbers, a card per game that keeps them; as a tab, or on its own under a player menu. */
+    /** {@code name}'s stats, a card per game that keeps them; as a tab, or on its own under a player menu. */
     public static @NotNull Screen profile(@NotNull UUID subject, @NotNull String name, boolean asTab) {
         Map<String, Careers.Card> cards = Careers.cards();
-        CAREERS.remove(subject); // read fresh each time the numbers are opened
+        CAREERS.remove(subject); // read fresh each time the stats are opened
         Screen.Builder screen = asTab ? hub("profile", "Profile").key("menu:profile")
-                : Screen.rows(4).title(Component.text(name)).back(27).close(35);
+                : Screen.rows(4).title(Component.text(name)).back(30).close(31);
         int headSlot = asTab ? 22 : 4;
         int cardRow = asTab ? 3 : 2;
-        screen.item(headSlot, v -> Entry.of(Items.head(skinOf(subject), Component.empty())).name(name)
-                .text("Numbers from every game.").render(v));
+        screen.item(headSlot, v -> Entry.of(Items.head(skinOf(subject), Component.empty())).name(name).render(v));
         List<String> modes = new ArrayList<>(cards.keySet());
         if (modes.isEmpty()) {
-            screen.item(cardRow * 9 + 4, v -> Entry.of(Material.PAPER).name("No numbers yet").text("None of the games keep any.").render(v));
+            screen.item(cardRow * 9 + 4, v -> Entry.of(Material.PAPER).name("No Stats Yet")
+                    .text("Play a game to see your stats here!").render(v));
         }
         int[] slots = Rows.centered(cardRow, modes.size());
         for (int i = 0; i < modes.size(); i++) {
@@ -99,10 +87,10 @@ public final class MainMenu {
     }
 
     private static ItemStack card(Player viewer, UUID subject, String mode, Careers.Card card) {
-        Entry entry = Entry.of(Icons.of(mode)).name(card.title()).kind("All time");
+        Entry entry = Entry.of(Icons.of(mode)).name(card.title());
         int[] values = CAREERS.getOrDefault(subject, Map.of()).get(mode);
         if (values == null) {
-            entry.text("Reading...");
+            entry.text("Loading...");
             if (READING.add(subject + mode)) {
                 Careers.read(subject, card).thenAccept(read -> {
                     CAREERS.computeIfAbsent(subject, id -> new ConcurrentHashMap<>()).put(mode, read);
@@ -121,71 +109,20 @@ public final class MainMenu {
         return online != null ? online.getSkin() : null;
     }
 
-    private static Screen party(Player viewer) {
-        Screen.Builder screen = hub("party", "Party").key("menu:party");
-        List<Parties.Member> members = Parties.members(viewer);
-        boolean leads = Parties.leads(viewer);
-        int[] slots = Rows.centered(2, members.size());
-        for (int i = 0; i < members.size(); i++) {
-            Parties.Member member = members.get(i);
-            screen.press(slots[i], v -> member(v, member, leads), (v, click) -> {
-                if (!leads || member.leader()) return null;
-                if (click instanceof Click.Right) Parties.kick(v, member);
-                else Parties.transfer(v, member);
-                Screens.swap(v, party(v));
-                return null;
-            });
-        }
-        if (members.size() > 1) {
-            String what = leads ? "Disband" : "Leave";
-            screen.press(40, v -> Entry.of(Material.OAK_DOOR).name(what).danger()
-                    .text(leads ? "Ends the party for everyone." : "Takes you out of the party.")
-                    .action("Click, then confirm").render(v), (v, click) -> {
-                Screens.confirm(v, Component.text(what + " the party?"), MainMenu::partyShown,
-                        Entry.of(Material.LIME_TERRACOTTA).name(Canvas.themeFor(v).good(what)), () -> {
-                            if (Parties.leads(v)) Parties.disbandBy(v);
-                            else Parties.leaveBy(v);
-                            Screens.swap(v, party(v));
-                        });
-                return null;
-            });
-        } else {
-            screen.item(40, v -> Entry.of(Material.NAME_TAG).name("Invite").text("Type /p and a name in chat.").render(v));
-        }
-        return screen.build();
-    }
-
-    private static ItemStack partyShown(Player viewer) {
-        List<Parties.Member> members = Parties.members(viewer);
-        Entry entry = Entry.of(Material.OAK_DOOR).name("Party (" + members.size() + ")");
-        entry.text(String.join(", ", members.stream().map(Parties.Member::name).toList()));
-        return entry.render(viewer);
-    }
-
-    private static ItemStack member(Player viewer, Parties.Member member, boolean leads) {
-        Theme theme = Canvas.themeFor(viewer);
-        Entry entry = Entry.of(Items.head(skinOf(member.id()), Component.empty())).name(member.name());
-        if (member.leader()) entry.line(theme.good("Leader"));
-        else entry.kind("Member");
-        if (!member.online()) entry.line(theme.dim("Offline"));
-        if (leads && !member.leader()) entry.action("Click to make leader").action("Right-click to kick");
-        return entry.render(viewer);
-    }
-
     private static Screen replays(Player viewer, int page) {
         List<ReplayCatalog.Record> games = catalog.of(viewer.getUuid(), viewer.getUsername());
         Screen.Builder screen = hub("replays", "Replays").key("menu:replays");
         if (games.isEmpty()) {
-            screen.item(31, v -> Entry.of(Material.PAPER).name("No games yet").text("The games you play land here.").render(v));
+            screen.item(31, v -> Entry.of(Material.PAPER).name("No Games Yet").text("Games you play will show up here!").render(v));
             return screen.build();
         }
         return screen.pages(PAGE, games.size(), page, i -> v -> replay(v, games.get(i)),
-                i -> (v, click) -> games.get(i).sample() ? "A sample: games you play will be here." : null,
+                i -> (v, click) -> games.get(i).sample() ? "This is a sample replay!" : null,
                 to -> replays(viewer, to)).build();
     }
 
     private static ItemStack replay(Player viewer, ReplayCatalog.Record game) {
-        Theme theme = Canvas.themeFor(viewer);
+        Theme theme = Canvas.screenThemeFor(viewer);
         ReplayCatalog.Side mine = null;
         ReplayCatalog.Side won = null;
         for (ReplayCatalog.Side side : game.sides()) {
@@ -194,9 +131,9 @@ public final class MainMenu {
         }
         boolean win = mine != null && mine == won;
         Entry entry = Entry.of(Icons.titled(game.mode())).name(game.mode())
-                .kind(WHEN.format(Instant.ofEpochMilli(game.playedAt())) + " · " + game.code())
-                .fact("Map", game.map()).fact("Length", clock(game.lengthMillis()))
-                .fact("Result", game.winner() == null ? theme.prose("Draw") : win ? theme.good("Won") : theme.bad("Lost"));
+                .text(WHEN.format(Instant.ofEpochMilli(game.playedAt())), "Duration: " + clock(game.lengthMillis()))
+                .fact("Map", game.map())
+                .fact("Result", game.winner() == null ? theme.prose("Draw") : win ? theme.good("Win") : theme.bad("Loss"));
         List<ReplayCatalog.Side> shown = new ArrayList<>();
         if (won != null) shown.add(won);
         if (mine != null && mine != won) shown.add(mine);
@@ -204,47 +141,25 @@ public final class MainMenu {
         for (ReplayCatalog.Side side : shown) {
             NamedTextColor color = NamedTextColor.NAMES.valueOr(side.team(), NamedTextColor.WHITE);
             String names = String.join(", ", side.seats().stream().map(ReplayCatalog.Seat::name).toList());
-            entry.line(Component.text(titled(side.team()) + (side == won ? " ✔" : "") + ": ", color)
-                    .append(Component.text(names, NamedTextColor.WHITE)));
+            entry.line(Component.text(titled(side.team()) + ": ", color).append(Component.text(names, NamedTextColor.WHITE)));
         }
         int more = game.sides().size() - shown.size();
-        if (more > 0) entry.line(theme.prose("and " + more + " more teams"));
-        return entry.action("Click to watch").render(viewer);
-    }
-
-    private static Screen live(int page) {
-        List<Game> games = Matches.grotto().games().stream()
-                .filter(g -> g.status() == Game.Status.OPEN && Match.live(g)).toList();
-        Screen.Builder screen = hub("live", "Live games").key(tennacle.lobby.Counts.KEY);
-        if (games.isEmpty()) {
-            screen.item(31, v -> Entry.of(Material.ENDER_EYE).name("No games right now").text("Games show up here as they start.").render(v));
-            return screen.build();
-        }
-        return screen.pages(PAGE, games.size(), page, i -> v -> liveGame(v, games.get(i)), i -> (v, click) -> {
-            Game game = games.get(i);
-            String refused = SpectateCommands.watch(v, game);
-            if (refused == null) v.closeInventory();
-            return refused;
-        }, MainMenu::live).build();
-    }
-
-    private static ItemStack liveGame(Player viewer, Game game) {
-        Mode mode = Matches.modeOf(game);
-        return Entry.of(mode != null ? Icons.of(mode) : Material.PAPER).name(mode != null ? mode.title() : game.type().id())
-                .fact("Map", game.arena().meta().name()).fact("Playing", Match.seated(game))
-                .action("Click to watch").render(viewer);
+        if (more > 0) entry.line(theme.prose("+" + more + " more teams"));
+        return entry.action("Click to watch!").render(viewer);
     }
 
     private static Screen kits() {
         Screen.Builder screen = hub("kits", "Kits");
         List<KitLayouts.Editable> kits = KitLayouts.editables();
-        int[] slots = Rows.centered(2, kits.size());
+        int[] slots = Rows.centered(3, kits.size());
         for (int i = 0; i < kits.size(); i++) {
             KitLayouts.Editable kit = kits.get(i);
-            screen.press(slots[i], v -> Entry.of(Icons.of(kit.id())).name(kit.title())
-                    .text("Arrange it in your own inventory.")
-                    .fact("Armor", kit.kit().armorMoves() ? "Yours to change" : "Stays on")
-                    .action("Click to arrange").render(v), (v, click) -> {
+            screen.press(slots[i], v -> {
+                Entry entry = Entry.of(Icons.of(kit.id())).name(kit.title() + " Layout Editor")
+                        .text("Edit your inventory layout for " + kit.title() + ".");
+                if (kit.kit().armorMoves()) entry.text("Your armor can be moved too.");
+                return entry.action("Click to edit!").render(v);
+            }, (v, click) -> {
                 String refused = KitLayouts.open(v, kit.id());
                 if (refused == null) v.closeInventory();
                 return refused;
@@ -255,7 +170,7 @@ public final class MainMenu {
 
     static String clock(long millis) {
         long seconds = millis / 1000;
-        return seconds / 60 + ":" + String.format("%02d", seconds % 60);
+        return String.format("%02d:%02d", seconds / 60, seconds % 60);
     }
 
     private static String titled(String word) {

@@ -317,6 +317,7 @@ public final class TestServer {
         Chat.completesPlayers(PlayerNames.suggest());
         Canvas.protocolWhenUnknown(47); // chrome is drawn once, early: an unknown viewer gets the flat 1.8 look
         Canvas.theme(Msg.THEME);
+        Canvas.screenTheme(Msg.MENUS);
         Canvas.profile("minemen", Msg.MINEMEN);
         Canvas.profile("scrims", Msg.SCRIMS);
 

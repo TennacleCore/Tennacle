@@ -31,6 +31,9 @@ public final class Msg {
     public static final Theme MINEMEN = io.github.term4.canvas.presets.Themes.MINEMEN;
     public static final Theme HYPIXEL = io.github.term4.canvas.presets.Themes.HYPIXEL;
 
+    /** Menu items as the networks draw them: green names, gray lore, yellow clicks. */
+    public static final Theme MENUS = HYPIXEL;
+
     private Msg() {}
 
     public static void shard(CommandSender to, Object... parts) {

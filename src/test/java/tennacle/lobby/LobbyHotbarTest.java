@@ -15,6 +15,11 @@ import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.Material;
+import net.minestom.server.coordinate.BlockVec;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.instance.block.Block;
+import net.minestom.server.instance.block.BlockFace;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import tennacle.games.TestWiring;
@@ -31,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The lobby hotbar: four items that stay put, the players dye, and the menus behind the items and NPCs. */
+/** The lobby hotbar: items that stay put, the players dye, the leave dye, and the menus behind the items and NPCs. */
 class LobbyHotbarTest extends HeadlessServerTest {
 
     @BeforeAll
@@ -66,14 +71,20 @@ class LobbyHotbarTest extends HeadlessServerTest {
             var inv = p.player.getInventory();
             assertEquals(Material.COMPASS, inv.getItemStack(0).material());
             assertEquals(Material.ENDER_CHEST, inv.getItemStack(4).material());
-            assertEquals(Material.LIME_DYE, inv.getItemStack(7).material());
-            assertEquals(Material.NETHER_STAR, inv.getItemStack(8).material());
+            assertEquals(Material.LIME_DYE, inv.getItemStack(6).material());
+            assertEquals(Material.NETHER_STAR, inv.getItemStack(7).material());
+            assertTrue(inv.getItemStack(8).isAir(), "no leave dye outside a queue");
             var click = new InventoryPreClickEvent(inv, p.player, new Click.Left(4));
             EventDispatcher.call(click);
             assertTrue(click.isCancelled(), "the items don't move");
             var drop = new ItemDropEvent(p.player, inv.getItemStack(0));
             EventDispatcher.call(drop);
             assertTrue(drop.isCancelled(), "nor drop");
+            p.player.setHeldItemSlot((byte) 4);
+            var place = new PlayerBlockPlaceEvent(p.player, instance, Block.ENDER_CHEST, BlockFace.TOP,
+                    new BlockVec(40, 64, 0), new Vec(0.5, 1, 0.5), PlayerHand.MAIN);
+            EventDispatcher.call(place);
+            assertTrue(place.isCancelled(), "nor place, as creative would");
         } finally {
             p.player.remove();
         }
@@ -86,15 +97,15 @@ class LobbyHotbarTest extends HeadlessServerTest {
         try {
             Playground.outfit(p.player);
             assertTrue(ShardView.of(p.player).seesEntity(other.player));
-            use(p, 7);
+            use(p, 6);
             assertFalse(ShardView.of(p.player).seesEntity(other.player), "hidden");
-            assertEquals(Material.GRAY_DYE, p.player.getInventory().getItemStack(7).material());
+            assertEquals(Material.GRAY_DYE, p.player.getInventory().getItemStack(6).material());
             later(p);
-            use(p, 7);
+            use(p, 6);
             assertFalse(Settings.playersShown(p.player), "a second press inside the cooldown changes nothing");
             Thread.sleep(1000);
             later(p);
-            use(p, 7);
+            use(p, 6);
             assertTrue(ShardView.of(p.player).seesEntity(other.player), "shown again");
         } finally {
             Settings.playersShown(p.player, true);
@@ -115,11 +126,17 @@ class LobbyHotbarTest extends HeadlessServerTest {
             assertEquals("duels_bridge_duel", waiting.id());
             tick();
             tick();
+            assertEquals(Material.RED_DYE, p.player.getInventory().getItemStack(8).material(), "the way out, in the last slot");
+            PlayMenu.open(p.player, "Bridge", mode -> mode.name().equals("bridge"), Icons::of);
             assertEquals(Boolean.TRUE, Screens.inventory(p.player).getItemStack(10).get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE),
                     "the size you wait for glints");
+            p.player.closeInventory();
             later(p);
-            press(p, new Click.Left(10));
-            assertNull(Queues.of(p.player), "and takes you out");
+            use(p, 8);
+            assertNull(Queues.of(p.player), "the dye takes you out");
+            tick();
+            tick();
+            assertTrue(p.player.getInventory().getItemStack(8).isAir(), "and goes with the queue");
         } finally {
             Queues.dequeue(p.player);
             p.player.remove();

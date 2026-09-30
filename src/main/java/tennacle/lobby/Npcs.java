@@ -3,6 +3,7 @@ package tennacle.lobby;
 import io.github.term4.canvas.hologram.Hologram;
 import io.github.term4.polyp.world.WorldPolicy;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -14,12 +15,10 @@ import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import org.jetbrains.annotations.NotNull;
-import tennacle.Msg;
 import tennacle.Press;
 import tennacle.games.KitLayouts;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
-import tennacle.games.matchmaking.Play;
 import tennacle.lobby.menus.Icons;
 import tennacle.lobby.menus.PlayMenu;
 
@@ -31,9 +30,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * The people who start games: one per kind of game a lobby hosts, a line over each naming it, its sizes and how many
- * play it. A click opens the game's menu, or plays at once when there is only one size. Until the lobbies have maps
- * of their own they stand in a row before the spawn.
+ * The people who start games: one per kind of game a lobby hosts, under its name and how many play it. A click
+ * opens the game's menu, never a game. Until the lobbies have maps of their own they stand in a row before the spawn.
  */
 public final class Npcs {
 
@@ -83,10 +81,10 @@ public final class Npcs {
             stand.setTag(WorldPolicy.INERT, true);
             stand.setInstance(lobby.world(), where);
         });
-        label.line(2.55, Msg.THEME.value(spec.name().toUpperCase(java.util.Locale.ROOT)).decorate(TextDecoration.BOLD));
-        label.line(2.3, Msg.THEME.prose(sizes(spec)));
-        label.line(2.05, playing(spec));
-        label.line(1.8, Msg.THEME.dim("» ").append(Msg.THEME.accent("Click to play")));
+        // over a villager's head, the gap Scrims leaves over a player's
+        label.line(3.0, Component.text("CLICK TO PLAY", NamedTextColor.YELLOW, TextDecoration.BOLD));
+        label.line(2.7, Component.text(spec.name(), NamedTextColor.AQUA));
+        label.line(2.4, playing(spec));
         synchronized (STANDING) {
             STANDING.put(body, new Standing(spec, label));
         }
@@ -98,14 +96,7 @@ public final class Npcs {
             standing = STANDING.get(target);
         }
         if (standing == null || KitLayouts.editing(player) || !Press.once(player)) return;
-        Spec spec = standing.spec();
-        String only = PlayMenu.only(spec.hosts());
-        if (only == null) {
-            PlayMenu.open(player, spec.name(), spec.hosts(), Icons::of);
-            return;
-        }
-        String refused = Play.start(player, only);
-        if (refused != null) Msg.fail(player, refused);
+        PlayMenu.open(player, standing.spec().name(), standing.spec().hosts(), Icons::of);
     }
 
     private static void refresh() {
@@ -120,17 +111,6 @@ public final class Npcs {
             Mode mode = Matches.mode(name);
             if (mode != null && spec.hosts().test(mode)) sum += Counts.playing(mode);
         }
-        return Msg.THEME.value(sum).append(Msg.THEME.prose(" playing"));
-    }
-
-    private static String sizes(Spec spec) {
-        List<String> out = new ArrayList<>();
-        for (String name : Matches.modes()) {
-            Mode mode = Matches.mode(name);
-            if (mode == null || !spec.hosts().test(mode)) continue;
-            boolean named = mode.title().startsWith(spec.name() + " ");
-            mode.plays().forEach((id, size) -> out.add(named ? mode.title().substring(spec.name().length() + 1) : size + "v" + size));
-        }
-        return String.join(" · ", out);
+        return Component.text(sum + (sum == 1 ? " Player" : " Players"), NamedTextColor.YELLOW, TextDecoration.BOLD);
     }
 }

@@ -7,6 +7,7 @@ import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.canvas.theme.Theme;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.ItemStack;
@@ -26,7 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Right-clicking a player: invite them, duel them, see their numbers. */
+/** Right-clicking a player: invite them, duel them, see their stats. */
 public final class PlayerMenu {
 
     // the rules a viewer's next duel request carries: a platform's name, absent for the house's own
@@ -36,26 +37,27 @@ public final class PlayerMenu {
 
     public static void open(@NotNull Player viewer, @NotNull Player target) {
         String name = target.getUsername();
-        Screens.open(viewer, Screen.rows(3).title(Component.text(name))
+        Screens.open(viewer, Screen.rows(4).title(Component.text(name))
                 .item(4, v -> head(v, target))
-                .press(11, v -> invite(v, target), (v, click) -> {
+                .press(20, v -> invite(v, target), (v, click) -> {
                     String refused = refusedInvite(v, target);
                     if (refused != null) return refused;
                     Parties.invite(v, target);
                     v.closeInventory();
                     return null;
                 })
-                .press(13, v -> duelItem(v, target), (v, click) -> {
+                .press(22, v -> duelItem(v, target), (v, click) -> {
                     String refused = refusedDuel(v, target);
                     if (refused != null) return refused;
                     duel(v, target);
                     return null;
                 })
-                .press(15, v -> Entry.of(Material.BOOK).name("Stats").text(name + "'s numbers in every game.")
-                        .action("Click to see").render(v), (v, click) -> {
+                .press(24, v -> Entry.of(Material.PAPER).name("View Stats").text("See " + name + "'s stats in every game.")
+                        .action("Click to view!").render(v), (v, click) -> {
                     Screens.push(v, MainMenu.profile(target.getUuid(), name, false));
                     return null;
                 })
+                .close(31)
                 .build());
     }
 
@@ -67,12 +69,16 @@ public final class PlayerMenu {
             if (mode != null) modes.add(mode);
         }
         int[] slots = Rows.centered(1, modes.size());
-        Screen.Builder screen = Screen.rows(3).title(Component.text("Duel " + target.getUsername())).back(18).close(26);
+        Screen.Builder screen = Screen.rows(4).title(Component.text("Duel " + target.getUsername())).back(30).close(31);
         for (int i = 0; i < modes.size(); i++) {
             Mode mode = modes.get(i);
-            screen.press(slots[i], v -> Entry.of(Icons.of(mode)).name(mode.title()).kind(sides(v, target))
-                    .action("Click to send the request").render(v), (v, click) -> {
-                if (!target.isOnline()) return target.getUsername() + " left.";
+            screen.press(slots[i], v -> {
+                Entry entry = Entry.of(Icons.of(mode)).name(mode.title());
+                String sides = sides(v, target);
+                if (sides != null) entry.text(sides);
+                return entry.action("Click to send the request!").render(v);
+            }, (v, click) -> {
+                if (!target.isOnline()) return target.getUsername() + " is no longer online!";
                 String refused = refusedDuel(v, target);
                 if (refused != null) return refused;
                 v.closeInventory();
@@ -80,7 +86,7 @@ public final class PlayerMenu {
                 return null;
             });
         }
-        screen.press(22, PlayerMenu::rules, (v, click) -> {
+        screen.press(32, PlayerMenu::rules, (v, click) -> {
             List<String> presets = presets();
             int at = presets.indexOf(RULES.getOrDefault(v.getUuid(), ""));
             String next = presets.get(Math.floorMod(at + (click instanceof Click.Right ? -1 : 1), presets.size()));
@@ -96,59 +102,61 @@ public final class PlayerMenu {
     private static ItemStack head(Player viewer, Player target) {
         Lobbies.Lobby lobby = Lobbies.in(target);
         List<Parties.Member> party = Parties.members(target);
-        Entry entry = Entry.of(Items.head(target.getSkin(), Component.empty())).name(target.getUsername())
-                .kind(lobby != null ? "In the " + lobby.name() + (lobby == Lobbies.main() ? "" : " lobby") : "Playing")
+        return Entry.of(Items.head(target.getSkin(), Component.empty())).name(target.getUsername())
+                .fact("Lobby", lobby != null ? lobby.name() : "In a game")
                 .fact("Party", party.size() > 1 ? party.getFirst().name() + " (" + party.size() + ")" : "None")
-                .fact("Duel requests", Settings.DUEL_REQUESTS.of(target).label());
-        return entry.render(viewer);
+                .render(viewer);
     }
 
     private static ItemStack invite(Player viewer, Player target) {
         String refused = refusedInvite(viewer, target);
-        if (refused != null) return pane(viewer, "Invite to party", refused);
-        return Entry.of(Material.CAKE).name("Invite to party").text("Asks " + target.getUsername() + " into your party.")
-                .action("Click to invite").render(viewer);
+        if (refused != null) return unavailable(viewer, "Invite to Party", refused);
+        return Entry.of(Material.CAKE).name("Invite to Party").text("Invite " + target.getUsername() + " to your party.")
+                .action("Click to invite!").render(viewer);
     }
 
     private static ItemStack duelItem(Player viewer, Player target) {
         String refused = refusedDuel(viewer, target);
-        if (refused != null) return pane(viewer, "Duel", refused);
-        return Entry.of(Material.IRON_SWORD).name("Duel").text("Pick a game, then send it.").action("Click to choose").render(viewer);
+        if (refused != null) return unavailable(viewer, "Send Duel Request", refused);
+        return Entry.of(Material.IRON_SWORD).name("Send Duel Request").text("Challenge " + target.getUsername() + " to a duel.")
+                .action("Click to pick a game!").render(viewer);
     }
 
-    private static ItemStack pane(Player viewer, String name, String why) {
-        return Entry.of(Material.GRAY_STAINED_GLASS_PANE).name(Canvas.themeFor(viewer).dim(name)).text(why).render(viewer);
+    private static ItemStack unavailable(Player viewer, String name, String why) {
+        return Entry.of(Material.GRAY_STAINED_GLASS_PANE).name(name).danger().text(why).render(viewer);
     }
 
     private static @Nullable String refusedInvite(Player viewer, Player target) {
-        if (!target.isOnline()) return target.getUsername() + " left.";
-        if (Parties.together(viewer, target)) return target.getUsername() + " is in your party.";
-        if (!Settings.PARTY_INVITES.of(target).admits(viewer, target)) return target.getUsername() + " takes no party invites.";
+        if (!target.isOnline()) return target.getUsername() + " is no longer online!";
+        if (Parties.together(viewer, target)) return target.getUsername() + " is already in your party!";
+        if (!Settings.PARTY_INVITES.of(target).admits(viewer, target)) return target.getUsername() + " has party invites disabled!";
         return null;
     }
 
     private static @Nullable String refusedDuel(Player viewer, Player target) {
-        if (!target.isOnline()) return target.getUsername() + " left.";
-        if (!Settings.DUEL_REQUESTS.of(target).admits(viewer, target)) return target.getUsername() + " takes no duel requests.";
+        if (!target.isOnline()) return target.getUsername() + " is no longer online!";
+        if (!Settings.DUEL_REQUESTS.of(target).admits(viewer, target)) return target.getUsername() + " has duel requests disabled!";
         return null;
     }
 
-    private static String sides(Player viewer, Player target) {
-        if (Parties.together(viewer, target)) return "One on one, inside your party";
+    private static @Nullable String sides(Player viewer, Player target) {
+        if (Parties.together(viewer, target)) return "Inside your party";
         int mine = Parties.of(viewer).size();
         int theirs = Parties.of(target).size();
-        return mine == 1 && theirs == 1 ? "One on one" : "Your party of " + mine + " against " + theirs;
+        return mine == 1 && theirs == 1 ? null : "Your party of " + mine + " against " + theirs;
     }
 
     private static ItemStack rules(Player viewer) {
-        Theme theme = Canvas.themeFor(viewer);
+        Theme theme = Canvas.screenThemeFor(viewer);
         String current = RULES.getOrDefault(viewer.getUuid(), "");
-        Entry entry = Entry.of(Material.COMPARATOR).name("Rules").text("Whose rules the duel plays by.");
+        Entry entry = Entry.of(Material.COMPARATOR).name("Rules").text("Change whose rules the duel uses.")
+                .line(theme.prose("Options:"));
         for (String preset : presets()) {
             String label = preset.isEmpty() ? "House" : Character.toUpperCase(preset.charAt(0)) + preset.substring(1);
-            entry.line(preset.equals(current) ? theme.value("▸ " + label) : theme.dim("  " + label));
+            entry.line(preset.equals(current) ? theme.good("➠ " + label)
+                    : theme.prose("   ").append(Component.text(label, NamedTextColor.WHITE)));
         }
-        return entry.action("Click for the next").action("Right-click for the previous").render(viewer);
+        return entry.action("Click to change!").render(viewer);
     }
 
     private static List<String> presets() {

@@ -52,8 +52,8 @@ public final class Lobbies {
 
     /** The main lobby on {@code main}, the login world, then a Bed Wars and a Duels lobby of their own. */
     public static void install(@NotNull InstanceContainer main) {
-        add("main", "Main Lobby", Material.BEACON, "Where you land at login.", mode -> true, main, Playground.SPAWN);
-        add("bedwars", "Bed Wars", Material.RED_BED, "Every Bed Wars size.",
+        add("main", "Main Lobby", Material.BEACON, "Every game in one place.", mode -> true, main, Playground.SPAWN);
+        add("bedwars", "Bed Wars", Material.RED_BED, "Solo, Doubles, 3v3v3v3 and 4v4v4v4.",
                 mode -> mode.name().startsWith("bedwars"), Playground.createWorld(false), Playground.SPAWN);
         add("duels", "Duels", Material.IRON_SWORD, "Bridge, Sumo, Boxing and Bed Fight.",
                 mode -> mode.family() == Mode.Family.DUEL, Playground.createWorld(false), Playground.SPAWN);
