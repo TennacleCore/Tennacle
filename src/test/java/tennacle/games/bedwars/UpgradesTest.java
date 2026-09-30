@@ -1,5 +1,13 @@
 package tennacle.games.bedwars;
 
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
+import tennacle.games.shop.ItemCurrency;
+import tennacle.games.shop.Shop;
+import tennacle.games.shop.Sale;
+import tennacle.games.shop.Refusal;
+import tennacle.games.shop.Price;
+import tennacle.games.shop.Offer;
 import tennacle.games.Keepers;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -42,6 +50,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -202,6 +211,39 @@ class UpgradesTest extends HeadlessServerTest {
                     PotionEffect.ABSORPTION, PotionEffect.REGENERATION, PotionEffect.HASTE)) {
                 assertTrue(b.hasEffect(kept), kept + " stays");
             }
+        });
+    }
+
+    /** A trap price list emptied by hand reads as its captured default instead of breaking the window. */
+    @Test
+    void anEmptiedPriceIsTheDefault() {
+        round("UpgE", (game, fa, fb) -> {
+            Player a = fa.player;
+            game.state().set(Scope.GAME, Traps.PRICES, List.of());
+            give(a, Material.DIAMOND, 1);
+            UpgradeShop.open(game, a);
+            click(a, 14); // Blindness
+            assertEquals(1, Traps.queue(game, Match.teamOf(game, a)).size());
+            assertEquals(0, held(a, Material.DIAMOND), "the default's first tier");
+        });
+    }
+
+    /** The shop hands the item over before it takes the money: a grant that fails costs nothing. */
+    @Test
+    void aFailedGrantIsFree() {
+        round("UpgF", (game, fa, fb) -> {
+            Player a = fa.player;
+            give(a, Material.IRON_INGOT, 10);
+            Offer broken = new Offer() {
+                @Override public @NotNull String id() { return "test:broken"; }
+                @Override public @NotNull Price price(@NotNull Game g, @NotNull Player buyer) {
+                    return Price.of(4, ItemCurrency.of(Material.IRON_INGOT));
+                }
+                @Override public @Nullable Refusal refusal(@NotNull Game g, @NotNull Player buyer) { return null; }
+                @Override public boolean grant(@NotNull Game g, @NotNull Player buyer) { return false; }
+            };
+            assertInstanceOf(Sale.Refused.class, game.module(Shop.class).buy(a, broken));
+            assertEquals(10, held(a, Material.IRON_INGOT), "nothing taken");
         });
     }
 

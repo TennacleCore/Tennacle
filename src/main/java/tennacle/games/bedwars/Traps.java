@@ -264,7 +264,7 @@ final class Traps implements GameModule {
 
         @Override
         public @NotNull Price price(@NotNull Game game, @NotNull Player buyer) {
-            List<Price> prices = game.rules().resolve(buyer, PRICES);
+            List<Price> prices = Price.ladder(game, buyer, PRICES);
             int queued = queue(game, Match.teamOf(game, buyer)).size();
             return prices.get(Math.min(queued, prices.size() - 1));
         }
@@ -277,13 +277,14 @@ final class Traps implements GameModule {
         }
 
         @Override
-        public void grant(@NotNull Game game, @NotNull Player buyer) {
+        public boolean grant(@NotNull Game game, @NotNull Player buyer) {
             String team = Match.teamOf(game, buyer);
             List<Queued> queue = new ArrayList<>(queue(game, team));
             queue.add(new Queued(kind, buyer.getUsername()));
             store(game, team, queue);
             Traps traps = game.module(Traps.class);
             if (traps != null) traps.again(team); // bought with an intruder inside: it goes off at once (captured)
+            return true;
         }
     }
 }

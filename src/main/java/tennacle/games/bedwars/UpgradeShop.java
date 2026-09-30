@@ -83,7 +83,7 @@ final class UpgradeShop {
         if (upgrade.single()) {
             lore.add(Items.gray("Cost: ").append(diamonds(price)));
         } else {
-            List<Price> prices = game.rules().resolve(viewer, rank.pricesRule());
+            List<Price> prices = Price.ladder(game, viewer, rank.pricesRule());
             for (int tier = 1; tier <= upgrade.tiers().size(); tier++) {
                 NamedTextColor done = tier <= bought ? NamedTextColor.GREEN : NamedTextColor.GRAY;
                 Price at = prices.get(Math.min(tier, prices.size()) - 1);
@@ -134,7 +134,7 @@ final class UpgradeShop {
             return Items.bare(Items.lore(Items.named(stack,
                     Component.text("Trap #" + (index + 1) + ": " + trap.kind().title, NamedTextColor.GREEN)), lore));
         }
-        List<Price> prices = game.rules().resolve(viewer, Traps.PRICES);
+        List<Price> prices = Price.ladder(game, viewer, Traps.PRICES);
         List<Component> lore = new ArrayList<>(Items.gray("The " + first + " enemy to walk into your", "base will trigger this trap!"));
         lore.add(Component.empty());
         lore.addAll(Items.gray("Purchasing a trap will queue it here.", "Its cost will scale based on the", "number of traps queued."));

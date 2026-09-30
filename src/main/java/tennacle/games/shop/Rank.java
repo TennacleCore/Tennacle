@@ -99,7 +99,7 @@ public final class Rank implements Offer {
     @Override
     public @NotNull Price price(@NotNull Game game, @NotNull Player buyer) {
         if (price != null) return game.rules().resolve(buyer, price);
-        List<Price> each = game.rules().resolve(buyer, prices);
+        List<Price> each = Price.ladder(game, buyer, prices);
         return each.get(Math.max(0, Math.min(selling(game, buyer), each.size()) - 1));
     }
 
@@ -111,9 +111,11 @@ public final class Rank implements Offer {
     }
 
     @Override
-    public void grant(@NotNull Game game, @NotNull Player buyer) {
+    public boolean grant(@NotNull Game game, @NotNull Player buyer) {
         Scope scope = scope(game, buyer);
-        if (scope != null) game.state().set(scope, ladder, selling(game, buyer));
+        if (scope == null) return false;
+        game.state().set(scope, ladder, selling(game, buyer));
+        return true;
     }
 
     private @Nullable Scope scope(Game game, Player buyer) {

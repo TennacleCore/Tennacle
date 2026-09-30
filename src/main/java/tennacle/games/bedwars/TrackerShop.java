@@ -127,12 +127,13 @@ final class TrackerShop {
         }
 
         @Override
-        public void grant(@NotNull Game game, @NotNull Player buyer) {
+        public boolean grant(@NotNull Game game, @NotNull Player buyer) {
             Slot seat = game.roster().slotOf(buyer);
             Compass compass = game.module(Compass.class);
-            if (seat == null || compass == null) return;
+            if (seat == null || compass == null) return false;
             game.state().set(Scope.slot(seat.index()), Compass.TRACKING, team);
             compass.aim(buyer);
+            return true;
         }
     }
 }

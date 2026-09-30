@@ -70,9 +70,9 @@ public final class Shop implements GameModule {
         Price price = offer.price(game, buyer);
         int held = price.currency().held(buyer);
         if (held < price.amount()) return new Sale.Short(offer, price, price.amount() - held);
+        boolean granted = into >= 0 ? offer.grant(game, buyer, into) : offer.grant(game, buyer);
+        if (!granted) return new Sale.Refused(offer, Refusal.FULL);
         price.currency().take(buyer, price.amount());
-        if (into >= 0) offer.grant(game, buyer, into);
-        else offer.grant(game, buyer);
         return new Sale.Sold(offer, price);
     }
 }

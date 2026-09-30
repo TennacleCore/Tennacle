@@ -66,13 +66,13 @@ public final class Goods implements Offer {
     }
 
     @Override
-    public void grant(@NotNull Game game, @NotNull Player buyer) {
-        kits(game).give(buyer, role, stack(game, buyer));
+    public boolean grant(@NotNull Game game, @NotNull Player buyer) {
+        return kits(game).give(buyer, role, stack(game, buyer));
     }
 
     @Override
-    public void grant(@NotNull Game game, @NotNull Player buyer, int into) {
-        kits(game).giveAt(buyer, into, stack(game, buyer));
+    public boolean grant(@NotNull Game game, @NotNull Player buyer, int into) {
+        return kits(game).giveAt(buyer, into, stack(game, buyer));
     }
 
     static Kits kits(Game game) {

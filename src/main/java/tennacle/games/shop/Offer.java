@@ -23,11 +23,11 @@ public interface Offer {
     /** Why {@code buyer} cannot have it now, whatever they hold; null when nothing stands in the way. */
     @Nullable Refusal refusal(@NotNull Game game, @NotNull Player buyer);
 
-    /** Hands it over, paid for. */
-    void grant(@NotNull Game game, @NotNull Player buyer);
+    /** Hands it over before it is paid for; false when it could not, and the buyer is not charged. */
+    boolean grant(@NotNull Game game, @NotNull Player buyer);
 
     /** {@link #grant} into inventory slot {@code into} when what it hands over goes there. */
-    default void grant(@NotNull Game game, @NotNull Player buyer, int into) {
-        grant(game, buyer);
+    default boolean grant(@NotNull Game game, @NotNull Player buyer, int into) {
+        return grant(game, buyer);
     }
 }

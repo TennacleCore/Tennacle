@@ -1,5 +1,9 @@
 package tennacle.games.shop;
 
+import java.util.List;
+import net.minestom.server.entity.Player;
+import io.github.term4.grotto.state.StateKey;
+import io.github.term4.grotto.Game;
 import net.minestom.server.codec.Codec;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,5 +29,11 @@ public record Price(@NotNull Currency currency, int amount) {
     @Override
     public @NotNull String toString() {
         return amount + " " + currency.id();
+    }
+
+    /** The prices {@code key} sets for {@code player}, a tier each; a rule emptied by hand reads as its default. */
+    public static @NotNull List<Price> ladder(@NotNull Game game, @NotNull Player player, @NotNull StateKey<List<Price>> key) {
+        List<Price> set = game.rules().resolve(player, key);
+        return set.isEmpty() ? key.initial() : set;
     }
 }
