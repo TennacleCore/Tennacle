@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.flow.Phases;
@@ -26,6 +28,8 @@ import java.util.function.ToLongFunction;
  * to come. An offset below zero drops the event.
  */
 public final class Timeline implements GameModule {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Timeline.class);
 
     /** The next event: what the board calls it, and ticks until it. */
     public record Next(@NotNull String id, @NotNull String label, long left) {}
@@ -128,6 +132,12 @@ public final class Timeline implements GameModule {
 
     private void fire(Event event) {
         if (game.decided() != null || !fired.add(event.id())) return;
-        for (Consumer<Game> hook : hooks.getOrDefault(event.id(), List.of())) hook.accept(game);
+        for (Consumer<Game> hook : hooks.getOrDefault(event.id(), List.of())) {
+            try {
+                hook.accept(game);
+            } catch (RuntimeException e) {
+                LOGGER.warn("a hook on timeline event {} threw", event.id(), e);
+            }
+        }
     }
 }

@@ -1,5 +1,7 @@
 package tennacle.games.items;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import java.util.function.BiConsumer;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import tennacle.boot.Mechanics;
@@ -66,6 +68,8 @@ import java.util.function.Predicate;
  */
 public final class Creatures implements GameModule {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Creatures.class);
+
     public static final StateKey<Long> BEDBUG_LIFE = StateKey.of("creatures.bedbug.life", Codec.LONG, 300L);
     public static final StateKey<Double> BEDBUG_HEALTH = StateKey.of("creatures.bedbug.health", Codec.DOUBLE, 8.0);
     /** Effect levels; 0 for none. */
@@ -103,6 +107,7 @@ public final class Creatures implements GameModule {
     }
 
     private final Map<MobEntity, Creature> creatures = new LinkedHashMap<>();
+    private boolean armed;
     private Game game;
 
     /** A player is its seat's side, a creature its owner's; anyone else is nobody's. */
@@ -278,30 +283,45 @@ public final class Creatures implements GameModule {
     }
 
     private void arm() {
-        if (creatures.size() == 1) game.state().alarms().arm(TICK, game.tick() + 1);
+        if (armed) return;
+        armed = true;
+        game.state().alarms().arm(TICK, game.tick() + 1);
     }
 
     private void tick() {
-        for (Creature creature : List.copyOf(creatures.values())) {
-            MobEntity mob = creature.mob();
-            if (mob.isRemoved() || mob.isDead()) {
-                retire(creature); // captured: the corpse flies and falls its twenty ticks; the tag and the count go now
-                continue;
+        armed = false;
+        try {
+            for (Creature creature : List.copyOf(creatures.values())) {
+                try {
+                    step(creature);
+                } catch (RuntimeException e) {
+                    LOGGER.warn("a creature's tick threw; it is dismissed", e);
+                    dismiss(creature);
+                }
             }
-            if (creature.life() >= 0 && creature.left(game.tick()) <= 0) {
-                dismiss(creature);
-                continue;
-            }
-            Hologram tag = creature.tag();
-            if (tag == null) continue;
-            Pos at = mob.getPosition().withView(0, 0).add(0, creature.rise() - 0.5, 0);
-            for (Entity stand : tag.stands()) stand.teleport(at);
-            long left = creature.left(game.tick());
-            tag.text(0, BEDBUG.equals(creature.tool())
-                    ? squares(creature.team(), lit(mob.getHealth(), (float) mob.getAttributeValue(Attribute.MAX_HEALTH), BEDBUG_SQUARES), BEDBUG_SQUARES)
-                    : defenderTag(creature.team(), left, mob.getHealth()));
+        } finally {
+            if (!creatures.isEmpty()) arm();
         }
-        if (!creatures.isEmpty()) game.state().alarms().arm(TICK, game.tick() + 1);
+    }
+
+    private void step(Creature creature) {
+        MobEntity mob = creature.mob();
+        if (mob.isRemoved() || mob.isDead()) {
+            retire(creature); // captured: the corpse flies and falls its twenty ticks; the tag and the count go now
+            return;
+        }
+        if (creature.life() >= 0 && creature.left(game.tick()) <= 0) {
+            dismiss(creature);
+            return;
+        }
+        Hologram tag = creature.tag();
+        if (tag == null) return;
+        Pos at = mob.getPosition().withView(0, 0).add(0, creature.rise() - 0.5, 0);
+        for (Entity stand : tag.stands()) stand.teleport(at);
+        long left = creature.left(game.tick());
+        tag.text(0, BEDBUG.equals(creature.tool())
+                ? squares(creature.team(), lit(mob.getHealth(), (float) mob.getAttributeValue(Attribute.MAX_HEALTH), BEDBUG_SQUARES), BEDBUG_SQUARES)
+                : defenderTag(creature.team(), left, mob.getHealth()));
     }
 
     private void dismiss(Creature creature) {

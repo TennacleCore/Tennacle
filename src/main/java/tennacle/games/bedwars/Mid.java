@@ -109,8 +109,8 @@ final class Mid implements GameModule {
         if (Phases.is(game, Match.LIVE)) start();
         else phases.onEnter(Match.LIVE, g -> start());
         game.state().alarms().register(SPIN, (tick, payload) -> {
-            spin();
             game.state().alarms().arm(SPIN, tick + 1);
+            spin();
         });
         if (!displays.isEmpty()) game.state().alarms().arm(SPIN, game.tick() + 1);
     }

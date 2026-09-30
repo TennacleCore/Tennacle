@@ -1,5 +1,7 @@
 package tennacle.games.map;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Outcome;
@@ -20,17 +22,23 @@ import java.util.function.Predicate;
  */
 public final class Structures implements GameModule {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Structures.class);
+
     private static final String TICK = "structures:tick";
 
     /** One build in progress; {@code false} once it has nothing more to do. */
     @FunctionalInterface
     public interface Job {
         boolean tick();
+
+        /** It threw and was dropped: let go of what it holds. */
+        default void dropped() {}
     }
 
     public record Cell(@NotNull Point pos, @NotNull Block block) {}
 
     private final List<Job> jobs = new ArrayList<>();
+    private boolean armed;
     private Game game;
 
     @Override
@@ -52,12 +60,33 @@ public final class Structures implements GameModule {
     /** Starts {@code job} from the next tick. */
     public void add(@NotNull Job job) {
         jobs.add(job);
-        if (jobs.size() == 1) game.state().alarms().arm(TICK, game.tick() + 1);
+        arm();
+    }
+
+    private void arm() {
+        if (armed) return;
+        armed = true;
+        game.state().alarms().arm(TICK, game.tick() + 1);
     }
 
     private void run() {
-        jobs.removeIf(job -> !job.tick());
-        if (!jobs.isEmpty()) game.state().alarms().arm(TICK, game.tick() + 1);
+        armed = false;
+        jobs.removeIf(job -> !safely(job));
+        if (!jobs.isEmpty()) arm();
+    }
+
+    private static boolean safely(Job job) {
+        try {
+            return job.tick();
+        } catch (RuntimeException e) {
+            LOGGER.warn("a structure job threw and was dropped", e);
+            try {
+                job.dropped();
+            } catch (RuntimeException again) {
+                LOGGER.warn("and letting go of it threw too", again);
+            }
+            return false;
+        }
     }
 
     /** {@code cells} in order, {@code perTick} a tick; a cell {@code place} declines still takes its slot. */

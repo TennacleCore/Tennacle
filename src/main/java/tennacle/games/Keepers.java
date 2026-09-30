@@ -125,8 +125,8 @@ public final class Keepers implements GameModule, Building.Reserves {
             post.use().use(game, player, post.at());
         });
         game.state().alarms().register(LOOK, (tick, payload) -> {
-            look();
             game.state().alarms().arm(LOOK, tick + 1);
+            look();
         });
         if (!standing.isEmpty()) game.state().alarms().arm(LOOK, game.tick() + 1);
         // captured: a pearl cannot land in a shopkeeper's space; the user: it is refused and handed back, no use spent

@@ -92,8 +92,8 @@ final class Compass implements GameModule {
             pinned.remove(death.victim());
         });
         game.state().alarms().register(READOUT, (tick, payload) -> {
-            for (Player member : game.members()) readout(member);
             game.state().alarms().arm(READOUT, game.tick() + 5);
+            for (Player member : game.members()) readout(member);
         });
         game.state().alarms().arm(READOUT, game.tick() + 5);
     }

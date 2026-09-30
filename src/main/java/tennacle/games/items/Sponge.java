@@ -97,6 +97,11 @@ public final class Sponge implements GameModule {
                 release.run();
                 return false;
             }
+
+            @Override
+            public void dropped() {
+                release.run();
+            }
         });
     }
 

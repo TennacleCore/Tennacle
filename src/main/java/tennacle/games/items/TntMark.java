@@ -46,6 +46,7 @@ public final class TntMark implements GameModule {
     }
 
     private void tick() {
+        game.state().alarms().arm(TICK, game.tick() + 1);
         if (Match.live(game) && game.rules().resolve(Scope.GAME, MARK)) {
             for (Player carrier : game.members()) {
                 if (carrier.getItemInMainHand().material() != Material.TNT) continue;
@@ -62,6 +63,5 @@ public final class TntMark implements GameModule {
                 }
             }
         }
-        game.state().alarms().arm(TICK, game.tick() + 1);
     }
 }

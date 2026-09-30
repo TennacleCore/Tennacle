@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.map.Structures;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -70,6 +71,25 @@ class StructuresTest extends HeadlessServerTest {
     @FunctionalInterface
     private interface Body {
         void run(Game game, FakePlayer a, FakePlayer b);
+    }
+
+    /** One structure job that throws is dropped; the next still runs, and a dropped job lets go of what it holds. */
+    @Test
+    void aBadJobStopsOnlyItself() {
+        round("JobA", (game, fa, fb) -> {
+            Structures structures = game.module(Structures.class);
+            int[] ran = new int[1];
+            boolean[] released = new boolean[1];
+            structures.add(new Structures.Job() {
+                @Override public boolean tick() { throw new IllegalStateException("a broken job"); }
+                @Override public void dropped() { released[0] = true; }
+            });
+            ticks(game, 1);
+            structures.add(() -> ++ran[0] < 3);
+            ticks(game, 4);
+            assertTrue(released[0], "the broken job let go");
+            assertEquals(3, ran[0], "and the next ran to its end");
+        });
     }
 
     @Test

@@ -100,6 +100,7 @@ final class HealPool implements GameModule {
     }
 
     private void beat() {
+        game.state().alarms().arm(BEAT, game.tick() + 12);
         pools.forEach((team, pool) -> {
             if (!has(team)) return;
             ParticlePacket sparkles = new ParticlePacket(Particle.HAPPY_VILLAGER, false, true, centers.get(team),
@@ -107,6 +108,5 @@ final class HealPool implements GameModule {
             game.forEachAudience(viewer -> viewer.sendPacket(sparkles));
             for (Player player : regions.inside(pool)) heal(team, player);
         });
-        game.state().alarms().arm(BEAT, game.tick() + 12);
     }
 }
