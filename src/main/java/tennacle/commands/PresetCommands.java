@@ -36,7 +36,7 @@ public final class PresetCommands {
                 .usage("/preset lobby <preset>", "the lobby map - a game's own rules still win")
                 .usage("/preset global <preset>", "the whole server, as if Mechanics.PRESET said so")
                 .usage("/preset self <preset>", "only you, for an A/B against the player beside you")
-                .usage("/preset lobby|self reset", "drop that scope's override")
+                .usage("/preset lobby|self reset", "the lobby back to its own, you back to your scope")
                 .usage("/preset show", "what each scope holds, and which one answers for you");
         var lobbyArg = ArgumentType.Literal("lobby");
         var globalArg = ArgumentType.Literal("global");
@@ -52,9 +52,9 @@ public final class PresetCommands {
         }, lobbyArg, preset);
 
         cmd.addSyntax((sender, ctx) -> {
-            polyp.profiles().setInstance(lobby, null);
+            polyp.profiles().setInstance(lobby, tennacle.lobby.Playground.profile());
             APPLIED.remove(lobby);
-            Msg.tag(sender, "preset", "lobby -> ", Msg.v("global"), " (override dropped)");
+            Msg.tag(sender, "preset", "lobby -> ", Msg.v("the lobby's own"), " (no fights, hunger or drops)");
         }, lobbyArg, reset);
 
         cmd.addSyntax((sender, ctx) -> {

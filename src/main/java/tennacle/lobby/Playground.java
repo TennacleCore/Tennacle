@@ -2,7 +2,16 @@ package tennacle.lobby;
 
 import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.MechanicsProfile;
+import io.github.term4.polyp.config.KeySet;
+import io.github.term4.polyp.mechanics.attack.AttackConfig;
+import io.github.term4.polyp.mechanics.consumable.ConsumableConfig;
+import io.github.term4.polyp.mechanics.consumable.ConsumableTypeConfig;
+import io.github.term4.polyp.mechanics.damage.DamageConfig;
 import io.github.term4.polyp.mechanics.fluids.FluidsConfig;
+import io.github.term4.polyp.mechanics.hunger.HungerConfig;
+import io.github.term4.polyp.mechanics.projectile.ProjectileConfig;
+import io.github.term4.polyp.mechanics.projectile.types.ProjectileTypeConfig;
+import io.github.term4.polyp.vri.VriConfig;
 import io.github.term4.polyp.platform.player.Wardrobe;
 import io.github.term4.polyp.presets.vanilla18.Fluids;
 import tennacle.boot.Mechanics;
@@ -24,8 +33,9 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * The lobby world and what an arrival wears there. The mechanics test pads (damage types, water-flow lanes) are
- * built only where the dev commands exist, and the test rig's kit is {@code /arsenal} - a lobby hands out nothing.
+ * A lobby world and what an arrival wears there. A lobby runs none of the mechanics a game does; the test pads
+ * (damage types, water-flow lanes) are built only where the dev commands exist, and come alive under
+ * {@code /preset lobby <preset>}.
  */
 public final class Playground {
 
@@ -39,13 +49,26 @@ public final class Playground {
         world.setExplosionSupplier(Mechanics.explosions.supplier()); // route instance.explode(...) through the system
         world.setGenerator(unit -> unit.modifier().fillHeight(0, 40, Block.OBSIDIAN));
         world.setChunkSupplier(LightingChunk::new);
-        // the pads' water column and the lanes' hand-set gradients stand as laid: the lobby's fluids never tick
-        FluidsConfig fluids = Fluids.config();
-        Mechanics.polyp.profiles().setInstance(world, MechanicsProfile.builder()
-                .set(MechanicsKeys.FLUIDS, fluids.toBuilder().defaults(fluids.defaults.toBuilder().updates(false).build()).build())
-                .build());
+        Mechanics.polyp.profiles().setInstance(world, profile());
         if (testPads) buildTestPads(world);
         return world;
+    }
+
+    /** A lobby's mechanics: no fights, damage, hunger, eating, shots, drops or pickups. */
+    public static MechanicsProfile profile() {
+        FluidsConfig fluids = Fluids.config();
+        return MechanicsProfile.builder()
+                // the pads' water column and the lanes' hand-set gradients stand as laid
+                .set(MechanicsKeys.FLUIDS, fluids.toBuilder().defaults(fluids.defaults.toBuilder().updates(false).build()).build())
+                .set(MechanicsKeys.ATTACK, AttackConfig.builder().enabled(false).build())
+                .set(MechanicsKeys.DAMAGE, DamageConfig.builder().enabledTypes(KeySet.NONE).build())
+                .set(MechanicsKeys.HUNGER, HungerConfig.builder().enabled(false).build())
+                .set(MechanicsKeys.CONSUMABLES, ConsumableConfig.builder()
+                        .defaults(ConsumableTypeConfig.builder().enabled(false).build()).build())
+                .set(MechanicsKeys.PROJECTILES, ProjectileConfig.builder()
+                        .defaults(ProjectileTypeConfig.builder().enabled(false).build()).build())
+                .set(MechanicsKeys.VRI, VriConfig.builder().itemDrop(false).itemPickup(false).build())
+                .build();
     }
 
     // damage-type pads (water/fire/cactus) + the water flow lanes, from the polyp example server

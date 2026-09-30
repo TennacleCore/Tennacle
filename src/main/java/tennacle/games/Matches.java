@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import tennacle.lobby.Lobbies;
+import net.minestom.server.item.Material;
 import tennacle.games.matchmaking.Parties;
 import java.util.function.ToIntFunction;
 import java.util.UUID;
@@ -18,11 +20,9 @@ import tennacle.games.watch.Replays;
 import tennacle.looks.Look;
 import tennacle.looks.GameSounds;
 import tennacle.storage.MatchLog;
-import io.github.term4.polyp.platform.player.Wardrobe;
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
 
-import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.barnacle.Arena;
 import io.github.term4.canvas.tab.TabList;
@@ -45,7 +45,6 @@ import io.github.term4.polyp.mechanics.explosion.ExplosionConfig;
 import io.github.term4.polyp.MechanicsProfile;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.MinecraftServer;
@@ -103,16 +102,12 @@ public final class Matches {
     public static void install(@NotNull InstanceContainer lobby, @NotNull Pos lobbySpawn, @NotNull ShardManager shards) {
         Matches.lobby = lobby;
         grotto = Grotto.install(shards); // shared manager: /shard tree shows the game trees
+        if (Lobbies.all().isEmpty()) {
+            Lobbies.add("main", "Main Lobby", Material.BEACON, "", mode -> true, lobby, lobbySpawn);
+        }
         lobbyRoute = player -> {
             Spectators.exit(player); // a game's end routes its spectators here; restore the body and the HUD
-            if (player.getInstance() == lobby) { // Minestom rejects a same-instance setInstance: no spawn event either
-                player.teleport(lobbySpawn, Vec.ZERO);
-                Wardrobe.arrive(player, lobby);
-                ShardTabList.resync(player); // the spawn's own re-list, which a same-instance return never gets
-            } else {
-                player.setVelocity(Vec.ZERO); // setInstance would carry the fall they left with
-                player.setInstance(lobby, lobbySpawn); // the lobby dresses the arrival
-            }
+            Lobbies.send(player, Lobbies.home(player));
             TabList.refresh(player); // the chrome is the lobby's again
         };
         grotto.exit(lobbyRoute);

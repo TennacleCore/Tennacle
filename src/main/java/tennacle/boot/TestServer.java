@@ -214,6 +214,7 @@ public final class TestServer {
         boolean devCommands = Config.flag("tennacle.dev-commands", loopback && unauthenticated);
         InstanceContainer world = Playground.createWorld(devCommands); // the test pads ride the dev flag
         Playground.installListeners(world);
+        tennacle.lobby.Lobbies.install(world); // the main lobby, then one for Bed Wars and one for duels
         Commands.help(); // /help reads the registry every command below lands in
         Welcome.install(); // the first lines an arrival reads
         // members build into their shard's overlay, never the map (the bridge already decorated the
