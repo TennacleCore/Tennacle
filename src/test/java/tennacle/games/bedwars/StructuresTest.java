@@ -1,5 +1,8 @@
 package tennacle.games.bedwars;
 
+import net.minestom.server.coordinate.Vec;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import tennacle.games.map.OffMap;
 import tennacle.games.map.Structures;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -71,6 +74,22 @@ class StructuresTest extends HeadlessServerTest {
     @FunctionalInterface
     private interface Body {
         void run(Game game, FakePlayer a, FakePlayer b);
+    }
+
+    /** What a game throws or drops is gone once it is past the build circle by the margin; a mob would stay. */
+    @Test
+    void pastTheMarginIsGone() {
+        round("OffA", (game, fa, fb) -> {
+            game.state().set(Scope.GAME, OffMap.MARGIN, 0); // the fixture loads no chunk 50 past its circle of 30
+            DroppedItemEntity inside = DroppedItemEntity.spawn(game.shard(), new Pos(29.5, 70, 0.5), Vec.ZERO,
+                    ItemStack.of(Material.STONE), null, 10);
+            DroppedItemEntity past = DroppedItemEntity.spawn(game.shard(), new Pos(31.5, 70, 0.5), Vec.ZERO,
+                    ItemStack.of(Material.STONE), null, 10);
+            ticks(game, 2);
+            assertFalse(inside.isRemoved(), "inside the circle");
+            assertTrue(past.isRemoved(), "past it");
+            assertEquals(50, OffMap.MARGIN.initial(), "50 past the circle by default");
+        });
     }
 
     /** One structure job that throws is dropped; the next still runs, and a dropped job lets go of what it holds. */

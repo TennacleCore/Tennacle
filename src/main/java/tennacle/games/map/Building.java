@@ -127,6 +127,17 @@ public final class Building {
             return new Band(game, (int) Math.ceil(plane(game, floor)), (int) Math.floor(plane(game, height)));
         }
 
+        /** The floor under the game's own rules, where no placer is asked. */
+        public int floor() {
+            int rule = game.rules().resolve(Scope.GAME, FLOOR);
+            return rule >= 0 ? rule : floorY;
+        }
+
+        public int ceiling() {
+            int rule = game.rules().resolve(Scope.GAME, HEIGHT);
+            return rule >= 0 ? rule : ceilingY;
+        }
+
         public int floor(@NotNull Player placer) {
             int rule = game.rules().resolve(placer, FLOOR);
             return rule >= 0 ? rule : floorY;

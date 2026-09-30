@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.map.OffMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.UUID;
 import net.minestom.server.command.CommandSender;
@@ -414,7 +415,7 @@ public final class BedWars {
                         () -> Kits.of(KIT).applyOnJoin(false), // the kit comes with the seat, not the room
                         () -> new Loadout().kept(Gear::kept),
                         Idle::new,
-                        Rules::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, TntMark::new, Presentation::new,
+                        Rules::new, OffMap::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, TntMark::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Stats.of().counter(KILLS, CAREER_KILLS).counter(DEATHS, CAREER_DEATHS)
