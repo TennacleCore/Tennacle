@@ -29,13 +29,14 @@ import java.util.UUID;
  */
 public final class Queues {
 
-    private record Entry(UUID leader, String id, String platform, int size, String label) {
+    private record Entry(UUID leader, String id, String platform, int size, String label, long since) {
         boolean sameLine(Entry other) {
             return id.equals(other.id) && platform.equals(other.platform);
         }
     }
 
     private static final Map<UUID, Entry> waiting = new LinkedHashMap<>(); // insertion order = fairness
+    private static final List<Runnable> changes = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     private Queues() {}
 
@@ -44,7 +45,17 @@ public final class Queues {
             synchronized (waiting) {
                 waiting.remove(e.getPlayer().getUuid());
             }
+            changed();
         });
+    }
+
+    /** Runs {@code action} whenever the line moves: a side joins, leaves or is matched. */
+    public static void onChange(@NotNull Runnable action) {
+        changes.add(action);
+    }
+
+    private static void changed() {
+        changes.forEach(Runnable::run);
     }
 
     /** Drops {@code player} from every wait: an entry they lead, and any party's they follow. A seat anywhere
@@ -57,6 +68,7 @@ public final class Queues {
                 return leader == null || Parties.of(leader).contains(player);
             });
         }
+        changed();
     }
 
     /** {@code true} when {@code player} was waiting. */
@@ -66,6 +78,7 @@ public final class Queues {
             gone = waiting.remove(player.getUuid());
         }
         if (gone == null) return false;
+        changed();
         Msg.say(player, "Left the ", Msg.v(gone.label()), " queue.");
         return true;
     }
@@ -76,49 +89,64 @@ public final class Queues {
         }
     }
 
+    /** What {@code player}'s side waits for: the {@code /play} id and since when, by the entry they lead or follow. */
+    public record Waiting(@NotNull String id, @NotNull String label, long since) {}
+
+    public static @Nullable Waiting of(@NotNull Player player) {
+        UUID leader = Parties.leaderOf(player);
+        synchronized (waiting) {
+            Entry entry = waiting.get(leader);
+            return entry != null ? new Waiting(entry.id(), entry.label(), entry.since()) : null;
+        }
+    }
+
+    /** How many wait for {@code id}, parties counted by their size. */
+    public static int queued(@NotNull String id) {
+        synchronized (waiting) {
+            return waiting.values().stream().filter(e -> e.id().equals(id)).mapToInt(Entry::size).sum();
+        }
+    }
+
+    /** Why {@code me}'s side can't take {@code seats} a side in {@code title}, else null. */
+    static @Nullable String unfit(@NotNull Player me, int seats, @NotNull String title) {
+        if (!Parties.leads(me)) return Parties.NOT_LEADER;
+        List<Player> side = Parties.of(me);
+        for (Player member : side) {
+            if (Matches.grotto().engaged(member)) return member.getUsername() + " is in a game.";
+        }
+        if (side.size() > seats) return "Your party of " + side.size() + " doesn't fit; " + title + " takes " + seats + " a side.";
+        return null;
+    }
+
     /** How {@code id} reads: the title, sized when the mode plays more than one ({@code Bridge 2v2}). */
-    static @NotNull String label(@NotNull Mode mode, @NotNull String id) {
+    public static @NotNull String label(@NotNull Mode mode, @NotNull String id) {
         int side = mode.plays().getOrDefault(id, 1);
         return mode.plays().size() > 1 ? mode.title() + " " + side + "v" + side : mode.title();
     }
 
-    /** Queues {@code me}'s party for the duel {@code id}; the arrival that fills both teams starts the match. */
-    public static void enqueue(@NotNull Player me, @NotNull String id, @Nullable String platformName) {
+    /**
+     * Queues {@code me}'s party for the duel {@code id}; the arrival that fills both teams starts the match. Why it
+     * can't, else null once queued or started.
+     */
+    public static @Nullable String enqueue(@NotNull Player me, @NotNull String id, @Nullable String platformName) {
         Mode mode = Matches.played(id);
         Integer seats = mode != null ? mode.plays().get(id) : null;
-        if (mode == null || seats == null || Matches.joinable(mode)) {
-            Msg.fail(me, "No queue for ", Msg.v(id), ".");
-            return;
-        }
+        if (mode == null || seats == null || Matches.joinable(mode)) return "No queue for " + id + ".";
         if (platformName != null && Matches.platform(platformName) == null) {
-            Msg.fail(me, "No platform named ", Msg.v(platformName), ". Platforms: ", Msg.v(String.join(", ", Matches.platforms())), ".");
-            return;
-        }
-        if (!Parties.requireLeader(me)) return;
-        List<Player> side = Parties.of(me);
-        for (Player member : side) {
-            if (Matches.grotto().engaged(member)) {
-                Msg.fail(me, Msg.v(member.getUsername()), " is in a game.");
-                return;
-            }
+            return "No platform named " + platformName + ". Platforms: " + String.join(", ", Matches.platforms()) + ".";
         }
         Platform platform = Matches.platformFor(platformName);
         String label = label(mode, id) + (platform.name().equals(Platform.DEFAULT.name()) ? "" : " (" + platform.name() + ")");
-        if (side.size() > seats) {
-            Msg.fail(me, label + " seats " + seats + " a side; your party is " + side.size() + ".");
-            return;
-        }
+        String unfit = unfit(me, seats, label);
+        if (unfit != null) return unfit;
+        List<Player> side = Parties.of(me);
         try {
             int onMap = Matches.seatsPerSide(mode);
-            if (onMap < seats) {
-                Msg.fail(me, mode.title() + "'s maps seat " + onMap + " a side.");
-                return;
-            }
+            if (onMap < seats) return mode.title() + "'s maps seat " + onMap + " a side.";
         } catch (IllegalStateException e) { // the map may not be authored yet
-            Msg.fail(me, e.getMessage());
-            return;
+            return e.getMessage();
         }
-        Entry mine = new Entry(me.getUuid(), id, platform.name(), side.size(), label);
+        Entry mine = new Entry(me.getUuid(), id, platform.name(), side.size(), label, System.currentTimeMillis());
         List<Entry> line;
         synchronized (waiting) {
             waiting.remove(me.getUuid());
@@ -153,6 +181,8 @@ public final class Queues {
             Msg.ok(me, "Queued for ", Msg.v(label), ". ", Msg.run("/lobby"), " to step out.");
         }
         if (teams != null) start(mode, platform, label, players(teams.get(0), parties), players(teams.get(1), parties));
+        changed();
+        return null;
     }
 
     // the party behind an entry as it stands now; null once it left, took a seat, or changed size

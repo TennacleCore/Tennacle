@@ -87,7 +87,7 @@ class PlayTest extends HeadlessServerTest {
             a.sent.clear();
             run(a, "play duels_sumo_duel");
             assertFalse(Queues.waiting(a.player));
-            assertTrue(plain(a).stream().anyMatch(l -> l.contains("Sumo seats 1 a side; your party is 2")), "" + plain(a));
+            assertTrue(plain(a).stream().anyMatch(l -> l.contains("Your party of 2 doesn't fit; Sumo takes 1 a side.")), "" + plain(a));
         } finally {
             a.player.remove();
             b.player.remove();

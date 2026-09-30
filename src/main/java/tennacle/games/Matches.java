@@ -482,11 +482,36 @@ public final class Matches {
 
     /** {@link #waiting(Mode, Platform)} on the map named, or on any when null. */
     public static @Nullable Game waiting(@NotNull Mode mode, @NotNull Platform platform, @Nullable String map) {
+        return waiting(mode, platform, map, 1);
+    }
+
+    /**
+     * An opening game of {@code mode} with {@code room} free seats, drawn with a fuller game likelier: a side joins
+     * the busier room more often without every arrival piling into the fullest.
+     */
+    public static @Nullable Game waiting(@NotNull Mode mode, @NotNull Platform platform, @Nullable String map, int room) {
+        List<Game> open = new ArrayList<>();
+        long total = 0;
         for (Game game : grotto.games()) {
             if (game.status() == Game.Status.OPEN && Match.opening(game) && modeOf(game) == mode
-                    && platformNameOf(game).equals(platform.name()) && (map == null || onMap(mode, game, map))) return game;
+                    && platformNameOf(game).equals(platform.name()) && (map == null || onMap(mode, game, map))
+                    && Match.seats(game) - Match.seated(game) >= room) {
+                open.add(game);
+                total += weight(game);
+            }
         }
-        return null;
+        if (open.isEmpty()) return null;
+        long pick = java.util.concurrent.ThreadLocalRandom.current().nextLong(total);
+        for (Game game : open) {
+            pick -= weight(game);
+            if (pick < 0) return game;
+        }
+        return open.getLast();
+    }
+
+    private static long weight(Game game) {
+        long seated = Match.seated(game) + 1;
+        return seated * seated;
     }
 
     private static boolean onMap(Mode mode, Game game, String map) {

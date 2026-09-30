@@ -89,45 +89,37 @@ public final class Play {
             Msg.fail(me, "No game named ", Msg.v(word), ". Games: ", Msg.v(String.join(", ", Matches.plays())), ".");
             return;
         }
-        if (Matches.joinable(mode)) {
-            enter(me, mode, platformName, mapWord);
-            return;
-        }
-        if (mapWord != null) {
+        if (!Matches.joinable(mode) && mapWord != null) {
             Msg.fail(me, Msg.v(Queues.label(mode, id)), " picks its own map. ", Msg.run("/duel"), " names one.");
             return;
         }
-        Queues.enqueue(me, id, platformName);
+        String refused = Matches.joinable(mode) ? enter(me, mode, platformName, mapWord) : Queues.enqueue(me, id, platformName);
+        if (refused != null) Msg.fail(me, refused);
     }
 
-    private static void enter(Player me, Mode mode, @Nullable String platformName, @Nullable String mapWord) {
+    /** {@code /play id} for {@code me}'s side on the default platform: why it can't, else null once it is under way. */
+    public static @Nullable String start(@NotNull Player me, @NotNull String id) {
+        Mode mode = Matches.played(id);
+        if (mode == null) return "No game named " + id + ".";
+        return Matches.joinable(mode) ? enter(me, mode, null, null) : Queues.enqueue(me, id, null);
+    }
+
+    private static @Nullable String enter(Player me, Mode mode, @Nullable String platformName, @Nullable String mapWord) {
         if (platformName != null && Matches.platform(platformName) == null) {
-            Msg.fail(me, "No platform named ", Msg.v(platformName), ". Platforms: ", Msg.v(String.join(", ", Matches.platforms())), ".");
-            return;
+            return "No platform named " + platformName + ". Platforms: " + String.join(", ", Matches.platforms()) + ".";
         }
         String map = mapWord != null ? Matches.mapNamed(mode, mapWord) : null;
         if (mapWord != null && map == null) {
-            Msg.fail(me, "No map named ", Msg.v(mapWord), " for ", Msg.v(mode.title()), ". Maps: ", Msg.v(String.join(", ", mode.arena().names())), ".");
-            return;
+            return "No map named " + mapWord + " for " + mode.title() + ". Maps: " + String.join(", ", mode.arena().names()) + ".";
         }
-        if (!Parties.requireLeader(me)) return;
+        String unfit = Queues.unfit(me, Matches.teamSize(mode), mode.title());
+        if (unfit != null) return unfit;
         List<Player> side = Parties.of(me);
-        for (Player member : side) {
-            if (Matches.grotto().engaged(member)) {
-                Msg.fail(me, Msg.v(member.getUsername()), " is in a game.");
-                return;
-            }
-        }
-        int seats = Matches.teamSize(mode);
-        if (side.size() > seats) {
-            Msg.fail(me, mode.title() + " seats " + seats + " a team; your party is " + side.size() + ".");
-            return;
-        }
         Platform platform = Matches.platformFor(platformName);
-        Game open = Matches.waiting(mode, platform, map);
+        Game open = Matches.waiting(mode, platform, map, side.size());
         if (open != null && Matches.enter(open, side)) {
             joined(side, mode, open);
-            return;
+            return null;
         }
         Matches.open(mode, platform, map).whenComplete((game, failure) -> {
             if (failure != null) {
@@ -137,6 +129,7 @@ public final class Play {
             if (Matches.enter(game, side)) joined(side, mode, game);
             else for (Player p : side) Msg.fail(p, "No seat left in ", Msg.v(mode.title()), ".");
         });
+        return null;
     }
 
     private static void joined(List<Player> side, Mode mode, Game game) {
