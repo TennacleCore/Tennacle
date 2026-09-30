@@ -20,12 +20,10 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.games.matchmaking.Parties;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -42,7 +40,6 @@ public final class HiddenNames implements GameModule {
     /** Strangers wear a default skin while the game fills. */
     public static final StateKey<Boolean> SKINS = StateKey.of("view.skins.hidden", Codec.BOOLEAN, false);
 
-    private static final Map<Game, HiddenNames> BY_GAME = Collections.synchronizedMap(new WeakHashMap<>());
     private static final String LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static boolean hooked;
 
@@ -58,7 +55,6 @@ public final class HiddenNames implements GameModule {
     @Override
     public void install(@NotNull Game game) {
         this.game = game;
-        BY_GAME.put(game, this);
         hook();
         Phases phases = game.module(Phases.class);
         if (phases != null) phases.onEnter(Match.LIVE, g -> reveal());
@@ -84,7 +80,7 @@ public final class HiddenNames implements GameModule {
 
     /** The name {@code viewer} reads for {@code subject}: an alias while the game fills and they are strangers, else null. */
     public static @Nullable String aliasFor(@NotNull Game game, @NotNull Player viewer, @NotNull Player subject) {
-        HiddenNames hidden = BY_GAME.get(game);
+        HiddenNames hidden = game.module(HiddenNames.class);
         return hidden == null ? null : hidden.alias(viewer, subject);
     }
 
@@ -161,7 +157,7 @@ public final class HiddenNames implements GameModule {
     // the tab row as a stranger reads it: the alias the client spawns the body with, gray and obfuscated, no skin
     private static PlayerInfoUpdatePacket.Entry veil(Player viewer, Player subject, PlayerInfoUpdatePacket.Entry entry) {
         Game game = Game.of(viewer);
-        HiddenNames hidden = game != null ? BY_GAME.get(game) : null;
+        HiddenNames hidden = game != null ? game.module(HiddenNames.class) : null;
         if (hidden == null || !hidden.hiding() || !stranger(viewer, subject)) return entry;
         hidden.veiled.add(subject.getUuid());
         String alias = hidden.alias(viewer, subject);

@@ -11,6 +11,7 @@ import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.coordinate.Point;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -22,7 +23,9 @@ import java.util.Set;
  * up anywhere, the map's own only where a bed is defended. The beds are {@link Beds}' own, the deaths
  * {@link Lives}'.
  */
-public final class Rules implements GameModule {
+public final class Rules implements GameModule, Building.Owner {
+
+    private @Nullable Building building;
 
     // the build and break rules are Building's: bridge declares the same six ids, and two owners of one id is
     // a rule that resolves differently depending on which class the reader found first
@@ -51,7 +54,7 @@ public final class Rules implements GameModule {
         RegionMarker build = game.arena().markers(BedFight.BUILD).getFirst();
         defenses = game.arena().markers(BedFight.DEFENSE);
         Building.Band band = Building.Band.of(game, BedFight.FLOOR, BedFight.HEIGHT);
-        Building.install(game, Building.space(band, (placer, pos) -> band.covers(build, placer, pos), this::defended), respawns::unprotect);
+        building = Building.install(game, Building.space(band, (placer, pos) -> band.covers(build, placer, pos), this::defended), respawns::unprotect);
     }
 
     private boolean defended(Point pos) {
@@ -59,5 +62,10 @@ public final class Rules implements GameModule {
             if (defense.contains(pos)) return true;
         }
         return false;
+    }
+
+    @Override
+    public @Nullable Building building() {
+        return building;
     }
 }

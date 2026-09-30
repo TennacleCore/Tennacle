@@ -58,7 +58,9 @@ import java.util.List;
  * deaths and falls go to {@code Respawns}, credit to {@code KillCredit}, the void line to {@code Limits}, the
  * outcome to {@code Score} and {@code TimeLimit}. Shoves never hurt behind protection.
  */
-public final class Rules implements GameModule {
+public final class Rules implements GameModule, Building.Owner {
+
+    private @Nullable Building building;
 
     static final String REFIT_ALARM = "bridge:refit";
     private static final Sound ARROW_BACK =
@@ -129,7 +131,7 @@ public final class Rules implements GameModule {
             e.cancel(); // a kill respawns behind protection - never the death screen
             killed(game, victim, e.source() instanceof Player by && by != victim ? by : null, shotRange(e));
         });
-        Building.install(game, Building.space(band, (placer, pos) -> band.covers(build, placer, pos),
+        building = Building.install(game, Building.space(band, (placer, pos) -> band.covers(build, placer, pos),
                 pos -> inBridge(game, pos), pos -> onASpawn(game, pos)), respawns::unprotect);
         st.alarms().register(FIREWORK_ALARM, (tick, payload) -> {
             String team = payload.getString("team");
@@ -303,4 +305,8 @@ public final class Rules implements GameModule {
         return at != null ? at : game.arena().meta().spawn();
     }
 
+    @Override
+    public @Nullable Building building() {
+        return building;
+    }
 }

@@ -24,11 +24,8 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.commands.RulesCompletions;
 import tennacle.games.Match;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -180,7 +177,6 @@ public final class Building {
     public static final String REASON_BUILD = "build", REASON_RESERVED = "reserved", REASON_FLOOR = "floor",
             REASON_HEIGHT = "height", REASON_OUTSIDE = "outside", REASON_MAP = "map", REASON_PLACED = "placed";
 
-    private static final Map<Game, Building> BY_GAME = Collections.synchronizedMap(new WeakHashMap<>());
 
     private final it.unimi.dsi.fastutil.longs.LongSet placed = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
     // cells whose break comes up empty-handed, by the tick of the break: Polyp drops at that tick's end
@@ -190,9 +186,18 @@ public final class Building {
     private final Game game;
     private final Space space;
 
+    /** The module that installed a game's building rules, which is how {@link #of} finds them. */
+    public interface Owner {
+        @Nullable Building building();
+    }
+
     /** The building rules a mode installed for {@code game}, or null before its rules module ran. */
     public static @Nullable Building of(@NotNull Game game) {
-        return BY_GAME.get(game);
+        for (Owner owner : game.modules(Owner.class)) {
+            Building building = owner.building();
+            if (building != null) return building;
+        }
+        return null;
     }
 
     private Building(Game game, Space space) {
@@ -208,7 +213,6 @@ public final class Building {
     public static @NotNull Building install(@NotNull Game game, @NotNull Space space,
                                             @NotNull Consumer<Player> touched) {
         Building building = new Building(game, space);
-        BY_GAME.put(game, building);
         game.on(PlayerBlockPlaceEvent.class, e -> {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;

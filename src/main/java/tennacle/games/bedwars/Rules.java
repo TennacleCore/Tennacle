@@ -9,6 +9,7 @@ import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.state.StateKey;
 import net.minestom.server.coordinate.Point;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -17,7 +18,9 @@ import java.util.Set;
  * The buildable space: a flat circle round 0,0 of the map's radius, between its floor and its height, less the
  * bases. Only what a seat placed comes back up; the map's own blocks stay, and the beds are {@code Beds}' own.
  */
-final class Rules implements GameModule {
+final class Rules implements GameModule, Building.Owner {
+
+    private @Nullable Building building;
 
     private double radius;
 
@@ -33,7 +36,7 @@ final class Rules implements GameModule {
         radius = game.arena().markers(BedWars.RADIUS).getFirst().payload().getDouble("radius");
         Building.Band band = Building.Band.of(game, BedWars.FLOOR, BedWars.HEIGHT);
         List<RegionMarker> bases = game.arena().markers(BedWars.BASE);
-        Building.install(game, Building.space(band, (placer, pos) -> band.contains(placer, pos) && inside(pos),
+        building = Building.install(game, Building.space(band, (placer, pos) -> band.contains(placer, pos) && inside(pos),
                 pos -> false, pos -> inABase(bases, pos)), respawns::unprotect);
     }
 
@@ -47,5 +50,10 @@ final class Rules implements GameModule {
             if (base.contains(pos)) return true;
         }
         return false;
+    }
+
+    @Override
+    public @Nullable Building building() {
+        return building;
     }
 }
