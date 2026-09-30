@@ -53,7 +53,15 @@ public final class ReplayCommands {
         return file;
     }
 
-    public static void register(ShardManager shards, InstanceContainer world) {
+    /** {@code dev} off leaves players the watch alone: the end-of-game line and the Remote's share run it. */
+    public static void register(ShardManager shards, InstanceContainer world, boolean dev) {
+        if (!dev) {
+            AppCommand watch = Commands.player("replay", "Watch a game's replay.")
+                    .usage("/replay watch <game>", "watch a recorded game by its id or board code");
+            watch(watch);
+            Commands.register(watch);
+            return;
+        }
         Path replayDir = Storage.dir("replay-dir", "replays");
         AppCommand replay = Commands.dev("replay", "Record and replay a shard.")
                 .usage("/replay record <shard> [solo]", "start recording (solo = no child layers)")
@@ -161,11 +169,7 @@ public final class ReplayCommands {
             });
         };
         replay.addSyntax(doPlay, ArgumentType.Literal("play"), replayName, newName);
-        // a game's own replay, by its id or the code its board showed
-        Argument<String> game = ArgumentType.Word("game");
-        replay.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) Theaters.watch(p, ctx.get(game));
-        }, ArgumentType.Literal("watch"), game);
+        watch(replay);
         replay.addSyntax((sender, ctx) -> {
             Playback playback = current(sender);
             if (playback == null) { Msg.err(sender, "replay", "nothing is playing"); return; }
@@ -276,5 +280,13 @@ public final class ReplayCommands {
             }
         });
         Commands.register(replay);
+    }
+
+    // a game's own replay, by its id or the code its board showed
+    private static void watch(AppCommand command) {
+        Argument<String> game = ArgumentType.Word("game");
+        command.addSyntax((sender, ctx) -> {
+            if (sender instanceof Player p) Theaters.watch(p, ctx.get(game));
+        }, ArgumentType.Literal("watch"), game);
     }
 }

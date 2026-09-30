@@ -222,9 +222,9 @@ public final class TestServer {
         ShardTabList.install(); // tab names + completion follow each shard's TabScope
 
         ShardManager shards = new ShardManager();
-        ShardCommands.register(shards, world);
-        ReplayCommands.register(shards, world);
+        ReplayCommands.register(shards, world, devCommands);
         if (devCommands) {
+            ShardCommands.register(shards, world);
             DevCommands.register(Mechanics.polyp);
             SimTpsCommands.register(Mechanics.polyp, shards, world);
             PresetCommands.register(Mechanics.polyp, world); // /preset: the mechanics preset at each scope, live
