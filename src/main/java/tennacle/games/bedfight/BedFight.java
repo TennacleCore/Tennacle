@@ -192,7 +192,7 @@ public final class BedFight {
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Matches.byLook(Boards::hypixel, Boards::minemen, Boards::scrims, Boards::tennacle))
                 .build();
-        KitLayouts.editable("bedfight", KIT);
+        KitLayouts.editable("Bed Fight", KIT);
                 // a map whose authored tints do not parse throws at launch, taking the whole mode with it
         arena.requires(a -> {
             Palette.teams(a, Markers.SPAWN, DEFAULTS);

@@ -261,7 +261,7 @@ public final class Bridge {
             Msg.ok(p, "Cage set to ", Msg.v(pick), ".");
         }, variantArg);
         Commands.register(cageCmd);
-        KitLayouts.editable("bridge", KIT);
+        KitLayouts.editable("Bridge", KIT);
                 // a map whose authored tints do not parse throws at launch, taking the whole mode with it
         arena.requires(a -> {
             Palette.teams(a, CAGE, DEFAULTS);

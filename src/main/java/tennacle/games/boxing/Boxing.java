@@ -1,5 +1,6 @@
 package tennacle.games.boxing;
 
+import tennacle.games.KitLayouts;
 import java.util.concurrent.CompletableFuture;
 import net.minestom.server.command.CommandSender;
 import tennacle.games.Careers;
@@ -100,7 +101,8 @@ public final class Boxing {
             .with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(
                     Enchantment.SHARPNESS, 10, Enchantment.UNBREAKING, 10))));
     // Speed II rides the kit: a player reads it as part of the gloves
-    private static final Kit KIT = Kit.of("boxing").item(0, SWORD).effect(PotionEffect.SPEED, 1);
+    private static final Kit KIT = Kit.of("boxing").item("sword", 0, SWORD)
+            .layouts((g, p) -> KitLayouts.of(p, "boxing")).effect(PotionEffect.SPEED, 1);
 
     private Boxing() {}
 
@@ -109,6 +111,7 @@ public final class Boxing {
 
     public static void install() {
         Teams.register(DEFAULTS);
+        KitLayouts.editable("Boxing", KIT);
         HotArena arena = HotArena.of("boxing");
         GameType type = GameType.builder("boxing")
                 .slots(SlotLayout.groups(Markers.SPAWN, Parties.MAX)) // a party shares its marker
