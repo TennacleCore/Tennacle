@@ -13,7 +13,7 @@ import net.minestom.server.network.packet.client.common.ClientKeepAlivePacket;
 import net.minestom.server.network.packet.client.play.ClientPlayerPositionPacket;
 import net.minestom.server.network.packet.server.play.UpdateHealthPacket;
 import io.github.term4.polyp.platform.inventory.InventorySync;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
@@ -301,7 +301,7 @@ class LagSimulatorTest extends HeadlessServerTest {
 
     /**
      * Reported from games: /lag broke the inventory. The hold captures at {@link PlayerPacketOutEvent}, downstream
-     * of everything {@code OptimizedPlayer.sendPacket} does, the inventory sync included, so the release must not
+     * of everything {@code PolypPlayer.sendPacket} does, the inventory sync included, so the release must not
      * run any of it a second time.
      */
     @Test
@@ -310,7 +310,7 @@ class LagSimulatorTest extends HeadlessServerTest {
         EventListener<PlayerPacketOutEvent> hold = EventListener.of(PlayerPacketOutEvent.class, sim::onOutPacket);
         MinecraftServer.getGlobalEventHandler().addListener(hold);
         FakePlayer p = FakePlayer.connect(instance, new Pos(960.5, 70, 900.5), "LagBag");
-        InventorySync sync = ((OptimizedPlayer) p.player).inventorySync();
+        InventorySync sync = ((PolypPlayer) p.player).inventorySync();
         try {
             p.player.getInventory().setItemStack(0, ItemStack.of(Material.DIAMOND_SWORD));
             sync.broadcast();

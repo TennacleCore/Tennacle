@@ -17,7 +17,7 @@ import net.kyori.adventure.key.Key;
 import io.github.term4.polyp.platform.compatibility.via.ViaBridgeRpc;
 import io.github.term4.polyp.fx.Fx;
 import io.github.term4.polyp.api.event.fx.FxEvent;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import io.github.term4.polyp.platform.player.ViewRewrites;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.codec.Codec;
@@ -162,7 +162,7 @@ public final class Invisibles implements GameModule {
     }
 
     // a member's shard answers for no entity by id: the game's own instance does
-    private static SendablePacket armorForTheEnemy(OptimizedPlayer viewer, SendablePacket packet) {
+    private static SendablePacket armorForTheEnemy(PolypPlayer viewer, SendablePacket packet) {
         if (!(packet instanceof EntityEquipmentPacket worn)) return packet;
         Game game = Game.of(viewer);
         if (game == null || game.module(Invisibles.class) == null) return packet;

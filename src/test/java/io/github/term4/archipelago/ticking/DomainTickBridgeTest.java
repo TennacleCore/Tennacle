@@ -4,7 +4,7 @@ import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import io.github.term4.polyp.mechanics.damage.types.projectile.ProjectileDamage;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import io.github.term4.polyp.util.tick.TickContext;
 import io.github.term4.polyp.util.tick.TickPhase;
 import io.github.term4.polyp.util.tick.TickSystem;
@@ -44,7 +44,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void mmTickWorkFollowsTheShardOntoItsClock() {
-        MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
+        MinecraftServer.getConnectionManager().setPlayerProvider(PolypPlayer::new);
         ExecutionDomain domain = ExecutionDomain.create();
         ShardManager shards = new ShardManager();
         List<Pass> worldPasses = new CopyOnWriteArrayList<>();
@@ -117,7 +117,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void joiningADomainShardResetsTickStampedCombatState() {
-        MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
+        MinecraftServer.getConnectionManager().setPlayerProvider(PolypPlayer::new);
         var services = MechanicsBoot.ensure().services();
         ShardManager shards = new ShardManager();
         Shard shard = shards.create(instance, ExecutionDomain.create());
@@ -137,7 +137,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void intraTreeLayerSwitchesKeepCombatState() {
-        MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
+        MinecraftServer.getConnectionManager().setPlayerProvider(PolypPlayer::new);
         var services = MechanicsBoot.ensure().services();
         ShardManager shards = new ShardManager();
         ExecutionDomain domain = ExecutionDomain.create();
@@ -171,7 +171,7 @@ class DomainTickBridgeTest extends HeadlessServerTest {
 
     @Test
     void coLocatedShardPassesNeverCrossOwnership() {
-        MinecraftServer.getConnectionManager().setPlayerProvider(OptimizedPlayer::new);
+        MinecraftServer.getConnectionManager().setPlayerProvider(PolypPlayer::new);
         ShardManager shards = new ShardManager();
         // per member: every clock thread whose EXTERNAL pass claimed it - polyp systems iterating global
         // collections (hit queues, stuck arrows, digs) act on exactly the members a pass owns

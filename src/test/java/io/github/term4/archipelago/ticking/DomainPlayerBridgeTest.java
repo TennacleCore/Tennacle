@@ -1,7 +1,7 @@
 package io.github.term4.archipelago.ticking;
 
 import io.github.term4.polyp.Polyp;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import io.github.term4.polyp.world.MechanicsWorld;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -23,12 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The cross-repo player seam with the REAL mechanics class: an {@code OptimizedPlayer} joining a domain-bound
+ * The cross-repo player seam with the REAL mechanics class: a {@code PolypPlayer} joining a domain-bound
  * shard ticks (packets and all) on the shard's clock thread; leaving hands it back to the server.
  */
 class DomainPlayerBridgeTest extends HeadlessServerTest {
 
-    public static class CountingPlayer extends OptimizedPlayer {
+    public static class CountingPlayer extends PolypPlayer {
         final AtomicLong ticks = new AtomicLong();
         final AtomicLong gated = new AtomicLong();
         volatile String thread = "";
@@ -55,7 +55,7 @@ class DomainPlayerBridgeTest extends HeadlessServerTest {
         try {
             CountingPlayer player = (CountingPlayer) FakePlayer.connect(instance,
                     new Pos(0.5, 70, 0.5), "DomainSteve").player;
-            assertInstanceOf(OptimizedPlayer.class, player);
+            assertInstanceOf(PolypPlayer.class, player);
 
             Shard shard = new Shard(instance, domain);
             shard.join(player);

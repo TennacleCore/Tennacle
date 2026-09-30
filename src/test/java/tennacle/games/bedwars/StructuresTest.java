@@ -15,7 +15,7 @@ import io.github.term4.polyp.mechanics.projectile.types.Egg;
 import net.minestom.server.network.packet.server.play.EntityEffectPacket;
 import net.minestom.server.network.packet.server.play.EntityAttributesPacket;
 import net.minestom.server.entity.attribute.Attribute;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import net.minestom.server.potion.PotionEffect;
 import tennacle.boot.Mechanics;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
@@ -162,7 +162,7 @@ class StructuresTest extends HeadlessServerTest {
             // the harness boots mechanics without the projectile system Mechanics.install() adds
             ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
             // a throw is a use-item packet's: its echoes to the thrower pass the self filter
-            ((OptimizedPlayer) a).suppressSelf(() -> assertNotNull(projectiles.launch(
+            ((PolypPlayer) a).suppressSelf(() -> assertNotNull(projectiles.launch(
                     ProjectileSnapshot.of(a, Fireball.INSTANCE).withConfig(Vanilla18.projectiles())), "the fireball flies"));
             assertTrue(a.hasEffect(PotionEffect.SLOWNESS), "the throw slows the thrower");
             EntityEffectPacket sent = fa.sent(EntityEffectPacket.class).stream()

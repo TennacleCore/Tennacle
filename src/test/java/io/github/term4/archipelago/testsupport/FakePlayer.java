@@ -29,7 +29,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * A fully joined player over a packet-capturing connection, for integration tests inside the shared
  * {@link HeadlessServerTest} process (Minestom's {@code TestConnection} spins its own {@code Env} server, which
  * clashes with the one-per-JVM harness). Same join flow as {@code TestConnectionImpl}: create through the
- * ConnectionManager (so the installed OptimizedPlayer provider applies), run configuration -> play off-thread.
+ * ConnectionManager (so the installed PolypPlayer provider applies), run configuration -> play off-thread.
  */
 public final class FakePlayer {
 

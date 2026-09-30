@@ -15,7 +15,7 @@ import io.github.term4.polyp.mechanics.blocking.catalog.VanillaBlocking;
 import io.github.term4.polyp.mechanics.explosion.ExplosionSystem;
 import io.github.term4.polyp.platform.compatibility.Compat18;
 import io.github.term4.polyp.platform.compatibility.CompatConfig;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.polyp.world.MechanicsWorld;
 import net.kyori.adventure.key.Key;
@@ -188,7 +188,7 @@ public final class DevCommands {
         // /compat: toggle this player between the global 1.8 profile and a per-player modern override (mode switch demo)
         AppCommand compatCmd = Commands.dev("compat", "Toggle your mechanics between 1.8 and the latest version.");
         compatCmd.setDefaultExecutor((sender, ctx) -> {
-            if (!(sender instanceof OptimizedPlayer op)) return;
+            if (!(sender instanceof PolypPlayer op)) return;
             boolean turningOff = polyp.profiles().player(op) == null; // no per-player override = currently on the global profile
             if (turningOff) {
                 polyp.profiles().setPlayer(op, MechanicsProfile.builder().set(MechanicsKeys.COMPAT, Compat18.off()).build());
@@ -238,7 +238,7 @@ public final class DevCommands {
         // /shorts: A/B the byte-exact Animatium velocity vs the lossy LpVec3 (take a >2 b/t knockback to compare)
         AppCommand shortsCmd = Commands.dev("shorts", "A/B byte-exact velocity shorts against the lossy vector.");
         shortsCmd.setDefaultExecutor((sender, ctx) -> {
-            if (!(sender instanceof OptimizedPlayer op)) return;
+            if (!(sender instanceof PolypPlayer op)) return;
             CompatConfig current = polyp.profiles().resolve(op, MechanicsKeys.COMPAT);
             boolean on = !(current != null && Boolean.TRUE.equals(current.nativeShortVelocity));
             polyp.profiles().setPlayer(op, MechanicsProfile.builder()

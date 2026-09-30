@@ -6,7 +6,7 @@ import io.github.term4.polyp.MechanicsKeys;
 import io.github.term4.polyp.MechanicsProfile;
 import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.fx.Fx;
-import io.github.term4.polyp.platform.player.OptimizedPlayer;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import io.github.term4.polyp.presets.Preset;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -53,7 +53,7 @@ class SlabMergeTest extends HeadlessServerTest {
         instance.loadChunk(2400 >> 4, 2400 >> 4).join();
         Shard shard = new Shard(instance);
         FakePlayer p = FakePlayer.connect(instance, new Pos(2400.5, 64.5, 2400.5), "SlabStand");
-        OptimizedPlayer op = (OptimizedPlayer) p.player;
+        PolypPlayer op = (PolypPlayer) p.player;
         try {
             Polyp.getInstance().clientInfo().setProtocol(p.player, 47); // the 1.8 client the report came from
             // the profile, not a direct apply: a shard hop re-pushes it and would overwrite one
@@ -89,7 +89,7 @@ class SlabMergeTest extends HeadlessServerTest {
     void theSameHoldsOffAnyShard() {
         instance.loadChunk(2440 >> 4, 2440 >> 4).join();
         FakePlayer p = FakePlayer.connect(instance, new Pos(2440.5, 64.5, 2440.5), "SlabLobby");
-        OptimizedPlayer op = (OptimizedPlayer) p.player;
+        PolypPlayer op = (PolypPlayer) p.player;
         try {
             Polyp.getInstance().clientInfo().setProtocol(p.player, 47);
             Polyp.getInstance().profiles().setPlayer(op, MechanicsProfile.builder()
