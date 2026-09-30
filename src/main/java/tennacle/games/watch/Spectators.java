@@ -1,5 +1,6 @@
 package tennacle.games.watch;
 
+import tennacle.Press;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import java.util.function.Supplier;
@@ -199,7 +200,9 @@ public final class Spectators {
 
     // a right click, whatever it landed on: each tool reads its own slot, and a left click reaches neither
     private static void righted(Player viewer, PlayerHand hand) {
-        if (hand != PlayerHand.MAIN || !Press.once(viewer)) return;
+        if (hand != PlayerHand.MAIN) return;
+        // a press is claimed only by the one it is for: the lobby's hotbar shares the same click
+        if (Matches.grotto().spectating(viewer) == null && ghosting(viewer) == null || !Press.once(viewer)) return;
         compass(viewer);
         feather(viewer);
     }

@@ -1,5 +1,6 @@
 package tennacle.games.watch;
 
+import tennacle.Press;
 import tennacle.looks.Frames;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;

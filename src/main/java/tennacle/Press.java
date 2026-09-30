@@ -1,4 +1,4 @@
-package tennacle.games.watch;
+package tennacle;
 
 import net.minestom.server.entity.Player;
 import net.minestom.server.tag.Tag;
@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  * {@code rightClickDelayTimer} is four ticks, so a second press is never nearer than that, and a tail never
  * further than one.
  */
-final class Press {
+public final class Press {
 
     private static final Tag<Long> LAST = Tag.Transient("tennacle:right-click");
     private static final long TAIL = 1;
@@ -25,7 +25,7 @@ final class Press {
     private Press() {}
 
     /** {@code false} = the tail of a press already taken. */
-    static boolean once(@NotNull Player who) {
+    public static boolean once(@NotNull Player who) {
         long now = who.getAliveTicks();
         Long last = who.getTag(LAST);
         if (last != null && now - last <= TAIL) return false; // a tail leaves the head's tick standing
