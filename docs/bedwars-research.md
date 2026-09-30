@@ -1991,7 +1991,8 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
 
 9. **Commands.** The user, 2026-09-28: every queue and Bed Wars command (`/play`, `/queue`, `/skin`) is a
    development tool (`Commands.dev`), never baked into the game; the standard commands and menus come later
-   and will call the same hooks (`Matches`, `Skins`).
+   and will call the same hooks (`Matches`, `Skins`). 2026-09-29: `/queue` folded into `/play`, which takes
+   Hypixel's ids (`bedwars_eight_two`, `duels_bridge_doubles`).
 
 The "minigames never drop" rule holds for BedWars: nothing spills at death except the ender chest at a
 final death, and resources move straight to the killer.

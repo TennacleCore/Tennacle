@@ -34,6 +34,7 @@ import java.util.function.Supplier;
  * @param family     a duel or a game of many sides: what a look's verdict and end block take their form from
  * @param title      the name as copy reads it ({@code Bridge}, {@code Bed Wars Solo})
  * @param banner     the headline of the start banner ({@code Bed Wars} over every Bed Wars mode); unset = the title
+ * @param plays      its {@code /play} ids, Hypixel's, each to the seats a side it plays with
  */
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
@@ -42,7 +43,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                    @Nullable StateKey<Integer> teamScore,
                    @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look,
                    @NotNull Family family, @NotNull String title, @NotNull String banner,
-                   @NotNull Map<String, String> mechanics) {
+                   @NotNull Map<String, String> mechanics, @NotNull Map<String, Integer> plays) {
 
     /** Hypixel's two presentations: a duel's card names two players; a game's block names the winning side. */
     public enum Family { DUEL, GAME }
@@ -55,7 +56,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                 @Nullable StateKey<Integer> teamScore,
                 @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
         this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null,
-                Family.DUEL, titled(name), titled(name), Map.of());
+                Family.DUEL, titled(name), titled(name), Map.of(), Map.of());
     }
 
     /**
@@ -92,10 +93,17 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         private @Nullable String title;
         private @Nullable String banner;
         private final Map<String, String> mechanics = new java.util.LinkedHashMap<>();
+        private final Map<String, Integer> plays = new java.util.LinkedHashMap<>();
 
         /** The network preset {@code asked} runs as the Polyp preset {@code flavor} in this mode (bedwars: hypixel as hypixel_bedwars). */
         public @NotNull Builder mechanics(@NotNull String asked, @NotNull String flavor) {
             mechanics.put(asked, flavor);
+            return this;
+        }
+
+        /** A {@code /play} id ({@code duels_bridge_doubles}) and the seats a side it plays with. */
+        public @NotNull Builder play(@NotNull String id, int side) {
+            plays.put(id, side);
             return this;
         }
 
@@ -172,7 +180,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         public @NotNull Mode build() {
             return new Mode(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore,
                     tabStats, marks, look, family, title != null ? title : titled(name),
-                    banner != null ? banner : title != null ? title : titled(name), mechanics);
+                    banner != null ? banner : title != null ? title : titled(name), mechanics, plays);
         }
     }
 
@@ -191,6 +199,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         variants = Map.copyOf(variants);
         intro = List.copyOf(intro);
         mechanics = Map.copyOf(mechanics);
+        plays = java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(plays)); // the order menus list
         tabStats = List.copyOf(tabStats);
     }
 

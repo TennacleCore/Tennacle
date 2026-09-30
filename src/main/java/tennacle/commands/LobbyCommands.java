@@ -36,6 +36,7 @@ public final class LobbyCommands {
         AppCommand cmd = Commands.player("spawn", "Back to the lobby from anywhere.", "lobby", "l");
         cmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
+            Queues.leave(p);
             if (!Sessions.depart(p)) Matches.toLobby(p);
         });
         Commands.register(cmd);

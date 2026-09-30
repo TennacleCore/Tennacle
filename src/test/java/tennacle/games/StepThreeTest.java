@@ -47,9 +47,9 @@ class StepThreeTest extends HeadlessServerTest {
         FakePlayer w = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "QueueW");
         Game game = null;
         try {
-            MinecraftServer.getCommandManager().execute(a.player, "queue sumo");
+            MinecraftServer.getCommandManager().execute(a.player, "play duels_sumo_duel");
             assertTrue(Queues.waiting(a.player), "the first side waits");
-            MinecraftServer.getCommandManager().execute(b.player, "queue sumo");
+            MinecraftServer.getCommandManager().execute(b.player, "play duels_sumo_duel");
             game = awaitGame(a);
             assertNotNull(game, "the second side started the match");
             assertSame(game, awaitGame(b));

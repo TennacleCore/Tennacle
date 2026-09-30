@@ -261,10 +261,10 @@ public final class BedWars {
         KitLayouts.editable("bedwars", KIT);
         Favorites.install();
         Skins.install();
-        mode("bedwars-solo", "Bed Wars Solo", "Solo", "solo", "bedwars-solo", 8, 1);
-        mode("bedwars-doubles", "Bed Wars Doubles", "Doubles", "doubles", "bedwars-doubles", 8, 2);
-        mode("bedwars-3s", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
-        mode("bedwars-4s", "Bed Wars 4v4v4v4", "4v4v4v4", "4v4v4v4", "bedwars-4v4v4v4", 4, 4);
+        mode("bedwars-solo", "bedwars_eight_one", "Bed Wars Solo", "Solo", "solo", "bedwars-solo", 8, 1);
+        mode("bedwars-doubles", "bedwars_eight_two", "Bed Wars Doubles", "Doubles", "doubles", "bedwars-doubles", 8, 2);
+        mode("bedwars-3s", "bedwars_four_three", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
+        mode("bedwars-4s", "bedwars_four_four", "Bed Wars 4v4v4v4", "4v4v4v4", "4v4v4v4", "bedwars-4v4v4v4", 4, 4);
         Rooms.warm(ROOMS); // off the boot thread, not off the first game's clock
         Careers.sheet("bedwars", BedWars::career);
     }
@@ -334,7 +334,7 @@ public final class BedWars {
     }
 
     // one game, a team size each: the modes differ in their rules and the maps their team count plays on
-    private static void mode(String name, String title, String label, String spawners, String tag, int teams, int size) {
+    private static void mode(String name, String play, String title, String label, String spawners, String tag, int teams, int size) {
         MapPool arena = MapPool.of(tag).under("bedwars")
                 .requires(a -> a.meta().tags().contains("bedwars-guessed") ? "a capture: it is a guess throughout" : null);
         GameType.Builder builder = GameType.builder(name)
@@ -436,6 +436,7 @@ public final class BedWars {
                 .tabStats(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Final Kills", FINAL_KILLS),
                         new Mode.SeatStat("Beds Broken", BEDS))
                 .marks(Marks::render)
+                .play(play, size)
                 .build();
         Matches.register(mode);
     }

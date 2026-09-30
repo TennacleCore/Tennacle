@@ -266,7 +266,7 @@ class DuelCommandTest extends HeadlessServerTest {
         FakePlayer b = FakePlayer.connect(instance, new Pos(2.5, 65, 2.5), "DuelQueueB");
         FakePlayer c = FakePlayer.connect(instance, new Pos(4.5, 65, 4.5), "DuelQueueC");
         try {
-            MinecraftServer.getCommandManager().execute(a.player, "queue sumo");
+            MinecraftServer.getCommandManager().execute(a.player, "play duels_sumo_duel");
             assertTrue(Queues.waiting(a.player), "queued");
             MinecraftServer.getCommandManager().execute(b.player, "duel DuelQueueA sumo");
             MinecraftServer.getCommandManager().execute(a.player, "duel accept DuelQueueB");
@@ -277,13 +277,13 @@ class DuelCommandTest extends HeadlessServerTest {
             }
             assertNotNull(Game.of(a.player), "the duel seated the queued player");
             assertFalse(Queues.waiting(a.player), "and the seat took them out of the queue");
-            MinecraftServer.getCommandManager().execute(c.player, "queue sumo");
+            MinecraftServer.getCommandManager().execute(c.player, "play duels_sumo_duel");
             assertTrue(Queues.waiting(c.player), "a later queuer waits instead of pairing with a seated player");
             assertNull(Game.of(c.player));
         } finally {
             Game game = Game.of(a.player) != null ? Game.of(a.player) : Game.of(b.player);
             if (game != null) game.end(Outcome.draw());
-            MinecraftServer.getCommandManager().execute(c.player, "queue leave");
+            Queues.dequeue(c.player);
             a.player.remove();
             b.player.remove();
             c.player.remove();

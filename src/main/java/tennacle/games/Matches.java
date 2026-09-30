@@ -87,6 +87,7 @@ public final class Matches {
     public static final StateKey<String> RULES = StateKey.of("ledger.match.rules", Codec.STRING, "");
 
     private static final Map<String, Mode> modes = new LinkedHashMap<>();
+    private static final Map<String, Mode> plays = new LinkedHashMap<>();
     private static final Map<String, Look> looks = new LinkedHashMap<>(Map.of(
             "tennacle", Look.TENNACLE, "minemen", Look.MINEMEN, "scrims", Look.SCRIMS, "hypixel", Look.HYPIXEL));
     private static final Map<String, Platform> platforms = new LinkedHashMap<>(Map.of(
@@ -150,6 +151,7 @@ public final class Matches {
 
     public static void register(@NotNull Mode mode) {
         modes.put(mode.name(), mode);
+        for (String id : mode.plays().keySet()) plays.put(id, mode);
     }
 
     public static void register(@NotNull Platform platform) {
@@ -164,7 +166,17 @@ public final class Matches {
         return modes.keySet();
     }
 
-    /** The modes /duel and /queue start: a game launched with every seat taken, never one that fills a waiting room. */
+    /** The mode a {@code /play} id starts, or null. */
+    public static @Nullable Mode played(@NotNull String id) {
+        return plays.get(id);
+    }
+
+    /** Every {@code /play} id, in the order the modes registered them. */
+    public static @NotNull Set<String> plays() {
+        return plays.keySet();
+    }
+
+    /** The modes /duel starts and /play queues: a game launched with every seat taken, never one that fills a waiting room. */
     public static @NotNull List<String> launchedFull() {
         return modes.values().stream().filter(mode -> !joinable(mode)).map(Mode::name).sorted().toList();
     }

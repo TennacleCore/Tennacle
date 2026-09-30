@@ -279,6 +279,10 @@ public final class Bridge {
                 .tabStats(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
                         new Mode.SeatStat("Goals", SCORED))
                 .marks(Banners::mark)
+                .play("duels_bridge_duel", 1)
+                .play("duels_bridge_doubles", 2)
+                .play("duels_bridge_threes", 3)
+                .play("duels_bridge_four", 4)
                 .build();
         Duels.mode(bridge);
         Flags.offer(bridge, "preset");

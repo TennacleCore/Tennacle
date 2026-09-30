@@ -11,44 +11,52 @@ import tennacle.games.Platform;
 import io.github.term4.grotto.Game;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * {@code /play <mode> [platform]}: a seat in a game of {@code mode} still filling up on its map, or a new one.
- * A party sits together, so it has to fit one team.
+ * {@code /play <game>} by Hypixel's ids ({@code bedwars_eight_two}, {@code duels_bridge_doubles}). A mode that fills
+ * up on its map seats the party in a game still filling, or a new one; a duel queues it ({@link Queues}). A party
+ * sits together, so it has to fit one team.
  */
 public final class Play {
 
     private Play() {}
 
     public static void install() {
-        AppCommand play = Commands.dev("play", "Join a game that is filling up, or start one.")
-                .usage("/play <mode> [map]", "take a seat, on that map if you name one")
-                .usage("/play <mode> <platform> [map]", "on that platform")
+        AppCommand play = Commands.dev("play", "Join a game, or the queue for one.")
+                .usage("/play <game> [map]", "take a seat, on that map if you name one")
+                .usage("/play <game> <platform> [map]", "on that platform")
                 .featured();
-        var mode = ArgumentType.Word("mode");
-        mode.setSuggestionCallback(Completions.of(Play::modes));
+        var game = ArgumentType.Word("game");
+        game.setSuggestionCallback(Completions.of(Matches::plays));
         var where = ArgumentType.Word("where"); // a platform or a map
         where.setSuggestionCallback(Completions.of(Play::wheres));
         var map = ArgumentType.Word("map");
         map.setSuggestionCallback(Completions.of(Play::maps));
         play.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) enter(p, ctx.get(mode), null, null);
-        }, mode);
+            if (sender instanceof Player p) play(p, ctx.get(game), null, null);
+        }, game);
         play.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             String word = ctx.get(where);
-            if (Matches.platform(word) != null) enter(p, ctx.get(mode), word, null);
-            else enter(p, ctx.get(mode), null, word);
-        }, mode, where);
+            if (Matches.platform(word) != null) play(p, ctx.get(game), word, null);
+            else play(p, ctx.get(game), null, word);
+        }, game, where);
         play.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) enter(p, ctx.get(mode), ctx.get(where), ctx.get(map));
-        }, mode, where, map);
+            if (sender instanceof Player p) play(p, ctx.get(game), ctx.get(where), ctx.get(map));
+        }, game, where, map);
         Commands.register(play);
+    }
+
+    /** The line that starts {@code mode}: {@code /play} and its first id. */
+    public static @NotNull String line(@NotNull Mode mode) {
+        return "/play " + mode.plays().keySet().stream().findFirst().orElse(mode.name());
     }
 
     /** The modes that fill up on their map. */
@@ -74,16 +82,25 @@ public final class Play {
         return out;
     }
 
-    private static void enter(Player me, String modeName, @Nullable String platformName, @Nullable String mapWord) {
-        Mode mode = Matches.mode(modeName);
+    private static void play(Player me, String word, @Nullable String platformName, @Nullable String mapWord) {
+        String id = word.toLowerCase(Locale.ROOT);
+        Mode mode = Matches.played(id);
         if (mode == null) {
-            Msg.fail(me, "No mode named ", Msg.v(modeName), ". Modes: ", Msg.v(String.join(", ", modes())), ".");
+            Msg.fail(me, "No game named ", Msg.v(word), ". Games: ", Msg.v(String.join(", ", Matches.plays())), ".");
             return;
         }
-        if (!Matches.joinable(mode)) {
-            Msg.fail(me, Msg.v(mode.title()), " is played through ", Msg.run("/queue"), " or ", Msg.run("/duel"), ".");
+        if (Matches.joinable(mode)) {
+            enter(me, mode, platformName, mapWord);
             return;
         }
+        if (mapWord != null) {
+            Msg.fail(me, Msg.v(Queues.label(mode, id)), " picks its own map. ", Msg.run("/duel"), " names one.");
+            return;
+        }
+        Queues.enqueue(me, id, platformName);
+    }
+
+    private static void enter(Player me, Mode mode, @Nullable String platformName, @Nullable String mapWord) {
         if (platformName != null && Matches.platform(platformName) == null) {
             Msg.fail(me, "No platform named ", Msg.v(platformName), ". Platforms: ", Msg.v(String.join(", ", Matches.platforms())), ".");
             return;

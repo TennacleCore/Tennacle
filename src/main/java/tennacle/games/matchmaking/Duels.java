@@ -141,7 +141,7 @@ public final class Duels {
             return;
         }
         if (Matches.joinable(mode)) {
-            Msg.fail(me, Msg.v(mode.title()), " fills up through ", Msg.run("/play " + mode.name()), ".");
+            Msg.fail(me, Msg.v(mode.title()), " fills up through ", Msg.run(Play.line(mode)), ".");
             return;
         }
         Options options;

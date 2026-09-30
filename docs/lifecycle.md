@@ -266,8 +266,8 @@ teams). Every `"fighting".equals(...)`.
    Every gameplay constant becomes a declared rule key on the way (`Ruleset.rule(id, value)` gets
    its `check` against the mode's supported rules at the same time).
 3. Built on the same shapes: parties (`/party`; a party is one SIDE, seated on one team through
-   `Matches.start(mode, platform, sides)` and `Game.join(player, team)`), a queue (`/queue <mode> [platform]`,
-   the first two sides of the same size start), `/spectate <player>`, and live modifiers
+   `Matches.start(mode, platform, sides)` and `Game.join(player, team)`), a queue (`/play <id> [platform]` on a duel id,
+   the first parties that fill both teams start), `/spectate <player>`, and live modifiers
    (`Matches.modify(game, ruleset)` re-folds the world profile and re-seeds; `/rules` lists a game's rules
    and layers one entry by id or path). Rules by id (`Ruleset.rule("grotto:score:target", "3")`) resolve
    against the type's supported rules and are checked at install. Still open: a `Scope.layer` rung for

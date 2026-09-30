@@ -246,8 +246,8 @@ public final class TestServer {
 
         Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto
         Parties.install(); // /party: a side that duels and queues together
-        Queues.install();  // /queue <mode> [platform]: the first two matching sides start
-        tennacle.games.matchmaking.Play.install(); // /play <mode> [platform]: a seat in a game filling up
+        Queues.install();  // /play's duels: the first parties that fill both teams start
+        tennacle.games.matchmaking.Play.install(); // /play <game> [platform]: Hypixel's ids
         SpectateCommands.register();
         Spectators.install();
         Rooms.install(); // who hears whom: game, spectators, party, shard tree
@@ -274,7 +274,7 @@ public final class TestServer {
         Boxing.install(); // speed 2, first to 10 hits
         Bridge.install(); // blue vs red, first to five goals
         BedFight.install(); // break the bed, then eliminate
-        tennacle.games.bedwars.BedWars.install(); // Hypixel's, on its maps: /play bedwars-solo
+        tennacle.games.bedwars.BedWars.install(); // Hypixel's, on its maps: /play bedwars_eight_one
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(arenaDir(), shards, p -> p.setInstance(world, Playground.SPAWN));

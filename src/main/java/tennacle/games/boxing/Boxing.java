@@ -141,6 +141,7 @@ public final class Boxing {
                 // no boxing capture - sumo's single-bold-line pattern
                 .intro(Component.text("First player to land 100 hits wins!", NamedTextColor.YELLOW, TextDecoration.BOLD))
                 .ghostLoser()
+                .play("duels_boxing_duel", 1)
                 .build();
         Duels.mode(boxing);
         Flags.offer(boxing, "preset");

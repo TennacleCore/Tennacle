@@ -210,6 +210,7 @@ public final class BedFight {
                 .tabStats(new Mode.SeatStat("Kills", KILLS), new Mode.SeatStat("Deaths", DEATHS),
                         new Mode.SeatStat("Beds", BEDS))
                 .marks(Marks::render)
+                .play("duels_bedfight_duel", 1) // not a Hypixel mode: its pattern
                 .build();
         Duels.mode(bedfight);
         Flags.offer(bedfight, "preset");

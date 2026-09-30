@@ -106,6 +106,7 @@ public final class Sumo {
         Mode sumo = Mode.of("sumo", type, arena, MechanicsProfile::builder, BASE, VARIANTS)
                 .intro(Component.text("Eliminate your opponents!", NamedTextColor.YELLOW, TextDecoration.BOLD))
                 .ghostLoser()
+                .play("duels_sumo_duel", 1)
                 .build();
         Duels.mode(sumo);
         Flags.offer(sumo, "preset");
