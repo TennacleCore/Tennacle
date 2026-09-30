@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import io.github.term4.polyp.world.MechanicsWorld;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -162,6 +163,32 @@ class SpongeTest extends HeadlessServerTest {
             ticks(game, 12);
             assertTrue(game.shard().getBlock(new BlockVec(4, 65, 1)).compare(Block.WATER), "and the cube is open again");
         });
+    }
+
+    /** 1.8 refuses a cell outside the world's height; on 2026-09-28 water ran hundreds of blocks under a map. */
+    @Test
+    void waterStopsAtTheFloor() {
+        round("SpgFloor", (game, a, b) -> {
+            BlockVec at = new BlockVec(2, game.shard().dimension().minY(), 2);
+            Mechanics.fluids.place(game.shard(), at, Block.WATER);
+            ticks(game, 20);
+            assertTrue(game.shard().getBlock(at).compare(Block.WATER), "the source stands at the floor");
+            assertFalse(game.shard().getBlock(at.sub(0, 1, 0)).compare(Block.WATER), "and nothing under it");
+        });
+    }
+
+    @Test
+    void theEndForgetsTheWater() {
+        MechanicsWorld[] shard = new MechanicsWorld[1];
+        round("SpgEnd", (game, a, b) -> {
+            shard[0] = game.shard();
+            Mechanics.fluids.place(game.shard(), new BlockVec(2, 70, 2), Block.WATER);
+            ticks(game, 6);
+            assertTrue(Mechanics.fluids.tracks(game.shard()), "water running in the game");
+        });
+        await("the shard gone", () -> shard[0].destroyed());
+        EventDispatcher.call(new InstanceTickEvent(instance, 0, 50));
+        assertFalse(Mechanics.fluids.tracks(shard[0]), "nothing kept for a finished game");
     }
 
     private static void round(String name, Body body) {
