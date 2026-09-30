@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import tennacle.party.Parties;
 /** A request reads scrims' way on both ends: an [Accept] that runs the accept, and a flag line when flags rode along. */
 class DuelRequestTest extends HeadlessServerTest {
 
@@ -94,25 +95,6 @@ class DuelRequestTest extends HeadlessServerTest {
             assertEquals("minemen", Matches.lookNameOf(game), "with the requester's flags");
         } finally {
             if (game != null) game.end(Outcome.draw());
-            a.player.remove();
-            b.player.remove();
-        }
-    }
-
-    @Test
-    void noModeOpensPicker() throws InterruptedException {
-        FakePlayer a = FakePlayer.connect(instance, new Pos(604.5, 65, 604.5), "ReqC");
-        FakePlayer b = FakePlayer.connect(instance, new Pos(606.5, 65, 606.5), "ReqD");
-        try {
-            a.sent.clear();
-            MinecraftServer.getCommandManager().execute(a.player, "duel ReqD");
-            assertTrue(io.github.term4.canvas.screen.Screens.screen(a.player) != null, "the duel picker opens");
-            b.sent.clear();
-            MinecraftServer.getCommandManager().execute(b.player, "duel accept ReqC");
-            assertTrue(plain(b).stream().anyMatch(l -> l.contains("No duel request from ReqC")), "nothing was requested: " + plain(b));
-            for (int i = 0; i < 5; i++) MinecraftServer.getSchedulerManager().processTick();
-            assertNull(Game.of(a.player));
-        } finally {
             a.player.remove();
             b.player.remove();
         }

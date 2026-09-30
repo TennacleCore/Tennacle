@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.dev;
 
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
@@ -16,6 +16,8 @@ import net.minestom.server.instance.InstanceContainer;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 /**
  * {@code /preset} - the mechanics preset at each scope, live: the runtime form of the {@code Mechanics.PRESET}
  * line. Scopes resolve player -&gt; shard -&gt; instance -&gt; global, so a running game's own rules still sit on

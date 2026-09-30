@@ -28,7 +28,6 @@ import net.minestom.server.network.packet.server.play.SpawnEntityPacket;
 import net.minestom.server.network.packet.server.play.UnloadChunkPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.games.TestWiring;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +45,7 @@ class LobbySwitchTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        LobbyWiring.ensure(instance);
         Wardrobe.install();
         FixesSystem.install(Polyp.getInstance(), FixesConfig.builder().legacyChunkReload(FixToggleConfig.on())
                 .legacyWorldSwap(FixToggleConfig.on()).build());

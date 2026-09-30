@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.dev;
 
 import tennacle.Msg;
 import io.github.term4.polyp.platform.compatibility.via.ViaBridgeException;

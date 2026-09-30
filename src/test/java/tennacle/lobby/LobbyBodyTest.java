@@ -5,7 +5,6 @@ import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import net.minestom.server.coordinate.Pos;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.games.TestWiring;
 
 import java.util.concurrent.TimeUnit;
 
@@ -18,7 +17,7 @@ class LobbyBodyTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        LobbyWiring.ensure(instance);
     }
 
     @Test

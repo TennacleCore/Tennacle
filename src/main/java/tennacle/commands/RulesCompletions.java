@@ -30,7 +30,7 @@ public final class RulesCompletions {
     private RulesCompletions() {}
 
     /** The first word: {@code paths}, a seat by {@code @} or a side by {@code #}, or a rule id by segment. */
-    static SuggestionCallback key() {
+    public static SuggestionCallback key() {
         return (sender, context, suggestion) -> {
             Game game = gameOf(sender);
             if (game == null) return;
@@ -47,7 +47,7 @@ public final class RulesCompletions {
     }
 
     /** The words after the first: a path below {@code paths}, an id after a scope, then the value. */
-    static SuggestionCallback tail(Argument<String> key, Argument<String[]> value) {
+    public static SuggestionCallback tail(Argument<String> key, Argument<String[]> value) {
         return (sender, context, suggestion) -> {
             Game game = gameOf(sender);
             if (game == null) return;

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tennacle.lobby.LobbyWiring;
 
 /** The kit lands in your own inventory, armor locked or free per kit, and closing the inventory saves it. */
 class KitEditorTest extends HeadlessServerTest {
@@ -36,7 +37,7 @@ class KitEditorTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        LobbyWiring.ensure(instance);
         KitLayouts.editable("Armor test", FREE);
     }
 

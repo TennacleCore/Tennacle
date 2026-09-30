@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.audit;
 
 import tennacle.Msg;
 import tennacle.audit.Audit;
@@ -14,6 +14,9 @@ import net.minestom.server.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
+import tennacle.commands.Completions;
 /**
  * {@code /audit} - the server's worlds for an admin: instances on top, the games and shard trees over each, and
  * every player's whereabouts, with the counts hovering their names and the trees and rosters opening as screens

@@ -1,6 +1,6 @@
 package tennacle.games;
 
-import tennacle.games.matchmaking.Parties;
+import tennacle.party.Parties;
 import tennacle.games.matchmaking.Duels;
 import tennacle.games.matchmaking.Queues;
 import tennacle.games.watch.Spectators;
@@ -13,7 +13,8 @@ import io.github.term4.archipelago.testsupport.MechanicsBoot;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.InstanceContainer;
 
-/** One wiring for every game test in the shared headless server - installs are not re-runnable. */
+/** One wiring for every game test in the shared headless server - installs are not re-runnable. The lobby's is
+ *  {@code LobbyWiring}, over this one. */
 public final class TestWiring {
 
     private static boolean wired;
@@ -45,11 +46,9 @@ public final class TestWiring {
         Parties.install();
         Queues.install();
         tennacle.games.matchmaking.Play.install();
-        tennacle.commands.SpectateCommands.register();
-        tennacle.commands.DevCommands.register(io.github.term4.polyp.Polyp.getInstance()); // /gm from a spectator switches bodies
+        tennacle.games.watch.SpectateCommands.register();
         Spectators.install();
-        tennacle.Rooms.install();
-        tennacle.commands.RulesCommands.register();
+        tennacle.games.RulesCommands.register();
         TabStats.register();
         GameSounds.register();
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");
@@ -58,9 +57,6 @@ public final class TestWiring {
         tennacle.games.bridge.Bridge.install();
         tennacle.games.bedfight.BedFight.install();
         tennacle.games.bedwars.BedWars.install();
-        tennacle.lobby.Settings.install();
-        tennacle.lobby.Hotbar.install();
-        tennacle.lobby.Counts.install();
-        tennacle.commands.LobbyCommands.register();
+        Parties.cues(GameSounds::lobby);
     }
 }

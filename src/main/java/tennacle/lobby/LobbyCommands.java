@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.lobby;
 
 import tennacle.games.watch.Spectators;
 import tennacle.Msg;
@@ -24,6 +24,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 /** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
  *  departs their game - the seat follows the resolved reclaim rule, {@code /games} lists what holds one, and
  *  {@code /rejoin} re-claims it. The lines read as hypixel's party lines do: yellow, names in aqua, no tag. */

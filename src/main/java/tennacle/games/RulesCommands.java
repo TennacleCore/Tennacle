@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.games;
 
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
+import tennacle.commands.RulesCompletions;
 /**
  * {@code /rules}: the running game's rules with their live values; {@code /rules <id|path> <value>} layers one
  * entry over the game right now - a rule by id ({@code outcome.score.target 3}) or a mechanics path

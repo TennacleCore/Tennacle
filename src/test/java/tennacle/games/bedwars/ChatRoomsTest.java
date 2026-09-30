@@ -18,12 +18,11 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.Rooms;
+import tennacle.lobby.Rooms;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TeamChat;
-import tennacle.games.TestWiring;
 
 import java.util.List;
 
@@ -33,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tennacle.lobby.LobbyWiring;
 
 /** A team mode talks to its team in the captured shape, Solo to everyone; a shout reaches all, once a cooldown. */
 class ChatRoomsTest extends HeadlessServerTest {
@@ -44,7 +44,7 @@ class ChatRoomsTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        LobbyWiring.ensure(instance);
         tennacle.glue.ReplayBridge.install();
         tennacle.games.watch.Replays.install(replays, new ShardManager());
     }

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import tennacle.party.Parties;
 /**
  * The duel side of {@code /play}: parties that want the same id and platform wait in arrival order, and the first
  * that fill both teams of the id's size start a match, strangers sharing a team as on Hypixel. A party queues

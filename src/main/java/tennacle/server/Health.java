@@ -1,4 +1,4 @@
-package tennacle.boot;
+package tennacle.server;
 
 import com.sun.net.httpserver.HttpServer;
 import net.minestom.server.MinecraftServer;
@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 
+import tennacle.boot.Config;
 /**
  * What the main tick thread is doing, which nothing watched: the shard clocks have their own watchdog, the
  * server tick had no monitor, no rate and no way to ask from outside. Logs a sustained overrun (rate limited,

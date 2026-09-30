@@ -1,8 +1,7 @@
 package tennacle.games;
 
-import tennacle.lobby.Lobbies;
 import net.minestom.server.item.Material;
-import tennacle.games.matchmaking.Parties;
+import tennacle.party.Parties;
 import java.util.function.ToIntFunction;
 import java.util.UUID;
 import net.minestom.server.tag.Tag;
@@ -65,6 +64,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.concurrent.CompletableFuture;
 
+import tennacle.PlayerPrefs;
+import io.github.term4.archipelago.shard.ShardTabList;
+import io.github.term4.polyp.platform.player.Wardrobe;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.instance.Instance;
 /**
  * The one launch for any seating: a mode, a platform (its ruleset and look), the sides. The look name is
  * stamped and the ruleset folded into the game's world profile BEFORE modules install; the type's body policy
@@ -95,23 +99,41 @@ public final class Matches {
     private static final Map<String, Ruleset> modifiers = new ConcurrentHashMap<>();
     private static Grotto grotto;
     private static InstanceContainer lobby;
+    private static Pos lobbySpawn;
     private static Consumer<Player> lobbyRoute = player -> {};
+    private static volatile Consumer<Player> home = player -> send(player, lobby, lobbySpawn);
 
     private Matches() {}
 
     public static void install(@NotNull InstanceContainer lobby, @NotNull Pos lobbySpawn, @NotNull ShardManager shards) {
         Matches.lobby = lobby;
+        Matches.lobbySpawn = lobbySpawn;
         grotto = Grotto.install(shards); // shared manager: /shard tree shows the game trees
-        if (Lobbies.all().isEmpty()) {
-            Lobbies.add("main", "Main Lobby", Material.BEACON, "", mode -> true, lobby, lobbySpawn);
-        }
+        PlayerPrefs.vault(() -> grotto.vault());
         lobbyRoute = player -> {
             Spectators.exit(player); // a game's end routes its spectators here; restore the body and the HUD
-            Lobbies.send(player, Lobbies.home(player));
+            home.accept(player);
             TabList.refresh(player); // the chrome is the lobby's again
         };
         grotto.exit(lobbyRoute);
         grotto.onGameEnd((game, outcome) -> modifiers.remove(game.id())); // an override dies with its game
+    }
+
+    /** Where a player goes from a game; the home world's spawn until the lobbies take over. */
+    public static void home(@NotNull Consumer<Player> route) {
+        home = route;
+    }
+
+    /** Puts {@code player} at {@code spawn} in {@code world}, dressed for it. */
+    public static void send(@NotNull Player player, @NotNull Instance world, @NotNull Pos spawn) {
+        if (player.getInstance() == world) { // Minestom rejects a same-instance setInstance: no spawn event either
+            player.teleport(spawn, Vec.ZERO);
+            Wardrobe.arrive(player, world);
+            ShardTabList.resync(player); // the spawn's own re-list, which a same-instance return never gets
+        } else {
+            player.setVelocity(Vec.ZERO); // setInstance would carry the fall they left with
+            player.setInstance(world, spawn);
+        }
     }
 
     public static @NotNull Grotto grotto() {

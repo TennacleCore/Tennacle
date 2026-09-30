@@ -40,7 +40,7 @@ dependencies {
 }
 
 application {
-    mainClass = "tennacle.boot.TestServer"
+    mainClass = "tennacle.server.TestServer"
     applicationDefaultJvmArgs = listOf(
         "--enable-native-access=ALL-UNNAMED", // polar's zstd-jni
         // unpark the write thread on a send instead of letting it sleep half a tick on an empty queue.

@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.games.watch;
 
 import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
@@ -29,6 +29,8 @@ import java.nio.file.Path;
 
 import static tennacle.commands.Ops.offClock;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 /** {@code /replay}: record a shard, play it back into a fresh theater, seek/reverse/rewind/commit. */
 public final class ReplayCommands {
 

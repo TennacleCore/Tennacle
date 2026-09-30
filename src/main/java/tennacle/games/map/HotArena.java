@@ -44,7 +44,7 @@ public final class HotArena implements Maps {
     public Arena get() {
         Arena loaded = arena;
         if (loaded != null) return loaded;
-        Path file = tennacle.boot.TestServer.arenaDir().resolve(name + ".bncl");
+        Path file = MapPool.arenas().resolve(name + ".bncl");
         try {
             arena = loaded = Arena.read(Files.readAllBytes(file));
         } catch (IOException | RuntimeException e) {

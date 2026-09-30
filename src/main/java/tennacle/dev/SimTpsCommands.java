@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.dev;
 
 import tennacle.Msg;
 
@@ -12,6 +12,8 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.InstanceContainer;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 /**
  * {@code /simtps} - time dilation at each {@code MechanicsProfile} scope. The server keeps its real tick rate;
  * the scope's {@code clientTps}/{@code referenceTps} re-rate its physics and durations, so below 20 is slow

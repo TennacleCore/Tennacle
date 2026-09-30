@@ -40,7 +40,7 @@ public final class Lobby {
     }
 
     private static Object party(net.minestom.server.entity.Player viewer) {
-        int size = tennacle.games.matchmaking.Parties.members(viewer).size();
+        int size = tennacle.party.Parties.members(viewer).size();
         return size > 1 ? size : "None";
     }
 

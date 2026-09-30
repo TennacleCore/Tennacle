@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.games.watch;
 
 import tennacle.games.watch.Spectators;
 import tennacle.games.Mode;
@@ -13,6 +13,9 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
+import tennacle.commands.Completions;
 /**
  * {@code /spectate <player>}: a view of their game without a seat; {@code /l} steps back out.
  * {@code /spectate mode true|ghost}: the client's spectator mode, or the ghost body.

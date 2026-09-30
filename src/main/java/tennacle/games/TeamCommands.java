@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.games;
 
 import tennacle.games.Match;
 import tennacle.games.Matches;
@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 /**
  * {@code /team} - which side is which, in seat order. A team is an ordinal and its color is only the convention
  * an unauthored map falls back to, so the two are worth printing together: the id is what {@code /rules @1} and a

@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.dev;
 
 import tennacle.games.watch.Spectators;
 import io.github.term4.polyp.mechanics.attribute.catalog.VanillaPotions;
@@ -47,6 +47,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 /**
  * The polyp example server's dev/test toolset plus the shard-aware {@code /boom}: lag simulation, profile
  * switches, explosions, enchants, effects, blockable swords, velocity-cap A/B.

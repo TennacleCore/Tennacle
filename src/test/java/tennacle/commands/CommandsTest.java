@@ -1,6 +1,5 @@
 package tennacle.commands;
 
-import tennacle.games.TestWiring;
 import tennacle.lobby.Welcome;
 
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -15,13 +14,14 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tennacle.server.ServerWiring;
 
 /** The registry answers /help, a bare command, the welcome, and a command that throws. */
 class CommandsTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        ServerWiring.ensure(instance);
         AppCommand broken = Commands.dev("brokentool", "Throws on purpose.");
         broken.setDefaultExecutor((sender, ctx) -> {
             throw new IllegalStateException("kaboom");

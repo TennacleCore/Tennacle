@@ -111,13 +111,6 @@ public final class Lobbies {
 
     /** Puts {@code player} at {@code lobby}'s spawn, dressed for it. */
     public static void send(@NotNull Player player, @NotNull Lobby lobby) {
-        if (player.getInstance() == lobby.world()) { // Minestom rejects a same-instance setInstance: no spawn event either
-            player.teleport(lobby.spawn(), Vec.ZERO);
-            Wardrobe.arrive(player, lobby.world());
-            ShardTabList.resync(player); // the spawn's own re-list, which a same-instance return never gets
-        } else {
-            player.setVelocity(Vec.ZERO); // setInstance would carry the fall they left with
-            player.setInstance(lobby.world(), lobby.spawn());
-        }
+        Matches.send(player, lobby.world(), lobby.spawn());
     }
 }

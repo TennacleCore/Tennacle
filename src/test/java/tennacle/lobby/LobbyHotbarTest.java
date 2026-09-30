@@ -22,11 +22,11 @@ import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tennacle.games.TestWiring;
 import tennacle.games.matchmaking.Queues;
 import tennacle.lobby.menus.Icons;
 import tennacle.lobby.menus.PlayMenu;
 import tennacle.lobby.menus.SettingsMenu;
+import tennacle.party.Audience;
 
 import java.util.concurrent.TimeUnit;
 
@@ -41,7 +41,7 @@ class LobbyHotbarTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        LobbyWiring.ensure(instance);
     }
 
     private static void use(FakePlayer p, int slot) {
@@ -149,10 +149,10 @@ class LobbyHotbarTest extends HeadlessServerTest {
         try {
             SettingsMenu.open(p.player);
             press(p, new Click.Left(12));
-            assertEquals(Settings.Audience.PARTY, Settings.LOBBY_CHAT.of(p.player));
+            assertEquals(Audience.PARTY, Settings.LOBBY_CHAT.of(p.player));
             later(p);
             press(p, new Click.Right(12));
-            assertEquals(Settings.Audience.EVERYONE, Settings.LOBBY_CHAT.of(p.player));
+            assertEquals(Audience.EVERYONE, Settings.LOBBY_CHAT.of(p.player));
         } finally {
             p.player.remove();
         }

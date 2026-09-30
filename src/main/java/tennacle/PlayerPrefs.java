@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import net.kyori.adventure.text.Component;
-import tennacle.games.Matches;
 
+import io.github.term4.grotto.vault.Vault;
 import io.github.term4.grotto.vault.VaultKey;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -23,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The one login-prefetch pipeline for per-player vault data: a consumer registers its key once, the value
@@ -54,7 +55,7 @@ public final class PlayerPrefs {
 
         public void set(@NotNull Player player, @NotNull T value) {
             cache.put(player.getUuid(), value);
-            Matches.grotto().vault().set(player.getUuid(), key, encode.apply(value));
+            vault.get().set(player.getUuid(), key, encode.apply(value));
         }
     }
 
@@ -63,6 +64,9 @@ public final class PlayerPrefs {
 
     private static final List<Entry<?, ?>> entries = new CopyOnWriteArrayList<>();
     private static volatile boolean installed;
+    private static volatile Supplier<Vault> vault = () -> {
+        throw new IllegalStateException("no vault yet: PlayerPrefs.vault(...) at boot");
+    };
 
     private PlayerPrefs() {}
 
@@ -75,6 +79,11 @@ public final class PlayerPrefs {
         Entry<S, T> entry = new Entry<>(key, decode, encode);
         entries.add(entry);
         return entry;
+    }
+
+    /** Where every preference is read and written. */
+    public static void vault(@NotNull Supplier<Vault> source) {
+        vault = source;
     }
 
     /** Wire the login fetch + disconnect eviction; once, at boot. */
@@ -101,7 +110,7 @@ public final class PlayerPrefs {
     }
 
     private static <S, T> CompletableFuture<?> fetch(Entry<S, T> entry, UUID player) {
-        return Matches.grotto().vault().get(player, entry.key)
+        return vault.get().get(player, entry.key)
                 .thenAccept(stored -> {
                     // a read landing after the timeout kick would otherwise refill the cache the kick cleared
                     if (MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player) == null) return;

@@ -1,6 +1,5 @@
-package tennacle.games.matchmaking;
+package tennacle.party;
 
-import tennacle.looks.GameSounds;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.timer.TaskSchedule;
 import net.minestom.server.timer.Task;
@@ -31,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import java.util.function.BiConsumer;
 /**
  * A leader and the players who accepted: one SIDE wherever a match is started. Only the leader duels or queues
  * outward; the party follows as their side, so a mode seats it on one team. The command set and its lines follow
@@ -46,6 +46,9 @@ public final class Parties {
     public static final int MAX = 8;
     /** The one line for anything only the leader does. */
     public static final String NOT_LEADER = "You are not party leader.";
+    /** Who may invite a player. */
+    public static final Choice INVITES = Choice.of("lobby:party-invites", Audience.EVERYONE, Audience.NOBODY);
+    private static volatile BiConsumer<Player, String> cues = (player, cue) -> {};
     /** How long an invite stands. */
     static final long INVITE_SECONDS = 60;
     /** {@link #INVITE_SECONDS} in ticks; a test shortens it. */
@@ -179,6 +182,11 @@ public final class Parties {
                 .append(Component.text(message, NamedTextColor.WHITE));
     }
 
+    /** How the house sounds an invite ({@link SoundSet#PARTY_INVITE}); silent unset. */
+    public static void cues(@NotNull BiConsumer<Player, String> play) {
+        cues = play;
+    }
+
     public static void install() {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> disconnected(e.getPlayer()));
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
@@ -281,7 +289,7 @@ public final class Parties {
             Msg.fail(from, "You can't invite yourself.");
             return;
         }
-        if (!tennacle.lobby.Settings.PARTY_INVITES.of(target).admits(from, target)) {
+        if (!INVITES.of(target).admits(from, target)) {
             Msg.fail(from, Msg.v(target.getUsername()), " takes no party invites.");
             return;
         }
@@ -321,7 +329,7 @@ public final class Parties {
                         .clickEvent(ClickEvent.runCommand("/party join " + leaderName))
                         .hoverEvent(HoverEvent.showText(Component.text("Click to join!", NamedTextColor.YELLOW))))
                 .build());
-        GameSounds.lobby(target, SoundSet.PARTY_INVITE);
+        cues.accept(target, SoundSet.PARTY_INVITE);
     }
 
     /** Accepts the invite from the party {@code name} is in (the inviter, the leader, anyone), or the one standing when null. */

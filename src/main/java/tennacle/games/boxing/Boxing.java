@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import net.minestom.server.command.CommandSender;
 import tennacle.games.Careers;
 import tennacle.games.map.HotArena;
-import tennacle.games.matchmaking.Parties;
+import tennacle.party.Parties;
 import tennacle.games.matchmaking.Duels;
 import tennacle.looks.Look;
 import tennacle.looks.Palette;

@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
+import tennacle.party.Parties;
 /**
  * {@code /play <game>} by Hypixel's ids ({@code bedwars_eight_two}, {@code duels_bridge_doubles}). A mode that fills
  * up on its map seats the party in a game still filling, or a new one; a duel queues it ({@link Queues}). A party

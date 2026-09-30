@@ -1,7 +1,6 @@
 package tennacle.commands;
 
 import tennacle.boot.Mechanics;
-import tennacle.games.TestWiring;
 
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
@@ -18,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tennacle.server.ServerWiring;
 
 /** What {@code /preset} promises: a scope's preset answers for whoever stands in it, and the app's own layer rides along. */
 class PresetScopeTest extends HeadlessServerTest {
@@ -26,7 +26,7 @@ class PresetScopeTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        ServerWiring.ensure(instance);
     }
 
     @Test

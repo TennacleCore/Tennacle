@@ -3,7 +3,6 @@ package tennacle.games.watch;
 import tennacle.games.Matches;
 import tennacle.games.watch.Spectators;
 import tennacle.games.Mode;
-import tennacle.games.TestWiring;
 import net.minestom.server.network.packet.server.play.TeamsPacket;
 import net.minestom.server.network.packet.client.play.ClientInputPacket;
 import net.minestom.server.network.packet.client.play.ClientSpectatorActionPacket;
@@ -31,13 +30,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tennacle.server.ServerWiring;
 
 /** A spectator's two bodies through the commands: the ghost they enter as, the client's spectator mode, and back. */
 class SpectatorModeTest extends HeadlessServerTest {
 
     @BeforeAll
     static void wire() {
-        TestWiring.ensure(instance);
+        ServerWiring.ensure(instance);
     }
 
     /** One click, one swap: a client whose main hand changed nothing retries the whole click on the off hand,

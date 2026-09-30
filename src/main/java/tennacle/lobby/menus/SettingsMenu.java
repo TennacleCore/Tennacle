@@ -12,7 +12,11 @@ import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
+import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.Settings;
+import tennacle.party.Audience;
+import tennacle.party.Choice;
+import tennacle.party.Parties;
 import tennacle.looks.GameSounds;
 
 import java.util.function.Function;
@@ -31,8 +35,8 @@ public final class SettingsMenu {
                     return null;
                 });
         choice(screen, 12, Material.PAPER, "Lobby Chat", "Change whose messages you see in lobbies.", Settings.LOBBY_CHAT);
-        choice(screen, 14, Material.BOOK, "Party Invite Privacy", "Change who can send you party invites.", Settings.PARTY_INVITES);
-        choice(screen, 16, Material.IRON_SWORD, "Duel Request Privacy", "Change who can send you duel requests.", Settings.DUEL_REQUESTS);
+        choice(screen, 14, Material.BOOK, "Party Invite Privacy", "Change who can send you party invites.", Parties.INVITES);
+        choice(screen, 16, Material.IRON_SWORD, "Duel Request Privacy", "Change who can send you duel requests.", Duels.REQUESTS);
         Screens.open(viewer, screen.build());
     }
 
@@ -52,12 +56,12 @@ public final class SettingsMenu {
         return entry.render(viewer);
     }
 
-    private static void choice(Screen.Builder screen, int slot, Material icon, String name, String text, Settings.Choice choice) {
+    private static void choice(Screen.Builder screen, int slot, Material icon, String name, String text, Choice choice) {
         setting(screen, slot, v -> {
             Theme theme = Canvas.screenThemeFor(v);
-            Settings.Audience now = choice.of(v);
+            Audience now = choice.of(v);
             Entry entry = Entry.of(icon).name(name).text(text).line(theme.prose("Options:"));
-            for (Settings.Audience option : choice.options()) {
+            for (Audience option : choice.options()) {
                 entry.line(option == now ? theme.good("➠ " + option.label())
                         : theme.prose("   ").append(Component.text(option.label(), NamedTextColor.WHITE)));
             }

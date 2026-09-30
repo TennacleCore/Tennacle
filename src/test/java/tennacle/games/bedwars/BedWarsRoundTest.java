@@ -59,7 +59,7 @@ import net.minestom.server.network.packet.server.play.SetTitleTextPacket;
 import net.minestom.server.network.packet.server.play.SoundEffectPacket;
 import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
-import tennacle.games.matchmaking.Parties;
+import tennacle.party.Parties;
 import io.github.term4.canvas.board.Boards;
 import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;

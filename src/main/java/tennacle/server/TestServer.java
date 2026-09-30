@@ -1,94 +1,73 @@
-package tennacle.boot;
+package tennacle.server;
 
-import tennacle.games.Careers;
-import tennacle.GameIds;
-import tennacle.Msg;
-import tennacle.PlayerPrefs;
-import tennacle.Rooms;
-import tennacle.Sessions;
-import tennacle.commands.SectionCommands;
-import tennacle.games.watch.Theaters;
-import tennacle.games.bedfight.BedFight;
-import tennacle.games.matchmaking.Parties;
-import tennacle.games.matchmaking.Duels;
-import tennacle.games.matchmaking.Queues;
-import tennacle.games.watch.Spectators;
-import tennacle.games.watch.Tapes;
-import tennacle.games.watch.Replays;
-import tennacle.looks.GameSounds;
-import tennacle.looks.TabStats;
-import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.Arrays;
-import io.github.term4.canvas.theme.Tint;
-import io.github.term4.canvas.theme.Livery;
-import io.github.term4.archipelago.shard.Shard;
-import io.github.term4.archipelago.ticking.ExecutionDomain;
-import io.github.term4.archipelago.shard.ShardManager;
+import io.github.term4.archipelago.Storage;
 import io.github.term4.archipelago.Viewers;
+import io.github.term4.archipelago.shard.Shard;
+import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.shard.ShardTabList;
+import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.bloom.Bloom;
 import io.github.term4.bloom.mapmaking.Session;
 import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.chat.Chat;
-import io.github.term4.canvas.tab.TabList;
-import io.github.term4.polyp.platform.player.PlayerNames;
+import io.github.term4.canvas.theme.Livery;
+import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
+import io.github.term4.polyp.platform.player.PlayerNames;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
-import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.timer.TaskSchedule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tennacle.commands.DevCommands;
-import tennacle.commands.Commands;
+import tennacle.Msg;
+import tennacle.PlayerPrefs;
+import tennacle.Sessions;
+import tennacle.boot.Config;
+import tennacle.boot.Mechanics;
+import tennacle.boot.Shutdown;
 import tennacle.commands.AppCommand;
-import tennacle.commands.GrottoCommands;
-import tennacle.commands.LobbyCommands;
-import tennacle.commands.ReplayCommands;
-import tennacle.commands.RulesCommands;
-import tennacle.commands.TeamCommands;
-import tennacle.commands.ShardCommands;
-import tennacle.commands.PresetCommands;
-import tennacle.commands.SimTpsCommands;
-import tennacle.commands.SpectateCommands;
-import tennacle.lobby.Welcome;
-import tennacle.games.TeamChat;
+import tennacle.commands.Commands;
+import tennacle.dev.DevCommands;
+import tennacle.dev.PresetCommands;
+import tennacle.dev.SectionCommands;
+import tennacle.dev.ShardCommands;
+import tennacle.dev.SimTpsCommands;
+import tennacle.games.GamesModule;
 import tennacle.games.Matches;
-import io.github.term4.archipelago.Storage;
-import tennacle.games.boxing.Boxing;
-import tennacle.games.bridge.Bridge;
-import tennacle.games.sumo.Sumo;
-import tennacle.lobby.Lobby;
+import tennacle.games.map.MapPool;
+import tennacle.games.watch.Tapes;
+import tennacle.games.watch.Theaters;
+import tennacle.lobby.LobbyModule;
 import tennacle.lobby.Playground;
+import tennacle.party.PartyModule;
 import tennacle.storage.Atomic;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchLog;
-import tennacle.audit.Audit;
-import tennacle.commands.AuditCommands;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.io.IOException;
-import java.time.Duration;
 
 /**
- * The games server: a lobby, three modes (sumo, boxing, bridge) on three networks' rules, duels, queues,
- * parties, spectating and live rule edits, over Grotto + Polyp + Archipelago. Boot only - the pieces live in
- * {@link Mechanics} (systems + bridges), {@link Playground} (the lobby world), {@link Matches} and the
- * {@code games} package, and the command classes. The dev toolset ({@link DevCommands}, the test pads, the
- * arsenal) exists only where {@code tennacle.dev-commands} says so - on a loopback bind by default.
+ * The games server: the party, games and lobby modules over Grotto + Polyp + Archipelago, installed in that order.
+ * Boot only - the pieces live in {@link Mechanics} (systems + bridges), {@link PartyModule}, {@link GamesModule},
+ * {@link LobbyModule} and the dev tools. The dev toolset ({@link DevCommands}, the test pads, the arsenal) exists
+ * only where {@code tennacle.dev-commands} says so - on a loopback bind by default.
  *
  * <p>Everything the deployment decides comes through {@link Config}: port, bind, directories, forwarding
  * secret, whether the dev commands exist. The libraries persist nothing - {@link FileVault} is the server's
@@ -128,7 +107,7 @@ public final class TestServer {
     /** Writes {@code editing} beside its arena; {@code false} = it could not be written. */
     private static boolean autosave(Session editing) {
         if (editing == null) return false;
-        Path sidecar = arenaDir().resolve(editing.id() + ".bncl.autosave");
+        Path sidecar = MapPool.arenas().resolve(editing.id() + ".bncl.autosave");
         try {
             Atomic.write(sidecar, editing.save());
             return true;
@@ -162,10 +141,6 @@ public final class TestServer {
         }
         Livery.overrides(roles);
         LOGGER.info("look: {}", configured);
-    }
-
-    public static Path arenaDir() {
-        return Config.path("tennacle.arena-dir", "arenas");
     }
 
     public static void main(String[] args) {
@@ -212,18 +187,14 @@ public final class TestServer {
         boolean unauthenticated = Config.value("tennacle.velocity-secret") == null
                 && Config.value("tennacle.bungeeguard-tokens") == null;
         boolean devCommands = Config.flag("tennacle.dev-commands", loopback && unauthenticated);
-        InstanceContainer world = Playground.createWorld(devCommands); // the test pads ride the dev flag
-        Playground.installListeners(world);
-        tennacle.lobby.Lobbies.install(world); // the main lobby, then one for Bed Wars and one for duels
+        InstanceContainer world = LobbyModule.world(devCommands); // the test pads ride the dev flag
         Commands.help(); // /help reads the registry every command below lands in
-        Welcome.install(); // the first lines an arrival reads
         // members build into their shard's overlay, never the map (the bridge already decorated the
         // placement listener - order-independent)
         MinecraftServer.getGlobalEventHandler().addChild(Shard.blockRouting());
         ShardTabList.install(); // tab names + completion follow each shard's TabScope
 
         ShardManager shards = new ShardManager();
-        ReplayCommands.register(shards, world, devCommands);
         if (devCommands) {
             ShardCommands.register(shards, world);
             DevCommands.register(Mechanics.polyp);
@@ -234,57 +205,20 @@ public final class TestServer {
         }
         palette(); // a seasonal look is one config line: every map's arms, kits, cages and names follow
         look();
-        Matches.install(world, Playground.SPAWN, shards);
 
         // the libraries store nothing: account data is the app's, and this is where it lands
         FileVault vault = new FileVault(data.resolve("players"));
-        Matches.grotto().vault(vault);
-        MatchLog.install(data.resolve("matches"));
-        Matches.grotto().onGameEnd(MatchLog::ended);
         Path replays = Storage.dir("replay-dir", "replays");
         leftovers(data, replays);
-        Replays.install(replays, shards); // every game, spooled as it runs, kept as a file under its mode
-
-        Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto
-        Parties.install(); // /party: a side that duels and queues together
-        Queues.install();  // /play's duels: the first parties that fill both teams start
-        tennacle.games.matchmaking.Play.install(); // /play <game> [platform]: Hypixel's ids
-        SpectateCommands.register();
-        Spectators.install();
-        Rooms.install(); // who hears whom: game, spectators, party, shard tree
-        // the chrome follows the viewer's game look (Rooms); the first send lands before Via reveals the protocol
-        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
-            if (e.isFirstSpawn()) Msg.onceProtocolKnown(e.getPlayer(), 60, () -> TabList.refresh(e.getPlayer()));
-        });
+        PartyModule.install();
+        GamesModule.install(world, Playground.SPAWN, shards,
+                new GamesModule.Data(vault, data.resolve("matches"), replays, gameSecret(data)), devCommands);
+        LobbyModule.install(world);
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
                 e -> vault.forget(e.getPlayer().getUuid()));
-        RulesCommands.register(); // /rules: live modifiers over the running game
-        TeamCommands.register(); // /team: which ordinal is which color, and who is on it
         PlayerPrefs.install();
-        TabStats.register(); // /tabstats: which seat counters the house tab lists
-        GameSounds.register(); // /sounds: which cues a player hears
-        // id convention; the secret is the derivation capability (rotate = old screenshots stop deriving)
-        GameIds.install(Matches.grotto(), gameSecret(data));
-        Audit.install(shards);
-        AuditCommands.register(); // /audit: the server's worlds (instances, games, shard trees, players)
-        GrottoCommands.register(); // /grotto: spectate, and a game id from a board code
-        LobbyCommands.register(); // /spawn|/lobby|/l - a seated player departs their game first
-        TeamChat.register(); // /shout: past team chat, the whole game
-        Careers.register(); // /stats: every mode's career line
-        Sumo.install();   // ring-out over a void plane; the platform picks the knockback
-        Boxing.install(); // speed 2, first to 10 hits
-        Bridge.install(); // blue vs red, first to five goals
-        BedFight.install(); // break the bed, then eliminate
-        tennacle.games.bedwars.BedWars.install(); // Hypixel's, on its maps: /play bedwars_eight_one
-        Lobby.install();  // the lobby sidebar - game boards sit on top of it
-        tennacle.lobby.Settings.install();
-        tennacle.lobby.Hotbar.install(); // the switcher, the menu, the players dye, the settings
-        tennacle.lobby.Counts.install(); // the lobby's numbers repaint on a launch, a seat, a phase, an end, the queue
-        tennacle.lobby.Npcs.install(); // after every mode: an NPC per kind of game a lobby hosts
-        tennacle.lobby.QueueLine.install();
-        io.github.term4.canvas.screen.Screens.cues(tennacle.looks.GameSounds::lobby);
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
-        Bloom.install(arenaDir(), shards, p -> p.setInstance(world, Playground.SPAWN));
+        Bloom.install(MapPool.arenas(), shards, p -> p.setInstance(world, Playground.SPAWN));
         Bloom.registerDefaultCommands();
         Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
         Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
@@ -332,9 +266,10 @@ public final class TestServer {
 
     // what the last run left on disk: torn temp files go, an unsaved editor session is named
     private static void leftovers(Path data, Path replays) {
-        for (Path root : List.of(data, replays, arenaDir())) Atomic.sweep(root);
-        if (!Files.isDirectory(arenaDir())) return;
-        try (var files = Files.list(arenaDir())) {
+        Path arenas = MapPool.arenas();
+        for (Path root : List.of(data, replays, arenas)) Atomic.sweep(root);
+        if (!Files.isDirectory(arenas)) return;
+        try (var files = Files.list(arenas)) {
             for (Path sidecar : files.filter(f -> f.getFileName().toString().endsWith(".bncl.autosave")).toList()) {
                 LOGGER.warn("{} holds unsaved editor work from an earlier run", sidecar.getFileName());
             }

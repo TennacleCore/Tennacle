@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.games;
 
 import tennacle.games.watch.Spectators;
 import io.github.term4.grotto.modules.view.Spectating;
@@ -17,6 +17,9 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
+import tennacle.dev.DevCommands;
 /** {@code /grotto} - DEV tooling, like {@link DevCommands}: chat over the api for the test environment (spectate,
  *  {@link GameIds#derive} as {@code id}). Not a player surface; the live map is {@code /audit}. */
 public final class GrottoCommands {

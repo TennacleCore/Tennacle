@@ -1,4 +1,4 @@
-package tennacle.commands;
+package tennacle.dev;
 
 import tennacle.games.watch.Spectators;
 import tennacle.storage.SafeName;
@@ -43,6 +43,8 @@ import java.util.Map;
 import static tennacle.commands.Ops.label;
 import static tennacle.commands.Ops.offClock;
 
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
 /** {@code /shard}: create/join/layer/fork/flatten, saves (single + tree + polar exchange), relight, views, domains. */
 public final class ShardCommands {
 

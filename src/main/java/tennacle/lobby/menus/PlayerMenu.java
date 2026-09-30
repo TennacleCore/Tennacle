@@ -17,9 +17,8 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.matchmaking.Duels;
-import tennacle.games.matchmaking.Parties;
+import tennacle.party.Parties;
 import tennacle.lobby.Lobbies;
-import tennacle.lobby.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -129,13 +128,13 @@ public final class PlayerMenu {
     private static @Nullable String refusedInvite(Player viewer, Player target) {
         if (!target.isOnline()) return target.getUsername() + " is no longer online!";
         if (Parties.together(viewer, target)) return target.getUsername() + " is already in your party!";
-        if (!Settings.PARTY_INVITES.of(target).admits(viewer, target)) return target.getUsername() + " has party invites disabled!";
+        if (!Parties.INVITES.of(target).admits(viewer, target)) return target.getUsername() + " has party invites disabled!";
         return null;
     }
 
     private static @Nullable String refusedDuel(Player viewer, Player target) {
         if (!target.isOnline()) return target.getUsername() + " is no longer online!";
-        if (!Settings.DUEL_REQUESTS.of(target).admits(viewer, target)) return target.getUsername() + " has duel requests disabled!";
+        if (!Duels.REQUESTS.of(target).admits(viewer, target)) return target.getUsername() + " has duel requests disabled!";
         return null;
     }
 

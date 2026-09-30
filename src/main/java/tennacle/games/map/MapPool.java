@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.ThreadLocalRandom;
 
+import tennacle.boot.Config;
 /**
  * Every {@code arenas/*.bncl} carrying {@code tag} is in the rotation - maps are named freely (urban,
  * sorcery), the tag decides which game they serve. Lazy like {@link HotArena}: an empty pool errors at
@@ -46,6 +47,11 @@ public final class MapPool implements Maps {
         this.tag = tag;
     }
 
+    /** Where arenas live: {@code tennacle.arena-dir}, else {@code arenas} under the working directory. */
+    public static Path arenas() {
+        return Config.path("tennacle.arena-dir", "arenas");
+    }
+
     public static MapPool of(String tag) {
         MapPool pool = new MapPool(tag);
         Bloom.onSave(saved -> {
@@ -63,7 +69,7 @@ public final class MapPool implements Maps {
     }
 
     private Path dir() {
-        Path base = tennacle.boot.TestServer.arenaDir();
+        Path base = arenas();
         return under.isEmpty() ? base : base.resolve(under);
     }
 

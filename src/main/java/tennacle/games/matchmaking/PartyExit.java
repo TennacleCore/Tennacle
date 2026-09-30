@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
+import tennacle.party.Parties;
 /** A party waits together: one member out of a filling game takes the rest out with them. */
 public final class PartyExit implements GameModule {
 

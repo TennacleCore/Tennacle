@@ -35,6 +35,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 
+import tennacle.party.Parties;
+import tennacle.party.Audience;
+import tennacle.party.Choice;
+import java.util.function.BiConsumer;
 /**
  * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>} - the
  * [Accept] click - is the one way to accept, with the REQUESTER's mode and {@link Options}. A request is party
@@ -57,7 +61,16 @@ public final class Duels {
 
     private static final Map<UUID, Request> requests = new ConcurrentHashMap<>();
 
+    /** Who may send a player a duel request. */
+    public static final Choice REQUESTS = Choice.of("lobby:duel-requests", Audience.EVERYONE, Audience.PARTY, Audience.NOBODY);
+    private static volatile BiConsumer<Player, Player> picker = (me, target) -> Commands.usage(me, "duel");
+
     private Duels() {}
+
+    /** What {@code /duel <player>} with no game opens for {@code me} against {@code target}; the usage until a menu is given. */
+    public static void picker(@NotNull BiConsumer<Player, Player> open) {
+        picker = open;
+    }
 
     public static void mode(@NotNull Mode mode) {
         Matches.register(mode);
@@ -98,7 +111,7 @@ public final class Duels {
         Commands.register(flags);
     }
 
-    // /duel <player>: no menu to open yet, and a pending request from them changes nothing - only the accept accepts
+    // /duel <player>: a pending request from them changes nothing - only the accept accepts
     private static void answer(CommandSender sender, String targetName) {
         if (!(sender instanceof Player me)) return;
         if (targetName.equalsIgnoreCase("accept")) {
@@ -107,7 +120,7 @@ public final class Duels {
         }
         Player target = online(me, targetName);
         if (target == null) return;
-        tennacle.lobby.menus.PlayerMenu.duel(me, target);
+        picker.accept(me, target);
     }
 
     /** {@code /duel <target> <mode> [-preset=<preset>]} from {@code me}. */
@@ -157,7 +170,7 @@ public final class Duels {
         }
         Player target = online(me, targetName);
         if (target == null) return;
-        if (!tennacle.lobby.Settings.DUEL_REQUESTS.of(target).admits(me, target)) {
+        if (!REQUESTS.of(target).admits(me, target)) {
             Msg.fail(me, Msg.v(target.getUsername()), " takes no duel requests.");
             return;
         }

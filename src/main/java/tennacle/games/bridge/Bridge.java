@@ -2,7 +2,7 @@ package tennacle.games.bridge;
 
 import tennacle.games.map.MapPool;
 import tennacle.games.map.Sections;
-import tennacle.games.matchmaking.Parties;
+import tennacle.party.Parties;
 import tennacle.games.matchmaking.Duels;
 import tennacle.looks.Look;
 import tennacle.looks.Palette;

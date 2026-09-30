@@ -3,7 +3,7 @@ package tennacle.audit;
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
 import tennacle.games.Matches;
-import tennacle.games.matchmaking.Parties;
+import tennacle.party.Parties;
 import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 import tennacle.games.watch.Spectators;
