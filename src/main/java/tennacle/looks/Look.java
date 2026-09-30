@@ -217,6 +217,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
     private static final Sound BLOCK = Sound.sound(SoundEvent.BLOCK_ANVIL_LAND, Sound.Source.MASTER, 0.3f, 2f);
     // captured on hypixel: fireworks.launch vol 3; scrims plays the same launch once on the goal
     private static final Sound FIREWORK = Sound.sound(SoundEvent.ENTITY_FIREWORK_ROCKET_LAUNCH, Sound.Source.MASTER, 3f, 1f);
+    private static final Sound CLICK = Sound.sound(SoundEvent.UI_BUTTON_CLICK, Sound.Source.MASTER, 0.5f, 1f);
+    private static final Sound REFUSED = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_BASS, Sound.Source.MASTER, 1f, 0.8f);
 
     private static SoundSet plings() {
         return SoundSet.of().cue(SoundSet.COUNTDOWN, TICK).cue(SoundSet.START, GO);
@@ -262,7 +264,8 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
 
     /** The house look: the gradient on titles, light gray prose, light blue values, names in their team's tint. */
     public static final Look TENNACLE = new Look(Msg.THEME, Look::scrimsDeath, Look::scrimsVerdict,
-            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING).cue(SoundSet.BLOCKED, BLOCK).cue(SoundSet.SCORED, FIREWORK),
+            SCRIMS_COUNT, plings().cue(SoundSet.ENEMY_DOWN, DING).cue(SoundSet.BLOCKED, BLOCK).cue(SoundSet.SCORED, FIREWORK)
+                    .cue(SoundSet.MENU_CLICK, CLICK).cue(SoundSet.MENU_REFUSED, REFUSED),
             Look::scrimsChat,
             new Tab(Look::houseHeader,
                     p -> seatStats(p).append(Component.newline()).append(Msg.THEME.accent(STORE))),

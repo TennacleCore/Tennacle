@@ -266,14 +266,11 @@ public final class BedWars {
         mode("bedwars-3s", "bedwars_four_three", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
         mode("bedwars-4s", "bedwars_four_four", "Bed Wars 4v4v4v4", "4v4v4v4", "4v4v4v4", "bedwars-4v4v4v4", 4, 4);
         Rooms.warm(ROOMS); // off the boot thread, not off the first game's clock
-        Careers.sheet("bedwars", BedWars::career);
-    }
-
-    private static CompletableFuture<Void> career(CommandSender to, UUID uuid, String username) {
-        return Careers.read(Matches.grotto().vault(), uuid, List.of(CAREER_WINS, CAREER_LOSSES, CAREER_KILLS, CAREER_DEATHS,
-                CAREER_FINAL_KILLS, CAREER_FINAL_DEATHS, CAREER_BEDS)).thenAccept(v -> Msg.say(to, Msg.v(username), " Bed Wars: ",
-                Msg.v(v[0]), " wins, ", Msg.v(v[1]), " losses, ", Msg.v(v[2]), " kills, ", Msg.v(v[3]), " deaths, ",
-                Msg.v(v[4]), " final kills, ", Msg.v(v[5]), " final deaths, ", Msg.v(v[6]), " beds broken."));
+        Careers.card("bedwars", new Careers.Card("Bed Wars", List.of(CAREER_WINS, CAREER_LOSSES, CAREER_KILLS,
+                CAREER_DEATHS, CAREER_FINAL_KILLS, CAREER_FINAL_DEATHS, CAREER_BEDS), List.of(
+                Careers.Card.count("Wins", 0), Careers.Card.count("Losses", 1), Careers.Card.count("Kills", 2),
+                Careers.Card.count("Deaths", 3), Careers.Card.count("Final kills", 4),
+                Careers.Card.count("Final deaths", 5), Careers.Card.count("Beds broken", 6))));
     }
 
     // captured: the timeline's events, the middle's tiers among them

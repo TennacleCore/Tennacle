@@ -277,6 +277,12 @@ public final class TestServer {
         BedFight.install(); // break the bed, then eliminate
         tennacle.games.bedwars.BedWars.install(); // Hypixel's, on its maps: /play bedwars_eight_one
         Lobby.install();  // the lobby sidebar - game boards sit on top of it
+        tennacle.lobby.Settings.install();
+        tennacle.lobby.Hotbar.install(); // the switcher, the menu, the players dye, the settings
+        tennacle.lobby.Counts.install(); // the lobby's numbers repaint on a launch, a seat, a phase, an end, the queue
+        tennacle.lobby.Npcs.install(); // after every mode: an NPC per kind of game a lobby hosts
+        tennacle.lobby.QueueLine.install();
+        io.github.term4.canvas.screen.Screens.cues(tennacle.looks.GameSounds::lobby);
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(arenaDir(), shards, p -> p.setInstance(world, Playground.SPAWN));
         Bloom.registerDefaultCommands();

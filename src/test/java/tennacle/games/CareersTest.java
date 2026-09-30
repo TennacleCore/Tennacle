@@ -37,7 +37,7 @@ class CareersTest extends HeadlessServerTest {
             MinecraftServer.getCommandManager().execute(p.player, "stats");
             await("both lines", () -> chat(p).size() >= 2);
             List<String> lines = chat(p);
-            assertTrue(lines.stream().anyMatch(l -> l.contains("boxing: 40 hits, 25% w-tap")), lines.toString());
+            assertTrue(lines.stream().anyMatch(l -> l.contains("Boxing: 40 hits, 25% w-tap")), lines.toString());
             assertTrue(lines.stream().anyMatch(l -> l.contains("Bed Wars: 3 wins, 0 losses") && l.contains("7 beds broken")), lines.toString());
         } finally {
             p.player.remove();

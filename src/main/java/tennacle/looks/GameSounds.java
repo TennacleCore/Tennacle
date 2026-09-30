@@ -29,9 +29,11 @@ import java.util.Locale;
  */
 public final class GameSounds {
 
-    /** Every cue a look can map, by short name; the last two reach a player outside any game. */
+    /** Every cue a look can map, by short name; the {@link #LOBBY} ones reach a player outside any game. */
     public static final List<String> ALL = List.of("countdown", "start", "scored", "scored-beat", "kill", "died",
-            "ally-down", "enemy-down", "blocked", "party-invite", "duel-request");
+            "ally-down", "enemy-down", "blocked", "party-invite", "duel-request", "menu-click", "menu-refused");
+    /** What the lobby's sounds setting turns on and off. */
+    public static final List<String> LOBBY = List.of("party-invite", "duel-request", "menu-click", "menu-refused");
     /** The cues this game plays, by short name; the look's mapping is the ceiling, this the floor. */
     public static final StateKey<List<String>> CUES = StateKey.of("sound.cues", Codec.STRING.list(), ALL);
     public static final VaultKey<String> MUTED = VaultKey.of("sounds:muted", Codec.STRING, "");
@@ -69,6 +71,20 @@ public final class GameSounds {
         if (sound == null) return;
         List<String> muted = MUTE.of(to.getUuid());
         if (muted == null || !muted.contains(name(cue))) to.playSound(sound);
+    }
+
+    /** Whether every lobby cue is muted for {@code player}. */
+    public static boolean lobbyMuted(@NotNull Player player) {
+        List<String> muted = MUTE.of(player.getUuid());
+        return muted != null && muted.containsAll(LOBBY);
+    }
+
+    public static void lobbyMuted(@NotNull Player player, boolean mute) {
+        List<String> muted = MUTE.of(player.getUuid());
+        List<String> next = new java.util.ArrayList<>(muted != null ? muted : List.of());
+        next.removeAll(LOBBY);
+        if (mute) next.addAll(LOBBY);
+        MUTE.set(player, List.copyOf(next));
     }
 
     /** {@code canvas:kill:red} reads as {@code kill}: the team variant is the same cue to a rule or a mute. */

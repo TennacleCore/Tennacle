@@ -100,13 +100,13 @@ class DuelRequestTest extends HeadlessServerTest {
     }
 
     @Test
-    void noModeNoMenuYet() throws InterruptedException {
+    void noModeOpensPicker() throws InterruptedException {
         FakePlayer a = FakePlayer.connect(instance, new Pos(604.5, 65, 604.5), "ReqC");
         FakePlayer b = FakePlayer.connect(instance, new Pos(606.5, 65, 606.5), "ReqD");
         try {
             a.sent.clear();
             MinecraftServer.getCommandManager().execute(a.player, "duel ReqD");
-            assertTrue(plain(a).stream().anyMatch(l -> l.contains("menu is not made yet")), "no default mode: " + plain(a));
+            assertTrue(io.github.term4.canvas.screen.Screens.screen(a.player) != null, "the duel picker opens");
             b.sent.clear();
             MinecraftServer.getCommandManager().execute(b.player, "duel accept ReqC");
             assertTrue(plain(b).stream().anyMatch(l -> l.contains("No duel request from ReqC")), "nothing was requested: " + plain(b));

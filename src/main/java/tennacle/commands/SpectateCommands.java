@@ -95,6 +95,18 @@ public final class SpectateCommands {
         Commands.register(spectate);
     }
 
+    /** {@code me} watching {@code game} as {@code /spectate} would put them there; why not, else null. */
+    public static @org.jetbrains.annotations.Nullable String watch(@org.jetbrains.annotations.NotNull Player me,
+                                                                   @org.jetbrains.annotations.NotNull Game game) {
+        if (Matches.grotto().engaged(me)) return "You're in a game.";
+        if (game.status() != Game.Status.OPEN) return "That game is over.";
+        if (game.roster().reservedSlotOf(me.getUsername()) != null) return "You're still part of that game; /rejoin gets you back in.";
+        if (!Spectating.allowed(game)) return "That game doesn't allow spectators.";
+        Spectators.exit(me);
+        Spectators.enter(game, me, null);
+        return null;
+    }
+
     // a seat held for the viewer makes it their own game: the way back in is the seat, never a view of it
     private static boolean holdsMySeat(Player me, Game game) {
         if (game.roster().reservedSlotOf(me.getUsername()) == null) return false;

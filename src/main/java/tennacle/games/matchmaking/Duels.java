@@ -107,8 +107,12 @@ public final class Duels {
         }
         Player target = online(me, targetName);
         if (target == null) return;
-        Msg.fail(me, "The duel menu is not made yet. Pick a mode: ",
-                Msg.run("/duel " + target.getUsername() + " <" + String.join("|", Matches.launchedFull()) + ">"));
+        tennacle.lobby.menus.PlayerMenu.duel(me, target);
+    }
+
+    /** {@code /duel <target> <mode> [-preset=<preset>]} from {@code me}. */
+    public static void request(@NotNull Player me, @NotNull Player target, @NotNull Mode mode, @Nullable String preset) {
+        request(me, target.getUsername(), mode.name(), preset != null ? List.of("-preset=" + preset) : List.of());
     }
 
     private static void accept(Player me, String fromName) {
@@ -153,6 +157,10 @@ public final class Duels {
         }
         Player target = online(me, targetName);
         if (target == null) return;
+        if (!tennacle.lobby.Settings.DUEL_REQUESTS.of(target).admits(me, target)) {
+            Msg.fail(me, Msg.v(target.getUsername()), " takes no duel requests.");
+            return;
+        }
         boolean within = Parties.together(me, target); // party mates: a 1v1 between the two, whoever leads
         if (!within && !Parties.requireLeader(me)) return;
         List<Player> mine = within ? List.of(me) : Parties.of(me);

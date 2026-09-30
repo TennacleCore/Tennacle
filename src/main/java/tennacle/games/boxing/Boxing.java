@@ -148,18 +148,13 @@ public final class Boxing {
                 .build();
         Duels.mode(boxing);
         Flags.offer(boxing, "preset");
-        Careers.sheet("boxing", Boxing::career);
+        Careers.card("boxing", new Careers.Card("Boxing", List.of(CAREER_HITS, CAREER_SPRINT, CAREER_COMBO), List.of(
+                Careers.Card.count("Hits", 0), new Careers.Row("W-tap", v -> wtap(v[0], v[1])),
+                Careers.Card.count("Best combo", 2))));
     }
 
     static String wtap(int hits, int sprint) {
         return hits > 0 ? Math.round(sprint * 100.0 / hits) + "%" : "N/A";
     }
 
-    // the career line: w-tap % derives at display
-    private static CompletableFuture<Void> career(CommandSender to, UUID uuid, String username) {
-        return Careers.read(Matches.grotto().vault(), uuid, List.of(CAREER_HITS, CAREER_SPRINT, CAREER_COMBO)).thenAccept(v -> {
-            String wtap = v[0] > 0 ? Math.round(v[1] * 100.0 / v[0]) + "%" : "-";
-            Msg.say(to, Msg.v(username), " boxing: ", Msg.v(v[0]), " hits, ", Msg.v(wtap), " w-tap, best combo ", Msg.v(v[2]), ".");
-        });
-    }
 }

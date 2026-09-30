@@ -20,16 +20,28 @@ public final class Lobby {
 
     public static void install() {
         Board board = Frames.tennacleLobby(b -> b
-                .line(viewer -> Frames.row("Daily Winstreak: ", 0)) // filler until the vault tracks them
-                .line(viewer -> Frames.row("Overall Winstreak: ", 0))
+                .line(viewer -> tennacle.Msg.THEME.dim(where(viewer)))
                 .blank()
                 .line(viewer -> Frames.row("Online: ", MinecraftServer.getConnectionManager().getOnlinePlayerCount()))
-                .line(viewer -> Frames.row("Playing: ", playing())));
+                .line(viewer -> Frames.row("Playing: ", playing()))
+                .blank()
+                .line(viewer -> Frames.row("Party: ", party(viewer))));
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, event -> {
             if (event.isFirstSpawn()) Boards.show(event.getPlayer(), board, 0);
         });
         MinecraftServer.getSchedulerManager().buildTask(() -> Boards.touchAll(board))
                 .repeat(TaskSchedule.tick(20)).schedule();
+    }
+
+    private static String where(net.minestom.server.entity.Player viewer) {
+        Lobbies.Lobby lobby = Lobbies.in(viewer);
+        if (lobby == null) return "";
+        return lobby == Lobbies.main() ? lobby.name() : lobby.name() + " Lobby";
+    }
+
+    private static Object party(net.minestom.server.entity.Player viewer) {
+        int size = tennacle.games.matchmaking.Parties.members(viewer).size();
+        return size > 1 ? size : "None";
     }
 
     private static int playing() {

@@ -137,7 +137,7 @@ public final class Playground {
     }
 
     /** The lobby body: adventure, nothing worn, nothing carried - a game outfits its own. */
-    static void outfit(Player p) {
+    public static void outfit(Player p) {
         io.github.term4.grotto.Bodies.revive(p); // a death nobody answered arrives here dead, and unviewable with it
         p.setRespawnPoint(SPAWN); // a lobby death lands here, never where a game last put the player
         p.setGameMode(GameMode.ADVENTURE);
@@ -146,6 +146,7 @@ public final class Playground {
         p.setChestplate(ItemStack.AIR);
         p.setLeggings(ItemStack.AIR);
         p.setBoots(ItemStack.AIR);
+        Hotbar.dress(p);
     }
 
     // polls until the Via/proxy handshake reveals the protocol (-1 until then), a few tries only

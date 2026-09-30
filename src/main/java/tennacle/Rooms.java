@@ -95,8 +95,12 @@ public final class Rooms {
         if (watched != null) return TeamChat.spectatorRoom(watched, me, message);
         Object room = roomOf(me);
         List<Player> to = new ArrayList<>();
+        boolean lobby = tennacle.lobby.Lobbies.in(me) != null;
         for (Player other : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
-            if (gameOf(other) == null && Matches.grotto().spectating(other) == null && roomOf(other) == room) to.add(other);
+            if (gameOf(other) != null || Matches.grotto().spectating(other) != null || roomOf(other) != room) continue;
+            // a lobby reader's own setting says whose lines reach them; their own always do
+            if (lobby && other != me && !tennacle.lobby.Settings.LOBBY_CHAT.of(other).admits(me, other)) continue;
+            to.add(other);
         }
         return new Chat.Room(to, Chat.plain(me, message));
     }

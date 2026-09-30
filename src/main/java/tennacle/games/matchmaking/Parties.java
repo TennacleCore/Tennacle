@@ -122,6 +122,43 @@ public final class Parties {
         return party != null ? party.id : player.getUuid();
     }
 
+    /** One of a party's members, online or not. */
+    public record Member(@NotNull UUID id, @NotNull String name, boolean leader, boolean online) {}
+
+    /** {@code player}'s party, the leader first; alone, just them. */
+    public static @NotNull List<Member> members(@NotNull Player player) {
+        Party party = byMember.get(player.getUuid());
+        if (party == null) return List.of(new Member(player.getUuid(), player.getUsername(), true, true));
+        List<Member> out = new ArrayList<>();
+        for (UUID id : party.members) {
+            boolean online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(id) != null;
+            out.add(new Member(id, party.names.getOrDefault(id, "?"), id.equals(party.leader), online));
+        }
+        return out;
+    }
+
+    /** {@code /party <target>} from {@code from}. */
+    public static void invite(@NotNull Player from, @NotNull Player target) {
+        invite(from, target.getUsername());
+    }
+
+    /** {@code /party kick}, {@code /party transfer}, {@code /party disband} and {@code /party leave} for a menu. */
+    public static void kick(@NotNull Player leader, @NotNull Member member) {
+        kick(leader, member.name());
+    }
+
+    public static void transfer(@NotNull Player leader, @NotNull Member member) {
+        transfer(leader, member.name());
+    }
+
+    public static void disbandBy(@NotNull Player leader) {
+        disband(leader);
+    }
+
+    public static void leaveBy(@NotNull Player player) {
+        leave(player);
+    }
+
     /** Whether the two share a party. */
     public static boolean together(@NotNull Player a, @NotNull Player b) {
         Party party = byMember.get(a.getUuid());
@@ -242,6 +279,10 @@ public final class Parties {
         if (target == null) return;
         if (target == from) {
             Msg.fail(from, "You can't invite yourself.");
+            return;
+        }
+        if (!tennacle.lobby.Settings.PARTY_INVITES.of(target).admits(from, target)) {
+            Msg.fail(from, Msg.v(target.getUsername()), " takes no party invites.");
             return;
         }
         if (party != null && party.members.contains(target.getUuid())) {

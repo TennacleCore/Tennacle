@@ -58,6 +58,9 @@ public final class TestWiring {
         tennacle.games.bridge.Bridge.install();
         tennacle.games.bedfight.BedFight.install();
         tennacle.games.bedwars.BedWars.install();
+        tennacle.lobby.Settings.install();
+        tennacle.lobby.Hotbar.install();
+        tennacle.lobby.Counts.install();
         tennacle.commands.LobbyCommands.register();
     }
 }
