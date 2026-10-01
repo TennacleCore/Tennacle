@@ -1892,13 +1892,14 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
 - Whatever the archive's blocks still refuse moves to the nearest spot they take, whole blocks along the bed's
   axes, a keeper settled onto the floor under it, and a keeper first to a spot the archive marks with a barrier
   one to three over its feet, as it marks nearly every keeper spot (`base_fit.nearest_fit`, noted per base as
-  `fitted`): the archive's build differs from Hypixel's here and there. Four of Lighthouse's bases (Blue, Yellow,
-  White, Gray) are the archive's mirrored about the bed line: their beds, forges and spawns sit on the line as in
-  the archive, but the keeper pair stands a block aside of the archive's spots (a glass tile under a barrier), so
-  both keepers move a block onto them and keep the captured half block off them every Lighthouse keeper has.
-  Moving those bases whole a block instead fit the keepers but put every forge off its platform's middle. Lectus's
-  item shops float over a slab (down 0.56) and its forges drop into a hopper column, Harvesting's forges into its
-  back wall (a block toward the bed).
+  `fitted`): the archive's build differs from Hypixel's here and there (every known difference, with what a fresh
+  download must check, is in `bedwars-map-differences.md`). Four of Lighthouse's bases (Blue, Yellow, White, Gray)
+  were rebuilt on Hypixel: their beds, forges and spawns sit where the archive's do, but the keeper pair stands a
+  block aside of the archive's spots (a glass tile under a barrier), so both keepers move a block onto them and keep
+  the captured half block off them every Lighthouse keeper has. Moving those bases whole a block instead fit the
+  keepers but put every forge off its platform's middle, and no shift or mirror fits the blocks Hypixel re-sent
+  there. Lectus's item shops float over a slab (down 0.56) and its forges drop into a hopper column, Harvesting's
+  forges into its back wall (a block toward the bed).
 - A generator over a pad of its own block stands at the pad's middle on every captured map (30 generators:
   Mirage, Rooted, Scorched Sands, Sky Rise, Terminal, Fort Doon), but for Lucky Rush's diamonds, captured 6 blocks
   in from the middle of their 15-wide diamond islands: its live islands moved in with its bases. The arenas
