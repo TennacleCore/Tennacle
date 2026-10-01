@@ -1890,11 +1890,25 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   else only the bed moved, as on Swashbuckle (a block forward at all four bases, the keepers centered in their
   alcoves as captured), and the arena's bed moves to Hypixel's. No other captured map drifts.
 - Whatever the archive's blocks still refuse moves to the nearest spot they take, whole blocks along the bed's
-  axes, a keeper settled onto the floor under it (`base_fit.nearest_fit`, noted per base as `fitted`): the
-  archive's build differs from Hypixel's here and there. Four of Lighthouse's bases put a slab under the item
-  shop (up 0.5) and a wall where the upgrades stand (a block toward the bed line), Lectus's item shops float over
-  a slab (down 0.56) and its forges drop into a hopper column, Harvesting's forges into its back wall (a block
-  toward the bed).
+  axes, a keeper settled onto the floor under it, and a keeper first to a spot the archive marks with a barrier
+  one to three over its feet, as it marks nearly every keeper spot (`base_fit.nearest_fit`, noted per base as
+  `fitted`): the archive's build differs from Hypixel's here and there. Four of Lighthouse's bases (Blue, Yellow,
+  White, Gray) are the archive's mirrored about the bed line: their beds, forges and spawns sit on the line as in
+  the archive, but the keeper pair stands a block aside of the archive's spots (a glass tile under a barrier), so
+  both keepers move a block onto them and keep the captured half block off them every Lighthouse keeper has.
+  Moving those bases whole a block instead fit the keepers but put every forge off its platform's middle. Lectus's
+  item shops float over a slab (down 0.56) and its forges drop into a hopper column, Harvesting's forges into its
+  back wall (a block toward the bed).
+- A generator over a pad of its own block stands at the pad's middle on every captured map (30 generators:
+  Mirage, Rooted, Scorched Sands, Sky Rise, Terminal, Fort Doon), but for Lucky Rush's diamonds, captured 6 blocks
+  in from the middle of their 15-wide diamond islands: its live islands moved in with its bases. The arenas
+  center them (`pad_centered`, 2026-10-01).
+- The block changes the captures saw cross-check all this (`live_fit.py`, over `live-changes-<date>.json`):
+  Hypixel re-sends a map block wherever a dig or a refused placement touched it, so a change naming the archive's
+  own block at a shifted cell is the live map showing through. They find Lucky Rush's bed drifts from the blocks
+  alone, its diamond islands 6 blocks out in the archive, Swashbuckle's buildings unmoved (44 blocks match at no
+  shift), and Lighthouse's Blue base a block aside. Only blocks the shop can't sell count: players' wool and clay
+  match the map's own at random shifts.
 - Shopkeepers are hand-placed, base by base: Lighthouse's pairs sit 6 and 5 blocks either side of the bed line at
   some bases and 5 and 6 at others (the user saw three bases a block off, 2026-09-30), and on eleven maps they
   stand on carpet, 1/16 up (Lucky Rush, Ironclad, Rooted). So every base's keepers come from the captures
