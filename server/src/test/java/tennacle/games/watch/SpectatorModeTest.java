@@ -73,6 +73,33 @@ class SpectatorModeTest extends HeadlessServerTest {
         }
     }
 
+    /** A watcher of a game that dresses its watchers invisible: /l takes the dressing off, the hide with it. */
+    @Test
+    void aWatcherLeavesVisible() throws InterruptedException {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(30.5, 65, 20.5), "LeaveSeenA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(32.5, 65, 22.5), "LeaveSeenB");
+        FakePlayer w = FakePlayer.connect(instance, new Pos(34.5, 65, 24.5), "LeaveSeenW");
+        Game game = null;
+        try {
+            game = Matches.start(Matches.mode("sumo"), Matches.platformFor(null), List.of(List.of(a.player), List.of(b.player)));
+            settle(() -> Game.of(a.player) != null && Game.of(b.player) != null);
+            game.state().set(io.github.term4.grotto.state.Scope.GAME, io.github.term4.grotto.modules.view.Spectating.INVISIBLE, true);
+            MinecraftServer.getCommandManager().execute(w.player, "spectate LeaveSeenA");
+            settle(() -> Matches.grotto().spectating(w.player) != null);
+            assertTrue(w.player.hasEffect(net.minestom.server.potion.PotionEffect.INVISIBILITY), "a watcher wears it");
+            MinecraftServer.getCommandManager().execute(w.player, "l");
+            settle(() -> Matches.grotto().spectating(w.player) == null);
+            assertFalse(w.player.hasEffect(net.minestom.server.potion.PotionEffect.INVISIBILITY), "the dressing comes off");
+            assertFalse(w.player.isInvisible(), "and the body shows");
+        } finally {
+            Spectators.exit(w.player);
+            if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+            w.player.remove();
+        }
+    }
+
     /**
      * One right-click on a block a 1.8 client could not use, as the client sends it: the placement, then the
      * use-item behind it, both on the main hand. {@code PlayerControllerMP.onPlayerRightClick} returns the

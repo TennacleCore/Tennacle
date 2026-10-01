@@ -184,6 +184,9 @@ public final class Spectators {
         // they land: a tab row still flagged spectator draws them INVISIBLE to every other client
         boolean theater = Theaters.leave(viewer);
         Game watched = Matches.grotto().spectating(viewer);
+        // removed, not cleared: the potion's hide lifts only on its remove event, and SpectatorMode keeps the body
+        // hidden while it lasts (a watcher back in the lobby was a name over nothing, 2026-09-30)
+        if (watched != null || SpectatorMode.mode(viewer) != null) undress(viewer);
         boolean wore = SpectatorMode.exit(viewer); // the camera home and the body back before the world changes
         if (watched == null && !wore) return theater;
         if (watched != null) {
@@ -259,6 +262,11 @@ public final class Spectators {
     }
 
     private static final int WAIT_TICKS = 32767; // captured: Hypixel's dead wear both at 32767
+
+    private static void undress(Player p) {
+        p.removeEffect(PotionEffect.INVISIBILITY);
+        p.removeEffect(PotionEffect.NIGHT_VISION);
+    }
 
     /** What a watcher or a dead seat wears while it waits, as the game's rules say; the respawn's body sheds it. */
     public static void dress(@NotNull Game game, @NotNull Player p) {

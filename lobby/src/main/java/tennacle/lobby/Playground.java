@@ -24,12 +24,15 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.instance.InstanceContainer;
+import net.minestom.server.potion.TimedPotion;
 import net.minestom.server.instance.LightingChunk;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.timer.TaskSchedule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 
 /**
@@ -141,6 +144,9 @@ public final class Playground {
         io.github.term4.grotto.Bodies.revive(p); // a death nobody answered arrives here dead, and unviewable with it
         p.setRespawnPoint(SPAWN); // a lobby death lands here, never where a game last put the player
         p.setGameMode(GameMode.ADVENTURE);
+        // removed, not cleared: an invisibility potion's hide lifts only on its remove event
+        for (TimedPotion effect : List.copyOf(p.getActiveEffects())) p.removeEffect(effect.potion().effect());
+        p.setInvisible(false);
         p.getInventory().clear();
         p.setHelmet(ItemStack.AIR);
         p.setChestplate(ItemStack.AIR);
