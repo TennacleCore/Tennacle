@@ -181,4 +181,22 @@ class BedwarsMapsTest extends HeadlessServerTest {
         assertEquals("foot", world.getBlock(3, 65, 3).getProperty("part"));
         assertEquals(Block.AIR, world.getBlock(3, 65, 2));
     }
+
+    @Test
+    void liveBarriersGoIn() throws IOException {
+        Path archive = dir.resolve("archive"), markers = dir.resolve("markers"), out = dir.resolve("out");
+        Files.createDirectories(archive);
+        try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(archive.resolve("Test Map.zip")))) {
+            zip.putNextEntry(new ZipEntry("Test Map/region/r.0.0.mca"));
+            zip.write(region());
+            zip.closeEntry();
+        }
+        Files.createDirectories(markers);
+        Files.writeString(markers.resolve("Test Map.json"), MARKERS.replace("\"generator points\":",
+                "\"live blocks\": [[5, 66, 5, \"barrier\"]], \"generator points\":"), StandardCharsets.UTF_8);
+
+        BedwarsMaps.convert(archive, markers, out, Set.of("Test Map"));
+        Instance world = Arena.read(out.resolve("bedwars-test-map.bncl")).instantiate();
+        assertEquals(Block.BARRIER, world.getBlock(5, 66, 5));
+    }
 }

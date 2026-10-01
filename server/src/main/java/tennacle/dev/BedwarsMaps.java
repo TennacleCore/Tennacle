@@ -136,6 +136,17 @@ public final class BedwarsMaps {
         }
     }
 
+    // blocks Hypixel added since the archive, where captures saw them (Swashbuckle's barriers)
+    private static void liveBlocks(Instance instance, JsonObject map) {
+        if (!map.has("live blocks")) return;
+        for (JsonElement element : map.getAsJsonArray("live blocks")) {
+            JsonArray cell = element.getAsJsonArray();
+            Block block = Block.fromKey("minecraft:" + cell.get(3).getAsString());
+            if (block == null) throw new IllegalArgumentException("no block " + cell.get(3).getAsString());
+            instance.setBlock(cell.get(0).getAsInt(), cell.get(1).getAsInt(), cell.get(2).getAsInt(), block);
+        }
+    }
+
     private static byte[] world(Path zip, JsonObject map) throws IOException {
         Path temp = Files.createTempDirectory("bedwars-map");
         try (ZipFile archive = new ZipFile(zip.toFile())) {
@@ -161,6 +172,7 @@ public final class BedwarsMaps {
             return LegacyAnvil.toPolar(temp, instance -> {
                 clear(instance, room(map));
                 moveBeds(instance, map);
+                liveBlocks(instance, map);
             });
         } finally {
             try (Stream<Path> paths = Files.walk(temp)) {
