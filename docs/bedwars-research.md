@@ -305,7 +305,9 @@ Pink `#EF83A4`. 1.8 clients render every bed red; 1.12+ see team-colored beds (w
   while its distance is under the radius, and Rooftop, Sky Rise and Ironclad stop at their file's 120, 123
   and 131 (cap, 2026-09-25 to 27). The area is that circle at every height, with one height limit across the
   whole map (our play). Elsewhere the edge falls between whole numbers, and each arena takes the simplest
-  number between the last block placed and the first refused. No way of measuring makes every radius whole:
+  number between the last block placed and the first refused, within a block and a half of the file's where
+  the file has one: Acropolis's probes only bracket 100.3 to 150.9, and the simplest number, 101, left its outer
+  bases at x 103 off the circle (the user, 2026-09-30); its file says 151, so 150. No way of measuring makes every radius whole:
   the one that fits every map gives whole numbers on 5 of the 11 probed, and Temple's edge falls between
   100.18 and 100.25. On Shipment no one circle round 0,0 takes
   both its south edge (114.44 to 114.53) and its west (114.76 to 114.86), though one centered up to a block
@@ -1875,7 +1877,11 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   same way against every base's bed, forges to within half a block. A flipped copy of a base mirrors the shopkeeper spots. On 16 maps where
   both hands were captured the item shop and upgrades also trade places; on Impere they stay put. A base the
   captures saw keeps its own positions, one of the same hand copies it, and an uncaptured map's flipped
-  copies trade. All 53 captured bases come out exactly.
+  copies trade. All 53 captured bases come out exactly. A copy's hand comes from its forge where the forge is
+  known on its own (captured drops, its platform) and sits off the bed's line, the blocks only otherwise: Lucky
+  Rush's near-symmetric bases matched both hands alike (1.012 to 1), and four of its copies had come out mirrored
+  wrong, shopkeepers 4 blocks off and spawns 3 (the user, 2026-09-30). Every ITEM SHOP and UPGRADES stand any
+  capture saw, at any base in view, now sits on its marker (`keeper_audit.py`, 68 maps).
 - Items drop where the captures saw them, to the 1/32 block the 1.8 wire carries (`spawn_points.py`: a
   forge or generator drops 0.2 up and at most 0.1 across). A generator's point is its drops', else its
   hologram's less 2.97, else a turned copy of one over a block of the kind at the same rise; a map no
