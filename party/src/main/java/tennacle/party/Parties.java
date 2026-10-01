@@ -545,13 +545,10 @@ public final class Parties {
             Msg.fail(leader, "Your party is already with you.");
             return;
         }
-        List<String> busy = new ArrayList<>();
-        for (Player member : away) {
-            if (warp.busy(member, leader)) busy.add(member.getUsername());
-        }
-        if (!busy.isEmpty() && !Confirm.again(leader, "party warp")) {
-            frame(leader, who(String.join(", ", busy)).append(yellow((busy.size() == 1 ? " is" : " are")
-                    + " in a game. Type /p warp again within " + Confirm.WINDOW_MILLIS / 1000 + " seconds to warp them anyway.")));
+        boolean busy = away.stream().anyMatch(member -> warp.busy(member, leader));
+        // captured: Hypixel's line, the window ours (Confirm)
+        if (busy && !Confirm.again(leader, "party warp")) {
+            frame(leader, yellow("Some players are still in-game, run the command again to confirm warp!"));
             return;
         }
         List<String> warped = new ArrayList<>();
@@ -726,8 +723,9 @@ public final class Parties {
         return Component.text(" •", online ? NamedTextColor.GREEN : NamedTextColor.RED);
     }
 
+    // a name as Hypixel shows a player with no rank
     private static Component who(String name) {
-        return Component.text(name, NamedTextColor.AQUA);
+        return Component.text(name, NamedTextColor.GRAY);
     }
 
     private static Component yellow(String text) {

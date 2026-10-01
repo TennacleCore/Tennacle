@@ -93,7 +93,7 @@ class PartyWarpTest extends HeadlessServerTest {
             run(mate, "party join WarpBoss");
             lead.sent.clear();
             run(lead, "party warp");
-            assertTrue(plain(lead).contains("WarpBusy is in a game. Type /p warp again within 10 seconds to warp them anyway."),
+            assertTrue(plain(lead).contains("Some players are still in-game, run the command again to confirm warp!"),
                     "" + plain(lead));
             assertSame(game, Game.of(mate.player), "still playing");
             run(lead, "party warp");
