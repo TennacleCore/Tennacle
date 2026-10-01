@@ -159,4 +159,26 @@ class BedwarsMapsTest extends HeadlessServerTest {
         assertNotNull(chunk);
         assertEquals(15, chunk.getSectionAt(66).skyLight().getLevel(5, 66 & 15, 5), "open sky over the floor is lit");
     }
+
+    @Test
+    void aMovedBedFollows() throws IOException {
+        Path archive = dir.resolve("archive"), markers = dir.resolve("markers"), out = dir.resolve("out");
+        Files.createDirectories(archive);
+        try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(archive.resolve("Test Map.zip")))) {
+            zip.putNextEntry(new ZipEntry("Test Map/region/r.0.0.mca"));
+            zip.write(region());
+            zip.closeEntry();
+        }
+        Files.createDirectories(markers);
+        Files.writeString(markers.resolve("Test Map.json"), MARKERS.replace(
+                "\"bed\": {\"head\": [3, 65, 3], \"foot\": [3, 65, 2], \"facing\": \"south\"},",
+                "\"bed\": {\"head\": [3, 65, 4], \"foot\": [3, 65, 3], \"facing\": \"south\"},"
+                        + " \"bed archive\": {\"head\": [3, 65, 3], \"foot\": [3, 65, 2]},"), StandardCharsets.UTF_8);
+
+        BedwarsMaps.convert(archive, markers, out, Set.of("Test Map"));
+        Instance world = Arena.read(out.resolve("bedwars-test-map.bncl")).instantiate();
+        assertEquals("head", world.getBlock(3, 65, 4).getProperty("part"));
+        assertEquals("foot", world.getBlock(3, 65, 3).getProperty("part"));
+        assertEquals(Block.AIR, world.getBlock(3, 65, 2));
+    }
 }

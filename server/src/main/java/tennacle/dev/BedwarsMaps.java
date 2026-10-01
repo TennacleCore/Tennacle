@@ -95,7 +95,7 @@ public final class BedwarsMaps {
                     continue;
                 }
                 String id = "bedwars-" + name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
-                byte[] arena = build(id, map, world(zip, room(map)));
+                byte[] arena = build(id, map, world(zip, map));
                 Files.write(out.resolve(id + ".bncl"), arena);
                 written++;
                 System.out.println(name + ": " + id + ".bncl, " + arena.length / 1024 + " KB, " + provenance(map));
@@ -120,7 +120,23 @@ public final class BedwarsMaps {
         }
     }
 
-    private static byte[] world(Path zip, RegionMarker.@Nullable Cuboid room) throws IOException {
+    // a bed Hypixel moved inside a base the archive keeps as it plays (Swashbuckle's stand a block forward)
+    private static void moveBeds(Instance instance, JsonObject map) {
+        for (JsonElement element : map.getAsJsonArray("bases")) {
+            JsonObject base = element.getAsJsonObject();
+            JsonObject from = object(base, "bed archive");
+            if (from == null) continue;
+            JsonObject to = base.getAsJsonObject("bed");
+            BlockVec oldHead = block(from.getAsJsonArray("head")), oldFoot = block(from.getAsJsonArray("foot"));
+            Block head = instance.getBlock(oldHead), foot = instance.getBlock(oldFoot);
+            instance.setBlock(oldHead, Block.AIR);
+            instance.setBlock(oldFoot, Block.AIR);
+            instance.setBlock(block(to.getAsJsonArray("foot")), foot);
+            instance.setBlock(block(to.getAsJsonArray("head")), head);
+        }
+    }
+
+    private static byte[] world(Path zip, JsonObject map) throws IOException {
         Path temp = Files.createTempDirectory("bedwars-map");
         try (ZipFile archive = new ZipFile(zip.toFile())) {
             String root = null;
@@ -142,7 +158,10 @@ public final class BedwarsMaps {
                 }
             }
             if (!LegacyAnvil.isLegacy(temp)) throw new IOException(zip + " is not a pre-1.13 world");
-            return LegacyAnvil.toPolar(temp, instance -> clear(instance, room));
+            return LegacyAnvil.toPolar(temp, instance -> {
+                clear(instance, room(map));
+                moveBeds(instance, map);
+            });
         } finally {
             try (Stream<Path> paths = Files.walk(temp)) {
                 for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
