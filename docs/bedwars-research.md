@@ -1880,14 +1880,29 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   copies trade. All 53 captured bases come out exactly. A copy's hand comes from its forge where the forge is
   known on its own (captured drops, its platform) and sits off the bed's line, the blocks only otherwise: Lucky
   Rush's near-symmetric bases matched both hands alike (1.012 to 1), and four of its copies had come out mirrored
-  wrong, shopkeepers 4 blocks off and spawns 3 (the user, 2026-09-30).
+  wrong, shopkeepers 4 blocks off and spawns 3 (the user, 2026-09-30). Its forges' 2 blocks off the line were
+  its drift (below): carried, they sit on it and the copies turn without a flip.
+- A live base can sit apart from the archive's. Each game's start sets every team's bed and clears an empty
+  team's pair to air (`live_beds.py`), so a base's drift is the archive's bed less Hypixel's: all eight of Lucky
+  Rush's are 6 blocks further out and 2 further from their partner in the archive, and every capture there landed
+  in its walls (a keeper in black clay, the user's screenshot, 2026-09-30). Where the captures fit the archive's
+  blocks better carried by that drift, the base moved with its bed and they are carried (`map_markers.carried`);
+  else only the bed moved, as on Swashbuckle (a block forward at all four bases, the keepers centered in their
+  alcoves as captured), and the arena's bed moves to Hypixel's. No other captured map drifts.
+- Whatever the archive's blocks still refuse moves to the nearest spot they take, whole blocks along the bed's
+  axes, a keeper settled onto the floor under it (`base_fit.nearest_fit`, noted per base as `fitted`): the
+  archive's build differs from Hypixel's here and there. Four of Lighthouse's bases put a slab under the item
+  shop (up 0.5) and a wall where the upgrades stand (a block toward the bed line), Lectus's item shops float over
+  a slab (down 0.56) and its forges drop into a hopper column, Harvesting's forges into its back wall (a block
+  toward the bed).
 - Shopkeepers are hand-placed, base by base: Lighthouse's pairs sit 6 and 5 blocks either side of the bed line at
   some bases and 5 and 6 at others (the user saw three bases a block off, 2026-09-30), and on eleven maps they
   stand on carpet, 1/16 up (Lucky Rush, Ironclad, Rooted). So every base's keepers come from the captures
   themselves (`keepers.py`): whatever stands under a name stand, which Hypixel puts at each keeper's x and z 0.16
   over its feet at every base however far (it names it ITEM SHOP or UPGRADES only near the viewer), a villager
   or a team's skin (Dragonstar's Red stood pigmen; ours stay the blacksmith). All 832 keepers on the 68
-  captured maps stand exactly where captured, height included (`keeper_exact.py`). Spawns are exact at every
+  captured maps stand exactly where captured, height included (`keeper_exact.py`), but for the drift and the
+  archive's differences above. Spawns are exact at every
   base we played; between bases they drift up to a block on 18 maps (Ambush 9.5 and 10.5 out), and a base no
   capture played keeps its copy.
 - Items drop where the captures saw them, to the 1/32 block the 1.8 wire carries (`spawn_points.py`: a
