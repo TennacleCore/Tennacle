@@ -43,8 +43,8 @@ public final class PlayMenu {
         for (int i = 0; i < sizes.size(); i++) {
             Size size = sizes.get(i);
             screen.press(slots[i], v -> item(v, size, icon.apply(size.mode())), (v, click) -> {
-                if (!(click instanceof Click.Right) || !choosesMap(size.mode())) return press(v, size);
-                MapMenu.open(v, size.mode(), size.id());
+                if (!(click instanceof Click.Right) || !MapMenu.chooses(size.mode())) return press(v, size);
+                MapMenu.play(v, size.mode(), size.id());
                 return null;
             });
         }
@@ -94,12 +94,8 @@ public final class PlayMenu {
         } else {
             entry.action("Click to play!");
         }
-        if (choosesMap(mode)) entry.action("Right-click to choose a map!");
+        if (MapMenu.chooses(mode)) entry.action("Right-click to choose a map!");
         return entry.render(viewer);
-    }
-
-    private static boolean choosesMap(Mode mode) {
-        return mode.arena().names().size() > 1;
     }
 
     static String clock(long since) {

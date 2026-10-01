@@ -28,6 +28,7 @@ import net.minestom.server.event.player.PlayerDisconnectEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,7 @@ import java.util.function.BiConsumer;
  * while the party stands, and the accept seats both parties as the sides. Broken up - a member kicked, the party
  * disbanded - the one who led it when it arrived may still accept, alone; nobody else may. Two players of one
  * party duel each other 1v1 without leaving it. Dueling back is another request, never an accept.
- * {@code /duel <player>} alone has no menu yet. Modes register at boot.
+ * {@code /duel <player>} alone opens what {@link #picker(BiConsumer)} set. Modes register at boot.
  */
 public final class Duels {
 
@@ -123,9 +124,13 @@ public final class Duels {
         picker.accept(me, target);
     }
 
-    /** {@code /duel <target> <mode> [-preset=<preset>]} from {@code me}. */
-    public static void request(@NotNull Player me, @NotNull Player target, @NotNull Mode mode, @Nullable String preset) {
-        request(me, target.getUsername(), mode.name(), preset != null ? List.of("-preset=" + preset) : List.of());
+    /** {@code /duel <target> <mode> [map] [-preset=<preset>]} from {@code me}, {@code map} one of the mode's pool names. */
+    public static void request(@NotNull Player me, @NotNull Player target, @NotNull Mode mode, @Nullable String map,
+                               @Nullable String preset) {
+        List<String> words = new ArrayList<>();
+        if (map != null) words.add(map);
+        if (preset != null) words.add("-preset=" + preset);
+        request(me, target.getUsername(), mode.name(), words);
     }
 
     private static void accept(Player me, String fromName) {
@@ -244,7 +249,8 @@ public final class Duels {
 
     // the map when one was named, else the pool it will come from
     private static Component on(Mode mode, Options options) {
-        return Component.text(" on ", NamedTextColor.YELLOW).append(Msg.v(options.map() != null ? options.map() : mode.arena().label()));
+        return Component.text(" on ", NamedTextColor.YELLOW)
+                .append(Msg.v(options.map() != null ? Matches.mapName(mode, options.map()) : mode.arena().label()));
     }
 
     // scrims' [Accept]: a bold green click that runs the accept

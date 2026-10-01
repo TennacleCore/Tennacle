@@ -60,7 +60,7 @@ public final class PlayerMenu {
                 .build());
     }
 
-    /** The duel picker for {@code target}: the game, whose rules, then the request. */
+    /** The duel picker for {@code target}: the game, whose rules, then the request; a right click picks the map. */
     public static void duel(@NotNull Player viewer, @NotNull Player target) {
         List<Mode> modes = new ArrayList<>();
         for (String name : Matches.launchedFull()) {
@@ -75,13 +75,15 @@ public final class PlayerMenu {
                 Entry entry = Entry.of(Icons.of(mode)).name(mode.title());
                 String sides = sides(v, target);
                 if (sides != null) entry.text(sides);
-                return entry.action("Click to send the request!").render(v);
+                entry.action("Click to send the request!");
+                if (MapMenu.chooses(mode)) entry.action("Right-click to choose a map!");
+                return entry.render(v);
             }, (v, click) -> {
-                if (!target.isOnline()) return target.getUsername() + " is no longer online!";
+                if (!(click instanceof Click.Right) || !MapMenu.chooses(mode)) return request(v, target, mode, null);
                 String refused = refusedDuel(v, target);
                 if (refused != null) return refused;
-                v.closeInventory();
-                Duels.request(v, target, mode, RULES.get(v.getUuid()));
+                MapMenu.open(v, mode, new MapMenu.Use("Duel " + target.getUsername(), mode.title(),
+                        "► Click to send the request!", (entry, map) -> {}, (p, map) -> request(p, target, mode, map)));
                 return null;
             });
         }
@@ -96,6 +98,14 @@ public final class PlayerMenu {
         });
         if (Screens.screen(viewer) != null) Screens.push(viewer, screen.build());
         else Screens.open(viewer, screen.build());
+    }
+
+    private static @Nullable String request(Player viewer, Player target, Mode mode, @Nullable String map) {
+        String refused = refusedDuel(viewer, target);
+        if (refused != null) return refused;
+        viewer.closeInventory();
+        Duels.request(viewer, target, mode, map, RULES.get(viewer.getUuid()));
+        return null;
     }
 
     private static ItemStack head(Player viewer, Player target) {
