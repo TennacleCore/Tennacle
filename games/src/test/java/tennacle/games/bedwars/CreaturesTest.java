@@ -29,6 +29,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.metadata.LivingEntityMeta;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
@@ -79,6 +80,7 @@ class CreaturesTest extends HeadlessServerTest {
             assertTrue(name.startsWith(Match.teamName(game, fa.player)), name);
             assertEquals(8.0f, fish.getHealth(), 0.01f);
             assertTrue(fish.hasEffect(PotionEffect.STRENGTH) && fish.hasEffect(PotionEffect.RESISTANCE), "its swirl's two effects");
+            assertTrue(fish.getActiveEffects().stream().allMatch(e -> e.potion().isAmbient()), "captured: an ambient swirl");
             assertTrue(fish.sides().same(fish, fa.player), "its owner's side");
             assertFalse(fish.sides().same(fish, fb.player), "never the other side's");
             assertTrue(chat(fa).contains("Your creature will fight for you for 15 seconds."), chat(fa).toString());
@@ -109,6 +111,7 @@ class CreaturesTest extends HeadlessServerTest {
             assertFalse(golem.isCustomNameVisible(), "the stand's line is its only tag: a name would sit on the timer");
             assertNotNull(golem);
             assertEquals(20.0f, golem.getHealth(), 0.01f);
+            assertTrue(((LivingEntityMeta) golem.getEntityMeta()).isPotionEffectAmbient(), "captured: an ambient swirl");
             assertTrue(chat(fa).contains("Your creature will fight for you for 240 seconds."), chat(fa).toString());
             ticks(game, 2);
             Entity tag = game.instance().getEntities().stream()

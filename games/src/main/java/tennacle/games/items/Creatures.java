@@ -89,8 +89,10 @@ public final class Creatures implements GameModule {
     /** A side may hurt its own dragon (the user, 2026-09-29); its own Bedbug and Dream Defender stay untouchable. */
     public static final StateKey<Boolean> DRAGONS_OWN_HITS = StateKey.of("creatures.dragons.own-hits", Codec.BOOLEAN, true);
 
-    /** Captured swirls: the bedbug's is what its two effects blend to; the golem's shows with no effect behind it. */
+    /** Captured swirls, both ambient (8=1): the bedbug's is what its two effects blend to; the golem's shows with no effect behind it. */
     static final int DEFENDER_SWIRL = 5134171;
+    // ambient: 1.8 draws it faint, one tick in ten
+    private static final int BEDBUG_EFFECT_FLAGS = Potion.AMBIENT_FLAG | Potion.PARTICLES_FLAG;
     public static final String BEDBUG = "Bedbug", DEFENDER = "Dream Defender";
 
     private static final String TICK = "creatures:tick";
@@ -193,8 +195,8 @@ public final class Creatures implements GameModule {
                 .build());
         int strength = game.rules().resolve(owner, BEDBUG_STRENGTH);
         int resistance = game.rules().resolve(owner, BEDBUG_RESISTANCE);
-        if (strength > 0) fish.addEffect(new Potion(PotionEffect.STRENGTH, strength - 1, (int) life, Potion.PARTICLES_FLAG));
-        if (resistance > 0) fish.addEffect(new Potion(PotionEffect.RESISTANCE, resistance - 1, (int) life, Potion.PARTICLES_FLAG));
+        if (strength > 0) fish.addEffect(new Potion(PotionEffect.STRENGTH, strength - 1, (int) life, BEDBUG_EFFECT_FLAGS));
+        if (resistance > 0) fish.addEffect(new Potion(PotionEffect.RESISTANCE, resistance - 1, (int) life, BEDBUG_EFFECT_FLAGS));
         name(fish, seat.team(), "Silverfish");
         Hologram tag = Hologram.at(at, Match.scenery(game)).line(BEDBUG_TAG, squares(seat.team(), BEDBUG_SQUARES, BEDBUG_SQUARES));
         creatures.put(fish, new Creature(fish, seat.team(), seat, BEDBUG, game.tick(), life, tag, BEDBUG_TAG));
@@ -223,7 +225,8 @@ public final class Creatures implements GameModule {
                 .attackable(Targets.PLAYERS) // the user, 2026-09-28: never a Bedbug or a dragon, not even back when one hurts it
                 .build());
         if (golem.getEntityMeta() instanceof LivingEntityMeta meta) {
-            meta.setEffectParticles(List.of(EffectParticles.swirl(DEFENDER_SWIRL, false)));
+            meta.setEffectParticles(List.of(EffectParticles.swirl(DEFENDER_SWIRL, true)));
+            meta.setPotionEffectAmbient(true);
         }
         // captured: the golem carries no name of its own (nameVisible 0, an empty name); the stand's line is its only tag,
         // and a name at the golem's 3.2 sat on the stand's text at 3.4 (the user, 2026-09-28: the timer unreadable)

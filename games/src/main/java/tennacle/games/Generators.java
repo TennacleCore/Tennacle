@@ -167,10 +167,12 @@ public final class Generators implements GameModule, Building.Reserves {
     public static final StateKey<Integer> PICKUP_DELAY = StateKey.of("generator.pickup-delay", Codec.INT, 10);
     /** Blocks out from a generator's item block, every way, that nobody builds in (captured: 3, a 7 x 7 x 7 cube); {@code -1} = none. */
     public static final StateKey<Integer> RESERVE = StateKey.of("generator.reserve", Codec.INT, 3);
+    /** A fluid may run into that cube (the user, 2026-09-30: Hypixel's water does); off, it stops at the edge as at a base box. */
+    public static final StateKey<Boolean> RESERVE_FLOW = StateKey.of("generator.reserve.flow", Codec.BOOLEAN, true);
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(PICKUP_DELAY, RESERVE);
+        return Set.of(PICKUP_DELAY, RESERVE, RESERVE_FLOW);
     }
 
     public static @NotNull Generators of() {
@@ -246,6 +248,11 @@ public final class Generators implements GameModule, Building.Reserves {
                     && Math.abs(pos.blockZ() - at.blockZ()) <= reach) return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean stillsFluid(@NotNull Point pos) {
+        return game != null && !game.rules().resolve(Scope.GAME, RESERVE_FLOW) && reserves(pos);
     }
 
     @Override

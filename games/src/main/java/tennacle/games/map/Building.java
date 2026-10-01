@@ -182,6 +182,11 @@ public final class Building {
     /** A module that keeps cells clear wherever it is installed, beside the {@link Space}'s own. */
     public interface Reserves {
         boolean reserves(@NotNull Point pos);
+
+        /** A reserved cell a fluid stops at too, while {@link #FLOW_RESERVED} is off. */
+        default boolean stillsFluid(@NotNull Point pos) {
+            return reserves(pos);
+        }
     }
 
     /** The reasons a refusal carries ({@link Refusals#because}), for a mode's line to pick its copy by. */
@@ -309,9 +314,17 @@ public final class Building {
 
     // a cell no fluid may run into: a reserved one under the rule, or one a module holds
     private boolean stilled(Point pos) {
-        if (!game.rules().resolve(Scope.GAME, FLOW_RESERVED) && reserved(pos)) return true;
+        if (!game.rules().resolve(Scope.GAME, FLOW_RESERVED) && reservedFromFluids(pos)) return true;
         for (Predicate<Point> still : stills) {
             if (still.test(pos)) return true;
+        }
+        return false;
+    }
+
+    private boolean reservedFromFluids(Point pos) {
+        if (space.reserved(pos)) return true;
+        for (Reserves module : game.modules(Reserves.class)) {
+            if (module.stillsFluid(pos)) return true;
         }
         return false;
     }

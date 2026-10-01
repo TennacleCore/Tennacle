@@ -2,6 +2,7 @@ package tennacle.games.bedwars;
 
 import io.github.term4.polyp.world.MechanicsWorld;
 import tennacle.boot.Mechanics;
+import tennacle.games.Generators;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -42,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** A sponge drinking its cube ring by ring and vanishing, and the water that stops at a base box or a sponge's cube. */
+/** A sponge drinking its cube ring by ring and vanishing, and the water that stops at a base box or a sponge's cube but runs into a generator's. */
 class SpongeTest extends HeadlessServerTest {
 
     private static final Pos ROOM = new Pos(0.5, 100, 0.5);
@@ -162,6 +163,22 @@ class SpongeTest extends HeadlessServerTest {
             Mechanics.fluids.place(game.shard(), new BlockVec(5, 65, 1), Block.WATER);
             ticks(game, 12);
             assertTrue(game.shard().getBlock(new BlockVec(4, 65, 1)).compare(Block.WATER), "and the cube is open again");
+        });
+    }
+
+    /** The user, 2026-09-30: Hypixel's water runs into a generator's cube, where only building is refused. */
+    @Test
+    void waterRunsIntoAGenerator() {
+        round("SpongeG", (game, fa, fb) -> {
+            // sources six clear of the floor's edge: 1.8 water within five of a drop runs only toward it
+            Mechanics.fluids.place(game.shard(), new BlockVec(0, 65, -11), Block.WATER); // the diamond's cube starts at z -13
+            ticks(game, 15);
+            assertTrue(game.shard().getBlock(new BlockVec(0, 65, -13)).compare(Block.WATER), "it runs in");
+            game.state().set(Scope.GAME, Generators.RESERVE_FLOW, false);
+            Mechanics.fluids.place(game.shard(), new BlockVec(-11, 65, -13), Block.WATER); // the emerald's starts at x -13
+            ticks(game, 15);
+            assertTrue(game.shard().getBlock(new BlockVec(-12, 65, -13)).compare(Block.WATER));
+            assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(-13, 65, -13)), "off, it stops at the edge");
         });
     }
 
