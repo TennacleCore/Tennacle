@@ -594,10 +594,14 @@ with identical numbers; every forge level bought one at a time and left to fill,
   (126, then 276). The pool does not tell a slow forge (above). The start boost runs every spawner at 21
   ticks, Max Team Upgrades or not, so any game's first 15 s of iron counts its forge's spawners
   (`research/bedwars/forge_class.py`, every game on a map agreeing, 2026-09-24 to 26). One spawner:
-  Amazon, Ashfire, Dragonstar, Glacier, Rooftop (as NamuWiki says), Solace and Waterfall. Three: Ambush,
-  Babylon, Bio-Hazard, Crogorm, Deadwood, Dockyard, Gateway, Harvest, Impere, Ironclad, Lightstone, Lucky
-  Rush, Mirage, Playground, Rooted, Sanctum, Scorched Sands, Serenity, Silver Birch and Sky Rise. Doubles
-  matched Solo on the six maps played in both. Orchestra has one too. Two slow forges were bought through
+  Amazon, Ashfire, Dragonstar, Glacier, Rooftop in Solo (as NamuWiki says), Solace, Speedway and Waterfall.
+  Two: Lighthouse and Pernicious. Three: Acropolis, Ambush, Babylon, Bio-Hazard, Cascade, Crogorm, Deadwood,
+  Dockyard, Gateway, Harvest, Highland Peaks, Impere, Ironclad, Lightstone, Lucky Rush, Mirage, Orbit,
+  Playground, Rooted, Sanctum, Scorched Sands, Serenity, Silver Birch, Sky Rise and Urban Plaza. Acropolis,
+  Cascade, Highland Peaks, Lighthouse, Orbit, Pernicious, Speedway and Urban Plaza were counted in Doubles
+  alone (2026-09-30). Doubles matched Solo on every map played in both but Rooftop, whose one Doubles game
+  ran 2 (2026-09-27); a map counted in only one of the two takes that count for the other, noted as assumed
+  in its markers. Orchestra has one too. Two slow forges were bought through
   Molten Forge (cap, Solo, 2026-09-26, the 1 s respawn only: Orchestra twice, Amazon once), and both ran a
   fast forge's periods on one spawner at every level (iron 51, 36, then 21 from Golden Forge on; gold 276,
   201, then 126; emeralds 1302 at Emerald Forge and 701 at Molten) with a fast forge's caps (48, 56, 64, 72
@@ -1879,7 +1883,8 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   has the islands, so v2 is the live build and its arena plays as Orchestra (2026-09-27); Aquarium's emeralds
   drop at y 96.5, away from the blocks the search took;
   Holmgang has two more diamonds at z -11.5 and 12.5; three of Serenity's diamonds had been put over
-  blocks 11 above their drop points.
+  blocks 11 above their drop points. Pernicious plays as the archive's Pernicious v2 the way Orchestra does
+  (2026-09-30): v2's diamond block stands under the captured drop, the other build's 11 blocks out.
 - Forges are placed by hand. Most drop 0.5 over their slab (116 of 155 captured bases), and every base of
   eight maps 1.0 over it; Glacier's sit on block edges (x -86.0) and Amazon's on corners, base after base.
   A few drift: one of Waterfall's drops half a block under the rest, Jurassic's east forge half a block
@@ -1936,18 +1941,18 @@ no creation or rights in them (2026-09-27): each names Hypixel as its author, an
 
 A map no capture recorded is a guess throughout (decided 2026-09-27): nothing on it is taken as right, not
 even the rules that held on every map captured, and its arena carries `bedwars-guessed` so a rotation can
-leave it out. Every arena's `bedwars` data holds its status and what still needs a capture. Recorded: 28
-Solo/Doubles and 27 Triples/Quads maps (Tengshe is recorded but not in the archive). Guessed: 39
-Solo/Doubles, 33 Triples/Quads and all 6 4v4 maps. The recorded maps need nothing more: Mirage's,
-Sanctum's and Serenity's emerald generators were the last gap, captured 2026-09-27. Mirage's stand at y
-50.5, 17 blocks under its bases, where their blocks had put them.
+leave it out. Every arena's `bedwars` data holds its status and what still needs a capture. Recorded: 36
+Solo/Doubles and 32 Triples/Quads maps (Tengshe, Haven, Sky Festival and Yandi are recorded but not in the
+archive). Guessed: 31 Solo/Doubles, 28 Triples/Quads and all 6 4v4 maps. The recorded maps need nothing
+more: Mirage's, Sanctum's and Serenity's emerald generators were the last gap, captured 2026-09-27. Mirage's
+stand at y 50.5, 17 blocks under its bases, where their blocks had put them.
 
-All 67 Solo/Doubles maps are converted: 28 from captures, 34 with spawn, forge and
-shopkeepers guessed from the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt,
-Slumber). So are all 60 Triples/Quads maps (2026-09-27): 27 from captures, 31 guessed, and none found on
-Daolong and Obelisk, the 27 in rotation with a base box from their zone round; Tengshe, in rotation, is not
-in the archive. The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on a
-check. Sign text, heads, banner patterns, flower pot contents and entities do not survive the conversion.
+All 67 Solo/Doubles maps are converted: 36 from captures, 26 with spawn, forge and shopkeepers guessed from
+the slab platform, and 5 with none found (Airshow, Casita, Casita v2, Crypt, Slumber). So are all 60
+Triples/Quads maps: 32 from captures, 26 guessed, and none found on Daolong and Obelisk, every captured one
+with a base box from its zone round; Tengshe, Haven, Sky Festival and Yandi are captured but not in the
+archive (2026-09-30). The guesses land within 2 blocks on about 60% of captured maps, so those maps wait on
+a check. Sign text, heads, banner patterns, flower pot contents and entities do not survive the conversion.
 
 ## 16. Decisions for you
 
@@ -1985,6 +1990,13 @@ check. Sign text, heads, banner patterns, flower pot contents and entities do no
    world as well as a capture. Leaving: Amazon, Deadwood, Harvest, Lucky Rush, Mirage, Rooted, Serenity and
    Silver Birch with 8 teams, Frogiton, Graveship, Harvesting, Horizon, Kubo, Lost Temple and Swashbuckle
    with 4, and Tengshe. All of them are captured, so our rotation keeps them.
+   Captured 2026-09-30 (the user: a build limits round, then a generators round in Doubles and 4s): all
+   twelve, Acropolis, back in the 2026-09-30 rotation, and Haven, Sky Festival and Yandi. Hypixel runs the
+   archive's Pernicious v2, so that arena plays as Pernicious the way Orchestra v2's does. The 4-team maps
+   take 3 spawners in 3s from their 4s count, the rule above, now held on all eleven maps played in both.
+   The eight new 8-team maps take Solo's count from Doubles, which Rooftop breaks (1 in Solo, 2 in Doubles).
+   Left: a world for Haven, Sky Festival, Yandi and Tengshe, and a Solo game on those eight maps if their
+   Solo forges should be measured rather than assumed.
 8. **Which Hypixel maps, in which modes.** Decided 2026-09-27: the first rotation is the fully captured maps
    alone, each in the modes of its team count (8-team maps in Solo and Doubles, 4-team maps in 3s and 4s).
    Guessed maps stay out, and so does Tengshe for now.
