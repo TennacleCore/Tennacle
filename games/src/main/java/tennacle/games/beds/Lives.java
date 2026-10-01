@@ -106,6 +106,11 @@ public final class Lives implements GameModule {
         beds.onFall(team -> {
             for (Slot seat : game.roster().seatsOf(team)) {
                 if (game.roster().ownerOf(seat) == null) {
+                    if (played(seat)) {
+                        Scope scope = Scope.slot(seat.index());
+                        game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
+                        credit(breakerFor(seat));
+                    }
                     standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
                     game.roster().release(seat); // nothing to come back to
                 }
@@ -160,6 +165,7 @@ public final class Lives implements GameModule {
         if (!Beds.stands(game, seat.team())) {
             game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
             if (by != null) Match.addSeat(game, by, counters.finalKills());
+            else credit(breakerFor(seat));
             mark(player, seat, by, verb);
             // a kill within the credit window says so; a plain leave was announced as the departure it is
             standing.out(seat, by != null ? LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game))
@@ -207,6 +213,7 @@ public final class Lives implements GameModule {
         if (!Beds.stands(game, seat.team())) {
             Match.addSeat(game, victim, counters.finalDeaths());
             if (by != null) Match.addSeat(game, by, counters.finalKills());
+            else credit(breakerFor(seat));
             mark(victim, seat, by, verb);
             // the user, 2026-09-29: the eliminated wait where a death waits, with the wait's compass, and never respawn
             respawns.park(victim);
@@ -223,6 +230,26 @@ public final class Lives implements GameModule {
         Match.say(game, Matches.lookOf(game).death().render(game, seat, victim.getUsername(), by, verb, tool));
         Deaths.cue(game, victim, by);
         respawns.queue(victim);
+    }
+
+    // the user, 2026-10-01: a final death nobody else is owed counts for whoever took the bed, while they play on
+    // alive; the line stays the one nobody's credit changes (cap: "evanben fell into the void. FINAL KILL!")
+    private @Nullable Player breakerFor(Slot seat) {
+        Player breaker = Beds.breaker(game, seat.team());
+        Slot theirs = breaker != null ? game.roster().slotOf(breaker) : null;
+        if (theirs == null || respawns.isDead(breaker) || game.state().get(Scope.slot(theirs.index()), LastStanding.OUT)) return null;
+        return breaker;
+    }
+
+    private void credit(@Nullable Player breaker) {
+        if (breaker == null) return;
+        Match.addSeat(game, breaker, counters.kills());
+        Match.addSeat(game, breaker, counters.finalKills());
+    }
+
+    // a seat somebody sat in, not one nobody ever took
+    private boolean played(Slot seat) {
+        return game.roster().participants().stream().anyMatch(p -> p.slot().equals(seat));
     }
 
     private void died(Death death) {

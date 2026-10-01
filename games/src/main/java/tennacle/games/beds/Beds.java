@@ -22,6 +22,7 @@ import io.github.term4.grotto.state.StateKey;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
@@ -38,6 +39,7 @@ import java.util.function.Consumer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * The beds: one a side, a real bed under the mode's bed region over both its blocks, in the owning team's
@@ -87,6 +89,7 @@ public final class Beds implements GameModule {
     /** Every block of every bed, to the side that sleeps in it. */
     private final Map<BlockVec, String> cells = new HashMap<>();
     private final List<java.util.function.Consumer<String>> fell = new java.util.ArrayList<>();
+    private final Map<String, UUID> breakers = new HashMap<>();
 
     /** The beds under {@code key}'s regions; a break counts on the breaker's {@code broken}. */
     public Beds(@NotNull MarkerKey<RegionMarker> key, @NotNull StateKey<Integer> broken) {
@@ -266,6 +269,13 @@ public final class Beds implements GameModule {
         });
     }
 
+    /** Who took {@code team}'s bed by hand, while online; null for the clock or a creature. */
+    public static @Nullable Player breaker(@NotNull Game game, @NotNull String team) {
+        Beds beds = game.module(Beds.class);
+        UUID id = beds != null ? beds.breakers.get(team) : null;
+        return id != null ? MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(id) : null;
+    }
+
     /** Whether {@code team} still has a bed to respawn at. */
     public static boolean stands(@NotNull Game game, @NotNull String team) {
         return game.state().get(Scope.team(team), STANDS);
@@ -294,6 +304,7 @@ public final class Beds implements GameModule {
 
     private void broke(String owner, Player breaker, Point bed) {
         Match.addSeat(game, breaker, broken);
+        breakers.put(owner, breaker.getUuid()); // before the fall: its listeners ask who it was
         broke(owner, Component.text(breaker.getUsername(), Match.teamColor(game, breaker)), Match.teamOf(game, breaker), bed);
     }
 

@@ -1268,8 +1268,11 @@ assumed red; a trap refused without a bed says the lore's red "Can't be purchase
   passes through it (`projectiles/minecraft:arrow/selfHit` `pass_through`, as bridge on Hypixel), and a
   teammate's arrow is inert under `FriendlyFire`, damage and push alike (`BowsTest`).
 - **Kill credit**: a mob's kill goes to its owner, fall deaths pay the attacker, a deflected fireball
-  credits the deflector, zero-damage projectiles grant void credit, a suicide right after losing the bed
-  credits the bed breaker. Ours (2026-09-28): a fireball's or a TNT's kill is its thrower's or igniter's, the
+  credits the deflector, zero-damage projectiles grant void credit. A final death nobody else has credit for
+  counts for the bed breaker while the breaker is in the game and alive (the user, 2026-10-01): a fall into the
+  void with no hit in the window, a death by their own fireball, leaving without a bed, or the bed taken while
+  they were away. The breaker gets the kill and the final kill; the death line stays the uncredited one (cap:
+  `evanben fell into the void. FINAL KILL!`). Ours: `Beds.breaker`, `Lives.breakerFor`. Ours (2026-09-28): a fireball's or a TNT's kill is its thrower's or igniter's, the
   death line `was killed by` with no tool (`Lives.blame` falls back to what `FriendlyFire.attributed` names; the
   user saw such kills uncredited). The credit window is 10 s (cap, 2026-09-25): nine void deaths 3.5 to 9.96 s after
   the victim's last hurt read `was knocked into the void by`, five at 10.77 to 16.9 s read `fell into the

@@ -734,6 +734,71 @@ class BedFightRoundTest extends HeadlessServerTest {
 
             break0(blue.player, new BlockVec(-7, 65, 0));
             assertTrue(game.state().get(mine, LastStanding.OUT), "the bed went while they were away: that was the last");
+            assertEquals(1, game.state().get(mine, BedFight.FINAL_DEATHS), "a final death for the one who left");
+            Slot theirs = game.roster().slotOf(blue.player);
+            assertNotNull(theirs);
+            assertEquals(1, game.state().get(Scope.slot(theirs.index()), BedFight.FINAL_KILLS), "and the breaker's final kill");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    /** The user, 2026-10-01: a final death nobody hit counts for the bed breaker, the line as it was. */
+    @Test
+    void aLoneFallPaysTheBreaker() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor("hypixel"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "LoneRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "LoneBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot theirs = game.roster().slotOf(blue.player);
+            assertNotNull(theirs);
+            Scope breaker = Scope.slot(theirs.index());
+
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            blue.sent.clear();
+            game.module(Lives.class).fell(red.player);
+            assertEquals(List.of("LoneRed fell into the void. FINAL KILL!"),
+                    said(blue).stream().filter(l -> l.contains("LoneRed")).toList(), "nobody named: " + said(blue));
+            assertEquals(1, game.state().get(breaker, BedFight.FINAL_KILLS), "the breaker's final kill");
+            assertEquals(1, game.state().get(breaker, BedFight.KILLS), "and kill");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            red.player.remove();
+            blue.player.remove();
+        }
+    }
+
+    /** The breaker waiting to respawn is owed nothing. */
+    @Test
+    void aDeadBreakerIsOwedNothing() {
+        Mode bedfight = Matches.mode("bedfight");
+        Game game = Matches.launch(bedfight, Matches.platformFor("hypixel"), fixture());
+        FakePlayer red = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "OwedRed");
+        FakePlayer blue = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "OwedBlue");
+        try {
+            red.player.setInstance(game.instance(), new Pos(-4.5, 65, 0.5)).join();
+            blue.player.setInstance(game.instance(), new Pos(5.5, 65, 0.5)).join();
+            assertTrue(game.join(red.player));
+            assertTrue(game.join(blue.player));
+            await("both seated", () -> Game.of(red.player) == game && Game.of(blue.player) == game);
+            live(game);
+            Slot theirs = game.roster().slotOf(blue.player);
+            assertNotNull(theirs);
+
+            break0(blue.player, new BlockVec(-7, 65, 0));
+            game.module(Lives.class).fell(blue.player); // their own bed stands: they wait to respawn
+            assertTrue(game.module(Respawns.class).isDead(blue.player));
+            game.module(Lives.class).fell(red.player);
+            assertEquals(0, game.state().get(Scope.slot(theirs.index()), BedFight.FINAL_KILLS), "dead, owed nothing");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             red.player.remove();

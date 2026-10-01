@@ -280,7 +280,8 @@ class BedWarsRoundTest extends HeadlessServerTest {
                     .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
             assertTrue(chat.stream().anyMatch(l -> l.strip().equals("Bed Wars")), "the header: " + chat);
             assertTrue(chat.stream().anyMatch(l -> l.strip().endsWith(" - BwSoloA")), "the side: " + chat);
-            assertTrue(chat.stream().anyMatch(l -> l.strip().equals("1st Killer - BwSoloA - 0")), "a line a message, as captured: " + chat);
+            // the fall nobody hit is the breaker's (the user, 2026-10-01)
+            assertTrue(chat.stream().anyMatch(l -> l.strip().equals("1st Killer - BwSoloA - 1")), "a line a message, as captured: " + chat);
             int header = chat.indexOf(chat.stream().filter(l -> l.strip().equals("Bed Wars")).findFirst().orElseThrow());
             assertTrue(chat.get(header + 1).isEmpty() && chat.get(header + 3).isEmpty() && chat.get(header + 4).strip().startsWith("1st Killer"),
                     "a blank line after the header and between the winners and the killers: " + chat);
