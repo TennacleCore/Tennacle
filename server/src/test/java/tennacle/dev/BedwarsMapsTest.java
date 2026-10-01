@@ -91,12 +91,12 @@ class BedwarsMapsTest extends HeadlessServerTest {
              "base box": {"back and front": 3, "left and right": 2, "down and up": 1, "open sides": []},
              "bases": [
               {"team": "Red", "bed": {"head": [3, 65, 3], "foot": [3, 65, 2], "facing": "south"},
-               "spawn": [3.5, 65, -3.5], "forge": [3.5, 65, -6.5], "item shop": [0.5, 65.16, -3.5],
-               "upgrades": [6.5, 65.16, -3.5], "source": "captured",
+               "spawn": [3.5, 65, -3.5], "forge": [3.5, 65, -6.5], "item shop": [0.5, 65, -3.5],
+               "upgrades": [6.5, 65, -3.5], "source": "captured",
                "forge iron": [{"at": [2.5, 65.5, -6.5], "spawners": {"4v4": 1}}, {"at": [3.5, 65, -6.5], "spawners": {"4v4": 3}}]},
               {"team": "Blue", "bed": {"head": [12, 65, 3], "foot": [12, 65, 2], "facing": "south"},
-               "spawn": [12.5, 65, -3.5], "forge": [12.5, 65, -6.5], "item shop": [9.5, 65.16, -3.5],
-               "upgrades": [15.5, 65.16, -3.5], "source": "captured",
+               "spawn": [12.5, 65, -3.5], "forge": [12.5, 65, -6.5], "item shop": [9.5, 65.0625, -3.5],
+               "upgrades": [15.5, 65.0625, -3.5], "source": "captured",
                "forge iron": [{"at": [12.5, 65, -6.5], "spawners": {"4v4": 4}}]}],
              "generator points": {"diamond": [[8.5, 66.0, 8.5]], "emerald": []},
              "generator blocks": {"diamond": [[8, 64, 8]], "emerald": []},
@@ -139,6 +139,7 @@ class BedwarsMapsTest extends HeadlessServerTest {
         Livery blue = new Livery(Teams.of(arena, "2").values()).over(Livery.ordinal("2"));
         assertEquals(NamedTextColor.BLUE, blue.get(Team.DISPLAY).named(), "the arena's color, not the ordinal's red");
         assertEquals(new Vec(0.5, 65, -3.5), arena.marker(MarkerKey.point("bedwars:shop"), "1").point());
+        assertEquals(new Vec(9.5, 65.0625, -3.5), arena.marker(MarkerKey.point("bedwars:shop"), "2").point(), "a carpet's keeper stays on it");
         assertEquals(List.of(new Vec(8.5, 66, 8.5)),
                 arena.markers(MarkerKey.point("bedwars:diamond")).stream().map(PointMarker::point).toList());
         List<PointMarker> iron = arena.markers(MarkerKey.point("bedwars:forge-iron")).stream()

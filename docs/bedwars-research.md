@@ -1880,8 +1880,16 @@ stub `level.dat`, with no spawns, generators or shopkeepers. What the worlds do 
   copies trade. All 53 captured bases come out exactly. A copy's hand comes from its forge where the forge is
   known on its own (captured drops, its platform) and sits off the bed's line, the blocks only otherwise: Lucky
   Rush's near-symmetric bases matched both hands alike (1.012 to 1), and four of its copies had come out mirrored
-  wrong, shopkeepers 4 blocks off and spawns 3 (the user, 2026-09-30). Every ITEM SHOP and UPGRADES stand any
-  capture saw, at any base in view, now sits on its marker (`keeper_audit.py`, 68 maps).
+  wrong, shopkeepers 4 blocks off and spawns 3 (the user, 2026-09-30).
+- Shopkeepers are hand-placed, base by base: Lighthouse's pairs sit 6 and 5 blocks either side of the bed line at
+  some bases and 5 and 6 at others (the user saw three bases a block off, 2026-09-30), and on eleven maps they
+  stand on carpet, 1/16 up (Lucky Rush, Ironclad, Rooted). So every base's keepers come from the captures
+  themselves (`keepers.py`): whatever stands under a name stand, which Hypixel puts at each keeper's x and z 0.16
+  over its feet at every base however far (it names it ITEM SHOP or UPGRADES only near the viewer), a villager
+  or a team's skin (Dragonstar's Red stood pigmen; ours stay the blacksmith). All 832 keepers on the 68
+  captured maps stand exactly where captured, height included (`keeper_exact.py`). Spawns are exact at every
+  base we played; between bases they drift up to a block on 18 maps (Ambush 9.5 and 10.5 out), and a base no
+  capture played keeps its copy.
 - Items drop where the captures saw them, to the 1/32 block the 1.8 wire carries (`spawn_points.py`: a
   forge or generator drops 0.2 up and at most 0.1 across). A generator's point is its drops', else its
   hologram's less 2.97, else a turned copy of one over a block of the kind at the same rise; a map no

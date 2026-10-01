@@ -256,8 +256,9 @@ public final class BedwarsMaps {
     }
 
     // the shop anchors were read off the name holograms, a fraction above the shopkeeper's feet
-    private static Vec standing(Vec hologram) {
-        return new Vec(hologram.x(), Math.floor(hologram.y() + 0.01), hologram.z());
+    // the marker is the villager's feet: a carpet's 1/16 stays (Lucky Rush's keepers stand at 65.0625)
+    private static Vec standing(Vec feet) {
+        return new Vec(feet.x(), Math.round(feet.y() * 32) / 32.0, feet.z());
     }
 
     private static String provenance(JsonObject map) {
