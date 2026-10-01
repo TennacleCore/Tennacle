@@ -199,6 +199,7 @@ public final class Building {
     private final it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap bare = new it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap();
     private long bareAge = -1;
     private final List<Predicate<Point>> stills = new java.util.ArrayList<>();
+    private final List<Predicate<Point>> fixed = new java.util.ArrayList<>();
     private final Game game;
     private final Space space;
 
@@ -245,6 +246,11 @@ public final class Building {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
             Point pos = e.getBlockPosition();
+            if (building.fixed(pos)) { // no line and nothing drops: the block simply stays (a sponge at work)
+                e.setCancelled(true);
+                Refusals.handled(e);
+                return;
+            }
             boolean own = building.placed.contains(key(pos));
             List<String> may = game.rules().resolve(player, space.guarded(pos) ? BREAK : BREAK_OUTSIDE);
             if (!Match.live(game) || !game.rules().resolve(player, BUILD)) {
@@ -333,6 +339,19 @@ public final class Building {
     public @NotNull Runnable still(@NotNull Predicate<Point> area) {
         stills.add(area);
         return () -> stills.remove(area);
+    }
+
+    /** Keeps the blocks in {@code area} from every pick until the returned release runs. */
+    public @NotNull Runnable fix(@NotNull Predicate<Point> area) {
+        fixed.add(area);
+        return () -> fixed.remove(area);
+    }
+
+    private boolean fixed(Point pos) {
+        for (Predicate<Point> area : fixed) {
+            if (area.test(pos)) return true;
+        }
+        return false;
     }
 
     /** Takes the block at {@code pos} away, a member's mark with it, and tells its neighbors (a sponge that is done, the water it drank). */

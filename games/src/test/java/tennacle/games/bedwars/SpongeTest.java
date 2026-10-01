@@ -25,6 +25,7 @@ import net.minestom.server.entity.PlayerHand;
 import io.github.term4.polyp.util.tick.TickSystem;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.instance.InstanceTickEvent;
+import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.instance.block.Block;
@@ -91,6 +92,30 @@ class SpongeTest extends HeadlessServerTest {
             ticks(game, 8);
             assertEquals(Block.AIR, game.shard().getBlock(p), "gone a step after the last ring");
             assertFalse(Building.of(game).placed(p), "and no longer anyone's block");
+        });
+    }
+
+    /** The user, 2026-10-01: a pick on a working sponge is turned away, no line, nothing drops. */
+    @Test
+    void aWorkingSpongeStays() {
+        round("SpongeB", (game, fa, fb) -> {
+            Player a = fa.player;
+            a.teleport(new Pos(0.5, 66, -3.5, 0, 0)).join();
+            a.setItemInMainHand(ItemStack.of(Material.SPONGE, 4));
+            BlockVec p = new BlockVec(0, 66, 0);
+            var place = new PlayerBlockPlaceEvent(a, game.instance(), Block.SPONGE, BlockFace.TOP, p, new Pos(0.5, 1, 0.5), PlayerHand.MAIN);
+            EventDispatcher.call(place);
+            assertFalse(place.isCancelled(), "the sponge lands: " + chat(fa));
+            game.shard().setBlock(p, Block.SPONGE);
+            ticks(game, 2);
+            fa.sent.clear();
+            var pick = new PlayerBlockBreakEvent(a, game.instance(), Block.SPONGE, Block.AIR, p, BlockFace.TOP);
+            EventDispatcher.call(pick);
+            assertTrue(pick.isCancelled(), "the pick is turned away");
+            assertTrue(chat(fa).isEmpty(), "without a line: " + chat(fa));
+            assertTrue(Building.of(game).placed(p), "still their block");
+            ticks(game, 40);
+            assertEquals(Block.AIR, game.shard().getBlock(p), "it goes on its own");
         });
     }
 

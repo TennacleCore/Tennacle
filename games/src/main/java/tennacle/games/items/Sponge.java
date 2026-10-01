@@ -35,6 +35,8 @@ public final class Sponge implements GameModule {
     public static final StateKey<Integer> DELAY = StateKey.of("sponge.delay", Codec.INT, 5);
     public static final StateKey<Integer> STEP = StateKey.of("sponge.step", Codec.INT, 8);
     public static final StateKey<Integer> RADIUS = StateKey.of("sponge.radius", Codec.INT, 4);
+    /** Off (Hypixel, the user 2026-10-01), a pick on a working sponge is turned away and nothing drops. */
+    public static final StateKey<Boolean> BREAKABLE = StateKey.of("sponge.breakable", Codec.BOOLEAN, false);
 
     static final Sound GONE = Sound.sound(SoundEvent.ENTITY_PLAYER_SPLASH, Sound.Source.MASTER, 0.6f, 2f);
     // captured pitch bytes, one a ring; a ring past the fourth keeps the last
@@ -46,7 +48,7 @@ public final class Sponge implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(DELAY, STEP, RADIUS);
+        return Set.of(DELAY, STEP, RADIUS, BREAKABLE);
     }
 
     @Override
@@ -74,7 +76,12 @@ public final class Sponge implements GameModule {
         int step = game.rules().resolve(placer, STEP);
         int radius = game.rules().resolve(placer, RADIUS);
         BlockVec center = at.asBlockVec();
-        Runnable release = building.still(p -> distance(center, p) <= radius);
+        Runnable still = building.still(p -> distance(center, p) <= radius);
+        Runnable held = game.rules().resolve(placer, BREAKABLE) ? () -> {} : building.fix(p -> p.sameBlock(center));
+        Runnable release = () -> {
+            still.run();
+            held.run();
+        };
         structures.add(new Structures.Job() {
             private int age;
             private int ring = 1;
