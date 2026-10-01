@@ -4,16 +4,19 @@ import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
 import tennacle.commands.Completions;
+import tennacle.games.LobbyCommands;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.Platform;
 
 import io.github.term4.grotto.Game;
 import net.minestom.server.command.builder.arguments.ArgumentType;
+import net.minestom.server.command.builder.suggestion.SuggestionCallback;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -21,9 +24,9 @@ import java.util.TreeSet;
 
 import tennacle.party.Parties;
 /**
- * {@code /play <game>} by Hypixel's ids ({@code bedwars_eight_two}, {@code duels_bridge_doubles}). A mode that fills
- * up on its map seats the party in a game still filling, or a new one; a duel queues it ({@link Queues}). A party
- * sits together, so it has to fit one team.
+ * {@code /play <game> [map]} by Hypixel's ids ({@code bedwars_eight_two}, {@code duels_bridge_doubles}), from
+ * anywhere: a side in a game leaves it on the way. A mode that fills up on its map seats the party in a game still
+ * filling, or a new one; a duel queues it ({@link Queues}). A party sits together, so it has to fit one team.
  */
 public final class Play {
 
@@ -37,9 +40,9 @@ public final class Play {
         var game = ArgumentType.Word("game");
         game.setSuggestionCallback(Completions.of(Matches::plays));
         var where = ArgumentType.Word("where"); // a platform or a map
-        where.setSuggestionCallback(Completions.of(Play::wheres));
+        where.setSuggestionCallback(maps(game.getId(), true));
         var map = ArgumentType.Word("map");
-        map.setSuggestionCallback(Completions.of(Play::maps));
+        map.setSuggestionCallback(maps(game.getId(), false));
         play.addSyntax((sender, ctx) -> {
             if (sender instanceof Player p) play(p, ctx.get(game), null, null);
         }, game);
@@ -53,6 +56,18 @@ public final class Play {
             if (sender instanceof Player p) play(p, ctx.get(game), ctx.get(where), ctx.get(map));
         }, game, where, map);
         Commands.register(play);
+    }
+
+    // the typed game's maps, or every game's
+    private static SuggestionCallback maps(String gameArgument, boolean platforms) {
+        return (sender, context, suggestion) -> {
+            String id = context.get(gameArgument);
+            Mode mode = id != null ? Matches.played(id.toLowerCase(Locale.ROOT)) : null;
+            Set<String> out = new TreeSet<>(platforms ? Matches.platforms() : Set.of());
+            if (mode != null) out.addAll(Matches.mapNames(mode));
+            else for (String name : Matches.modes()) out.addAll(Matches.mapNames(Matches.mode(name)));
+            Completions.offer(suggestion, out);
+        };
     }
 
     /** The line that starts {@code mode}: {@code /play} and its first id. */
@@ -70,19 +85,6 @@ public final class Play {
         return out;
     }
 
-    /** Every joinable mode's maps, as the pools list them. */
-    public static Set<String> maps() {
-        Set<String> out = new TreeSet<>();
-        for (String name : modes()) out.addAll(Matches.mode(name).arena().names());
-        return out;
-    }
-
-    private static Set<String> wheres() {
-        Set<String> out = new TreeSet<>(Matches.platforms());
-        out.addAll(maps());
-        return out;
-    }
-
     private static void play(Player me, String word, @Nullable String platformName, @Nullable String mapWord) {
         String id = word.toLowerCase(Locale.ROOT);
         Mode mode = Matches.played(id);
@@ -90,38 +92,50 @@ public final class Play {
             Msg.fail(me, "No game named ", Msg.v(word), ". Games: ", Msg.v(String.join(", ", Matches.plays())), ".");
             return;
         }
-        if (!Matches.joinable(mode) && mapWord != null) {
-            Msg.fail(me, Msg.v(Queues.label(mode, id)), " picks its own map. ", Msg.run("/duel"), " names one.");
-            return;
-        }
-        String refused = Matches.joinable(mode) ? enter(me, mode, platformName, mapWord) : Queues.enqueue(me, id, platformName);
+        String again = "Type it again";
+        String refused = Matches.joinable(mode) ? enter(me, mode, id, platformName, mapWord, again)
+                : Queues.enqueue(me, id, platformName, mapWord, again);
         if (refused != null) Msg.fail(me, refused);
     }
 
     /** {@code /play id} for {@code me}'s side on the default platform: why it can't, else null once it is under way. */
     public static @Nullable String start(@NotNull Player me, @NotNull String id) {
-        Mode mode = Matches.played(id);
-        if (mode == null) return "No game named " + id + ".";
-        return Matches.joinable(mode) ? enter(me, mode, null, null) : Queues.enqueue(me, id, null);
+        return start(me, id, null);
     }
 
-    private static @Nullable String enter(Player me, Mode mode, @Nullable String platformName, @Nullable String mapWord) {
+    /** {@link #start(Player, String)} on {@code map}, one of the mode's pool names, or any when null. */
+    public static @Nullable String start(@NotNull Player me, @NotNull String id, @Nullable String map) {
+        Mode mode = Matches.played(id);
+        if (mode == null) return "No game named " + id + ".";
+        String again = "Click again";
+        return Matches.joinable(mode) ? enter(me, mode, id, null, map, again) : Queues.enqueue(me, id, null, map, again);
+    }
+
+    private static @Nullable String enter(Player me, Mode mode, String id, @Nullable String platformName,
+                                          @Nullable String mapWord, String again) {
         if (platformName != null && Matches.platform(platformName) == null) {
             return "No platform named " + platformName + ". Platforms: " + String.join(", ", Matches.platforms()) + ".";
         }
         String map = mapWord != null ? Matches.mapNamed(mode, mapWord) : null;
         if (mapWord != null && map == null) {
-            return "No map named " + mapWord + " for " + mode.title() + ". Maps: " + String.join(", ", mode.arena().names()) + ".";
+            return "No map named " + mapWord + " for " + mode.title() + ". Maps: " + String.join(", ", Matches.mapNames(mode)) + ".";
         }
-        String unfit = Queues.unfit(me, Matches.teamSize(mode), mode.title());
+        Platform platform = Matches.platformFor(platformName);
+        String unfit = Queues.unfit(me, Matches.teamSize(mode), mode.title(), "play " + id + " " + platform.name() + " " + map, again);
         if (unfit != null) return unfit;
         List<Player> side = Parties.of(me);
-        Platform platform = Matches.platformFor(platformName);
-        Game open = Matches.waiting(mode, platform, map, side.size());
+        Set<Game> leaving = new HashSet<>();
+        for (Player p : side) {
+            Game in = LobbyCommands.seatedIn(p);
+            if (in != null) leaving.add(in);
+        }
+        List<Player> left = PartyExit.leaveTogether(side);
+        Game open = Matches.waiting(mode, platform, map, side.size(), leaving::contains);
         if (open != null && Matches.enter(open, side)) {
             joined(side, mode, open);
             return null;
         }
+        for (Player p : left) Matches.toLobby(p); // a new game loads off the tick: wait in the lobby
         Matches.open(mode, platform, map).whenComplete((game, failure) -> {
             if (failure != null) {
                 for (Player p : side) Msg.fail(p, "The game could not start: " + failure.getMessage());

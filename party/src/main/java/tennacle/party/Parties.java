@@ -3,6 +3,7 @@ package tennacle.party;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.timer.TaskSchedule;
 import net.minestom.server.timer.Task;
+import tennacle.Confirm;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
@@ -18,6 +19,7 @@ import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,10 +37,10 @@ import java.util.function.BiConsumer;
  * A leader and the players who accepted: one SIDE wherever a match is started. Only the leader duels or queues
  * outward; the party follows as their side, so a mode seats it on one team. The command set and its lines follow
  * the hypixel shape: an invite that runs on click, a framed announcement for every change, {@code /pl} for the
- * lineup, {@code /pc} and {@code /chat party} for the party's channel. The first invite makes the party; an
- * invite stands a minute, and a party down to its leader with no invite standing is disbanded. A disconnect
- * starts a five-minute grace: a member back in time stays, one who is not is removed; a leader who does not
- * return disbands the party.
+ * lineup, {@code /pc} and {@code /chat party} for the party's channel, {@code /party warp} to bring everyone to the
+ * leader. The first invite makes the party; an invite stands a minute, and a party down to its leader with no
+ * invite standing is disbanded. A disconnect starts a five-minute grace: a member back in time stays, one who is
+ * not is removed; a leader who does not return disbands the party.
  */
 public final class Parties {
 
@@ -49,6 +51,25 @@ public final class Parties {
     /** Who may invite a player. */
     public static final Choice INVITES = Choice.of("lobby:party-invites", Audience.EVERYONE, Audience.NOBODY);
     private static volatile BiConsumer<Player, String> cues = (player, cue) -> {};
+    private static volatile Warp warps = new Warp() {
+        @Override
+        public boolean busy(@NotNull Player member, @NotNull Player leader) {
+            return false;
+        }
+
+        @Override
+        public boolean here(@NotNull Player member, @NotNull Player leader) {
+            return member.getInstance() == leader.getInstance();
+        }
+
+        @Override
+        public @Nullable String bring(@NotNull Player member, @NotNull Player leader) {
+            Instance world = leader.getInstance();
+            if (world == null) return "You aren't anywhere yet.";
+            member.setInstance(world, leader.getPosition());
+            return null;
+        }
+    };
     /** How long an invite stands. */
     static final long INVITE_SECONDS = 60;
     /** {@link #INVITE_SECONDS} in ticks; a test shortens it. */
@@ -187,6 +208,22 @@ public final class Parties {
         cues = play;
     }
 
+    /** Where a warp takes the party: the module that knows the worlds and games sets it. */
+    public interface Warp {
+        /** Whether {@code member} plays a game {@code leader} is not in, which a warp takes them out of. */
+        boolean busy(@NotNull Player member, @NotNull Player leader);
+
+        /** Whether {@code member} is already where {@code leader} is. */
+        boolean here(@NotNull Player member, @NotNull Player leader);
+
+        /** Takes {@code member} to where {@code leader} is: why it can't, else null. */
+        @Nullable String bring(@NotNull Player member, @NotNull Player leader);
+    }
+
+    public static void warps(@NotNull Warp warp) {
+        warps = warp;
+    }
+
     public static void install() {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> disconnected(e.getPlayer()));
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
@@ -203,6 +240,7 @@ public final class Parties {
                 .usage("/party kickoffline", "kick all offlines from your party")
                 .usage("/party disband", "disband your party")
                 .usage("/party allinvite", "everyone can invite people to the party")
+                .usage("/party warp", "bring your party to where you are")
                 .usage("/pl", "who is in your party")
                 .usage("/pc <message>", "say something to your party")
                 .usage("/chat <party|all>", "choose the chat to speak in")
@@ -210,7 +248,7 @@ public final class Parties {
         var name = ArgumentType.Word("player");
         name.setSuggestionCallback(PlayerNames.suggestAll()); // a party reaches into games and lobbies alike
         var sub = ArgumentType.Word("sub").from("invite", "join", "accept", "kick", "transfer", "list", "leave",
-                "kickoffline", "disband", "allinvite", "help");
+                "kickoffline", "disband", "allinvite", "warp", "help");
         party.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             switch (ctx.get(sub)) {
@@ -220,6 +258,7 @@ public final class Parties {
                 case "kickoffline" -> kickOffline(p);
                 case "disband" -> disband(p);
                 case "allinvite" -> allInvite(p);
+                case "warp" -> warp(p);
                 case "help" -> Commands.usage(p, "party");
                 default -> Commands.usage(p, "party"); // a subcommand that takes a name, given none
             }
@@ -491,6 +530,44 @@ public final class Parties {
                 .append(party.allInvite ? Component.text("enabled", NamedTextColor.GREEN) : Component.text("disabled", NamedTextColor.RED))
                 .append(yellow("."));
         for (Player member : online(party)) frame(member, line);
+    }
+
+    // a member playing a game elsewhere holds it up until the leader asks again
+    private static void warp(Player leader) {
+        Party party = led(leader);
+        if (party == null) return;
+        Warp warp = warps;
+        List<Player> away = new ArrayList<>();
+        for (Player member : online(party)) {
+            if (member != leader && !warp.here(member, leader)) away.add(member);
+        }
+        if (away.isEmpty()) {
+            Msg.fail(leader, "Your party is already with you.");
+            return;
+        }
+        List<String> busy = new ArrayList<>();
+        for (Player member : away) {
+            if (warp.busy(member, leader)) busy.add(member.getUsername());
+        }
+        if (!busy.isEmpty() && !Confirm.again(leader, "party warp")) {
+            frame(leader, who(String.join(", ", busy)).append(yellow((busy.size() == 1 ? " is" : " are")
+                    + " in a game. Type /p warp again within " + Confirm.WINDOW_MILLIS / 1000 + " seconds to warp them anyway.")));
+            return;
+        }
+        List<String> warped = new ArrayList<>();
+        for (Player member : away) {
+            String refused = warp.bring(member, leader);
+            if (refused != null) {
+                Msg.fail(leader, "Couldn't warp ", Msg.v(member.getUsername()), ": " + refused);
+                continue;
+            }
+            warped.add(member.getUsername());
+            // captured: Hypixel's line to a summoned member
+            frame(member, yellow("Party Leader, ").append(who(leader.getUsername())).append(yellow(", summoned you to their server.")));
+        }
+        if (!warped.isEmpty()) {
+            frame(leader, yellow("You summoned ").append(who(String.join(", ", warped))).append(yellow(" to your server.")));
+        }
     }
 
     /** {@code subject}'s party, with an online dot per member. */

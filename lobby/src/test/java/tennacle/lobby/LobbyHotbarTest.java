@@ -144,6 +144,29 @@ class LobbyHotbarTest extends HeadlessServerTest {
     }
 
     @Test
+    void rightClickPicksAMap() throws InterruptedException {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(56.5, 65, 0.5), "BarMaps");
+        try {
+            PlayMenu.open(p.player, "Bridge", mode -> mode.name().equals("bridge"), Icons::of);
+            press(p, new Click.Right(10)); // the first size, 1v1
+            var maps = Screens.inventory(p.player);
+            assertEquals(Material.FIREWORK_STAR, maps.getItemStack(10).material(), "a map a star");
+            assertEquals(Material.FIREWORK_ROCKET, maps.getItemStack(40).material(), "Random Map under them");
+            assertEquals(Material.ARROW, maps.getItemStack(49).material(), "and the way back");
+            assertNull(Queues.of(p.player), "a right click plays nothing");
+            later(p);
+            press(p, new Click.Left(10));
+            Queues.Waiting waiting = Queues.of(p.player);
+            assertNotNull(waiting, "the map's click queues");
+            assertEquals("duels_bridge_duel", waiting.id());
+            assertTrue(waiting.label().contains(" on "), waiting.label());
+        } finally {
+            Queues.dequeue(p.player);
+            p.player.remove();
+        }
+    }
+
+    @Test
     void settingsStepBothWays() throws InterruptedException {
         FakePlayer p = FakePlayer.connect(instance, new Pos(52.5, 65, 0.5), "BarSet");
         try {

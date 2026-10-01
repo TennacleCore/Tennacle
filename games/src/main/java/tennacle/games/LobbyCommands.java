@@ -15,6 +15,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -156,40 +157,47 @@ public final class LobbyCommands {
     }
 
     private static Runnable gameDeparture(Player p) {
+        if (seatedIn(p) == null && Matches.grotto().spectating(p) == null) return null;
+        return () -> {
+            leaveGame(p);
+            Matches.toLobby(p);
+        };
+    }
+
+    /**
+     * Takes {@code p} out of the game they sit in, haunt or watch, with the line {@code /lobby} says; the caller
+     * routes them. {@code false} when they were in none.
+     */
+    public static boolean leaveGame(@NotNull Player p) {
+        Game game = seatedIn(p);
+        if (game == null) {
+            if (Matches.grotto().spectating(p) == null) return false;
+            Spectators.exit(p);
+            return true;
+        }
+        Game.Departure departure = game.depart(p);
+        // the hold as it stands after the leave: a seat put out on the way (no bed to come back to) holds nothing
+        if (departure != null && departure.reserved() && game.roster().reservedSlotOf(p.getUsername()) != null) {
+            // the click puts the rejoin in the chat box, this game's code already on it
+            String rejoin = "/rejoin " + game.code();
+            p.sendMessage(yellow("You left ").append(gameLine(game, p)).append(yellow(". Click to rejoin."))
+                    .clickEvent(ClickEvent.suggestCommand(rejoin))
+                    .hoverEvent(HoverEvent.showText(yellow("Puts ").append(aqua(rejoin)).append(yellow(" in your chat")))));
+        } else {
+            p.sendMessage(yellow("You left ").append(gameLine(game, p)).append(yellow(".")));
+        }
+        return true;
+    }
+
+    /** The game {@code p} sits in or haunts, bound or not. */
+    public static @Nullable Game seatedIn(@NotNull Player p) {
         Game seated = Game.of(p);
-        if (seated == null) {
-            // a ghost is unbound, and so is a player whose join bind never landed: the tag can't route either,
-            // but the roster still holds their seat - without this they cannot leave the game at all
-            for (Game game : Matches.grotto().games()) {
-                if (game.status() != Game.Status.OPEN) continue;
-                if (game.isGhost(p) || game.roster().slotOf(p) != null) {
-                    seated = game;
-                    break;
-                }
-            }
-        }
-        if (seated != null) {
-            Game game = seated;
-            return () -> {
-                Game.Departure departure = game.depart(p);
-                // the hold as it stands after the leave: a seat put out on the way (no bed to come back to) holds nothing
-                if (departure != null && departure.reserved() && game.roster().reservedSlotOf(p.getUsername()) != null) {
-                    // the click puts the rejoin in the chat box, this game's code already on it
-                    String rejoin = "/rejoin " + game.code();
-                    p.sendMessage(yellow("You left ").append(gameLine(game, p)).append(yellow(". Click to rejoin."))
-                            .clickEvent(ClickEvent.suggestCommand(rejoin))
-                            .hoverEvent(HoverEvent.showText(yellow("Puts ").append(aqua(rejoin)).append(yellow(" in your chat")))));
-                } else {
-                    p.sendMessage(yellow("You left ").append(gameLine(game, p)).append(yellow(".")));
-                }
-                Matches.toLobby(p);
-            };
-        }
-        if (Matches.grotto().spectating(p) != null) {
-            return () -> {
-                Spectators.exit(p);
-                Matches.toLobby(p);
-            };
+        if (seated != null) return seated;
+        // a ghost is unbound, and so is a player whose join bind never landed: the tag can't route either,
+        // but the roster still holds their seat - without this they cannot leave the game at all
+        for (Game game : Matches.grotto().games()) {
+            if (game.status() != Game.Status.OPEN) continue;
+            if (game.isGhost(p) || game.roster().slotOf(p) != null) return game;
         }
         return null;
     }

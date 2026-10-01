@@ -6,6 +6,7 @@ import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
+import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
@@ -25,7 +26,8 @@ import java.util.function.Predicate;
 
 /**
  * A game's menu behind its NPC: its sizes in a row, smallest first, the stack the team size; under them Close and,
- * where the game has one, its layout editor. The size your side waits for glints and takes you out of the line.
+ * where the game has one, its layout editor. The size your side waits for glints and takes you out of the line;
+ * a right click on a size picks its map ({@link MapMenu}).
  */
 public final class PlayMenu {
 
@@ -40,7 +42,11 @@ public final class PlayMenu {
         int[] slots = Rows.centered(1, sizes.size());
         for (int i = 0; i < sizes.size(); i++) {
             Size size = sizes.get(i);
-            screen.press(slots[i], v -> item(v, size, icon.apply(size.mode())), (v, click) -> press(v, size));
+            screen.press(slots[i], v -> item(v, size, icon.apply(size.mode())), (v, click) -> {
+                if (!(click instanceof Click.Right) || !choosesMap(size.mode())) return press(v, size);
+                MapMenu.open(v, size.mode(), size.id());
+                return null;
+            });
         }
         KitLayouts.editables().stream().filter(kit -> kit.title().equals(title)).findFirst().ifPresent(kit ->
                 screen.press(32, v -> Entry.of(Material.BLAZE_POWDER).name(kit.title() + " Layout Editor")
@@ -88,7 +94,12 @@ public final class PlayMenu {
         } else {
             entry.action("Click to play!");
         }
+        if (choosesMap(mode)) entry.action("Right-click to choose a map!");
         return entry.render(viewer);
+    }
+
+    private static boolean choosesMap(Mode mode) {
+        return mode.arena().names().size() > 1;
     }
 
     static String clock(long since) {

@@ -1220,6 +1220,35 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** {@code /play} from a waiting room: out of it, and into another room, never the one left. */
+    @Test
+    void playMovesRooms() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game first = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
+        Game second = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "RoomHop");
+        try {
+            a.player.setInstance(first.instance(), ROOM).join();
+            assertTrue(Matches.enter(first, List.of(a.player)));
+            await("seated in the first", () -> Game.of(a.player) == first);
+            MinecraftServer.getCommandManager().execute(a.player, "play bedwars_eight_one");
+            long deadline = System.currentTimeMillis() + 10_000; // the move between worlds rides the scheduler
+            while ((Game.of(a.player) == null || Game.of(a.player) == first) && System.currentTimeMillis() < deadline) {
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+                Thread.onSpinWait();
+            }
+            assertTrue(Game.of(a.player) != null && Game.of(a.player) != first, "seated elsewhere: " + plain(a));
+            assertNull(first.roster().slotOf(a.player), "the first room's seat is free");
+            assertTrue(plain(a).stream().anyMatch(l -> l.contains("Joined ")), "" + plain(a));
+        } finally {
+            a.player.remove();
+            for (Game game : List.of(first, second)) {
+                if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            }
+        }
+    }
+
     private static List<String> plain(FakePlayer p) {
         return p.sent(SystemChatPacket.class).stream()
                 .map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();

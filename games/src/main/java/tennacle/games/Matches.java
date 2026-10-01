@@ -507,10 +507,16 @@ public final class Matches {
      * the busier room more often without every arrival piling into the fullest.
      */
     public static @Nullable Game waiting(@NotNull Mode mode, @NotNull Platform platform, @Nullable String map, int room) {
+        return waiting(mode, platform, map, room, game -> false);
+    }
+
+    /** {@link #waiting(Mode, Platform, String, int)} past the games {@code skip} names: the one a side is leaving. */
+    public static @Nullable Game waiting(@NotNull Mode mode, @NotNull Platform platform, @Nullable String map, int room,
+                                         @NotNull java.util.function.Predicate<Game> skip) {
         List<Game> open = new ArrayList<>();
         long total = 0;
         for (Game game : grotto.games()) {
-            if (game.status() == Game.Status.OPEN && Match.opening(game) && modeOf(game) == mode
+            if (game.status() == Game.Status.OPEN && Match.opening(game) && modeOf(game) == mode && !skip.test(game)
                     && platformNameOf(game).equals(platform.name()) && (map == null || onMap(mode, game, map))
                     && Match.seats(game) - Match.seated(game) >= room) {
                 open.add(game);
@@ -531,17 +537,50 @@ public final class Matches {
         return seated * seated;
     }
 
+    /** How many games of {@code mode} still fill up on {@code map}, one of its pool names. */
+    public static int waitingOn(@NotNull Mode mode, @NotNull String map) {
+        int count = 0;
+        for (Game game : grotto.games()) {
+            if (game.status() == Game.Status.OPEN && Match.opening(game) && modeOf(game) == mode && onMap(mode, game, map)) count++;
+        }
+        return count;
+    }
+
     private static boolean onMap(Mode mode, Game game, String map) {
         return mode.arena().named(map) == game.arena() || map.equalsIgnoreCase(game.arena().meta().name());
     }
 
-    /** The pool's name for {@code word}: a name as listed, or one without the pool's prefix; null for none. */
+    /**
+     * The pool's name for {@code word}: a map as players read it, as the pool lists it, or without the pool's
+     * prefix, case, spaces and dashes aside ({@code sky_rise}, {@code SkyRise}); null for none.
+     */
     public static @Nullable String mapNamed(@NotNull Mode mode, @NotNull String word) {
-        String lower = word.toLowerCase(Locale.ROOT);
-        for (String name : mode.arena().names()) {
-            if (name.equalsIgnoreCase(word) || name.toLowerCase(Locale.ROOT).endsWith("-" + lower)) return name;
+        String want = squash(word);
+        Set<String> names = mode.arena().names();
+        for (String name : names) {
+            if (squash(name).equals(want) || squash(name.substring(name.indexOf('-') + 1)).equals(want)) return name;
+        }
+        for (String name : names) {
+            if (squash(mapName(mode, name)).equals(want)) return name; // Pernicious, which pernicious-v2 plays as
         }
         return null;
+    }
+
+    /** What players read for {@code map}, one of {@code mode}'s pool names. */
+    public static @NotNull String mapName(@NotNull Mode mode, @NotNull String map) {
+        Arena arena = mode.arena().named(map);
+        return arena != null ? arena.meta().name() : map;
+    }
+
+    /** {@code mode}'s maps as a player types them: the names they read, lowercase, a space as {@code _}. */
+    public static @NotNull List<String> mapNames(@NotNull Mode mode) {
+        return mode.arena().names().stream()
+                .map(name -> mapName(mode, name).toLowerCase(Locale.ROOT).replace(' ', '_'))
+                .distinct().sorted().toList();
+    }
+
+    private static String squash(String text) {
+        return text.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
     /** A new game of {@code mode} on the pool's pick with nobody seated, its map built off the tick thread first. */

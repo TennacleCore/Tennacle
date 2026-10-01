@@ -1,11 +1,13 @@
 package tennacle.games.matchmaking;
 
+import tennacle.Confirm;
 import tennacle.Msg;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.Options;
 import tennacle.games.Platform;
 
+import io.github.term4.grotto.Game;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
@@ -19,20 +21,22 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 import tennacle.party.Parties;
 /**
- * The duel side of {@code /play}: parties that want the same id and platform wait in arrival order, and the first
- * that fill both teams of the id's size start a match, strangers sharing a team as on Hypixel. A party queues
+ * The duel side of {@code /play}: parties that want the same id, platform and map wait in arrival order, and the
+ * first that fill both teams of the id's size start a match, strangers sharing a team as on Hypixel. A party queues
  * through its leader and sits together; {@code /lobby} steps out.
  */
 public final class Queues {
 
-    private record Entry(UUID leader, String id, String platform, int size, String label, long since) {
+    private record Entry(UUID leader, String id, String platform, @Nullable String map, int size, String label, long since) {
+        // a map picked waits for the same pick, never for a random one
         boolean sameLine(Entry other) {
-            return id.equals(other.id) && platform.equals(other.platform);
+            return id.equals(other.id) && platform.equals(other.platform) && Objects.equals(map, other.map);
         }
     }
 
@@ -101,6 +105,13 @@ public final class Queues {
         }
     }
 
+    /** How many wait for {@code id} on {@code map} (a pool name), parties counted by their size. */
+    public static int queued(@NotNull String id, @NotNull String map) {
+        synchronized (waiting) {
+            return waiting.values().stream().filter(e -> e.id().equals(id) && map.equals(e.map())).mapToInt(Entry::size).sum();
+        }
+    }
+
     /** How many wait for {@code id}, parties counted by their size. */
     public static int queued(@NotNull String id) {
         synchronized (waiting) {
@@ -108,14 +119,26 @@ public final class Queues {
         }
     }
 
-    /** Why {@code me}'s side can't take {@code seats} a side in {@code title}, else null. */
-    static @Nullable String unfit(@NotNull Player me, int seats, @NotNull String title) {
+    /**
+     * Why {@code me}'s side can't take {@code seats} a side in {@code title}, else null. The side leaves its games on
+     * the way; a member playing one {@code me} is not in holds it up until {@code me} asks for {@code key} again
+     * ({@link Confirm}), {@code again} saying how.
+     */
+    static @Nullable String unfit(@NotNull Player me, int seats, @NotNull String title, @NotNull String key, @NotNull String again) {
         if (!Parties.leads(me)) return Parties.NOT_LEADER;
         List<Player> side = Parties.of(me);
-        for (Player member : side) {
-            if (Matches.grotto().engaged(member)) return member.getUsername() + " is in a game.";
-        }
         if (side.size() > seats) return "Your party of " + side.size() + " doesn't fit; " + title + " takes " + seats + " a side.";
+        Game mine = Game.of(me);
+        List<String> busy = new ArrayList<>();
+        for (Player member : side) {
+            if (member != me && Matches.grotto().engaged(member) && (mine == null || Game.of(member) != mine)) {
+                busy.add(member.getUsername());
+            }
+        }
+        if (!busy.isEmpty() && !Confirm.again(me, key)) {
+            return String.join(", ", busy) + (busy.size() == 1 ? " is" : " are") + " in a game. " + again + " within "
+                    + Confirm.WINDOW_MILLIS / 1000 + " seconds to bring them anyway.";
+        }
         return null;
     }
 
@@ -126,19 +149,26 @@ public final class Queues {
     }
 
     /**
-     * Queues {@code me}'s party for the duel {@code id}; the arrival that fills both teams starts the match. Why it
-     * can't, else null once queued or started.
+     * Queues {@code me}'s party for the duel {@code id}, on the map {@code mapWord} names or any; the arrival that
+     * fills both teams starts the match. Why it can't, else null once queued or started. {@code again} is how the
+     * leader confirms bringing a member out of a game ({@link #unfit}).
      */
-    public static @Nullable String enqueue(@NotNull Player me, @NotNull String id, @Nullable String platformName) {
+    public static @Nullable String enqueue(@NotNull Player me, @NotNull String id, @Nullable String platformName,
+                                           @Nullable String mapWord, @NotNull String again) {
         Mode mode = Matches.played(id);
         Integer seats = mode != null ? mode.plays().get(id) : null;
         if (mode == null || seats == null || Matches.joinable(mode)) return "No queue for " + id + ".";
         if (platformName != null && Matches.platform(platformName) == null) {
             return "No platform named " + platformName + ". Platforms: " + String.join(", ", Matches.platforms()) + ".";
         }
+        String map = mapWord != null ? Matches.mapNamed(mode, mapWord) : null;
+        if (mapWord != null && map == null) {
+            return "No map named " + mapWord + " for " + mode.title() + ". Maps: " + String.join(", ", Matches.mapNames(mode)) + ".";
+        }
         Platform platform = Matches.platformFor(platformName);
-        String label = label(mode, id) + (platform.name().equals(Platform.DEFAULT.name()) ? "" : " (" + platform.name() + ")");
-        String unfit = unfit(me, seats, label);
+        String label = label(mode, id) + (platform.name().equals(Platform.DEFAULT.name()) ? "" : " (" + platform.name() + ")")
+                + (map != null ? " on " + Matches.mapName(mode, map) : "");
+        String unfit = unfit(me, seats, label, "play " + id + " " + platform.name() + " " + map, again);
         if (unfit != null) return unfit;
         List<Player> side = Parties.of(me);
         try {
@@ -147,7 +177,8 @@ public final class Queues {
         } catch (IllegalStateException e) { // the map may not be authored yet
             return e.getMessage();
         }
-        Entry mine = new Entry(me.getUuid(), id, platform.name(), side.size(), label, System.currentTimeMillis());
+        for (Player left : PartyExit.leaveTogether(side)) Matches.toLobby(left); // wait in the lobby
+        Entry mine = new Entry(me.getUuid(), id, platform.name(), map, side.size(), label, System.currentTimeMillis());
         List<Entry> line;
         synchronized (waiting) {
             waiting.remove(me.getUuid());
@@ -181,7 +212,7 @@ public final class Queues {
         if (teams == null || !teams.get(0).contains(mine) && !teams.get(1).contains(mine)) {
             Msg.ok(me, "You are now queued for " + label + ".");
         }
-        if (teams != null) start(mode, platform, label, players(teams.get(0), parties), players(teams.get(1), parties));
+        if (teams != null) start(mode, platform, map, label, players(teams.get(0), parties), players(teams.get(1), parties));
         changed();
         return null;
     }
@@ -231,8 +262,9 @@ public final class Queues {
         return out;
     }
 
-    private static void start(Mode mode, Platform platform, String label, List<Player> a, List<Player> b) {
-        Matches.begin(mode, platform, List.of(a, b), Options.NONE).whenComplete((game, failure) -> {
+    private static void start(Mode mode, Platform platform, @Nullable String map, String label, List<Player> a, List<Player> b) {
+        Options options = map == null ? Options.NONE : new Options(map, null, Options.NONE.rules(), List.of(), List.of());
+        Matches.begin(mode, platform, List.of(a, b), options).whenComplete((game, failure) -> {
             if (failure != null) {
                 for (Player p : a) Msg.fail(p, "The match could not start: " + failure.getMessage());
                 for (Player p : b) Msg.fail(p, "The match could not start: " + failure.getMessage());

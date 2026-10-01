@@ -10,6 +10,7 @@ import tennacle.games.Matches;
 import tennacle.games.Rooms;
 import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.menus.PlayerMenu;
+import tennacle.party.Parties;
 
 /** The lobby module: the lobby worlds, and their hotbar, NPCs, menus, settings and chat rooms. */
 public final class LobbyModule {
@@ -28,6 +29,7 @@ public final class LobbyModule {
         Lobbies.install(main); // the main lobby, then one for Bed Wars and one for duels
         Matches.home(player -> Lobbies.send(player, Lobbies.home(player)));
         Duels.picker(PlayerMenu::duel);
+        Parties.warps(new Warps());
         Welcome.install(); // the first lines an arrival reads
         // a lobby reader's own setting says whose lines reach them
         Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null || Settings.LOBBY_CHAT.of(reader).admits(speaker, reader));
