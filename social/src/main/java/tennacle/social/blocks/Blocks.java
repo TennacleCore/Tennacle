@@ -8,6 +8,7 @@ import tennacle.PlayerPrefs;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /** Who each player has blocked. A block cuts both ways: neither reaches the other. */
 public final class Blocks {
@@ -31,6 +32,11 @@ public final class Blocks {
     public static boolean blocked(@NotNull UUID by, @NotNull UUID who) {
         List<Blocked> list = LIST.of(by);
         return list != null && list.stream().anyMatch(blocked -> blocked.id().equals(who));
+    }
+
+    /** {@link #blocked}, online or not. */
+    public static @NotNull CompletableFuture<Boolean> load(@NotNull UUID by, @NotNull UUID who) {
+        return LIST.load(by).thenApply(list -> list.stream().anyMatch(blocked -> blocked.id().equals(who)));
     }
 
     /** Whether either has blocked the other. */

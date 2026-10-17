@@ -8,6 +8,8 @@ import tennacle.PlayerPrefs;
 import tennacle.social.blocks.Blocks;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.Locale;
 
 /** One {@link Audience} among {@code options}, kept with a player's preferences by name; anything unreadable is the first. */
@@ -34,6 +36,11 @@ public final class Choice {
     public @NotNull Audience of(@NotNull Player player) {
         Audience held = stored.of(player.getUuid());
         return held != null ? held : options.getFirst();
+    }
+
+    /** What {@code player} chose, online or not. */
+    public @NotNull CompletableFuture<Audience> load(@NotNull UUID player) {
+        return stored.load(player);
     }
 
     /** Whether {@code from} reaches {@code to}: never across a block, else as {@code to} chose. */

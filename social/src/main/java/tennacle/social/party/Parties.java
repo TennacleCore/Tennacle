@@ -35,6 +35,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import java.util.function.BiConsumer;
+
+import static tennacle.social.Lines.frame;
+import static tennacle.social.Lines.who;
+import static tennacle.social.Lines.yellow;
 /**
  * A leader and the players who accepted: one SIDE wherever a match is started. Only the leader duels or queues
  * outward; the party follows as their side, so a mode seats it on one team. The command set and its lines follow
@@ -723,22 +727,5 @@ public final class Parties {
     private static Component dot(UUID uuid) {
         boolean online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid) != null;
         return Component.text(" •", online ? NamedTextColor.GREEN : NamedTextColor.RED);
-    }
-
-    // a name as Hypixel shows a player with no rank
-    private static Component who(String name) {
-        return Component.text(name, NamedTextColor.GRAY);
-    }
-
-    private static Component yellow(String text) {
-        return Component.text(text, NamedTextColor.YELLOW);
-    }
-
-    // hypixel's frame: a blue rule above and below
-    private static void frame(Player to, Component... lines) {
-        Component rule = Msg.THEME.rule(53, NamedTextColor.BLUE);
-        to.sendMessage(rule);
-        for (Component line : lines) to.sendMessage(line);
-        to.sendMessage(rule);
     }
 }
