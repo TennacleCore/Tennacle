@@ -5,6 +5,7 @@ import net.minestom.server.codec.Codec;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import tennacle.PlayerPrefs;
+import tennacle.social.blocks.Blocks;
 
 import java.util.List;
 import java.util.Locale;
@@ -33,6 +34,11 @@ public final class Choice {
     public @NotNull Audience of(@NotNull Player player) {
         Audience held = stored.of(player.getUuid());
         return held != null ? held : options.getFirst();
+    }
+
+    /** Whether {@code from} reaches {@code to}: never across a block, else as {@code to} chose. */
+    public boolean admits(@NotNull Player from, @NotNull Player to) {
+        return !Blocks.between(from.getUuid(), to.getUuid()) && of(to).admits(from, to);
     }
 
     public void set(@NotNull Player player, @NotNull Audience audience) {

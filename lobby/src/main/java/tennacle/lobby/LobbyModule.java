@@ -10,6 +10,7 @@ import tennacle.games.Matches;
 import tennacle.games.Rooms;
 import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.menus.PlayerMenu;
+import tennacle.social.blocks.Blocks;
 import tennacle.social.party.Parties;
 
 /** The lobby module: the lobby worlds, and their hotbar, NPCs, menus, settings and chat rooms. */
@@ -32,7 +33,8 @@ public final class LobbyModule {
         Parties.warps(new Warps());
         Welcome.install(); // the first lines an arrival reads
         // a lobby reader's own setting says whose lines reach them
-        Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null || Settings.LOBBY_CHAT.of(reader).admits(speaker, reader));
+        Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null
+                ? !Blocks.between(speaker.getUuid(), reader.getUuid()) : Settings.LOBBY_CHAT.admits(speaker, reader));
         // the chrome follows the viewer's game look (Rooms); the first send lands before Via reveals the protocol
         MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
             if (e.isFirstSpawn()) Msg.onceProtocolKnown(e.getPlayer(), 60, () -> TabList.refresh(e.getPlayer()));

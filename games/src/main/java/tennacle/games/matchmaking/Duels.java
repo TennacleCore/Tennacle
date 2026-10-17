@@ -175,7 +175,7 @@ public final class Duels {
         }
         Player target = online(me, targetName);
         if (target == null) return;
-        if (!REQUESTS.of(target).admits(me, target)) {
+        if (!REQUESTS.admits(me, target)) {
             Msg.fail(me, Msg.v(target.getUsername()), " takes no duel requests.");
             return;
         }

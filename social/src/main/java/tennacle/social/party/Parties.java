@@ -330,7 +330,7 @@ public final class Parties {
             Msg.fail(from, "You can't invite yourself.");
             return;
         }
-        if (!INVITES.of(target).admits(from, target)) {
+        if (!INVITES.admits(from, target)) {
             Msg.fail(from, Msg.v(target.getUsername()), " takes no party invites.");
             return;
         }

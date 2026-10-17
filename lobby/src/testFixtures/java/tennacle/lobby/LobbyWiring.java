@@ -8,6 +8,7 @@ import tennacle.games.Rooms;
 import tennacle.games.TestWiring;
 import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.menus.PlayerMenu;
+import tennacle.social.blocks.Blocks;
 import tennacle.social.party.Parties;
 
 /** The games' wiring plus the lobby's, over the harness world as the main lobby. */
@@ -28,7 +29,8 @@ public final class LobbyWiring {
         Duels.picker(PlayerMenu::duel);
         Parties.warps(new Warps());
         // a lobby reader's own setting says whose lines reach them
-        Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null || Settings.LOBBY_CHAT.of(reader).admits(speaker, reader));
+        Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null
+                ? !Blocks.between(speaker.getUuid(), reader.getUuid()) : Settings.LOBBY_CHAT.admits(speaker, reader));
         Settings.install();
         Hotbar.install();
         Counts.install();

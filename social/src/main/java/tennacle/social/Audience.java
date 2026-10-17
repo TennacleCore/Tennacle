@@ -1,5 +1,6 @@
 package tennacle.social;
 
+import tennacle.social.friends.Friends;
 import tennacle.social.party.Parties;
 
 import net.minestom.server.entity.Player;
@@ -7,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 /** Who a privacy setting lets through. */
 public enum Audience {
-    EVERYONE("Everyone"), PARTY("Your party"), NOBODY("Nobody");
+    EVERYONE("Everyone"), FRIENDS("Friends"), PARTY("Your party"), NOBODY("Nobody");
 
     private final String label;
 
@@ -23,6 +24,7 @@ public enum Audience {
     public boolean admits(@NotNull Player from, @NotNull Player to) {
         return switch (this) {
             case EVERYONE -> true;
+            case FRIENDS -> Friends.are(from.getUuid(), to.getUuid());
             case PARTY -> Parties.together(from, to);
             case NOBODY -> false;
         };

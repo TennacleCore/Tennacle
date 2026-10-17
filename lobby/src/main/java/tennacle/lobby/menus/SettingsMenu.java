@@ -68,6 +68,7 @@ public final class SettingsMenu {
             return entry.action("Click to change!").render(v);
         }, v -> switch (choice.of(v)) {
             case EVERYONE -> Material.LIME_DYE;
+            case FRIENDS -> Material.ORANGE_DYE;
             case PARTY -> Material.YELLOW_DYE;
             case NOBODY -> Material.GRAY_DYE;
         }, (v, click) -> {

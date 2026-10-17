@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * The one login-prefetch pipeline for per-player vault data: a consumer registers its key once, the value
@@ -56,6 +57,23 @@ public final class PlayerPrefs {
         public void set(@NotNull Player player, @NotNull T value) {
             cache.put(player.getUuid(), value);
             vault.get().set(player.getUuid(), key, encode.apply(value));
+        }
+
+        /** The cached value for someone online, else the stored one. */
+        public @NotNull CompletableFuture<T> load(@NotNull UUID player) {
+            T cached = cache.get(player);
+            if (cached != null) return CompletableFuture.completedFuture(cached);
+            return vault.get().get(player, key).thenApply(decode);
+        }
+
+        /** Read-modify-write on the stored value, online or not; an online player's cache follows. */
+        public @NotNull CompletableFuture<T> update(@NotNull UUID player, @NotNull UnaryOperator<T> fn) {
+            return vault.get().update(player, key, stored -> encode.apply(fn.apply(decode.apply(stored))))
+                    .thenApply(stored -> {
+                        T value = decode.apply(stored);
+                        if (MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player) != null) cache.put(player, value);
+                        return value;
+                    });
         }
     }
 

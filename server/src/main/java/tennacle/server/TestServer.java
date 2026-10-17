@@ -17,6 +17,7 @@ import io.github.term4.grotto.Outcome;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.timer.TaskSchedule;
@@ -24,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tennacle.Msg;
 import tennacle.PlayerPrefs;
+import tennacle.Seen;
 import tennacle.Sessions;
 import tennacle.boot.Config;
 import tennacle.boot.Mechanics;
@@ -44,6 +46,7 @@ import tennacle.lobby.LobbyModule;
 import tennacle.lobby.Playground;
 import tennacle.social.SocialModule;
 import tennacle.storage.Atomic;
+import tennacle.storage.FileDirectory;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchLog;
 
@@ -208,6 +211,8 @@ public final class TestServer {
 
         // the libraries store nothing: account data is the app's, and this is where it lands
         FileVault vault = new FileVault(data.resolve("players"));
+        FileDirectory directory = new FileDirectory(data.resolve("directory.tsv"));
+        Seen.use(directory);
         Path replays = Storage.dir("replay-dir", "replays");
         leftovers(data, replays);
         SocialModule.install();
@@ -259,7 +264,7 @@ public final class TestServer {
         // a map loads on its first game, off the tick thread (Matches.begin), and leaves once idle this long
         int idle = Config.integer("tennacle.map-idle-minutes", 10);
         Matches.grotto().expireBasesAfter(idle > 0 ? Duration.ofMinutes(idle) : null);
-        shutdownSteps(vault);
+        shutdownSteps(vault, directory);
         server.start(bind, port);
         LOGGER.info("listening on {}:{} (dev commands {})", bind, port, devCommands ? "on" : "off");
     }
@@ -278,7 +283,7 @@ public final class TestServer {
         }
     }
 
-    private static void shutdownSteps(FileVault vault) {
+    private static void shutdownSteps(FileVault vault, FileDirectory directory) {
         Shutdown.step("live games", 15, () -> onTick(15, () -> {
             for (Game game : List.copyOf(Matches.grotto().games())) {
                 if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
@@ -289,6 +294,13 @@ public final class TestServer {
         Shutdown.step("player data", 15, () -> {
             vault.flush(10, TimeUnit.SECONDS);
             vault.close();
+            // the kicks come after these steps, too late to stamp a last seen
+            long now = System.currentTimeMillis();
+            for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+                directory.seen(player.getUuid(), player.getUsername(), now);
+            }
+            directory.flush(5, TimeUnit.SECONDS);
+            directory.close();
             MatchLog.flush(5, TimeUnit.SECONDS);
         });
         // before the clocks: a stage shard ticks on its own domain, and nothing else closes one

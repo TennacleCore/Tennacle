@@ -43,7 +43,7 @@ public final class TestWiring {
         tennacle.audit.Audit.install(shards);
         tennacle.commands.Commands.help();
         Duels.install();
-        Parties.install();
+        tennacle.social.SocialModule.install();
         Queues.install();
         tennacle.games.matchmaking.Play.install();
         tennacle.games.watch.SpectateCommands.register();
