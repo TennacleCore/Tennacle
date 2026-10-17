@@ -9,6 +9,7 @@ import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
 import tennacle.social.Audience;
 import tennacle.social.Choice;
+import tennacle.social.messages.Messages;
 
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.polyp.platform.player.PlayerNames;
@@ -603,6 +604,7 @@ public final class Parties {
     }
 
     private static void channel(Player player, String channel) {
+        Messages.leave(player);
         if (CHANNEL_PARTY.equals(channel) && !byMember.containsKey(player.getUuid())) {
             Msg.fail(player, "You're not in a party.");
             return;

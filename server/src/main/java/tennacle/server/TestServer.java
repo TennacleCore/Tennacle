@@ -9,7 +9,6 @@ import io.github.term4.archipelago.ticking.ExecutionDomain;
 import io.github.term4.bloom.Bloom;
 import io.github.term4.bloom.mapmaking.Session;
 import io.github.term4.canvas.Canvas;
-import io.github.term4.canvas.chat.Chat;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Tint;
 import io.github.term4.grotto.Game;
@@ -253,7 +252,6 @@ public final class TestServer {
         Canvas.viewerProtocol(p -> Mechanics.polyp.clientInfo().getProtocol(p));
         // a name completes where the viewer's tab lists it - the same scope on a 1.8 client as a modern one
         PlayerNames.visible(ShardTabList::listed);
-        Chat.completesPlayers(PlayerNames.suggest());
         Canvas.protocolWhenUnknown(47); // chrome is drawn once, early: an unknown viewer gets the flat 1.8 look
         Canvas.theme(Msg.THEME);
         Canvas.screenTheme(Msg.MENUS);

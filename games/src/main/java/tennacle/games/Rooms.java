@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import tennacle.social.messages.Messages;
 import tennacle.social.party.Parties;
 import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
@@ -83,6 +84,7 @@ public final class Rooms {
     }
 
     private static Chat.@Nullable Room of(@NotNull Player me, @NotNull String message) {
+        if (Messages.converse(me, message)) return new Chat.Room(List.of(), Component.empty()); // went as a message
         List<Player> party = Parties.chatRoom(me); // /chat party: the party hears everything, wherever they are
         if (party != null) return new Chat.Room(party, Parties.chatLine(me, message));
         Game game = gameOf(me);
