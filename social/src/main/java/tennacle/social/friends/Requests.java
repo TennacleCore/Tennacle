@@ -5,13 +5,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.codec.StructCodec;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.player.PlayerSpawnEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tennacle.Arrivals;
 import tennacle.PlayerPrefs;
 
 import java.util.ArrayList;
@@ -52,9 +51,7 @@ final class Requests {
     private Requests() {}
 
     static void install() {
-        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
-            if (e.isFirstSpawn()) arrived(e.getPlayer());
-        });
+        Arrivals.add(Arrivals.WELCOME + 10, Requests::arrived);
     }
 
     /** The live requests waiting on {@code to}, oldest first. */

@@ -94,7 +94,7 @@ class FriendsTest extends HeadlessServerTest {
         Seen.directory().seen(away, "Ghosty", 1).get(5, TimeUnit.SECONDS);
         try {
             assertTrue(said(chat(a, "f nobodyhere"), "No player found with name nobodyhere!"));
-            assertTrue(said(chat(a, "f ghosty"), "You sent a friend request to Ghosty!"));
+            assertTrue(said(chat(a, "f ghosty"), "You sent an offline friend request to Ghosty! They will have 5 minutes to accept once they come online!"));
             assertEquals(0, Requests.waiting(away).get(5, TimeUnit.SECONDS).getFirst().started(), "the clock waits for them");
 
             Requests.send(a.player.getUuid(), "FrC", b.player.getUuid(), false).get(5, TimeUnit.SECONDS);

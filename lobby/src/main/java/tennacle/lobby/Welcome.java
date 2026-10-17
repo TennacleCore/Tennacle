@@ -1,13 +1,12 @@
 package tennacle.lobby;
 
+import tennacle.Arrivals;
 import tennacle.boot.Config;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
 
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.player.PlayerSpawnEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -25,12 +24,7 @@ public final class Welcome {
     private Welcome() {}
 
     public static void install() {
-        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, e -> {
-            if (!e.isFirstSpawn()) return;
-            // deferred: at spawn the Via handshake may not have revealed the protocol yet, and the title's
-            // format (gradient vs flat) depends on it
-            Msg.onceProtocolKnown(e.getPlayer(), 60, () -> send(e.getPlayer()));
-        });
+        Arrivals.add(Arrivals.WELCOME, Welcome::send); // the title's format (gradient vs flat) depends on the protocol
     }
 
     public static void send(@NotNull Player to) {

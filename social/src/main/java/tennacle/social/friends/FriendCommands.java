@@ -174,8 +174,13 @@ public final class FriendCommands {
                         frame(me, red("Please wait before sending this person another request!"));
                         return;
                     }
+                    if (online == null) { // after Hypixel's offline guild invite
+                        frame(me, yellow("You sent an offline friend request to " + theirName
+                                + "! They will have 5 minutes to accept once they come online!"));
+                        return;
+                    }
                     frame(me, yellow("You sent a friend request to " + theirName + "! They have 5 minutes to accept it!"));
-                    if (online != null) frame(online, yellow("Friend request from ").append(who(me.getUsername())), buttons(me.getUsername()));
+                    frame(online, yellow("Friend request from ").append(who(me.getUsername())), buttons(me.getUsername()));
                 });
             });
         }));
