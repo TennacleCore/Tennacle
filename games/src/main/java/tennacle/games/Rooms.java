@@ -1,6 +1,6 @@
 package tennacle.games;
 
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 import tennacle.looks.Look;

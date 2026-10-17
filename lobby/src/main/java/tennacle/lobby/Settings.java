@@ -5,8 +5,8 @@ import net.minestom.server.codec.Codec;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import tennacle.PlayerPrefs;
-import tennacle.party.Audience;
-import tennacle.party.Choice;
+import tennacle.social.Audience;
+import tennacle.social.Choice;
 
 /** What a player chose in the lobby's own settings, kept with their preferences. */
 public final class Settings {

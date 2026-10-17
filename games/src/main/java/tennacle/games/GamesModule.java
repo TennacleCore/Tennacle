@@ -23,7 +23,7 @@ import tennacle.games.watch.SpectateCommands;
 import tennacle.games.watch.Spectators;
 import tennacle.looks.GameSounds;
 import tennacle.looks.TabStats;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import tennacle.storage.MatchLog;
 
 import java.nio.file.Path;

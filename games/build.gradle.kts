@@ -6,7 +6,7 @@ plugins {
 description = "The games: the match layer, matchmaking, spectating, replays, the looks and every mode"
 
 dependencies {
-    api(project(":party"))
+    api(project(":social"))
 
     testFixturesApi(testFixtures(project(":core")))
 }

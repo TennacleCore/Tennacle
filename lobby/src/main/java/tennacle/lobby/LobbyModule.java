@@ -10,7 +10,7 @@ import tennacle.games.Matches;
 import tennacle.games.Rooms;
 import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.menus.PlayerMenu;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 
 /** The lobby module: the lobby worlds, and their hotbar, NPCs, menus, settings and chat rooms. */
 public final class LobbyModule {

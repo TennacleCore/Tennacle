@@ -42,7 +42,7 @@ import tennacle.games.watch.Tapes;
 import tennacle.games.watch.Theaters;
 import tennacle.lobby.LobbyModule;
 import tennacle.lobby.Playground;
-import tennacle.party.PartyModule;
+import tennacle.social.SocialModule;
 import tennacle.storage.Atomic;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchLog;
@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 
 /**
  * The games server: the party, games and lobby modules over Grotto + Polyp + Archipelago, installed in that order.
- * Boot only - the pieces live in {@link Mechanics} (systems + bridges), {@link PartyModule}, {@link GamesModule},
+ * Boot only - the pieces live in {@link Mechanics} (systems + bridges), {@link SocialModule}, {@link GamesModule},
  * {@link LobbyModule} and the dev tools. The dev toolset ({@link DevCommands}, the test pads, the arsenal) exists
  * only where {@code tennacle.dev-commands} says so - on a loopback bind by default.
  *
@@ -210,7 +210,7 @@ public final class TestServer {
         FileVault vault = new FileVault(data.resolve("players"));
         Path replays = Storage.dir("replay-dir", "replays");
         leftovers(data, replays);
-        PartyModule.install();
+        SocialModule.install();
         GamesModule.install(world, Playground.SPAWN, shards,
                 new GamesModule.Data(vault, data.resolve("matches"), replays, gameSecret(data)), devCommands);
         LobbyModule.install(world);

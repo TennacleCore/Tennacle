@@ -17,7 +17,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 /** A party waits together: one member out of a filling game takes the rest out with them. */
 public final class PartyExit implements GameModule {
 

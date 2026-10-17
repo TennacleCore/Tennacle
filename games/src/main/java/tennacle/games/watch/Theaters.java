@@ -6,7 +6,7 @@ import tennacle.games.Mode;
 import tennacle.GameIds;
 import tennacle.Msg;
 import tennacle.Sessions;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import io.github.term4.archipelago.event.replay.PlaybackStopEvent;
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Replay;

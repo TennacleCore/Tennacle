@@ -9,7 +9,7 @@ import tennacle.games.Mode;
 import tennacle.games.map.MapPool;
 import tennacle.games.matchmaking.Duels;
 import tennacle.games.Flags;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import tennacle.looks.Look;
 import tennacle.looks.Palette;
 import tennacle.looks.Presentation;

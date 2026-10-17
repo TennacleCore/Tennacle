@@ -8,7 +8,7 @@ import tennacle.games.Rooms;
 import tennacle.games.TestWiring;
 import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.menus.PlayerMenu;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 
 /** The games' wiring plus the lobby's, over the harness world as the main lobby. */
 public final class LobbyWiring {

@@ -31,7 +31,7 @@ import tennacle.games.HiddenNames;
 import tennacle.games.map.Building;
 import tennacle.games.map.Structures;
 import tennacle.games.map.MapPool;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import tennacle.games.shop.Favorites;
 import tennacle.games.shop.Shop;
 import tennacle.looks.Look;

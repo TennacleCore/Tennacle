@@ -14,9 +14,9 @@ import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
 import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.Settings;
-import tennacle.party.Audience;
-import tennacle.party.Choice;
-import tennacle.party.Parties;
+import tennacle.social.Audience;
+import tennacle.social.Choice;
+import tennacle.social.party.Parties;
 import tennacle.looks.GameSounds;
 
 import java.util.function.Function;

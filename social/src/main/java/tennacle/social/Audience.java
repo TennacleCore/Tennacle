@@ -1,4 +1,6 @@
-package tennacle.party;
+package tennacle.social;
+
+import tennacle.social.party.Parties;
 
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;

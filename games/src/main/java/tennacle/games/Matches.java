@@ -1,7 +1,7 @@
 package tennacle.games;
 
 import net.minestom.server.item.Material;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import java.util.function.ToIntFunction;
 import java.util.UUID;
 import net.minestom.server.tag.Tag;

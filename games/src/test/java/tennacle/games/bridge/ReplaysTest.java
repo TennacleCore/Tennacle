@@ -222,7 +222,7 @@ class ReplaysTest extends HeadlessServerTest {
 
             MinecraftServer.getCommandManager().execute(lead.player, "party WatchMate");
             MinecraftServer.getCommandManager().execute(mate.player, "party join WatchLead");
-            assertEquals(2, tennacle.party.Parties.of(lead.player).size(), "a party of two");
+            assertEquals(2, tennacle.social.party.Parties.of(lead.player).size(), "a party of two");
 
             watch(lead, game.id(), BridgeRoundTest.fixture());
             await("both admitted", () -> Theaters.playbackOf(mate.player) != null);
@@ -510,7 +510,7 @@ class ReplaysTest extends HeadlessServerTest {
         try {
             MinecraftServer.getCommandManager().execute(lead.player, "party HopMate");
             MinecraftServer.getCommandManager().execute(mate.player, "party join HopLead");
-            assertEquals(2, tennacle.party.Parties.of(lead.player).size(), "a party of two");
+            assertEquals(2, tennacle.social.party.Parties.of(lead.player).size(), "a party of two");
 
             watch(lead, first, BridgeRoundTest.fixture());
             Playback one = Theaters.playbackOf(lead.player);

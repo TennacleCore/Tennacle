@@ -36,9 +36,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 
-import tennacle.party.Parties;
-import tennacle.party.Audience;
-import tennacle.party.Choice;
+import tennacle.social.party.Parties;
+import tennacle.social.Audience;
+import tennacle.social.Choice;
 import java.util.function.BiConsumer;
 /**
  * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>} - the

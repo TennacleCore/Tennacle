@@ -1,4 +1,4 @@
-package tennacle.party;
+package tennacle.social.party;
 
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.timer.TaskSchedule;
@@ -7,6 +7,8 @@ import tennacle.Confirm;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
+import tennacle.social.Audience;
+import tennacle.social.Choice;
 
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.polyp.platform.player.PlayerNames;

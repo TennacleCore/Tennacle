@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import tennacle.Msg;
 import tennacle.Press;
 import tennacle.games.KitLayouts;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import tennacle.games.matchmaking.Queues;
 import tennacle.lobby.menus.LobbyMenu;
 import tennacle.lobby.menus.MainMenu;

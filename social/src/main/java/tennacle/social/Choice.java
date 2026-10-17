@@ -1,4 +1,4 @@
-package tennacle.party;
+package tennacle.social;
 
 import io.github.term4.grotto.vault.VaultKey;
 import net.minestom.server.codec.Codec;

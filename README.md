@@ -18,12 +18,12 @@ Builds against the sibling `../Polyp`, `../Archipelago`, `../Barnacle`, `../Grot
 and `../schem` checkouts when present (live sources, no publish step); otherwise resolves the
 published/mavenLocal artifacts. `blocksandstuff-blocks` is a local fork and always comes from mavenLocal.
 
-Modules, each over the ones before it; party, games and lobby each install through one class:
+Modules, each over the ones before it; social, games and lobby each install through one class:
 
 - `core` - what the rest stands on: `Mechanics` (systems + bridges), `Msg`, `PlayerPrefs`, the command registry,
   `Config` (system property, then `TENNACLE_*` environment, then `tennacle.properties`), `storage/` (what the server
   persists; the libraries persist nothing), and `ShardBridge`/`ReplayBridge`, the glue for using both libraries
-- `party` - parties and who may invite whom (`PartyModule`)
+- `social` - parties and who may invite whom (`SocialModule`)
 - `games` - the match layer, matchmaking, spectating, replays, the looks and every mode (`GamesModule`)
 - `lobby` - the lobby worlds, hotbar, NPCs, menus and settings (`LobbyModule`)
 - `server` - `TestServer` (boot: installs the modules in that order) and the dev tools (`DevCommands`,

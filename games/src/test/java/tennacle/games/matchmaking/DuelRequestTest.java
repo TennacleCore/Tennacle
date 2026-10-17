@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 /** A request reads scrims' way on both ends: an [Accept] that runs the accept, and a flag line when flags rode along. */
 class DuelRequestTest extends HeadlessServerTest {
 

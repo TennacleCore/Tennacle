@@ -1,4 +1,4 @@
-package tennacle.party;
+package tennacle.social.party;
 
 import tennacle.games.TestWiring;
 import io.github.term4.archipelago.testsupport.FakePlayer;

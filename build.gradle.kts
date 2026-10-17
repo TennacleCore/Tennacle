@@ -1,6 +1,6 @@
 description = "The Tennacle server: the app every library here is built for, and the cross-library bridge tests"
 
-// core, then party, games and lobby over it, and the server that installs them in that order
+// core, then social, games and lobby over it, and the server that installs them in that order
 subprojects {
     apply(plugin = "java-library")
     group = "io.github.term4.tennacle" // apart from the composite's own :core projects

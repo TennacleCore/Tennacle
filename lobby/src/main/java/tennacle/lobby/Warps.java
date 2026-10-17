@@ -8,7 +8,7 @@ import tennacle.games.LobbyCommands;
 import tennacle.games.Matches;
 import tennacle.games.matchmaking.PartyExit;
 import tennacle.games.watch.SpectateCommands;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 
 import java.util.List;
 

@@ -22,7 +22,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 /**
  * {@code /play <game> [map]} by Hypixel's ids ({@code bedwars_eight_two}, {@code duels_bridge_doubles}), from
  * anywhere: a side in a game leaves it on the way. A mode that fills up on its map seats the party in a game still

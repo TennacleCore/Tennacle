@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.matchmaking.Duels;
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import tennacle.lobby.Lobbies;
 
 import java.util.ArrayList;

@@ -26,7 +26,7 @@ import tennacle.games.matchmaking.Queues;
 import tennacle.lobby.menus.Icons;
 import tennacle.lobby.menus.PlayMenu;
 import tennacle.lobby.menus.SettingsMenu;
-import tennacle.party.Audience;
+import tennacle.social.Audience;
 
 import java.util.concurrent.TimeUnit;
 

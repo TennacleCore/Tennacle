@@ -1,6 +1,6 @@
 package tennacle.games;
 
-import tennacle.party.Parties;
+import tennacle.social.party.Parties;
 import tennacle.games.matchmaking.Duels;
 import tennacle.games.matchmaking.Queues;
 import tennacle.games.watch.Spectators;
