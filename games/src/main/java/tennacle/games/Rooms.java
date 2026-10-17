@@ -1,7 +1,7 @@
 package tennacle.games;
 
+import tennacle.social.channels.Channels;
 import tennacle.social.messages.Messages;
-import tennacle.social.party.Parties;
 import tennacle.games.watch.Theaters;
 import tennacle.games.watch.Replays;
 import tennacle.looks.Look;
@@ -25,8 +25,8 @@ import java.util.function.BiPredicate;
 
 /**
  * The rooms: a member speaks to their game (spectators included), a spectator to the other spectators of
- * that game, anyone else to the players in the same shard tree, else the same instance - unless they switched
- * to the party channel. The routing itself is Canvas's {@link Chat}.
+ * that game, anyone else to the players in the same shard tree, else the same instance - unless they opened a
+ * conversation or chose a channel. The routing itself is Canvas's {@link Chat}.
  */
 public final class Rooms {
 
@@ -85,8 +85,8 @@ public final class Rooms {
 
     private static Chat.@Nullable Room of(@NotNull Player me, @NotNull String message) {
         if (Messages.converse(me, message)) return new Chat.Room(List.of(), Component.empty()); // went as a message
-        List<Player> party = Parties.chatRoom(me); // /chat party: the party hears everything, wherever they are
-        if (party != null) return new Chat.Room(party, Parties.chatLine(me, message));
+        Chat.Room chosen = Channels.room(me, message); // /chat party: the party hears everything, wherever they are
+        if (chosen != null) return chosen;
         Game game = gameOf(me);
         if (game != null) {
             if (TeamChat.benched(game, me)) return TeamChat.spectatorRoom(game, me, message);

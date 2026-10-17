@@ -1,6 +1,7 @@
 package tennacle.social.party;
 
 import tennacle.games.TestWiring;
+import tennacle.social.channels.Channels;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
@@ -15,6 +16,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The party round trip in hypixel's shape: an invite that runs on click, the lineup, the channel, the leave, the end. */
@@ -69,10 +71,10 @@ class PartiesTest extends HeadlessServerTest {
             chat(b, "pc hello");
             assertTrue(said(plain(a), "P» PartyB: hello"), "party chat reaches the leader: " + plain(a));
 
-            assertTrue(said(chat(b, "chat party"), "You are now in the party channel."));
-            assertEquals(List.of(a.player, b.player), Parties.chatRoom(b.player), "the channel routes to the party");
-            chat(b, "chat all");
-            assertEquals(null, Parties.chatRoom(b.player));
+            assertTrue(said(chat(b, "chat p"), "You are now in the PARTY channel"));
+            assertEquals(List.of(a.player, b.player), Channels.room(b.player, "hi").audience(), "the channel routes to the party");
+            assertTrue(said(chat(b, "chat a"), "You are now in the ALL channel"));
+            assertNull(Channels.room(b.player, "hi"));
 
             a.sent.clear();
             assertTrue(said(chat(b, "party leave"), "You left the party."));

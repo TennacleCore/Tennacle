@@ -10,7 +10,7 @@ import tennacle.commands.Commands;
 import tennacle.social.Audience;
 import tennacle.social.Choice;
 import tennacle.social.blocks.Blocks;
-import tennacle.social.messages.Messages;
+import tennacle.social.channels.Channels;
 
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.polyp.platform.player.PlayerNames;
@@ -24,7 +24,6 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.instance.Instance;
-import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -85,9 +84,7 @@ public final class Parties {
     static volatile long inviteTicks = INVITE_SECONDS * 20;
     /** The rejoin grace after a disconnect, in ticks; a test shortens it. */
     static volatile long rejoinTicks = 5 * 60 * 20;
-    static final String CHANNEL_PARTY = "party";
-    static final String CHANNEL_ALL = "all";
-    private static final Tag<String> CHANNEL = Tag.Transient("tennacle:chat-channel");
+    static final String CHANNEL = "party";
 
     /** An invite standing between a party and a player until accepted, or until its clock runs out. */
     private record Invite(Party party, String from, String to, Task expiry) {}
@@ -198,10 +195,9 @@ public final class Parties {
         return party != null && party == byMember.get(b.getUuid());
     }
 
-    /** The party's online members when {@code speaker} speaks in the party channel and has one; else null. */
-    public static @Nullable List<Player> chatRoom(@NotNull Player speaker) {
-        if (!CHANNEL_PARTY.equals(speaker.getTag(CHANNEL))) return null;
-        Party party = byMember.get(speaker.getUuid());
+    /** {@code player}'s party online, leader first; null when they have none. */
+    private static @Nullable List<Player> partyOnline(@NotNull Player player) {
+        Party party = byMember.get(player.getUuid());
         return party != null ? online(party) : null;
     }
 
@@ -307,14 +303,8 @@ public final class Parties {
         }, text);
         Commands.register(pc);
 
-        AppCommand chat = Commands.player("chat", "Choose the chat to speak in.")
-                .usage("/chat party", "everything you say goes to your party")
-                .usage("/chat all", "back to everyone around you");
-        var channel = ArgumentType.Word("channel").from("party", "p", "all", "a");
-        chat.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) channel(p, ctx.get(channel).startsWith("p") ? CHANNEL_PARTY : CHANNEL_ALL);
-        }, channel);
-        Commands.register(chat);
+        Channels.register(new Channels.Channel(CHANNEL, List.of("p"), Parties::partyOnline, Parties::chatLine,
+                "You're not in a party."));
 
         AppCommand parties = Commands.dev("parties", "Every party and its members.");
         parties.setDefaultExecutor((sender, ctx) -> listAll(sender));
@@ -467,7 +457,7 @@ public final class Parties {
             return;
         }
         drop(party, player.getUuid());
-        player.removeTag(CHANNEL);
+        Channels.leave(player, CHANNEL);
         frame(player, yellow("You left the party."));
         Component line = who(player.getUsername()).append(yellow(" has left the party."));
         for (Player member : online(party)) frame(member, line);
@@ -486,7 +476,7 @@ public final class Parties {
         drop(party, target);
         Player kicked = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(target);
         if (kicked != null) {
-            kicked.removeTag(CHANNEL);
+            Channels.leave(kicked, CHANNEL);
             frame(kicked, yellow("You have been kicked from the party by ").append(who(leader.getUsername())));
         }
         Component line = who(name).append(yellow(" has been removed from the party."));
@@ -611,17 +601,6 @@ public final class Parties {
         for (Player member : online(party)) member.sendMessage(line);
     }
 
-    private static void channel(Player player, String channel) {
-        Messages.leave(player);
-        if (CHANNEL_PARTY.equals(channel) && !byMember.containsKey(player.getUuid())) {
-            Msg.fail(player, "You're not in a party.");
-            return;
-        }
-        if (CHANNEL_PARTY.equals(channel)) player.setTag(CHANNEL, CHANNEL_PARTY);
-        else player.removeTag(CHANNEL);
-        Msg.ok(player, "You are now in the " + channel + " channel.");
-    }
-
     private static void listAll(CommandSender to) {
         List<Party> all = byMember.values().stream().distinct().toList();
         if (all.isEmpty()) {
@@ -684,7 +663,7 @@ public final class Parties {
         for (UUID uuid : party.members) {
             byMember.remove(uuid);
             Player member = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
-            if (member != null) member.removeTag(CHANNEL);
+            if (member != null) Channels.leave(member, CHANNEL);
         }
         for (UUID invited : List.copyOf(party.invited)) { // an invite to a party that is gone stands for nothing
             Map<Party, Invite> mine = invites.get(invited);
