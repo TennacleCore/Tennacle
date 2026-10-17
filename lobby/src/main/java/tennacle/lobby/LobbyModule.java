@@ -10,7 +10,9 @@ import tennacle.games.Matches;
 import tennacle.games.Rooms;
 import tennacle.games.matchmaking.Duels;
 import tennacle.lobby.menus.PlayerMenu;
+import tennacle.social.Whereabouts;
 import tennacle.social.blocks.Blocks;
+import tennacle.social.friends.FriendCommands;
 import tennacle.social.party.Parties;
 
 /** The lobby module: the lobby worlds, and their hotbar, NPCs, menus, settings and chat rooms. */
@@ -31,6 +33,8 @@ public final class LobbyModule {
         Matches.home(player -> Lobbies.send(player, Lobbies.home(player)));
         Duels.picker(PlayerMenu::duel);
         Parties.warps(new Warps());
+        Whereabouts.use(Where::of);
+        FriendCommands.views(PlayerMenu::open);
         Welcome.install(); // the first lines an arrival reads
         // a lobby reader's own setting says whose lines reach them
         Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null

@@ -91,9 +91,13 @@ public final class Friends {
                 .map(f -> f.id().equals(friend) ? new Friend(f.id(), f.name(), f.since(), best) : f).toList());
     }
 
-    static Notices notices(Player player) {
+    public static @NotNull Notices notices(@NotNull Player player) {
         Notices held = NOTICES.of(player.getUuid());
         return held != null ? held : Notices.ALL;
+    }
+
+    public static void notices(@NotNull Player player, @NotNull Notices notices) {
+        NOTICES.set(player, notices);
     }
 
     private static List<Friend> with(List<Friend> list, Friend friend) {

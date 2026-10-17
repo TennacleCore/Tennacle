@@ -8,6 +8,7 @@ import io.github.term4.canvas.screen.Screens;
 import io.github.term4.canvas.theme.Theme;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.ItemStack;
@@ -18,6 +19,7 @@ import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.matchmaking.Duels;
 import tennacle.social.blocks.Blocks;
+import tennacle.social.friends.Friends;
 import tennacle.social.party.Parties;
 import tennacle.lobby.Lobbies;
 
@@ -27,7 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Right-clicking a player: invite them, duel them, see their stats. */
+/** Right-clicking a player: invite them, friend them, duel them, block them, see their stats. */
 public final class PlayerMenu {
 
     // the rules a viewer's next duel request carries: a platform's name, absent for the house's own
@@ -46,10 +48,21 @@ public final class PlayerMenu {
                     v.closeInventory();
                     return null;
                 })
+                .press(21, v -> friendItem(v, target), (v, click) -> {
+                    boolean friends = Friends.are(v.getUuid(), target.getUuid());
+                    String refused = friends ? null : refusedFriend(v, target);
+                    if (refused != null) return refused;
+                    run(v, (friends ? "friend remove " : "friend add ") + name);
+                    return null;
+                })
                 .press(22, v -> duelItem(v, target), (v, click) -> {
                     String refused = refusedDuel(v, target);
                     if (refused != null) return refused;
                     duel(v, target);
+                    return null;
+                })
+                .press(23, v -> blockItem(v, target), (v, click) -> {
+                    run(v, "block add " + name);
                     return null;
                 })
                 .press(24, v -> Entry.of(Material.PAPER).name("View Stats").text("See " + name + "'s stats in every game.")
@@ -125,6 +138,29 @@ public final class PlayerMenu {
                 .action("Click to invite!").render(viewer);
     }
 
+    private static ItemStack friendItem(Player viewer, Player target) {
+        String name = target.getUsername();
+        if (Friends.are(viewer.getUuid(), target.getUuid())) {
+            return Entry.of(Material.BOOK).name("Remove Friend").text("Remove " + name + " from your friends list.")
+                    .action("Click to remove!").render(viewer);
+        }
+        String refused = refusedFriend(viewer, target);
+        if (refused != null) return unavailable(viewer, "Add Friend", refused);
+        return Entry.of(Material.WRITABLE_BOOK).name("Add Friend").text("Send " + name + " a friend request.")
+                .action("Click to send!").render(viewer);
+    }
+
+    private static ItemStack blockItem(Player viewer, Player target) {
+        return Entry.of(Material.HOPPER).name("Block Player").text("Add " + target.getUsername() + " to your block list.")
+                .action("Click to block!").render(viewer);
+    }
+
+    // the command's own lines answer, in chat
+    private static void run(Player viewer, String command) {
+        viewer.closeInventory();
+        MinecraftServer.getCommandManager().execute(viewer, command);
+    }
+
     private static ItemStack duelItem(Player viewer, Player target) {
         String refused = refusedDuel(viewer, target);
         if (refused != null) return unavailable(viewer, "Send Duel Request", refused);
@@ -143,6 +179,11 @@ public final class PlayerMenu {
         if (Parties.together(viewer, target)) return target.getUsername() + " is already in your party!";
         if (!Parties.INVITES.admits(viewer, target)) return target.getUsername() + " has party invites disabled!";
         return null;
+    }
+
+    private static @Nullable String refusedFriend(Player viewer, Player target) {
+        if (!target.isOnline()) return target.getUsername() + " is no longer online!";
+        return Blocks.refusal(viewer, target, "You cannot add that player since they have blocked you.");
     }
 
     private static @Nullable String refusedDuel(Player viewer, Player target) {
