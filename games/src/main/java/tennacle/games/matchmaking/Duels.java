@@ -39,6 +39,7 @@ import java.util.concurrent.CompletableFuture;
 import tennacle.social.party.Parties;
 import tennacle.social.Audience;
 import tennacle.social.Choice;
+import tennacle.social.blocks.Blocks;
 import java.util.function.BiConsumer;
 /**
  * The duel front: {@code /duel <player> <mode> [map] [-flag ...]} requests; {@code /duel accept <player>} - the
@@ -175,6 +176,11 @@ public final class Duels {
         }
         Player target = online(me, targetName);
         if (target == null) return;
+        String blocked = Blocks.refusal(me, target, "You cannot duel that player since they have blocked you.");
+        if (blocked != null) {
+            Msg.fail(me, blocked);
+            return;
+        }
         if (!REQUESTS.admits(me, target)) {
             Msg.fail(me, Msg.v(target.getUsername()), " takes no duel requests.");
             return;

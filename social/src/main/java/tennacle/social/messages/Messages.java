@@ -151,10 +151,8 @@ public final class Messages {
 
     private static @Nullable String refusal(Player me, Player to) {
         if (me == to) return "You can't message yourself.";
-        if (Blocks.blocked(me.getUuid(), to.getUuid())) {
-            return "You blocked " + to.getUsername() + ". Use /block remove " + to.getUsername() + " first.";
-        }
-        if (Blocks.blocked(to.getUuid(), me.getUuid())) return "That player blocked you!";
+        String blocked = Blocks.refusal(me, to, "That player blocked you!");
+        if (blocked != null) return blocked;
         if (!PRIVACY.admits(me, to)) return to.getUsername() + " isn't accepting messages from you.";
         return null;
     }

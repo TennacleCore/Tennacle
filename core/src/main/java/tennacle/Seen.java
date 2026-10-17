@@ -5,8 +5,11 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tennacle.storage.Directory;
 import tennacle.storage.MemoryDirectory;
+
+import java.util.concurrent.CompletableFuture;
 
 /** The {@link Directory} the server keeps, stamped with every join and leave. */
 public final class Seen {
@@ -22,6 +25,15 @@ public final class Seen {
 
     public static @NotNull Directory directory() {
         return directory;
+    }
+
+    /** Whoever is online under {@code name}, else whoever the directory knows by it. */
+    public static @NotNull CompletableFuture<Directory.@Nullable Entry> find(@NotNull String name) {
+        Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
+        if (online != null) {
+            return CompletableFuture.completedFuture(new Directory.Entry(online.getUuid(), online.getUsername(), System.currentTimeMillis()));
+        }
+        return directory.byName(name);
     }
 
     public static void install() {

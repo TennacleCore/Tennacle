@@ -9,6 +9,7 @@ import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
 import tennacle.social.Audience;
 import tennacle.social.Choice;
+import tennacle.social.blocks.Blocks;
 import tennacle.social.messages.Messages;
 
 import io.github.term4.canvas.theme.SoundSet;
@@ -38,6 +39,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 
 import static tennacle.social.Lines.frame;
+import static tennacle.social.Lines.red;
 import static tennacle.social.Lines.who;
 import static tennacle.social.Lines.yellow;
 /**
@@ -333,6 +335,12 @@ public final class Parties {
         if (target == null) return;
         if (target == from) {
             Msg.fail(from, "You can't invite yourself.");
+            return;
+        }
+        // captured: the blocked side's line, framed
+        String blocked = Blocks.refusal(from, target, "You cannot invite that player since they have blocked you.");
+        if (blocked != null) {
+            frame(from, red(blocked));
             return;
         }
         if (!INVITES.admits(from, target)) {

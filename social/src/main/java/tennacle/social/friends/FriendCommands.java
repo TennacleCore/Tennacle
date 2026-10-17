@@ -125,7 +125,7 @@ public final class FriendCommands {
     }
 
     private static void add(Player me, String name) {
-        guard(me, find(name).thenCompose(target -> {
+        guard(me, Seen.find(name).thenCompose(target -> {
             if (target == null) {
                 Msg.fail(me, "No player found with name " + name + "!");
                 return done();
@@ -193,7 +193,10 @@ public final class FriendCommands {
     private static Component buttons(String from) {
         return button("[ACCEPT]", NamedTextColor.GREEN, "/friend accept " + from, "Click to accept the friend request")
                 .append(Component.text(" - ", NamedTextColor.DARK_GRAY))
-                .append(button("[DENY]", NamedTextColor.RED, "/friend deny " + from, "Click to deny the friend request"));
+                .append(button("[DENY]", NamedTextColor.RED, "/friend deny " + from, "Click to deny the friend request"))
+                .append(Component.text(" - ", NamedTextColor.DARK_GRAY))
+                .append(button("[BLOCK]", NamedTextColor.GRAY, "/block add " + from,
+                        "Click to block all future friend requests and chat messages from this player"));
     }
 
     private static Component button(String text, NamedTextColor color, String command, String hover) {
@@ -203,7 +206,7 @@ public final class FriendCommands {
     }
 
     private static void accept(Player me, String name) {
-        guard(me, find(name).thenCompose(target -> {
+        guard(me, Seen.find(name).thenCompose(target -> {
             if (target == null) {
                 Msg.fail(me, "No player found with name " + name + "!");
                 return done();
@@ -240,7 +243,7 @@ public final class FriendCommands {
     }
 
     private static void deny(Player me, String name) {
-        guard(me, find(name).thenCompose(target -> {
+        guard(me, Seen.find(name).thenCompose(target -> {
             if (target == null) {
                 Msg.fail(me, "No player found with name " + name + "!");
                 return done();
@@ -326,7 +329,9 @@ public final class FriendCommands {
                 me.sendMessage(yellow("From ").append(who(request.name())).append(Component.text("  "))
                         .append(button("[ACCEPT]", NamedTextColor.GREEN, "/friend accept " + request.name(), "Click to accept the friend request"))
                         .append(Component.text(" "))
-                        .append(button("[DENY]", NamedTextColor.RED, "/friend deny " + request.name(), "Click to deny the friend request")));
+                        .append(button("[DENY]", NamedTextColor.RED, "/friend deny " + request.name(), "Click to deny the friend request"))
+                        .append(Component.text(" "))
+                        .append(button("[BLOCK]", NamedTextColor.GRAY, "/block add " + request.name(), "Click to block player")));
             }
         }));
     }
@@ -379,18 +384,9 @@ public final class FriendCommands {
         }
     }
 
-    /** An online player by name, else whoever the directory knows by it. */
-    private static CompletableFuture<Directory.@Nullable Entry> find(String name) {
-        Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
-        if (online != null) {
-            return CompletableFuture.completedFuture(new Directory.Entry(online.getUuid(), online.getUsername(), Requests.clock.getAsLong()));
-        }
-        return Seen.directory().byName(name);
-    }
-
     /** The friend {@code name} names, by their current name or the one on the list. */
     private static CompletableFuture<Friends.@Nullable Friend> friendNamed(Player me, String name) {
-        return Friends.of(me.getUuid()).thenCombine(find(name), (list, entry) -> {
+        return Friends.of(me.getUuid()).thenCombine(Seen.find(name), (list, entry) -> {
             for (Friends.Friend friend : list) {
                 if (entry != null && friend.id().equals(entry.id())) return new Friends.Friend(friend.id(), entry.name(), friend.since(), friend.best());
             }

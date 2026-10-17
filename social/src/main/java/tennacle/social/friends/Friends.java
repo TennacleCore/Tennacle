@@ -77,6 +77,11 @@ public final class Friends {
                 LIST.update(b, list -> with(list, new Friend(a, aName, now, false))));
     }
 
+    /** Everything between the two ends: the friendship and any request either way. */
+    public static @NotNull CompletableFuture<Void> sever(@NotNull UUID a, @NotNull UUID b) {
+        return CompletableFuture.allOf(unfriend(a, b), Requests.take(a, b), Requests.take(b, a));
+    }
+
     static @NotNull CompletableFuture<Void> unfriend(UUID a, UUID b) {
         return CompletableFuture.allOf(LIST.update(a, without(b)), LIST.update(b, without(a)));
     }

@@ -3,7 +3,9 @@ package tennacle.social.blocks;
 import io.github.term4.grotto.vault.VaultKey;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.codec.StructCodec;
+import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tennacle.PlayerPrefs;
 
 import java.util.List;
@@ -25,8 +27,9 @@ public final class Blocks {
 
     private Blocks() {}
 
-    /** Registers the list before the first login fetch. */
-    public static void install() {}
+    public static void install() {
+        BlockCommands.register();
+    }
 
     /** Whether {@code by} has blocked {@code who}, as far as {@code by}'s loaded list says. */
     public static boolean blocked(@NotNull UUID by, @NotNull UUID who) {
@@ -42,5 +45,13 @@ public final class Blocks {
     /** Whether either has blocked the other. */
     public static boolean between(@NotNull UUID a, @NotNull UUID b) {
         return blocked(a, b) || blocked(b, a);
+    }
+
+    /** Why {@code from} can't reach {@code to} across a block, or null: {@code theyBlockedYou} when {@code to} blocked. */
+    public static @Nullable String refusal(@NotNull Player from, @NotNull Player to, @NotNull String theyBlockedYou) {
+        if (blocked(from.getUuid(), to.getUuid())) {
+            return "You blocked " + to.getUsername() + ". Use /block remove " + to.getUsername() + " first.";
+        }
+        return blocked(to.getUuid(), from.getUuid()) ? theyBlockedYou : null;
     }
 }
