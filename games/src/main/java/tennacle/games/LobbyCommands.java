@@ -20,10 +20,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
-/** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere. A seated player
+/** {@code /spawn} (aliases {@code /lobby}, {@code /l}): back to the lobby from anywhere, or to a game's with
+ *  {@code /l bedwars}. A seated player
  *  departs their game - the seat follows the resolved reclaim rule, {@code /games} lists what holds one, and
  *  {@code /rejoin} re-claims it. The lines read as hypixel's party lines do: yellow, names in aqua, no tag. */
 public final class LobbyCommands {
@@ -32,12 +35,25 @@ public final class LobbyCommands {
 
     public static void register() {
         Sessions.register(LobbyCommands::gameDeparture);
-        AppCommand cmd = Commands.player("spawn", "Back to the lobby from anywhere.", "lobby", "l");
+        AppCommand cmd = Commands.player("spawn", "Back to the lobby from anywhere.", "lobby", "l")
+                .usage("/lobby [lobby]", "your lobby, or a game's: bedwars (bw), duels (duel)");
         cmd.setDefaultExecutor((sender, ctx) -> {
-            if (!(sender instanceof Player p)) return;
-            Queues.leave(p);
-            if (!Sessions.depart(p)) Matches.toLobby(p);
+            if (sender instanceof Player p) leave(p);
         });
+        var named = ArgumentType.Word("lobby");
+        named.setSuggestionCallback(tennacle.commands.Completions.of(() -> DESTINATIONS.stream().map(Destination::id).toList()));
+        cmd.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player p)) return;
+            String word = ctx.get(named).toLowerCase(java.util.Locale.ROOT);
+            Destination to = DESTINATIONS.stream().filter(d -> d.id().equals(word) || d.aliases().contains(word)).findFirst().orElse(null);
+            if (to == null) {
+                Msg.fail(p, "No lobby named ", Msg.v(word), ". Lobbies: "
+                        + String.join(", ", DESTINATIONS.stream().map(Destination::id).toList()) + ".");
+                return;
+            }
+            to.prefer().accept(p);
+            leave(p);
+        }, named);
         Commands.register(cmd);
 
         // the results card's (REMATCH) already points here; re-queueing the pair is still to be built
@@ -70,6 +86,22 @@ public final class LobbyCommands {
         rejoin.setDefaultExecutor((sender, ctx) -> rejoin(sender, null));
         rejoin.addSyntax((sender, ctx) -> rejoin(sender, ctx.get(code)), code);
         Commands.register(rejoin);
+    }
+
+    private record Destination(String id, List<String> aliases, Consumer<Player> prefer) {}
+
+    private static final List<Destination> DESTINATIONS = new CopyOnWriteArrayList<>();
+
+    /** A lobby {@code /lobby <id>} reaches; {@code prefer} makes it where the leave sends the player. */
+    public static void destination(@NotNull String id, @NotNull List<String> aliases, @NotNull Consumer<Player> prefer) {
+        DESTINATIONS.removeIf(d -> d.id().equals(id));
+        DESTINATIONS.add(new Destination(id, List.copyOf(aliases), prefer));
+    }
+
+    // every way out ends where the lobbies route home, so a named lobby is one trip, never a stop at home first
+    private static void leave(Player p) {
+        Queues.leave(p);
+        if (!Sessions.depart(p)) Matches.toLobby(p);
     }
 
     // a seat holds through other games, so several may hold at once: a code picks, /games shows them

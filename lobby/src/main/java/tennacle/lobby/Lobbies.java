@@ -14,6 +14,7 @@ import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import tennacle.games.LobbyCommands;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 
@@ -32,8 +33,10 @@ import java.util.function.Predicate;
  */
 public final class Lobbies {
 
+    /** {@code aliases}: the other words {@code /lobby} takes for it ({@code bw}). */
     public record Lobby(@NotNull String id, @NotNull String name, @NotNull Material icon, @NotNull String blurb,
-                        @NotNull Predicate<Mode> hosting, @NotNull InstanceContainer world, @NotNull Pos spawn) {
+                        @NotNull Predicate<Mode> hosting, @NotNull InstanceContainer world, @NotNull Pos spawn,
+                        @NotNull List<String> aliases) {
 
         public boolean hosts(@NotNull Mode mode) {
             return hosting.test(mode);
@@ -54,9 +57,9 @@ public final class Lobbies {
     public static void install(@NotNull InstanceContainer main) {
         add("main", "Main Lobby", Material.BEACON, "Every game in one place.", mode -> true, main, Playground.SPAWN);
         add("bedwars", "Bed Wars", Material.RED_BED, "Solo, Doubles, 3v3v3v3 and 4v4v4v4.",
-                mode -> mode.name().startsWith("bedwars"), Playground.createWorld(false), Playground.SPAWN);
+                mode -> mode.name().startsWith("bedwars"), Playground.createWorld(false), Playground.SPAWN, List.of("bw"));
         add("duels", "Duels", Material.IRON_SWORD, "Bridge, Sumo, Boxing and Bed Fight.",
-                mode -> mode.family() == Mode.Family.DUEL, Playground.createWorld(false), Playground.SPAWN);
+                mode -> mode.family() == Mode.Family.DUEL, Playground.createWorld(false), Playground.SPAWN, List.of("duel"));
         var events = MinecraftServer.getGlobalEventHandler();
         events.addListener(SeatChangeEvent.class, e -> {
             Mode mode = e.taken() ? Matches.modeOf(e.game()) : null;
@@ -72,9 +75,16 @@ public final class Lobbies {
     /** A lobby over {@code world}, dressed like every other; the first added is the main one. */
     public static @NotNull Lobby add(@NotNull String id, @NotNull String name, @NotNull Material icon, @NotNull String blurb,
                                      @NotNull Predicate<Mode> hosting, @NotNull InstanceContainer world, @NotNull Pos spawn) {
-        Lobby lobby = new Lobby(id, name, icon, blurb, hosting, world, spawn);
+        return add(id, name, icon, blurb, hosting, world, spawn, List.of());
+    }
+
+    public static @NotNull Lobby add(@NotNull String id, @NotNull String name, @NotNull Material icon, @NotNull String blurb,
+                                     @NotNull Predicate<Mode> hosting, @NotNull InstanceContainer world, @NotNull Pos spawn,
+                                     @NotNull List<String> aliases) {
+        Lobby lobby = new Lobby(id, name, icon, blurb, hosting, world, spawn, List.copyOf(aliases));
         if (!LOBBIES.isEmpty()) Wardrobe.outfit(world, Playground::outfit);
         LOBBIES.add(lobby);
+        LobbyCommands.destination(id, lobby.aliases(), player -> HOME.put(player.getUuid(), lobby));
         return lobby;
     }
 
