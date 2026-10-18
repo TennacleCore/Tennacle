@@ -19,9 +19,7 @@ public final class Lobby {
     private Lobby() {}
 
     public static void install() {
-        Board board = Frames.tennacleLobby(b -> b
-                .line(viewer -> tennacle.Msg.THEME.dim(where(viewer)))
-                .blank()
+        Board board = Frames.tennacleLobby(Lobby::title, b -> b
                 .line(viewer -> Frames.row("Online: ", MinecraftServer.getConnectionManager().getOnlinePlayerCount()))
                 .line(viewer -> Frames.row("Playing: ", playing()))
                 .blank()
@@ -31,12 +29,14 @@ public final class Lobby {
         });
         MinecraftServer.getSchedulerManager().buildTask(() -> Boards.touchAll(board))
                 .repeat(TaskSchedule.tick(20)).schedule();
+        MinecraftServer.getSchedulerManager().buildTask(() -> Boards.touchAll(board, line -> false))
+                .repeat(TaskSchedule.tick(2)).schedule(); // the title's glint alone
     }
 
-    private static String where(net.minestom.server.entity.Player viewer) {
+    // the network's name in the main lobby, the game's in a game's lobby
+    static String title(net.minestom.server.entity.Player viewer) {
         Lobbies.Lobby lobby = Lobbies.in(viewer);
-        if (lobby == null) return "";
-        return lobby == Lobbies.main() ? lobby.name() : lobby.name() + " Lobby";
+        return lobby == null || lobby == Lobbies.main() ? "TENNACLE" : lobby.name().toUpperCase(java.util.Locale.ROOT);
     }
 
     private static Object party(net.minestom.server.entity.Player viewer) {

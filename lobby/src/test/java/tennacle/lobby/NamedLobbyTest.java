@@ -31,8 +31,10 @@ class NamedLobbyTest extends HeadlessServerTest {
         FakePlayer p = FakePlayer.connect(instance, new Pos(84.5, 65, 0.5), "NamedL");
         try {
             org.junit.jupiter.api.Assertions.assertEquals("lobby arcade", tennacle.audit.Audit.label(arcade), "the audit names it");
+            org.junit.jupiter.api.Assertions.assertEquals("TENNACLE", Lobby.title(p.player), "the main lobby heads with the network");
             MinecraftServer.getCommandManager().execute(p.player, "l ar");
             arrive(p, arcade);
+            org.junit.jupiter.api.Assertions.assertEquals("ARCADE", Lobby.title(p.player), "a game's lobby with the game");
             MinecraftServer.getCommandManager().execute(p.player, "l");
             arrive(p, instance); // a bare /l from a game's lobby steps up to the main one
             MinecraftServer.getCommandManager().execute(p.player, "l arcade");
