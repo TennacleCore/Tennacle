@@ -96,9 +96,10 @@ public final class BedwarsMaps {
                 }
                 String name = map.get("map").getAsString();
                 if (only != null && !only.contains(name)) continue;
-                Path zip = find(archive, name + ".zip");
+                String zipName = (map.has("archive") ? map.get("archive").getAsString() : name) + ".zip";
+                Path zip = find(archive, zipName);
                 if (zip == null) {
-                    System.out.println(name + ": no " + name + ".zip under " + archive);
+                    System.out.println(name + ": no " + zipName + " under " + archive);
                     continue;
                 }
                 String id = "bedwars-" + name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
