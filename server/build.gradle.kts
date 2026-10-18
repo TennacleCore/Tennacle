@@ -55,6 +55,16 @@ tasks.register<JavaExec>("bedwarsMaps") {
     argumentProviders.add(CommandLineArgumentProvider { listOf(archive.get(), markers.get(), out.get(), maps.get()) })
 }
 
+tasks.register<JavaExec>("bedwarsFacing") {
+    description = "Re-aims the spawns of the arenas in -Pdir (arenas/bedwars) away from their forge, worlds untouched"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "tennacle.dev.BedwarsMaps"
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    workingDir = rootDir
+    val dir = providers.gradleProperty("dir").orElse(rootProject.layout.projectDirectory.dir("arenas/bedwars").asFile.path)
+    argumentProviders.add(CommandLineArgumentProvider { listOf("--reface", dir.get()) })
+}
+
 tasks.register<JavaExec>("roomExtract") {
     description = "Cuts the -Pkey region of -Psource (an arena) into -Pout (arenas/rooms.bncl) as the room variant -Pvariant"
     classpath = sourceSets["main"].runtimeClasspath

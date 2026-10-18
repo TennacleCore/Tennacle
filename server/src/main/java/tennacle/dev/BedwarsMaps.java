@@ -5,6 +5,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.github.term4.barnacle.ArenaBuilder;
+import io.github.term4.barnacle.format.ArenaContainer;
+import io.github.term4.barnacle.format.ArenaManifest;
 import io.github.term4.barnacle.marker.DataMarker;
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.Marker;
@@ -66,6 +68,11 @@ public final class BedwarsMaps {
     private BedwarsMaps() {}
 
     public static void main(String[] args) throws IOException {
+        if (args.length == 2 && args[0].equals("--reface")) {
+            MinecraftServer.init();
+            System.out.println(reface(Path.of(args[1])) + " arenas re-aimed in " + Path.of(args[1]).toAbsolutePath());
+            System.exit(0);
+        }
         if (args.length < 3) {
             System.err.println("usage: BedwarsMaps <archive dir> <marker dir> <out dir> [map,map,...]");
             System.exit(2);
@@ -207,6 +214,60 @@ public final class BedwarsMaps {
         return builder.build();
     }
 
+    /**
+     * The yaw a base's players come in with: straight away from its forge, as every captured Hypixel start teleport
+     * does (334 of 350 to the tenth of a degree, 2026-10-18); toward the bed where a base has no forge.
+     */
+    static float facing(Vec spawn, @Nullable Vec forge, Vec bed) {
+        if (forge != null) return yawToward(spawn, forge) + 180;
+        return yawToward(spawn, bed);
+    }
+
+    // a stored bed is head and foot as one box: its middle stands for the head the converter had
+    private static Vec middle(RegionMarker.Cuboid box) {
+        return new Vec((box.min().blockX() + box.max().blockX() + 1) / 2.0, box.min().blockY(), (box.min().blockZ() + box.max().blockZ() + 1) / 2.0);
+    }
+
+    private static float yawToward(Vec from, Vec to) {
+        return (float) Math.toDegrees(-Math.atan2(to.x() - from.x(), to.z() - from.z()));
+    }
+
+    /** Re-aims the spawns of the arenas already in {@code dir} by {@link #facing}; their worlds are left as they are. */
+    static int reface(Path dir) throws IOException {
+        int changed = 0;
+        try (Stream<Path> files = Files.list(dir)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".bncl")).sorted().toList()) {
+                Map<String, byte[]> entries = new java.util.LinkedHashMap<>(ArenaContainer.unpack(Files.readAllBytes(file)));
+                ArenaManifest manifest = ArenaManifest.fromBytes(entries.get(ArenaContainer.MANIFEST));
+                Map<String, Vec> forges = new java.util.HashMap<>();
+                Map<String, Vec> beds = new java.util.HashMap<>();
+                for (Marker marker : manifest.markers()) {
+                    if (marker instanceof PointMarker point && point.key().equals("bedwars:forge")) forges.put(point.group(), point.point());
+                    if (marker instanceof RegionMarker bed && bed.key().equals("bedwars:bed")) beds.put(bed.group(), middle(bed.bounds()));
+                }
+                List<Marker> markers = new ArrayList<>();
+                boolean moved = false;
+                for (Marker marker : manifest.markers()) {
+                    if (marker instanceof PosMarker spawn && spawn.key().equals(Markers.SPAWN.id()) && beds.containsKey(spawn.group())) {
+                        Vec at = spawn.pos().asVec();
+                        float yaw = facing(at, forges.get(spawn.group()), beds.get(spawn.group()));
+                        moved |= Math.abs(yaw - spawn.pos().yaw()) % 360 > 0.01f;
+                        markers.add(new PosMarker(spawn.key(), spawn.group(), spawn.layer(), spawn.pos().withYaw(yaw),
+                                spawn.payload(), spawn.payloadVersion()));
+                    } else {
+                        markers.add(marker);
+                    }
+                }
+                if (!moved) continue;
+                entries.put(ArenaContainer.MANIFEST, new ArenaManifest(manifest.meta(), manifest.bounds(), markers,
+                        manifest.layers(), manifest.variants()).toBytes());
+                Files.write(file, ArenaContainer.pack(entries));
+                changed++;
+            }
+        }
+        return changed;
+    }
+
     private static List<Marker> markers(JsonObject map) {
         List<Marker> out = new ArrayList<>();
         JsonObject box = object(map, "base box");
@@ -222,9 +283,7 @@ public final class BedwarsMaps {
             Vec spawn = base.has("spawn") ? vec(base.getAsJsonArray("spawn")) : null;
             Vec forge = base.has("forge") ? vec(base.getAsJsonArray("forge")) : null;
             if (spawn != null) {
-                // players come in facing their bed
-                double dx = head.blockX() + 0.5 - spawn.x(), dz = head.blockZ() + 0.5 - spawn.z();
-                float yaw = (float) Math.toDegrees(-Math.atan2(dx, dz));
+                float yaw = facing(spawn, forge, head.add(0.5, 0, 0.5));
                 out.add(new PosMarker(Markers.SPAWN.id(), group, "", new Pos(spawn.x(), spawn.y(), spawn.z(), yaw, 0)));
             }
             if (forge != null) out.add(new PointMarker("bedwars:forge", group, "", forge));

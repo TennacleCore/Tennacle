@@ -125,7 +125,8 @@ class BedwarsMapsTest extends HeadlessServerTest {
         assertEquals(Set.of("1", "2"), arena.groups(Markers.SPAWN));
         PosMarker red = arena.marker(Markers.SPAWN, "1");
         assertNotNull(red);
-        assertEquals(0, red.pos().yaw(), 0.01, "a spawn faces its bed");
+        assertEquals(0, red.pos().yaw(), 0.01, "a spawn faces away from its forge");
+        assertEquals(0, BedwarsMaps.reface(out), "a fresh conversion is already aimed");
         RegionMarker bed = arena.marker(MarkerKey.region("bedwars:bed"), "1");
         assertNotNull(bed);
         assertTrue(bed.contains(new BlockVec(3, 65, 2)) && bed.contains(new BlockVec(3, 65, 3)));
@@ -198,5 +199,12 @@ class BedwarsMapsTest extends HeadlessServerTest {
         BedwarsMaps.convert(archive, markers, out, Set.of("Test Map"));
         Instance world = Arena.read(out.resolve("bedwars-test-map.bncl")).instantiate();
         assertEquals(Block.BARRIER, world.getBlock(5, 66, 5));
+    }
+
+    /** Impere's red base, captured 2026-09-25: Hypixel's start teleport looks 175.6, straight away from the forge. */
+    @Test
+    void spawnFacesAwayFromForge() {
+        float yaw = BedwarsMaps.facing(new Vec(103, 79, 45), new Vec(103.5, 79, 51.5), new Vec(90.5, 79, 37.5));
+        assertEquals(175.6, Math.floorMod(Math.round(yaw * 10), 3600) / 10.0, 0.05);
     }
 }
