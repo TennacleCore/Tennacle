@@ -65,7 +65,7 @@ class ChannelsTest extends HeadlessServerTest {
             chat(b, "party join AcA");
             chat(a, "chat p");
             c.sent.clear();
-            chat(a, "ac hello there");
+            chat(a, "AC hello there"); // a name in capitals runs as typed in lower case
             List<String> heard = c.sent(SystemChatPacket.class).stream()
                     .map(m -> PlainTextComponentSerializer.plainText().serialize(m.message())).toList();
             assertTrue(said(heard, "AcA: hello there"), "someone outside the party hears it: " + heard);

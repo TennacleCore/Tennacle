@@ -13,6 +13,7 @@ import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandExecutor;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.condition.CommandCondition;
+import net.minestom.server.event.player.PlayerCommandEvent;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -79,9 +80,18 @@ public final class Commands {
     /** The registry's own wiring: {@code /help}, the unknown-command answer, command lists that follow grants, {@code /role}. */
     public static void install() {
         MinecraftServer.getCommandManager().setUnknownCommandCallback((sender, typed) -> unknown(sender));
+        MinecraftServer.getGlobalEventHandler().addListener(PlayerCommandEvent.class, e -> e.setCommand(lowerName(e.getCommand())));
         Access.onChange(Player::refreshCommands);
         help();
         AccessCommands.register();
+    }
+
+    // Bukkit's: /AC runs /ac; what follows keeps its case, a name or a message being typed as meant
+    static @NotNull String lowerName(@NotNull String typed) {
+        int space = typed.indexOf(' ');
+        String name = space < 0 ? typed : typed.substring(0, space);
+        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        return lower.equals(name) ? typed : lower + (space < 0 ? "" : typed.substring(space));
     }
 
     /** Every node a command or a usage row asks for: what a grant can name. */
