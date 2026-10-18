@@ -164,17 +164,51 @@ class HypixelImportTest extends HeadlessServerTest {
             List<List<String>> before = HotbarOrders.of(b.player).main();
 
             KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "ShareA"), "bedwars", "quickbuy");
-            MinecraftServer.getSchedulerManager().processTick();
-            MinecraftServer.getSchedulerManager().processTickEnd();
+            for (int i = 0; i < 2; i++) { // the visibility check, then the read
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+            }
             assertEquals(pins, Favorites.of(b.player, ItemShop.FRONT), "the quick buy came across");
             assertEquals(before, HotbarOrders.of(b.player).main(), "the hotbar stayed");
             assertNull(KitLayouts.of(b.player, "bridge"), "and nothing else");
 
             b.player.removeTag(net.minestom.server.tag.Tag.Transient("tennacle:cooldown:kit-import"));
             MinecraftServer.getCommandManager().execute(b.player, "kit copy ShareA bridge layout");
-            MinecraftServer.getSchedulerManager().processTick();
-            MinecraftServer.getSchedulerManager().processTickEnd();
+            for (int i = 0; i < 2; i++) {
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+            }
             assertEquals(4, KitLayouts.of(b.player, "bridge").get("sword"), "/kit copy names one part");
+        } finally {
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
+    void hiddenLayoutsStayPut() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(12.5, 65, 0.5), "HideA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(14.5, 65, 0.5), "HideB");
+        try {
+            List<String> pins = new java.util.ArrayList<>(java.util.Collections.nCopies(21, ""));
+            pins.set(0, "tnt");
+            Favorites.set(a.player, ItemShop.FRONT, pins);
+            tennacle.games.imports.LayoutVisibility.VISIBILITY.set(a.player, tennacle.social.Audience.NOBODY);
+            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "HideA"), "bedwars", "quickbuy");
+            for (int i = 0; i < 2; i++) { // the visibility check, then the read
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+            }
+            assertNull(Favorites.of(b.player, ItemShop.FRONT), "nothing came across");
+
+            tennacle.games.imports.LayoutVisibility.VISIBILITY.set(a.player, tennacle.social.Audience.EVERYONE);
+            b.player.removeTag(net.minestom.server.tag.Tag.Transient("tennacle:cooldown:kit-import"));
+            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "HideA"), "bedwars", "quickbuy");
+            for (int i = 0; i < 2; i++) {
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+            }
+            assertEquals(pins, Favorites.of(b.player, ItemShop.FRONT), "visible again, copied");
         } finally {
             a.player.remove();
             b.player.remove();

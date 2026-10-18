@@ -100,9 +100,11 @@ class SocialLobbyTest extends HeadlessServerTest {
         FakePlayer p = FakePlayer.connect(instance, new Pos(68.5, 65, 0.5), "SoE");
         try {
             SettingsMenu.open(p.player);
-            assertEquals(Material.OAK_SIGN, at(p, 29));
-            press(p, new Click.Left(29));
+            assertEquals(Material.OAK_SIGN, at(p, 28));
+            press(p, new Click.Left(28));
             assertEquals(Audience.FRIENDS, Messages.PRIVACY.of(p.player));
+            assertEquals(Material.CHEST, at(p, 34), "kit visibility");
+            assertEquals(Audience.EVERYONE, tennacle.games.imports.LayoutVisibility.VISIBILITY.of(p.player), "everyone by default");
             later(p);
             press(p, new Click.Left(14));
             assertEquals(Friends.Notices.BEST, Friends.notices(p.player));

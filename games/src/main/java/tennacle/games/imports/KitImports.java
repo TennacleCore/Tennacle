@@ -238,26 +238,33 @@ public final class KitImports {
             Msg.fail(player, "Wait a moment before copying again.");
             return;
         }
-        List<CompletableFuture<JsonElement>> reads = wanted.stream().map(p -> p.export().apply(from.id())).toList();
-        CompletableFuture.allOf(reads.toArray(CompletableFuture[]::new)).whenComplete((done, failed) ->
-                MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
-                    if (!player.isOnline()) return;
-                    if (failed != null) {
-                        Msg.fail(player, "Couldn't read " + from.name() + "'s layouts. Try again in a minute.");
-                        return;
-                    }
-                    List<LayoutPart> parts = new ArrayList<>();
-                    List<JsonElement> values = new ArrayList<>();
-                    for (int i = 0; i < wanted.size(); i++) {
-                        JsonElement value = reads.get(i).join();
-                        if (value == null) continue;
-                        parts.add(wanted.get(i));
-                        values.add(value);
-                    }
-                    landed(player, parts, values, "Copied from " + from.name(),
-                            wanted.size() == 1 ? from.name() + " still uses the default " + wanted.getFirst().label() + "."
-                                    : from.name() + " still uses the defaults for those.");
-                }));
+        LayoutVisibility.sees(player, from.id()).whenComplete((visible, hidden) -> MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+            if (!player.isOnline()) return;
+            if (!Boolean.TRUE.equals(visible)) {
+                Msg.fail(player, from.name() + "'s layouts aren't visible to you.");
+                return;
+            }
+            List<CompletableFuture<JsonElement>> reads = wanted.stream().map(p -> p.export().apply(from.id())).toList();
+            CompletableFuture.allOf(reads.toArray(CompletableFuture[]::new)).whenComplete((done, failed) ->
+                    MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                        if (!player.isOnline()) return;
+                        if (failed != null) {
+                            Msg.fail(player, "Couldn't read " + from.name() + "'s layouts. Try again in a minute.");
+                            return;
+                        }
+                        List<LayoutPart> parts = new ArrayList<>();
+                        List<JsonElement> values = new ArrayList<>();
+                        for (int i = 0; i < wanted.size(); i++) {
+                            JsonElement value = reads.get(i).join();
+                            if (value == null) continue;
+                            parts.add(wanted.get(i));
+                            values.add(value);
+                        }
+                        landed(player, parts, values, "Copied from " + from.name(),
+                                wanted.size() == 1 ? from.name() + " still uses the default " + wanted.getFirst().label() + "."
+                                        : from.name() + " still uses the defaults for those.");
+                    }));
+        }));
     }
 
     private static void landed(Player player, List<LayoutPart> parts, List<JsonElement> values, String done, String none) {

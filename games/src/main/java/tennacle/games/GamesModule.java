@@ -56,6 +56,7 @@ public final class GamesModule {
         RulesCommands.register(); // /rules: live modifiers over the running game
         MapCommand.register(); // /map: the map you play or watch
         tennacle.games.imports.HypixelLayouts.install(); // /kit import hypixel: a player's layouts from their profile
+        tennacle.games.imports.LayoutVisibility.install(); // who sees a player's layouts: everyone, friends or nobody
         TeamCommands.register(); // /team: which ordinal is which color, and who is on it
         TabStats.register(); // /tabstats: which seat counters the house tab lists
         GameSounds.register(); // /sounds: which cues a player hears

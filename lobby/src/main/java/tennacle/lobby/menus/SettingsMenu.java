@@ -51,9 +51,11 @@ public final class SettingsMenu {
         });
         choice(screen, 16, Material.WRITABLE_BOOK, "Friend Request Privacy", "Change who can send you friend requests.",
                 FriendCommands.REQUESTS);
-        choice(screen, 29, Material.OAK_SIGN, "Private Message Privacy", "Change who can private message you.", Messages.PRIVACY);
-        choice(screen, 31, Material.BOOK, "Party Invite Privacy", "Change who can send you party invites.", Parties.INVITES);
-        choice(screen, 33, Material.IRON_SWORD, "Duel Request Privacy", "Change who can send you duel requests.", Duels.REQUESTS);
+        choice(screen, 28, Material.OAK_SIGN, "Private Message Privacy", "Change who can private message you.", Messages.PRIVACY);
+        choice(screen, 30, Material.BOOK, "Party Invite Privacy", "Change who can send you party invites.", Parties.INVITES);
+        choice(screen, 32, Material.IRON_SWORD, "Duel Request Privacy", "Change who can send you duel requests.", Duels.REQUESTS);
+        choice(screen, 34, Material.CHEST, "Kit Visibility", "Change who can see and copy your kit layouts.",
+                tennacle.games.imports.LayoutVisibility.VISIBILITY);
         Screens.open(viewer, screen.build());
     }
 

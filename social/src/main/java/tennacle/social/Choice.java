@@ -48,6 +48,11 @@ public final class Choice {
         return !Blocks.between(from.getUuid(), to.getUuid()) && of(to).admits(from, to);
     }
 
+    /** {@link #admits} for a {@code to} who may be offline, read from what they stored. */
+    public @NotNull CompletableFuture<Boolean> admits(@NotNull Player from, @NotNull UUID to) {
+        return load(to).thenApply(audience -> !Blocks.between(from.getUuid(), to) && audience.admits(from, to));
+    }
+
     public void set(@NotNull Player player, @NotNull Audience audience) {
         stored.set(player, audience);
     }

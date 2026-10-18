@@ -127,7 +127,7 @@ public final class ImportMenu {
     private static Screen players(Player viewer, String mode, @Nullable String part, String what) {
         Screen.Builder screen = Screen.rows(6).title(Component.text("Copy From a Player"));
         List<Player> online = MinecraftServer.getConnectionManager().getOnlinePlayers().stream()
-                .filter(p -> p != viewer).limit(36).toList();
+                .filter(p -> p != viewer && LayoutVisibility.seesNow(viewer, p)).limit(36).toList();
         for (int i = 0; i < online.size(); i++) {
             Owner from = new Owner(online.get(i).getUuid(), online.get(i).getUsername());
             PlayerSkin skin = online.get(i).getSkin();
@@ -140,7 +140,7 @@ public final class ImportMenu {
                     });
         }
         if (online.isEmpty()) {
-            screen.item(22, v -> Entry.of(Material.PAPER).name("No One Else Online")
+            screen.item(22, v -> Entry.of(Material.PAPER).name("No One to Copy From")
                     .text("Copy anyone who has played here", "with /kit copy <player>.").render(v));
         }
         screen.back(49);
