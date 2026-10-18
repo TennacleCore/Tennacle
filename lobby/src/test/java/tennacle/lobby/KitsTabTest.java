@@ -76,4 +76,17 @@ class KitsTabTest extends HeadlessServerTest {
             p.player.remove();
         }
     }
+
+    @Test
+    void playMenuEditorStaysOpen() {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(74.5, 65, 0.5), "KitPlay");
+        try {
+            tennacle.lobby.menus.PlayMenu.open(p.player, "Bed Wars", mode -> mode.name().startsWith("bedwars"),
+                    tennacle.lobby.menus.Icons::of);
+            press(p, new Click.Left(32));
+            assertEquals("Hotbar Manager", title(p), "not closed straight after it opens");
+        } finally {
+            p.player.remove();
+        }
+    }
 }

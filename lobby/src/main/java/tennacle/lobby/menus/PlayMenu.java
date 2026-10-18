@@ -48,14 +48,8 @@ public final class PlayMenu {
                 return null;
             });
         }
-        KitLayouts.editables().stream().filter(kit -> kit.title().equals(title)).findFirst().ifPresent(kit ->
-                screen.press(32, v -> Entry.of(Material.BLAZE_POWDER).name(kit.title() + " Layout Editor")
-                        .text("Edit your inventory layout for " + kit.title() + ".").action("Click to edit!").render(v),
-                        (v, click) -> {
-                            String refused = KitLayouts.open(v, kit.id());
-                            if (refused == null) v.closeInventory();
-                            return refused;
-                        }));
+        KitLayouts.editables().stream().filter(kit -> kit.title().equals(title)).findFirst()
+                .ifPresent(kit -> KitEditorButton.put(screen, 32, kit, Material.BLAZE_POWDER));
         Screens.open(viewer, screen.build());
     }
 

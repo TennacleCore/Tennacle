@@ -155,17 +155,7 @@ public final class MainMenu {
         int[] slots = Rows.centered(3, kits.size());
         for (int i = 0; i < kits.size(); i++) {
             KitLayouts.Editable kit = kits.get(i);
-            screen.press(slots[i], v -> {
-                Entry entry = Entry.of(Icons.of(kit.id())).name(kit.title() + " Layout Editor")
-                        .text(kit.screen() != null ? "Set what goes in each hotbar slot for " + kit.title() + "."
-                                : "Edit your inventory layout for " + kit.title() + ".");
-                if (kit.kit().armorMoves()) entry.text("Your armor can be moved too.");
-                return entry.action("Click to edit!").render(v);
-            }, (v, click) -> {
-                String refused = KitLayouts.open(v, kit.id());
-                if (refused == null && kit.screen() == null) v.closeInventory(); // the editor is your own inventory
-                return refused;
-            });
+            KitEditorButton.put(screen, slots[i], kit, Icons.of(kit.id()));
         }
         screen.button(40, v -> Entry.of(Material.BOOK).name("Import Layouts")
                 .text("Copy your layouts in from", "another server, like Hypixel.").action("Click to choose!").render(v),
