@@ -23,10 +23,9 @@ application {
         "-Dminestom.new-socket-write-lock=true",
         // a hot site's exception otherwise logs bare, no message and no stack
         "-XX:-OmitStackTraceInFastThrow",
-        // C2 bug JDK-8385993 (fixed in 28): a reduced allocation merge came back null on deopt in
-        // MotionTracker.tickFlowPush. Drop on a JDK with the fix; an unknown -XX flag stops the JVM from starting
-        "-XX:+UnlockDiagnosticVMOptions",
-        "-XX:-ReduceAllocationMerges",
+        // every JIT deopt, to logs/ beside tennacle.log: MotionTracker.tickFlowPush once threw "acc is null", which its
+        // bytecode can't produce. A repeat with a tickFlowPush trap at that moment points at C2 (JDK-8385993 the suspect)
+        "-Xlog:deoptimization=debug:file=logs/deopt.log:time,tid:filecount=5,filesize=20m",
     )
 }
 
