@@ -29,8 +29,6 @@ public final class Lobby {
         });
         MinecraftServer.getSchedulerManager().buildTask(() -> Boards.touchAll(board))
                 .repeat(TaskSchedule.tick(20)).schedule();
-        MinecraftServer.getSchedulerManager().buildTask(() -> Boards.touchAll(board, line -> false))
-                .repeat(TaskSchedule.tick(2)).schedule(); // the title's glint alone
     }
 
     // the network's name in the main lobby, the game's in a game's lobby

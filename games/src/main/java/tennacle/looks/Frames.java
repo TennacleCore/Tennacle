@@ -134,19 +134,10 @@ public final class Frames {
     }
 
     /** The lobby sidebar in the same chrome, around the server's own rows. */
-    /** Hypixel's glint in the house colors: an aqua hold (the gradient where a client draws one), white led by pink. */
-    public static final Shine TENNACLE_SHINE = new Shine(NamedTextColor.AQUA, NamedTextColor.WHITE, NamedTextColor.LIGHT_PURPLE, 20, 4);
-
-    /** The house title, glinting: a frame every two ticks, so {@code frame} counts in tenths of a second. */
-    public static Component shined(Player viewer, String text, int frame) {
-        if (io.github.term4.canvas.Canvas.isFlat(viewer)) return TENNACLE_SHINE.frame(text, frame);
-        return TENNACLE_SHINE.frame(text, frame, i -> Msg.THEME.gradientAt(i, text.length()));
-    }
-
     /** {@code title}: what the board heads, per viewer. */
     public static Board tennacleLobby(java.util.function.Function<Player, String> title, Consumer<Board.Builder> content) {
         Board.Builder board = Board.builder()
-                .title(me -> shined(me, title.apply(me), (int) (System.currentTimeMillis() / 100)))
+                .title(me -> Msg.THEME.boardTitle(me, title.apply(me)))
                 .width(100)
                 .line(houseRule());
         content.accept(board);
