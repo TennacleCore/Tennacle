@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tennacle.Msg;
 import tennacle.PlayerPrefs;
+import tennacle.access.Access;
 import tennacle.Seen;
 import tennacle.Sessions;
 import tennacle.boot.Config;
@@ -190,6 +191,8 @@ public final class TestServer {
                 && Config.value("tennacle.bungeeguard-tokens") == null;
         boolean devCommands = Config.flag("tennacle.dev-commands", loopback && unauthenticated);
         Commands.devTools(devCommands); // before any module registers: a dev tool is registered only with them on
+        Access.install();
+        Access.everyone(devCommands ? Set.of("tennacle.dev.*") : Set.of()); // a dev build hands everyone the dev tools
         InstanceContainer world = LobbyModule.world(devCommands); // the test pads ride the dev flag
         Commands.help(); // /help reads the registry every command below lands in
         // members build into their shard's overlay, never the map (the bridge already decorated the
