@@ -21,10 +21,10 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * Each arena's icon for the map menus: the block that most sets its world apart from the others in the folder (a
- * block's share of this map, weighted by how few maps share it, as search engines weigh words), filler aside (air,
- * fluids, bedrock, and the team-colored wool, clay and glass every base is built from). Written to the arena's
- * {@code icon}; an icon already there stays, so a hand-picked one is never overwritten.
+ * Each arena's icon for the map menus, no two alike: the folder's {@code icons.tsv} pick when it has one, else the
+ * icon the arena holds, else a thing its name names ({@code dragonstar}: dragon, star) and then the block that most
+ * sets its world apart (a block's share of this map, weighted by how few maps share it, as search engines weigh
+ * words), filler aside (air, fluids, bedrock, and the team-colored wool, clay and glass every base is built from).
  */
 public final class ArenaIcons {
 
@@ -54,12 +54,24 @@ public final class ArenaIcons {
         for (Read arena : arenas) arena.shares().forEach((block, share) -> {
             if (share >= PRESENT) present.merge(block, 1, Integer::sum);
         });
+        Map<String, String> picked = table(Path.of(args[0]).resolve("icons.tsv"));
+        java.util.Set<String> used = new java.util.HashSet<>(picked.values());
         for (Read arena : arenas) {
             ArenaMeta meta = arena.manifest().meta();
             String held = meta.user().getString(ICON);
-            String icon = !held.isEmpty() ? held : signature(arena.shares(), present, arenas.size());
-            System.out.println(meta.name() + " -> " + icon + (!held.isEmpty() ? " (kept)" : ""));
-            if (!write || icon == null || !held.isEmpty()) continue;
+            String icon = picked.get(meta.id());
+            String from = "picked";
+            if (icon == null && !held.isEmpty() && used.add(held)) {
+                icon = held;
+                from = "kept";
+            }
+            if (icon == null) {
+                icon = choose(meta.name(), arena.shares(), present, arenas.size(), used);
+                from = "chosen";
+                if (icon != null) used.add(icon);
+            }
+            System.out.println(meta.name() + " -> " + icon + " (" + from + ")");
+            if (!write || icon == null || icon.equals(held)) continue;
             ArenaMeta named = new ArenaMeta(meta.id(), meta.version(), meta.name(), meta.authors(), meta.tags(), meta.dimension(),
                     meta.dataVersion(), meta.spawn(), meta.time(), meta.weather(), meta.user().putString(ICON, icon));
             Map<String, byte[]> entries = new LinkedHashMap<>(arena.entries());
@@ -102,8 +114,49 @@ public final class ArenaIcons {
         return shares;
     }
 
+    /** The folder's hand picks, arena id to material key; a name that is no material stops the run. */
+    static Map<String, String> table(Path file) throws IOException {
+        Map<String, String> out = new LinkedHashMap<>();
+        if (!Files.exists(file)) return out;
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (String line : Files.readAllLines(file)) {
+            if (line.isBlank() || line.startsWith("#")) continue;
+            String[] cells = line.split("	");
+            String key = cells[1].contains(":") ? cells[1].trim() : "minecraft:" + cells[1].trim();
+            if (Material.fromKey(key) == null) throw new IllegalArgumentException(file + ": no item " + cells[1] + " for " + cells[0]);
+            if (!seen.add(key)) throw new IllegalArgumentException(file + ": " + cells[1] + " twice");
+            out.put(cells[0].trim(), key);
+        }
+        return out;
+    }
+
+    /** A thing {@code name} names, then the world's signature block, then any of its blocks: the first nobody holds. */
+    static @Nullable String choose(String name, Map<String, Double> shares, Map<String, Integer> present, int maps, java.util.Set<String> used) {
+        String squashed = name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z]", "");
+        List<String> named = new java.util.ArrayList<>();
+        for (Material material : Material.values()) {
+            String key = material.key().value();
+            int matched = 0;
+            for (String part : key.split("_")) if (part.length() >= 4 && squashed.contains(part)) matched += part.length();
+            if (matched > 0) named.add(matched + "	" + material.key().asString());
+        }
+        named.sort(java.util.Comparator.comparingInt((String row) -> -Integer.parseInt(row.substring(0, row.indexOf('	')))));
+        for (String row : named) {
+            String key = row.substring(row.indexOf('	') + 1);
+            if (!used.contains(key)) return key;
+        }
+        String signature = signature(shares, present, maps, used);
+        if (signature != null) return signature;
+        return shares.entrySet().stream().sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                .map(Map.Entry::getKey).filter(key -> !used.contains(key)).findFirst().orElse(null);
+    }
+
     static @Nullable String signature(Map<String, Double> shares, Map<String, Integer> present, int maps) {
-        return shares.entrySet().stream().filter(e -> e.getValue() >= NOTICED)
+        return signature(shares, present, maps, java.util.Set.of());
+    }
+
+    static @Nullable String signature(Map<String, Double> shares, Map<String, Integer> present, int maps, java.util.Set<String> used) {
+        return shares.entrySet().stream().filter(e -> e.getValue() >= NOTICED && !used.contains(e.getKey()))
                 .max(java.util.Comparator.comparingDouble(e -> e.getValue() * Math.log((double) maps / present.getOrDefault(e.getKey(), 1))))
                 .map(Map.Entry::getKey).orElse(null);
     }
