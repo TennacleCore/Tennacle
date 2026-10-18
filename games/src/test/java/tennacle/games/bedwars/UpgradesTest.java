@@ -190,6 +190,39 @@ class UpgradesTest extends HeadlessServerTest {
         });
     }
 
+    /**
+     * The user, 2026-10-18 on Solace: the first to join stood at red's seat until the draw made them blue, standing
+     * still all game, and red's first trap went off on them at once. The draw is a reseat, done here by hand.
+     */
+    @Test
+    void aTrapIgnoresTheDrawnFoe() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null), BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DrawnA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "DrawnB");
+        try {
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            BedWarsRoundTest.tickUntil(game, "both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            game.reseat(java.util.Map.of(a.player, "2", b.player, "1")); // the draw: red's first seat goes to blue
+            BedWarsRoundTest.live(game);
+            Player red = b.player, blue = a.player;
+            assertEquals("2", Match.teamOf(game, blue));
+            for (Player p : List.of(red, blue)) EventDispatcher.call(new net.minestom.server.event.player.PlayerTickEvent(p)); // the harness ticks no players
+            give(red, Material.DIAMOND, 1);
+            UpgradeShop.open(game, red);
+            click(red, 14); // Blindness
+            assertEquals(1, Traps.queue(game, "1").size(), "nobody at red's bed: it waits");
+            assertFalse(blue.hasEffect(PotionEffect.BLINDNESS), "blue stands at home");
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
     @Test
     void magicMilkKeepsTrapsOff() {
         round("UpgD", (game, fa, fb) -> {
