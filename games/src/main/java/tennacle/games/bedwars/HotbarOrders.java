@@ -69,10 +69,18 @@ final class HotbarOrders {
         return out;
     }
 
+    /** The kit's own slots, each name first in its slot. */
+    static @NotNull List<List<String>> defaults() {
+        return firsts(BedWars.KIT.defaultSlots());
+    }
+
     // what the one-slot-per-kind Hotbar Manager saved, each kind first in its slot; else the kit's own slots
     private static List<List<String>> fromLayout(Player player) {
         Map<String, Integer> saved = KitLayouts.of(player, BedWars.KIT.id());
-        Map<String, Integer> slots = saved != null && !saved.isEmpty() ? saved : BedWars.KIT.defaultSlots();
+        return saved != null && !saved.isEmpty() ? firsts(saved) : defaults();
+    }
+
+    private static List<List<String>> firsts(Map<String, Integer> slots) {
         List<List<String>> out = new ArrayList<>(empty());
         slots.forEach((kind, slot) -> {
             if (slot >= 0 && slot < SLOTS) out.set(slot, List.of(kind));
