@@ -2,6 +2,7 @@ package tennacle.commands;
 
 import tennacle.Msg;
 import tennacle.access.Access;
+import tennacle.access.AccessCommands;
 
 import io.github.term4.canvas.Canvas;
 import net.kyori.adventure.text.Component;
@@ -37,6 +38,7 @@ public final class Commands {
     private static final Map<String, AppCommand> registered = new LinkedHashMap<>();
     /** Listed, never dispatched here: a library registers these itself. */
     private static final Map<String, AppCommand> described = new LinkedHashMap<>();
+    private static final Set<String> adopted = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private Commands() {}
 
@@ -66,17 +68,30 @@ public final class Commands {
         registers.run();
         for (Command command : List.copyOf(manager.getCommands())) {
             if (before.contains(command)) continue;
-            behind(command, prefix + command.getName().replace("/", ""));
+            String node = prefix + command.getName().replace("/", "");
+            behind(command, node);
+            adopted.add(node);
             manager.unregister(command); // the graph captured the old condition when it was built
             manager.register(command);
         }
     }
 
-    /** The registry's own wiring: {@code /help}, the unknown-command answer, and command lists that follow grants. */
+    /** The registry's own wiring: {@code /help}, the unknown-command answer, command lists that follow grants, {@code /role}. */
     public static void install() {
         MinecraftServer.getCommandManager().setUnknownCommandCallback((sender, typed) -> unknown(sender));
         Access.onChange(Player::refreshCommands);
         help();
+        AccessCommands.register();
+    }
+
+    /** Every node a command or a usage row asks for: what a grant can name. */
+    public static @NotNull Set<String> nodes() {
+        Set<String> out = new java.util.TreeSet<>(adopted);
+        for (AppCommand command : registered.values()) {
+            out.add(command.node());
+            for (AppCommand.Usage usage : command.usages()) if (usage.node() != null) out.add(usage.node());
+        }
+        return out;
     }
 
     /** Whether {@code sender} sees {@code name}: a console sees everything. */

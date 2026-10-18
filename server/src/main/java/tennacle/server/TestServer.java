@@ -191,6 +191,8 @@ public final class TestServer {
                 && Config.value("tennacle.bungeeguard-tokens") == null;
         boolean devCommands = Config.flag("tennacle.dev-commands", loopback && unauthenticated);
         Access.install();
+        Access.owners(Arrays.stream(Config.string("tennacle.owners", "").split(",")).map(String::trim)
+                .filter(owner -> !owner.isEmpty()).collect(Collectors.toSet()));
         Access.everyone(devCommands ? Set.of("tennacle.dev.*") : Set.of()); // a dev build hands everyone the dev tools
         InstanceContainer world = LobbyModule.world(devCommands); // the test pads ride the dev flag
         Commands.install(); // /help reads the registry every command below lands in

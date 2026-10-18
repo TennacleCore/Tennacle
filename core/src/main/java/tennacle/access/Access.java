@@ -6,12 +6,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * May this player do that: the one question feature code asks, by node ({@code tennacle.build.arena}). Who holds what
@@ -34,6 +36,7 @@ public final class Access {
 
     private static volatile Backend backend = new PrefsBackend();
     private static volatile Set<String> everyone = Set.of();
+    private static volatile Set<String> owners = Set.of();
     private static final List<Consumer<Player>> changed = new CopyOnWriteArrayList<>();
 
     private Access() {}
@@ -52,8 +55,21 @@ public final class Access {
         everyone = Set.copyOf(nodes);
     }
 
+    /** Usernames or uuids that hold everything, from config: the first admin on a fresh server, never stored. */
+    public static void owners(@NotNull Set<String> namesOrIds) {
+        owners = namesOrIds.stream().map(id -> id.toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet());
+    }
+
+    public static boolean owner(@NotNull Player player) {
+        return owner(player.getUuid(), player.getUsername());
+    }
+
+    public static boolean owner(@NotNull UUID id, @NotNull String name) {
+        return owners.contains(name.toLowerCase(Locale.ROOT)) || owners.contains(id.toString());
+    }
+
     public static boolean allows(@NotNull Player player, @NotNull String node) {
-        return matches(everyone, node) || backend.holds(player.getUuid(), node);
+        return matches(everyone, node) || owner(player) || backend.holds(player.getUuid(), node);
     }
 
     public static @NotNull CompletableFuture<Grants> grants(@NotNull UUID player) {
