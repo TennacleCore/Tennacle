@@ -66,9 +66,17 @@ final class MapMenu {
     }
 
     private static ItemStack map(Player viewer, Mode mode, Use use, String map) {
-        Entry entry = Entry.of(Material.FIREWORK_STAR).name(Matches.mapName(mode, map)).kind(use.kind());
+        Entry entry = Entry.of(icon(mode, map)).name(Matches.mapName(mode, map)).kind(use.kind());
         use.facts().accept(entry, map);
         return entry.line(Canvas.screenThemeFor(viewer).good(use.action())).render(viewer);
+    }
+
+    // the arena's own block, so a map reads at a glance; one without stays a star
+    private static Material icon(Mode mode, String map) {
+        var arena = mode.arena().named(map);
+        String key = arena != null ? arena.meta().user().getString("icon") : "";
+        Material material = key.isEmpty() ? null : Material.fromKey(key);
+        return material != null ? material : Material.FIREWORK_STAR;
     }
 
     private static @Nullable String pick(Player viewer, Use use, @Nullable String map) {

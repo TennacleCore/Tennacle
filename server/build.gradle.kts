@@ -65,6 +65,17 @@ tasks.register<JavaExec>("bedwarsFacing") {
     argumentProviders.add(CommandLineArgumentProvider { listOf("--reface", dir.get()) })
 }
 
+tasks.register<JavaExec>("arenaIcons") {
+    description = "Lists each arena's map-menu icon in -Pdir (arenas/bedwars); -Pwrite=true stores the ones not hand-picked"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "tennacle.dev.ArenaIcons"
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    workingDir = rootDir
+    val dir = providers.gradleProperty("dir").orElse(rootProject.layout.projectDirectory.dir("arenas/bedwars").asFile.path)
+    val write = providers.gradleProperty("write").orElse("false")
+    argumentProviders.add(CommandLineArgumentProvider { if (write.get() == "true") listOf(dir.get(), "--write") else listOf(dir.get()) })
+}
+
 tasks.register<JavaExec>("roomExtract") {
     description = "Cuts the -Pkey region of -Psource (an arena) into -Pout (arenas/rooms.bncl) as the room variant -Pvariant"
     classpath = sourceSets["main"].runtimeClasspath
