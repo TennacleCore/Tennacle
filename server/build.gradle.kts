@@ -23,6 +23,10 @@ application {
         "-Dminestom.new-socket-write-lock=true",
         // a hot site's exception otherwise logs bare, no message and no stack
         "-XX:-OmitStackTraceInFastThrow",
+        // C2 bug JDK-8385993 (fixed in 28): a reduced allocation merge came back null on deopt in
+        // MotionTracker.tickFlowPush. Drop on a JDK with the fix; an unknown -XX flag stops the JVM from starting
+        "-XX:+UnlockDiagnosticVMOptions",
+        "-XX:-ReduceAllocationMerges",
     )
 }
 
