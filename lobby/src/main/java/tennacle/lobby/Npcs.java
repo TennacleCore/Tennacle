@@ -1,21 +1,16 @@
 package tennacle.lobby;
 
-import io.github.term4.canvas.hologram.Hologram;
+import io.github.term4.canvas.npc.Actions;
+import io.github.term4.canvas.npc.Npc;
+import io.github.term4.canvas.npc.Trigger;
 import io.github.term4.polyp.world.WorldPolicy;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.LivingEntity;
-import net.minestom.server.entity.Player;
-import net.minestom.server.entity.PlayerHand;
-import net.minestom.server.event.entity.EntityAttackEvent;
-import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import org.jetbrains.annotations.NotNull;
-import tennacle.Press;
 import tennacle.games.KitLayouts;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -38,9 +33,7 @@ public final class Npcs {
     /** One NPC: the name over it, and the modes it starts. */
     public record Spec(@NotNull String name, @NotNull Predicate<Mode> hosts) {}
 
-    private record Standing(Spec spec, Hologram label) {}
-
-    private static final Map<Entity, Standing> STANDING = new IdentityHashMap<>();
+    private static final Map<Npc, Spec> STANDING = new IdentityHashMap<>();
 
     private Npcs() {}
 
@@ -52,13 +45,6 @@ public final class Npcs {
                 stand(lobby, specs.get(i), new Pos(x, lobby.spawn().y(), lobby.spawn().z() + 6, 180, 0));
             }
         }
-        var events = MinecraftServer.getGlobalEventHandler();
-        events.addListener(PlayerEntityInteractEvent.class, e -> {
-            if (e.getHand() == PlayerHand.MAIN) use(e.getPlayer(), e.getTarget());
-        });
-        events.addListener(EntityAttackEvent.class, e -> {
-            if (e.getEntity() instanceof Player player) use(player, e.getTarget());
-        });
         Counts.onMove(Npcs::refresh);
     }
 
@@ -72,36 +58,32 @@ public final class Npcs {
     }
 
     private static void stand(Lobbies.Lobby lobby, Spec spec, Pos at) {
-        LivingEntity body = new LivingEntity(EntityType.VILLAGER);
-        body.setTag(WorldPolicy.INERT, true);
-        body.setNoGravity(true);
-        body.setInvulnerable(true);
-        body.setInstance(lobby.world(), at);
-        Hologram label = Hologram.at(at, (stand, where) -> {
-            stand.setTag(WorldPolicy.INERT, true);
-            stand.setInstance(lobby.world(), where);
-        });
         // over a villager's head, the gap Scrims leaves over a player's
-        label.line(3.0, Component.text("CLICK TO PLAY", NamedTextColor.YELLOW, TextDecoration.BOLD));
-        label.line(2.7, Component.text(spec.name(), NamedTextColor.AQUA));
-        label.line(2.4, playing(spec));
+        Npc npc = Npc.builder().body(() -> new LivingEntity(EntityType.VILLAGER))
+                .line(3.0, Component.text("CLICK TO PLAY", NamedTextColor.YELLOW, TextDecoration.BOLD))
+                .line(2.7, Component.text(spec.name(), NamedTextColor.AQUA))
+                .line(2.4, playing(spec))
+                .on(Trigger.any(), Actions.run(player -> {
+                    if (!KitLayouts.editing(player)) PlayMenu.open(player, spec.name(), spec.hosts(), Icons::of);
+                }))
+                .spawn(at, (entity, where) -> {
+                    entity.setTag(WorldPolicy.INERT, true);
+                    entity.setInstance(lobby.world(), where);
+                });
         synchronized (STANDING) {
-            STANDING.put(body, new Standing(spec, label));
+            STANDING.put(npc, spec);
         }
     }
 
-    private static void use(Player player, Entity target) {
-        Standing standing;
+    static Map<Npc, Spec> standing() {
         synchronized (STANDING) {
-            standing = STANDING.get(target);
+            return Map.copyOf(STANDING);
         }
-        if (standing == null || KitLayouts.editing(player) || !Press.once(player)) return;
-        PlayMenu.open(player, standing.spec().name(), standing.spec().hosts(), Icons::of);
     }
 
     private static void refresh() {
         synchronized (STANDING) {
-            STANDING.values().forEach(standing -> standing.label().text(2, playing(standing.spec())));
+            STANDING.forEach((npc, spec) -> npc.label(2, playing(spec)));
         }
     }
 

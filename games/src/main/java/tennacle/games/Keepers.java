@@ -12,6 +12,8 @@ import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.canvas.hologram.Hologram;
+import io.github.term4.canvas.npc.Npc;
+import io.github.term4.canvas.npc.Trigger;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Markers;
@@ -19,10 +21,7 @@ import io.github.term4.polyp.world.WorldPolicy;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.GameMode;
-import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.PlayerHand;
-import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import net.minestom.server.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +32,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -53,7 +51,7 @@ public final class Keepers implements GameModule, Building.Reserves {
     private record Post(MarkerKey<PointMarker> key, Supplier<? extends Entity> body, Use use,
                         Function<Game, List<Hologram.Line>> labels) {}
 
-    private record Standing(PointMarker at, Use use) {}
+    private record Standing(PointMarker at, Npc npc) {}
 
     private static final String LOOK = "keepers:look";
     /** Blocks around a keeper, across and up, that a pearl may not land in; {@code 0} = none. */
@@ -67,7 +65,6 @@ public final class Keepers implements GameModule, Building.Reserves {
 
     private final List<Post> posts = new ArrayList<>();
     private final Map<Entity, Standing> standing = new IdentityHashMap<>();
-    private final Map<Player, Long> used = new ConcurrentHashMap<>();
     private Game game;
 
     private Keepers() {}
@@ -105,25 +102,13 @@ public final class Keepers implements GameModule, Building.Reserves {
         this.game = game;
         for (Post post : posts) {
             for (PointMarker at : game.arena().markers(post.key())) {
-                Entity body = post.body().get();
-                body.setTag(WorldPolicy.INERT, true);
-                body.setNoGravity(true);
-                if (body instanceof LivingEntity living) living.setInvulnerable(true);
-                standing.put(body, new Standing(at, post.use()));
-                game.shard().spawn(body, facing(at));
-                Hologram labels = Hologram.at(facing(at), Match.scenery(game));
-                post.labels().apply(game).forEach(labels::line);
+                Npc.Builder keeper = Npc.builder().body(post.body())
+                        .on(Trigger.right(), interaction -> post.use().use(game, interaction.player(), at));
+                post.labels().apply(game).forEach(line -> keeper.line(line.rise(), line.text()));
+                Npc npc = keeper.spawn(facing(at), Match.scenery(game));
+                standing.put(npc.entity(), new Standing(at, npc));
             }
         }
-        // one press, one use: a modern client sends a packet a hand, a legacy one INTERACT and INTERACT_AT
-        game.on(PlayerEntityInteractEvent.class, e -> {
-            Standing post = standing.get(e.getTarget());
-            if (post == null || e.getHand() != PlayerHand.MAIN) return;
-            Player player = e.getPlayer();
-            Long last = used.put(player, game.tick());
-            if (last != null && last == game.tick()) return;
-            post.use().use(game, player, post.at());
-        });
         game.state().alarms().register(LOOK, (tick, payload) -> {
             game.state().alarms().arm(LOOK, tick + 1);
             look();
@@ -162,11 +147,6 @@ public final class Keepers implements GameModule, Building.Reserves {
                     && Math.abs(pos.blockY() - feet.blockY()) <= height) return true;
         }
         return false;
-    }
-
-    @Override
-    public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
-        used.remove(player);
     }
 
     // toward the side's spawn when it has one
