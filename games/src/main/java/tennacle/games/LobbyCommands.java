@@ -38,7 +38,11 @@ public final class LobbyCommands {
         AppCommand cmd = Commands.player("spawn", "Back to the lobby from anywhere.", "lobby", "l")
                 .usage("/lobby [lobby]", "your lobby, or a game's: bedwars (bw), duels (duel)");
         cmd.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) leave(p);
+            if (!(sender instanceof Player p)) return;
+            Queues.leave(p);
+            if (Sessions.depart(p)) return;
+            upward.accept(p);
+            Matches.toLobby(p);
         });
         var named = ArgumentType.Word("lobby");
         named.setSuggestionCallback(tennacle.commands.Completions.of(() -> DESTINATIONS.stream().map(Destination::id).toList()));
@@ -91,11 +95,17 @@ public final class LobbyCommands {
     private record Destination(String id, List<String> aliases, Consumer<Player> prefer) {}
 
     private static final List<Destination> DESTINATIONS = new CopyOnWriteArrayList<>();
+    private static volatile Consumer<Player> upward = player -> {};
 
     /** A lobby {@code /lobby <id>} reaches; {@code prefer} makes it where the leave sends the player. */
     public static void destination(@NotNull String id, @NotNull List<String> aliases, @NotNull Consumer<Player> prefer) {
         DESTINATIONS.removeIf(d -> d.id().equals(id));
         DESTINATIONS.add(new Destination(id, List.copyOf(aliases), prefer));
+    }
+
+    /** What a bare {@code /lobby} from a lobby does before sending them home: the lobbies step them up to the main one. */
+    public static void upward(@NotNull Consumer<Player> step) {
+        upward = step;
     }
 
     // every way out ends where the lobbies route home, so a named lobby is one trip, never a stop at home first

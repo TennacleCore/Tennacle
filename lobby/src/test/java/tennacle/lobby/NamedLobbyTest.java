@@ -32,6 +32,10 @@ class NamedLobbyTest extends HeadlessServerTest {
         try {
             MinecraftServer.getCommandManager().execute(p.player, "l ar");
             arrive(p, arcade);
+            MinecraftServer.getCommandManager().execute(p.player, "l");
+            arrive(p, instance); // a bare /l from a game's lobby steps up to the main one
+            MinecraftServer.getCommandManager().execute(p.player, "l arcade");
+            arrive(p, arcade);
             MinecraftServer.getCommandManager().execute(p.player, "lobby main");
             arrive(p, instance);
             MinecraftServer.getCommandManager().execute(p.player, "l nowhere");

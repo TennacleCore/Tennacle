@@ -83,6 +83,7 @@ public final class Lobbies {
                                      @NotNull List<String> aliases) {
         Lobby lobby = new Lobby(id, name, icon, blurb, hosting, world, spawn, List.copyOf(aliases));
         if (!LOBBIES.isEmpty()) Wardrobe.outfit(world, Playground::outfit);
+        else LobbyCommands.upward(Lobbies::stepUp);
         LOBBIES.add(lobby);
         LobbyCommands.destination(id, lobby.aliases(), player -> HOME.put(player.getUuid(), lobby));
         return lobby;
@@ -117,6 +118,12 @@ public final class Lobbies {
 
     public static @NotNull Lobby home(@NotNull Player player) {
         return HOME.getOrDefault(player.getUuid(), main());
+    }
+
+    // Hypixel's /l: a game's lobby leads back to the main one
+    private static void stepUp(Player player) {
+        Lobby in = in(player);
+        if (in != null && in != main()) HOME.put(player.getUuid(), main());
     }
 
     /** Puts {@code player} at {@code lobby}'s spawn, dressed for it. */
