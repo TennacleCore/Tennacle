@@ -84,7 +84,7 @@ public final class LobbyCommands {
         });
         Commands.register(games);
 
-        AppCommand rejoin = Commands.player("rejoin", "Reclaim the seat a game is holding for you.")
+        AppCommand rejoin = Commands.player("rejoin", "Reclaim the seat a game is holding for you.", "rej")
                 .usage("/rejoin [code]", "the one game holding one, or the one with that board code (/games lists them)");
         var code = ArgumentType.Word("code");
         rejoin.setDefaultExecutor((sender, ctx) -> rejoin(sender, null));
