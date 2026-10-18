@@ -20,7 +20,7 @@ public final class HypixelLayouts {
     }
 
     /** A kit from one of Hypixel's Duels layouts ({@code layout_bridge_duel_layout}), slot to Hypixel item id. */
-    public static void duel(@NotNull String title, @NotNull Kit kit, @NotNull String layout, @NotNull Map<String, String> names) {
-        KitImports.kit(SOURCE, title, kit, profile -> HypixelApi.object(profile, "stats", "Duels", layout), names);
+    public static void duel(@NotNull Kit kit, @NotNull String layout, @NotNull Map<String, String> names) {
+        KitImports.kit(SOURCE, kit, profile -> HypixelApi.object(profile, "stats", "Duels", layout), names);
     }
 }

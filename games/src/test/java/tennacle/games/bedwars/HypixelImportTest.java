@@ -69,9 +69,12 @@ class HypixelImportTest extends HeadlessServerTest {
         HypixelApi.source(uuid -> CompletableFuture.completedFuture(profile));
         FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HpxImp");
         try {
-            KitImports.run(p.player, "hypixel", null, null);
-            MinecraftServer.getSchedulerManager().processTick();
-            MinecraftServer.getSchedulerManager().processTickEnd();
+            for (String mode : List.of("bedwars", "bridge", "bedfight")) {
+                KitImports.run(p.player, "hypixel", mode, null);
+                MinecraftServer.getSchedulerManager().processTick();
+                MinecraftServer.getSchedulerManager().processTickEnd();
+                p.player.removeTag(net.minestom.server.tag.Tag.Transient("tennacle:cooldown:kit-import")); // one import every ten seconds
+            }
 
             List<String> pins = Favorites.of(p.player, ItemShop.FRONT);
             assertNotNull(pins, "quick buy imported");
@@ -146,6 +149,35 @@ class HypixelImportTest extends HeadlessServerTest {
             assertNull(Favorites.of(p.player, ItemShop.FRONT));
         } finally {
             p.player.remove();
+        }
+    }
+
+    @Test
+    void copiesAnotherPlayersPart() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(8.5, 65, 0.5), "ShareA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(10.5, 65, 0.5), "ShareB");
+        try {
+            List<String> pins = new java.util.ArrayList<>(java.util.Collections.nCopies(21, ""));
+            pins.set(0, "fireball");
+            Favorites.set(a.player, ItemShop.FRONT, pins);
+            KitLayouts.set(a.player, "bridge", Map.of("sword", 4, "bow", 0));
+            List<List<String>> before = HotbarOrders.of(b.player).main();
+
+            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "ShareA"), "bedwars", "quickbuy");
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            assertEquals(pins, Favorites.of(b.player, ItemShop.FRONT), "the quick buy came across");
+            assertEquals(before, HotbarOrders.of(b.player).main(), "the hotbar stayed");
+            assertNull(KitLayouts.of(b.player, "bridge"), "and nothing else");
+
+            b.player.removeTag(net.minestom.server.tag.Tag.Transient("tennacle:cooldown:kit-import"));
+            MinecraftServer.getCommandManager().execute(b.player, "kit copy ShareA bridge layout");
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            assertEquals(4, KitLayouts.of(b.player, "bridge").get("sword"), "/kit copy names one part");
+        } finally {
+            a.player.remove();
+            b.player.remove();
         }
     }
 }

@@ -17,6 +17,8 @@ import tennacle.games.beds.Beds;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Each player's Bed Wars hotbar as picks in order, slot by slot: a kind ({@code utility}) or one shop item
@@ -56,6 +58,11 @@ final class HotbarOrders {
     static @NotNull Layouts of(@NotNull Player player) {
         Layouts held = STORE.of(player.getUuid());
         return held != null && !held.main().isEmpty() ? held : new Layouts(fromLayout(player), List.of());
+    }
+
+    /** Anyone's saved layouts, online or not; null when they never set any. */
+    static @NotNull CompletableFuture<@Nullable Layouts> load(@NotNull UUID player) {
+        return STORE.load(player).thenApply(held -> held != null && !held.main().isEmpty() ? held : null);
     }
 
     static void set(@NotNull Player player, @NotNull Layouts layouts) {

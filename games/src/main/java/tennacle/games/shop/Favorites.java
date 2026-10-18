@@ -11,6 +11,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /** Each player's pinned offers per storefront (Quick Buy); an empty id holds a place open. */
 public final class Favorites {
@@ -30,6 +32,12 @@ public final class Favorites {
     public static @Nullable List<String> of(@NotNull Player player, @NotNull String front) {
         Map<String, List<String>> all = pinned != null ? pinned.of(player.getUuid()) : null;
         return all != null ? all.get(front) : null;
+    }
+
+    /** Anyone's pins at {@code front}, online or not; null while they keep the storefront's own. */
+    public static @NotNull CompletableFuture<@Nullable List<String>> load(@NotNull UUID player, @NotNull String front) {
+        if (pinned == null) throw new IllegalStateException("Favorites.install() first");
+        return pinned.load(player).thenApply(all -> all != null ? all.get(front) : null);
     }
 
     public static void set(@NotNull Player player, @NotNull String front, @NotNull List<String> pins) {

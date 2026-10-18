@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
@@ -81,6 +82,11 @@ public final class KitLayouts {
     public static @Nullable Map<String, Integer> of(Player player, String kitId) {
         Map<String, Map<String, Integer>> kits = STORE.of(player.getUuid());
         return kits != null ? kits.get(kitId) : null;
+    }
+
+    /** Anyone's remap for {@code kitId}, online or not; null = the kit's defaults. */
+    public static @NotNull CompletableFuture<@Nullable Map<String, Integer>> load(@NotNull UUID player, @NotNull String kitId) {
+        return STORE.load(player).thenApply(kits -> kits != null ? kits.get(kitId) : null);
     }
 
     /** Stores {@code layout} as {@code player}'s for {@code kitId}. */

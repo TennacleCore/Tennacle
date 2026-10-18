@@ -116,7 +116,7 @@ final class HotbarManager {
                 List.of(Items.gray("Copy your quick buy or hotbar"), Items.gray("in from another server."), Component.empty(),
                         Component.text("Click to choose!", NamedTextColor.YELLOW))), (v, click) -> {
             drop(v);
-            ImportMenu.open(v, HypixelLayout.MODE);
+            ImportMenu.open(v, BedWarsLayouts.MODE);
         });
         manager.button(50, Items.lore(Items.named(Material.BARRIER, Component.text("Reset to Default", NamedTextColor.RED)),
                 List.of(Items.gray("Reset your hotbar to the default."), Component.empty(),
