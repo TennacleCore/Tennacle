@@ -52,6 +52,7 @@ public final class TestWiring {
         Rooms.install();
         tennacle.games.RulesCommands.register();
         tennacle.games.MapCommand.register();
+        tennacle.games.HypixelImports.register();
         TabStats.register();
         GameSounds.register();
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");

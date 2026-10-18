@@ -52,3 +52,6 @@ tennacle.map-idle-minutes = 10
 #   replay-dir  = replays
 #   save-dir    = shard-saves
 #   crash-dir   = archipelago-crashes
+
+# Hypixel API key for /import (players copy their Hypixel layouts); leave unset to turn importing off
+# tennacle.hypixel-api-key =

@@ -189,6 +189,16 @@ final class Wares {
 
     private Wares() {}
 
+    /** The ware Hypixel's quick buy calls {@code id}: a permanent one by its first item, the rest by shop name. */
+    static @Nullable String fromHypixel(@NotNull String id) {
+        for (Ware ware : BY_ID.values()) {
+            String key = ware.permanent() ? ware.icons().getFirst().apply(null, null).material().key().value()
+                    : ware.names().getFirst().toLowerCase(java.util.Locale.ROOT).replace(' ', '_');
+            if (key.equals(id)) return ware.offer().id();
+        }
+        return null;
+    }
+
     static @Nullable Ware of(@NotNull String id) {
         return BY_ID.get(id);
     }
