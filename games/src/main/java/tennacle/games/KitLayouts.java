@@ -156,6 +156,7 @@ public final class KitLayouts {
 
         AppCommand cmd = Commands.player("kit", "Arrange a mode's kit your way.")
                 .usage("/kit <mode>", "the kit lands in your inventory; close it to save");
+        tennacle.games.imports.KitImports.attach(cmd);
         var kitArg = ArgumentType.Word("mode");
         kitArg.setSuggestionCallback(tennacle.commands.Completions.of(EDITABLE::keySet));
         cmd.setDefaultExecutor((sender, ctx) -> {

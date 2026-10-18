@@ -35,6 +35,7 @@ public final class LobbyModule {
         Parties.warps(new Warps());
         Whereabouts.use(Where::of);
         FriendCommands.views(PlayerMenu::open);
+        tennacle.games.imports.ImportMenu.icons(tennacle.lobby.menus.Icons::of);
         Welcome.install(); // the first lines an arrival reads
         // a lobby reader's own setting says whose lines reach them
         Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null

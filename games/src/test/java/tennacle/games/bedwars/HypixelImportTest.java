@@ -1,8 +1,8 @@
 package tennacle.games.bedwars;
 
-import tennacle.games.HypixelImports;
 import tennacle.games.KitLayouts;
 import tennacle.games.TestWiring;
+import tennacle.games.imports.KitImports;
 import tennacle.games.shop.Favorites;
 import tennacle.hypixel.HypixelApi;
 
@@ -69,7 +69,7 @@ class HypixelImportTest extends HeadlessServerTest {
         HypixelApi.source(uuid -> CompletableFuture.completedFuture(profile));
         FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "HpxImp");
         try {
-            HypixelImports.run(p.player, null);
+            KitImports.run(p.player, "hypixel", null, null);
             MinecraftServer.getSchedulerManager().processTick();
             MinecraftServer.getSchedulerManager().processTickEnd();
 
@@ -106,9 +106,43 @@ class HypixelImportTest extends HeadlessServerTest {
         HypixelApi.source(uuid -> CompletableFuture.completedFuture(JsonParser.parseString("{\"stats\": {}}").getAsJsonObject()));
         FakePlayer p = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "HpxNone");
         try {
-            HypixelImports.run(p.player, "bedwars");
+            KitImports.run(p.player, "hypixel", "bedwars", null);
             MinecraftServer.getSchedulerManager().processTick();
             MinecraftServer.getSchedulerManager().processTickEnd();
+            assertNull(Favorites.of(p.player, ItemShop.FRONT));
+        } finally {
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void onePartAlone() {
+        JsonObject profile = JsonParser.parseString(TERM4).getAsJsonObject();
+        HypixelApi.source(uuid -> CompletableFuture.completedFuture(profile));
+        FakePlayer p = FakePlayer.connect(instance, new Pos(4.5, 65, 0.5), "HpxPart");
+        try {
+            List<List<String>> before = HotbarOrders.of(p.player).main();
+            KitImports.run(p.player, "hypixel", "bedwars", "quickbuy");
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            assertNotNull(Favorites.of(p.player, ItemShop.FRONT), "the quick buy came in");
+            assertEquals(before, HotbarOrders.of(p.player).main(), "the hotbar did not");
+            assertNull(KitLayouts.of(p.player, "bridge"), "nor any other mode");
+        } finally {
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void kitImportCommandRuns() {
+        JsonObject profile = JsonParser.parseString(TERM4).getAsJsonObject();
+        HypixelApi.source(uuid -> CompletableFuture.completedFuture(profile));
+        FakePlayer p = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "HpxCmd");
+        try {
+            MinecraftServer.getCommandManager().execute(p.player, "kit import hypixel bridge layout");
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            assertNotNull(KitLayouts.of(p.player, "bridge"), "the import branch, not /kit <mode>");
             assertNull(Favorites.of(p.player, ItemShop.FRONT));
         } finally {
             p.player.remove();

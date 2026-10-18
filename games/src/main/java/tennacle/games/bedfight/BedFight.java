@@ -194,7 +194,7 @@ public final class BedFight {
                 .build();
         KitLayouts.editable("Bed Fight", KIT);
         // Hypixel's Bed Rush duel is ours
-        tennacle.games.HypixelImports.kit("Bed Fight", KIT, "layout_bedwars_two_one_duels_rush_layout", Map.of("sword", "sword",
+        tennacle.games.imports.HypixelLayouts.duel("Bed Fight", KIT, "layout_bedwars_two_one_duels_rush_layout", Map.of("sword", "sword",
                 "wood_pickaxe", "pickaxe", "wood_axe", "axe", "shears", "shears", "wool", "blocks"));
                 // a map whose authored tints do not parse throws at launch, taking the whole mode with it
         arena.requires(a -> {

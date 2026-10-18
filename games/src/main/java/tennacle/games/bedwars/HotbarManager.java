@@ -1,7 +1,7 @@
 package tennacle.games.bedwars;
 
 import tennacle.Confirm;
-import tennacle.games.HypixelImports;
+import tennacle.games.imports.ImportMenu;
 import tennacle.games.bedwars.HotbarOrders.Layouts;
 import tennacle.games.bedwars.Wares.Tab;
 import tennacle.games.bedwars.Wares.Ware;
@@ -103,16 +103,11 @@ final class HotbarManager {
             if (game != null) ItemShop.open(game, v, Tab.QUICK_BUY);
             else Screens.back(v);
         });
-        manager.button(49, Items.lore(Items.named(Material.BOOK, Component.text("Import from Hypixel", NamedTextColor.GREEN)),
-                List.of(Items.gray("Copy your Hypixel quick buy and"), Items.gray("hotbar layout over these."), Component.empty(),
-                        Component.text("Click twice to import!", NamedTextColor.YELLOW))), (v, click) -> {
+        manager.button(49, Items.lore(Items.named(Material.BOOK, Component.text("Import Layouts", NamedTextColor.GREEN)),
+                List.of(Items.gray("Copy your quick buy or hotbar"), Items.gray("in from another server."), Component.empty(),
+                        Component.text("Click to choose!", NamedTextColor.YELLOW))), (v, click) -> {
             drop(v);
-            if (!Confirm.again(v, "bedwars hotbar import")) {
-                v.sendMessage(Component.text("Click again to replace your quick buy and hotbar with Hypixel's.", NamedTextColor.YELLOW));
-                return;
-            }
-            v.removeTag(AFTER);
-            HypixelImports.run(v, HypixelLayout.IMPORT.id());
+            ImportMenu.open(v, HypixelLayout.MODE);
         });
         manager.button(50, Items.lore(Items.named(Material.BARRIER, Component.text("Reset to Default", NamedTextColor.RED)),
                 List.of(Items.gray("Reset your hotbar to the default."), Component.empty(),

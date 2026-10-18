@@ -57,4 +57,23 @@ class KitsTabTest extends HeadlessServerTest {
             p.player.remove();
         }
     }
+
+    @Test
+    void importLayoutsOpens() {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(72.5, 65, 0.5), "KitImp");
+        try {
+            tennacle.lobby.menus.MainMenu.open(p.player);
+            press(p, new Click.Left(2)); // the Kits tab
+            assertEquals("Kits", title(p));
+            press(p, new Click.Left(40));
+            assertEquals("Import Layouts", title(p));
+            Inventory open = Screens.inventory(p.player);
+            int quick = -1;
+            for (int i = 0; i < open.getSize(); i++) if (open.getItemStack(i).material() == Material.NETHER_STAR) quick = i;
+            assertTrue(quick >= 0, "Bed Wars quick buy, its own part");
+            assertEquals(Material.BLAZE_POWDER, open.getItemStack(quick + 1).material(), "and the hotbar beside it");
+        } finally {
+            p.player.remove();
+        }
+    }
 }

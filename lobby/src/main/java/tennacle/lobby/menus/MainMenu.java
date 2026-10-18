@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tennacle.games.Careers;
 import tennacle.games.KitLayouts;
+import tennacle.games.imports.ImportMenu;
 import tennacle.games.watch.ReplayCatalog;
 
 import java.time.Instant;
@@ -166,6 +167,9 @@ public final class MainMenu {
                 return refused;
             });
         }
+        screen.button(40, v -> Entry.of(Material.BOOK).name("Import Layouts")
+                .text("Copy your layouts in from", "another server, like Hypixel.").action("Click to choose!").render(v),
+                (v, click) -> ImportMenu.open(v, null));
         return screen.build();
     }
 

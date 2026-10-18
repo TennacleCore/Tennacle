@@ -262,7 +262,7 @@ public final class Bridge {
         }, variantArg);
         Commands.register(cageCmd);
         KitLayouts.editable("Bridge", KIT);
-        tennacle.games.HypixelImports.kit("Bridge", KIT, "layout_bridge_duel_layout", Map.of("iron_sword", "sword", "bow", "bow",
+        tennacle.games.imports.HypixelLayouts.duel("Bridge", KIT, "layout_bridge_duel_layout", Map.of("iron_sword", "sword", "bow", "bow",
                 "diamond_pickaxe", "pickaxe", "stained_clay_1", "blocks.1", "stained_clay_2", "blocks.2", "golden_apple", "gapple",
                 "arrow", "arrow"));
                 // a map whose authored tints do not parse throws at launch, taking the whole mode with it

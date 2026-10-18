@@ -32,6 +32,7 @@ public final class LobbyWiring {
         Parties.warps(new Warps());
         Whereabouts.use(Where::of);
         FriendCommands.views(PlayerMenu::open);
+        tennacle.games.imports.ImportMenu.icons(tennacle.lobby.menus.Icons::of);
         // a lobby reader's own setting says whose lines reach them
         Rooms.hears((speaker, reader) -> Lobbies.in(speaker) == null
                 ? !Blocks.between(speaker.getUuid(), reader.getUuid()) : Settings.LOBBY_CHAT.admits(speaker, reader));
