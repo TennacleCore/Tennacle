@@ -139,7 +139,7 @@ class HypixelImportTest extends HeadlessServerTest {
         HypixelApi.source(uuid -> CompletableFuture.completedFuture(profile));
         FakePlayer p = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "HpxCmd");
         try {
-            MinecraftServer.getCommandManager().execute(p.player, "kit import hypixel bridge layout");
+            MinecraftServer.getCommandManager().execute(p.player, "kit import bridge layout hypixel");
             MinecraftServer.getSchedulerManager().processTick();
             MinecraftServer.getSchedulerManager().processTickEnd();
             assertNotNull(KitLayouts.of(p.player, "bridge"), "the import branch, not /kit <mode>");

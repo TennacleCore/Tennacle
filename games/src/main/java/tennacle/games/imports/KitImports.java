@@ -33,7 +33,7 @@ import java.util.function.Function;
 
 /**
  * Layouts copied in from elsewhere: sources ({@link ImportSource}), and per source each mode's parts
- * ({@link LayoutImport}). {@code /kit import <source> [mode] [part]}, or {@link ImportMenu}.
+ * ({@link LayoutImport}). {@link ImportMenu} chooses; {@code /kit import <mode> <part> <source>} names one.
  */
 public final class KitImports {
 
@@ -97,34 +97,49 @@ public final class KitImports {
         return IMPORTS.stream().filter(e -> e.source().equals(source) && (mode == null || e.mode().equals(mode))).toList();
     }
 
-    /** Adds the {@code import} branch to {@code /kit}. */
+    /** Every import grouped by mode, in the order modes registered them. */
+    public static @NotNull Map<String, List<LayoutImport>> byMode() {
+        Map<String, List<LayoutImport>> out = new LinkedHashMap<>();
+        for (LayoutImport entry : IMPORTS) out.computeIfAbsent(entry.mode(), m -> new ArrayList<>()).add(entry);
+        return out;
+    }
+
+    /** Adds the {@code import} branch to {@code /kit}: a menu to choose from, or one part from one source spelled out. */
     public static void attach(@NotNull AppCommand kit) {
-        kit.usage("/kit import <source> [mode] [part]", "copy your layouts in from another server");
+        kit.usage("/kit import [mode]", "choose a layout to copy in from another server")
+                .usage("/kit import <mode> <part> <source>", "copy one in directly");
         Command command = new Command("import");
-        var source = ArgumentType.Word("source");
         var mode = ArgumentType.Word("mode");
         var part = ArgumentType.Word("part");
-        source.setSuggestionCallback(Completions.of(SOURCES::keySet));
-        mode.setSuggestionCallback((sender, ctx, suggestion) -> Completions.offer(suggestion,
-                modes(of(Objects.requireNonNullElse(ctx.get(source), ""), null))));
+        var source = ArgumentType.Word("source");
+        mode.setSuggestionCallback(Completions.of(() -> byMode().keySet()));
         part.setSuggestionCallback((sender, ctx, suggestion) -> Completions.offer(suggestion,
-                of(Objects.requireNonNullElse(ctx.get(source), ""), ctx.get(mode)).stream().map(LayoutImport::part).toList()));
+                matching(ctx.get(mode), null).stream().map(LayoutImport::part).distinct().toList()));
+        source.setSuggestionCallback((sender, ctx, suggestion) -> Completions.offer(suggestion,
+                matching(ctx.get(mode), ctx.get(part)).stream().map(LayoutImport::source).distinct().toList()));
         command.setDefaultExecutor((sender, ctx) -> {
-            if (!(sender instanceof Player p)) return;
-            Msg.say(p, "Import from: ", Msg.v(String.join(", ", SOURCES.keySet())), ". Try ",
-                    Msg.v("/kit import " + (SOURCES.isEmpty() ? "<source>" : SOURCES.keySet().iterator().next())),
-                    " for everything, or name a mode and part.");
+            if (sender instanceof Player p) ImportMenu.open(p, null);
         });
         command.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) run(p, ctx.get(source).toLowerCase(Locale.ROOT), null, null);
-        }, source);
+            if (!(sender instanceof Player p)) return;
+            String wanted = ctx.get(mode).toLowerCase(Locale.ROOT);
+            if (!byMode().containsKey(wanted)) {
+                Msg.fail(p, "Nothing to import for ", Msg.v(wanted), ". Modes: " + String.join(", ", byMode().keySet()) + ".");
+                return;
+            }
+            ImportMenu.open(p, wanted);
+        }, mode);
         command.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) run(p, ctx.get(source).toLowerCase(Locale.ROOT), word(ctx.get(mode)), null);
-        }, source, mode);
-        command.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) run(p, ctx.get(source).toLowerCase(Locale.ROOT), word(ctx.get(mode)), word(ctx.get(part)));
-        }, source, mode, part);
+            if (sender instanceof Player p) {
+                run(p, ctx.get(source).toLowerCase(Locale.ROOT), ctx.get(mode).toLowerCase(Locale.ROOT), ctx.get(part).toLowerCase(Locale.ROOT));
+            }
+        }, mode, part, source);
         kit.addSubcommand(command);
+    }
+
+    private static List<LayoutImport> matching(@Nullable String mode, @Nullable String part) {
+        return IMPORTS.stream().filter(e -> e.mode().equalsIgnoreCase(Objects.requireNonNullElse(mode, ""))
+                && (part == null || e.part().equalsIgnoreCase(part))).toList();
     }
 
     /** Imports from {@code source}: every mode's parts, one mode's, or one part; the answer goes to chat. */
@@ -181,10 +196,6 @@ public final class KitImports {
 
     private static List<String> modes(List<LayoutImport> imports) {
         return List.copyOf(new LinkedHashSet<>(imports.stream().map(LayoutImport::mode).toList()));
-    }
-
-    private static @Nullable String word(@Nullable String typed) {
-        return typed != null ? typed.toLowerCase(Locale.ROOT) : null;
     }
 
     private static int slot(String key) {

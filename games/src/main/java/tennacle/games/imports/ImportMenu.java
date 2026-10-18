@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * "Import Layouts": a tab per source across the top, a row per mode beneath with a button per part and one for the
- * whole mode. Each import takes two clicks, as it replaces what the player has.
+ * "Import Layouts": a mode, then one of its parts, then where from. Each import is one part from one source and
+ * takes two clicks, as it replaces what the player has.
  */
 public final class ImportMenu {
 
@@ -28,75 +28,81 @@ public final class ImportMenu {
 
     private ImportMenu() {}
 
-    /** How a mode's row is drawn; the lobby's icons, set from above. */
+    /** How a mode is drawn; the lobby's icons, set from above. */
     public static void icons(@NotNull Function<String, Material> byMode) {
         icons = byMode;
     }
 
-    /** Pushed over the current screen; {@code mode} null for every mode. */
+    /** Pushed over the current screen: every mode to choose from, or straight to {@code mode}'s parts. */
     public static void open(@NotNull Player viewer, @Nullable String mode) {
-        List<ImportSource> sources = KitImports.sources();
-        if (sources.isEmpty()) {
-            viewer.sendMessage(Component.text("There's nowhere to import layouts from yet.", NamedTextColor.RED));
+        Map<String, List<LayoutImport>> modes = KitImports.byMode();
+        if (mode != null && modes.containsKey(mode)) {
+            Screens.push(viewer, mode(modes.get(mode)));
             return;
         }
-        Screens.push(viewer, screen(sources.getFirst(), mode));
+        if (modes.isEmpty()) {
+            viewer.sendMessage(Component.text("There's nothing to import yet.", NamedTextColor.RED));
+            return;
+        }
+        Screen.Builder screen = Screen.rows(4).title(Component.text("Import Layouts"));
+        List<List<LayoutImport>> rows = List.copyOf(modes.values());
+        int first = 9 + (9 - rows.size()) / 2;
+        for (int i = 0; i < Math.min(rows.size(), 9); i++) {
+            List<LayoutImport> parts = rows.get(i);
+            LayoutImport head = parts.getFirst();
+            screen.button(first + i, v -> Entry.of(icons.apply(head.mode())).name(head.modeTitle())
+                    .text(String.join(", ", parts.stream().map(LayoutImport::partTitle).distinct().toList()) + ".")
+                    .action("Click to choose!").render(v), (v, click) -> Screens.push(v, mode(parts)));
+        }
+        screen.back(31);
+        Screens.push(viewer, screen.build());
     }
 
-    private static Screen screen(ImportSource open, @Nullable String only) {
-        Screen.Builder screen = Screen.rows(6).title(Component.text("Import Layouts"));
-        List<ImportSource> sources = KitImports.sources();
-        int first = (9 - sources.size()) / 2;
-        for (int i = 0; i < sources.size(); i++) {
-            ImportSource source = sources.get(i);
-            boolean lit = source == open;
-            screen.button(first + i, v -> {
-                Entry entry = Entry.of(source.icon()).name(source.title()).glint(lit)
-                        .text("Layouts you saved on " + source.title() + ".");
-                if (!source.ready().getAsBoolean()) entry.line(Component.text("Not set up on this server.", NamedTextColor.RED));
-                return lit ? entry.render(v) : entry.action("Click to view!").render(v);
-            }, (v, click) -> {
-                if (!lit) Screens.swap(v, screen(source, only));
-            });
-        }
-        Map<String, List<LayoutImport>> modes = new LinkedHashMap<>();
-        for (LayoutImport entry : KitImports.of(open.id(), only)) modes.computeIfAbsent(entry.mode(), m -> new ArrayList<>()).add(entry);
+    // a row per part, a button per source that has it; then the whole mode from each source
+    private static Screen mode(List<LayoutImport> imports) {
+        LayoutImport head = imports.getFirst();
+        Screen.Builder screen = Screen.rows(6).title(Component.text("Import " + head.modeTitle()));
+        Map<String, List<LayoutImport>> parts = new LinkedHashMap<>();
+        for (LayoutImport entry : imports) parts.computeIfAbsent(entry.part(), p -> new ArrayList<>()).add(entry);
         int row = 1;
-        for (List<LayoutImport> parts : modes.values()) {
-            if (row > 4) break;
-            LayoutImport head = parts.getFirst();
+        for (List<LayoutImport> sources : parts.values()) {
+            if (row > 3) break;
+            LayoutImport part = sources.getFirst();
             int base = row * 9;
-            screen.item(base + 1, v -> Entry.of(icons.apply(head.mode())).name(head.modeTitle())
-                    .text("From " + open.title() + ".").render(v));
-            for (int i = 0; i < Math.min(parts.size(), 4); i++) {
-                LayoutImport part = parts.get(i);
-                screen.button(base + 3 + i, v -> Entry.of(part.icon()).name(part.partTitle())
-                                .text("Replace your " + part.label() + " with", "the one you saved on " + open.title() + ".")
-                                .action("Click twice to import!").render(v),
-                        (v, click) -> confirmed(v, open, part.mode(), part.part(), part.label()));
-            }
-            if (parts.size() > 1) {
-                screen.button(base + 8, v -> Entry.of(Material.BOOK).name("Everything")
-                                .text("Every " + head.modeTitle() + " part from " + open.title() + ".")
-                                .action("Click twice to import!").render(v),
-                        (v, click) -> confirmed(v, open, head.mode(), null, head.modeTitle() + " layouts"));
+            screen.item(base + 1, v -> Entry.of(part.icon()).name(part.partTitle()).text("Your " + part.label() + ".").render(v));
+            for (int i = 0; i < Math.min(sources.size(), 5); i++) {
+                LayoutImport from = sources.get(i);
+                ImportSource source = KitImports.sourceOf(from.source());
+                if (source == null) continue;
+                screen.button(base + 3 + i, v -> sourceButton(source, "Replace your " + from.label() + " with",
+                                "the one you saved on " + source.title() + ".").render(v),
+                        (v, click) -> confirmed(v, source, from.mode(), from.part(), from.label()));
             }
             row++;
         }
-        if (modes.isEmpty()) {
-            screen.item(22, v -> Entry.of(Material.PAPER).name("Nothing to Import").text("No layouts come from " + open.title() + " yet.").render(v));
+        List<String> sourceIds = imports.stream().map(LayoutImport::source).distinct().toList();
+        if (parts.size() > 1) {
+            int base = row * 9;
+            screen.item(base + 1, v -> Entry.of(Material.BOOK).name("Everything").text("Every " + head.modeTitle() + " part.").render(v));
+            for (int i = 0; i < Math.min(sourceIds.size(), 5); i++) {
+                ImportSource source = KitImports.sourceOf(sourceIds.get(i));
+                if (source == null) continue;
+                screen.button(base + 3 + i, v -> sourceButton(source, "Replace every " + head.modeTitle() + " part",
+                                "you saved on " + source.title() + ".").render(v),
+                        (v, click) -> confirmed(v, source, head.mode(), null, head.modeTitle() + " layouts"));
+            }
         }
-        if (only == null && modes.size() > 1) {
-            screen.button(50, v -> Entry.of(Material.ENCHANTED_BOOK).name("Import Everything")
-                            .text("Every layout you saved on " + open.title() + ".")
-                            .action("Click twice to import!").render(v),
-                    (v, click) -> confirmed(v, open, null, null, "layouts"));
-        }
-        screen.back(48);
+        screen.back(49);
         return screen.build();
     }
 
-    private static void confirmed(Player viewer, ImportSource source, @Nullable String mode, @Nullable String part, String what) {
+    private static Entry sourceButton(ImportSource source, String... text) {
+        Entry entry = Entry.of(source.icon()).name("From " + source.title()).text((Object[]) text);
+        if (!source.ready().getAsBoolean()) return entry.line(Component.text("Not set up on this server.", NamedTextColor.RED));
+        return entry.action("Click twice to import!");
+    }
+
+    private static void confirmed(Player viewer, ImportSource source, String mode, @Nullable String part, String what) {
         if (!Confirm.again(viewer, "kit import " + source.id() + " " + mode + " " + part)) {
             viewer.sendMessage(Component.text("Click again to replace your " + what + " with what you saved on " + source.title() + ".", NamedTextColor.YELLOW));
             return;

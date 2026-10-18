@@ -66,12 +66,20 @@ class KitsTabTest extends HeadlessServerTest {
             press(p, new Click.Left(2)); // the Kits tab
             assertEquals("Kits", title(p));
             press(p, new Click.Left(40));
-            assertEquals("Import Layouts", title(p));
+            assertEquals("Import Layouts", title(p), "a mode to choose first");
             Inventory open = Screens.inventory(p.player);
-            int quick = -1;
-            for (int i = 0; i < open.getSize(); i++) if (open.getItemStack(i).material() == Material.NETHER_STAR) quick = i;
-            assertTrue(quick >= 0, "Bed Wars quick buy, its own part");
-            assertEquals(Material.BLAZE_POWDER, open.getItemStack(quick + 1).material(), "and the hotbar beside it");
+            int bedwars = -1;
+            for (int i = 0; i < open.getSize(); i++) if (open.getItemStack(i).material() == Material.RED_BED) bedwars = i;
+            assertTrue(bedwars >= 0, "Bed Wars among the modes");
+            press(p, new Click.Left(bedwars));
+            assertEquals("Import Bed Wars", title(p));
+            open = Screens.inventory(p.player);
+            assertEquals(Material.NETHER_STAR, open.getItemStack(10).material(), "the quick buy, its own row");
+            assertEquals(Material.BLAZE_POWDER, open.getItemStack(19).material(), "the hotbar, its own");
+            assertEquals(Material.GOLD_BLOCK, open.getItemStack(12).material(), "a source to take the quick buy from");
+            tennacle.games.shop.Favorites.set(p.player, "bedwars:items", java.util.Collections.nCopies(21, ""));
+            press(p, new Click.Left(12));
+            assertEquals("", tennacle.games.shop.Favorites.of(p.player, "bedwars:items").getFirst(), "one click imports nothing");
         } finally {
             p.player.remove();
         }
@@ -124,6 +132,19 @@ class KitsTabTest extends HeadlessServerTest {
             assertEquals("", tennacle.games.shop.Favorites.of(p.player, "bedwars:items").get(1), "shift click takes it off");
             press(p, new Click.Left(49));
             assertEquals("Hotbar Manager", title(p), "Go Back leads where it opened from");
+        } finally {
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void kitImportOpensTheMenu() {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(80.5, 65, 0.5), "KitCmd");
+        try {
+            net.minestom.server.MinecraftServer.getCommandManager().execute(p.player, "kit import");
+            assertEquals("Import Layouts", title(p), "no import yet, only the choice");
+            net.minestom.server.MinecraftServer.getCommandManager().execute(p.player, "kit import bridge");
+            assertEquals("Import Bridge", title(p));
         } finally {
             p.player.remove();
         }
