@@ -1,5 +1,9 @@
 package tennacle.games;
 
+import tennacle.Msg;
+import tennacle.commands.AppCommand;
+import tennacle.commands.Commands;
+import net.minestom.server.command.builder.arguments.ArgumentType;
 import tennacle.social.channels.Channels;
 import tennacle.social.messages.Messages;
 import tennacle.games.watch.Theaters;
@@ -42,6 +46,16 @@ public final class Rooms {
 
     public static void install() {
         Chat.install(Rooms::of);
+        AppCommand all = Commands.player("ac", "Say something in the chat around you, whatever channel you chose.")
+                .usage("/ac <message>", "game, team or lobby chat, past /chat and an open conversation");
+        var text = ArgumentType.StringArray("message");
+        all.setDefaultExecutor((sender, ctx) -> Msg.fail(sender, "Invalid usage! '/ac <message>'"));
+        all.addSyntax((sender, ctx) -> {
+            if (!(sender instanceof Player me)) return;
+            Chat.Room room = normal(me, String.join(" ", ctx.get(text)));
+            for (Player reader : room.audience()) reader.sendMessage(room.line());
+        }, text);
+        Commands.register(all);
         TabList.header(Rooms::tabHeader);
         TabList.footer(Rooms::tabFooter);
         // the lobby chrome counts who is online, so the count changing is what repaints it - otherwise every
@@ -87,6 +101,11 @@ public final class Rooms {
         if (Messages.converse(me, message)) return new Chat.Room(List.of(), Component.empty()); // went as a message
         Chat.Room chosen = Channels.room(me, message); // /chat party: the party hears everything, wherever they are
         if (chosen != null) return chosen;
+        return normal(me, message);
+    }
+
+    /** Where {@code me}'s line goes with no channel chosen and no conversation open: {@code /ac}'s room. */
+    public static Chat.@NotNull Room normal(@NotNull Player me, @NotNull String message) {
         Game game = gameOf(me);
         if (game != null) {
             if (TeamChat.benched(game, me)) return TeamChat.spectatorRoom(game, me, message);

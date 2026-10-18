@@ -54,4 +54,27 @@ class ChannelsTest extends HeadlessServerTest {
             b.player.remove();
         }
     }
+
+    @Test
+    void allChatSkipsTheChannel() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(944.5, 65, 940.5), "AcA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(946.5, 65, 940.5), "AcB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(948.5, 65, 940.5), "AcC");
+        try {
+            chat(a, "party AcB");
+            chat(b, "party join AcA");
+            chat(a, "chat p");
+            c.sent.clear();
+            chat(a, "ac hello there");
+            List<String> heard = c.sent(SystemChatPacket.class).stream()
+                    .map(m -> PlainTextComponentSerializer.plainText().serialize(m.message())).toList();
+            assertTrue(said(heard, "AcA: hello there"), "someone outside the party hears it: " + heard);
+            assertTrue(said(chat(a, "ac"), "Invalid usage! '/ac <message>'"));
+        } finally {
+            chat(a, "party leave");
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+        }
+    }
 }
