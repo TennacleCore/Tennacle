@@ -96,6 +96,7 @@ public final class PlayerPrefs {
                                               @NotNull Function<S, T> decode, @NotNull Function<T, S> encode) {
         Entry<S, T> entry = new Entry<>(key, decode, encode);
         entries.add(entry);
+        if (installed) catchUp(entry);
         return entry;
     }
 
@@ -125,6 +126,17 @@ public final class PlayerPrefs {
         node.addListener(PlayerDisconnectEvent.class, e -> {
             for (Entry<?, ?> entry : entries) entry.cache.remove(e.getPlayer().getUuid());
         });
+    }
+
+    // a key whose class loads after a login would read null for that player, and its owner falls back to defaults
+    private static void catchUp(Entry<?, ?> entry) {
+        for (Player online : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+            try {
+                fetch(entry, online.getUuid()).get(LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (Exception failed) {
+                LOGGER.error("{} did not load for {}", entry.key.id(), online.getUsername(), failed);
+            }
+        }
     }
 
     private static <S, T> CompletableFuture<?> fetch(Entry<S, T> entry, UUID player) {
