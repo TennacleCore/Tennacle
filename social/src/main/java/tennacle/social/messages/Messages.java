@@ -150,7 +150,7 @@ public final class Messages {
     }
 
     private static @Nullable String refusal(Player me, Player to) {
-        if (me == to) return "You can't message yourself.";
+        if (me == to) return null; // the user, 2026-10-18: a note to yourself goes through
         String blocked = Blocks.refusal(me, to, "That player blocked you!");
         if (blocked != null) return blocked;
         if (!PRIVACY.admits(me, to)) return to.getUsername() + " isn't accepting messages from you.";

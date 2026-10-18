@@ -60,7 +60,8 @@ class MessagesTest extends HeadlessServerTest {
             assertTrue(said(chat(b, "r yo"), "To MsA: yo"));
             assertTrue(said(plain(a), "From MsB: yo"));
             assertTrue(said(chat(c, "r hello"), "Nobody has messaged you in the past 5 minutes!"));
-            assertTrue(said(chat(a, "w MsA hi"), "You can't message yourself."));
+            List<String> self = chat(a, "w MsA hi");
+            assertTrue(said(self, "To MsA: hi") && said(self, "From MsA: hi"), "a note to yourself: " + self);
         } finally {
             a.player.remove();
             b.player.remove();
