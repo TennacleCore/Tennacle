@@ -230,6 +230,14 @@ final class Wares {
         return id != null ? List.of(HotbarOrders.WARE + id) : List.of();
     }
 
+    /** The ware's shop icon for {@code viewer}; with no game, the plain one, as the shop shows white wool. */
+    static @NotNull ItemStack icon(@NotNull Ware ware, @Nullable Game game, @NotNull Player viewer) {
+        if (game != null) return ware.icon(game, viewer);
+        Pick pick = PICKS.get(ware.offer().id());
+        if (pick == null) return ItemStack.of(Material.BARRIER);
+        return pick.shown() != null ? pick.shown() : ItemStack.of(pick.plain());
+    }
+
     /** Every ware a hotbar order can name, in shop order. */
     static @NotNull List<Ware> pickable() {
         return PICKS.keySet().stream().map(BY_ID::get).filter(Objects::nonNull).toList();

@@ -260,7 +260,7 @@ public final class BedWars {
 
     public static void install() {
         Teams.register(DEFAULTS);
-        KitLayouts.editable("Bed Wars", KIT, false); // its layout is the Hotbar Manager's
+        KitLayouts.editable("Bed Wars", KIT, HotbarManager::lobby); // its layout is the Hotbar Manager's, from the lobby too
         Favorites.install();
         Skins.install();
         mode("bedwars-solo", "bedwars_eight_one", "Bed Wars Solo", "Solo", "solo", "bedwars-solo", 8, 1);

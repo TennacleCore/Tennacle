@@ -42,6 +42,7 @@ import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 /**
  * Per-player kit slot arrangements: one vault value for all kits, prefetched through {@link PlayerPrefs},
@@ -60,8 +61,12 @@ public final class KitLayouts {
     private static final EquipmentSlot[] ARMOR = {EquipmentSlot.HELMET, EquipmentSlot.CHESTPLATE,
             EquipmentSlot.LEGGINGS, EquipmentSlot.BOOTS};
 
-    /** A kit the editor arranges; {@code learns} = a game's first countdown saves how it was left. */
-    public record Editable(@NotNull String id, @NotNull String title, @NotNull Kit kit, boolean learns) {}
+    /**
+     * A kit the editor arranges; {@code learns} = a game's first countdown saves how it was left. {@code screen}, when
+     * set, is the mode's own layout window, opened over the menu instead of the editor in your inventory.
+     */
+    public record Editable(@NotNull String id, @NotNull String title, @NotNull Kit kit, boolean learns,
+                           @Nullable Consumer<Player> screen) {}
 
     private static final Map<String, Editable> EDITABLE = new LinkedHashMap<>();
     private static final Map<UUID, Edit> EDITING = new ConcurrentHashMap<>();
@@ -100,7 +105,16 @@ public final class KitLayouts {
     }
 
     public static void editable(@NotNull String title, @NotNull Kit kit, boolean learns) {
-        EDITABLE.put(kit.id(), new Editable(kit.id(), title, kit, learns));
+        register(new Editable(kit.id(), title, kit, learns, null));
+    }
+
+    /** A kit arranged in the mode's own window, {@code screen}, rather than in your inventory. */
+    public static void editable(@NotNull String title, @NotNull Kit kit, @NotNull Consumer<Player> screen) {
+        register(new Editable(kit.id(), title, kit, false, screen));
+    }
+
+    private static void register(Editable editable) {
+        EDITABLE.put(editable.id(), editable);
         if (wired) return;
         wired = true;
         wire();
@@ -171,6 +185,10 @@ public final class KitLayouts {
         if (editable == null) return "No kit to arrange for " + kitId + ". Kits: " + String.join(", ", EDITABLE.keySet()) + ".";
         if (Game.of(player) != null) return "Not mid-game. Edit kits from the lobby.";
         if (editing(player)) return "You're already arranging a kit. Close your inventory to save.";
+        if (editable.screen() != null) {
+            editable.screen().accept(player);
+            return null;
+        }
         Kit kit = editable.kit();
         var inv = player.getInventory();
         ItemStack[] stash = new ItemStack[inv.getSize()];

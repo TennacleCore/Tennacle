@@ -49,6 +49,15 @@ final class HotbarManager {
     private HotbarManager() {}
 
     static void open(Game game, Player viewer) {
+        open(game, viewer, false);
+    }
+
+    /** From the lobby's Kits tab: no game around it, Go Back returning to the tab. */
+    static void lobby(Player viewer) {
+        open(null, viewer, true);
+    }
+
+    private static void open(@Nullable Game game, Player viewer, boolean pushed) {
         viewer.removeTag(AFTER);
         // the viewer's own inventory is theirs to arrange, but a held pick must never land in it
         Screen.Builder manager = Screen.rows(6).title(Component.text("Hotbar Manager"))
@@ -100,9 +109,10 @@ final class HotbarManager {
             });
         }
         manager.button(48, Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)),
-                List.of(Items.gray("To Quick Buy"))), (v, click) -> {
+                List.of(Items.gray(game != null ? "To Quick Buy" : "To Kits"))), (v, click) -> {
             drop(v);
-            ItemShop.open(game, v, Tab.QUICK_BUY);
+            if (game != null) ItemShop.open(game, v, Tab.QUICK_BUY);
+            else Screens.back(v);
         });
         manager.button(50, Items.lore(Items.named(Material.BARRIER, Component.text("Reset to Default", NamedTextColor.RED)),
                 List.of(Items.gray("Reset your hotbar to the default."), Component.empty(),
@@ -116,11 +126,12 @@ final class HotbarManager {
             v.removeTag(AFTER);
             Screens.repaint(v);
         });
-        Screens.open(viewer, manager.build());
+        if (pushed) Screens.push(viewer, manager.build());
+        else Screens.open(viewer, manager.build());
     }
 
     // one slot's order in a row, first on the left
-    private static void order(Game game, Player viewer, int hotbar) {
+    private static void order(@Nullable Game game, Player viewer, int hotbar) {
         Screen.Builder screen = Screen.rows(3).title(Component.text("Hotbar Slot " + (hotbar + 1)));
         for (int i = 0; i < HotbarOrders.PICKS; i++) {
             int at = i;
@@ -164,7 +175,7 @@ final class HotbarManager {
     }
 
     // every kind, then every shop item; the choice goes back to the screen underneath
-    private static void choose(Game game, Player viewer, Consumer<String> chosen) {
+    private static void choose(@Nullable Game game, Player viewer, Consumer<String> chosen) {
         Screen.Builder screen = Screen.rows(6).title(Component.text("Choose a Pick"));
         for (int i = 0; i < CATEGORIES.size(); i++) {
             Category category = CATEGORIES.get(i);
@@ -180,7 +191,7 @@ final class HotbarManager {
         for (int i = 0; i < Math.min(wares.size(), 36); i++) {
             Ware ware = wares.get(i);
             String pick = HotbarOrders.WARE + ware.offer().id();
-            screen.button(9 + i, v -> Items.bare(Items.lore(Items.named(ware.icon(game, v), Component.text(ware.name(game, v), NamedTextColor.GREEN)),
+            screen.button(9 + i, v -> Items.bare(Items.lore(Items.named(Wares.icon(ware, game, v), Component.text(ware.name(game, v), NamedTextColor.GREEN)),
                     List.of(Items.gray("Just this item."), Component.empty(), Component.text("Click to choose!", NamedTextColor.YELLOW)))), (v, click) -> {
                 Screens.back(v);
                 chosen.accept(pick);
@@ -231,7 +242,7 @@ final class HotbarManager {
         return shown.withTag(HELD, pick).withTag(InventorySync.CURSOR_TOKEN, true);
     }
 
-    private static ItemStack slotItem(Game game, Player viewer, int hotbar) {
+    private static ItemStack slotItem(@Nullable Game game, Player viewer, int hotbar) {
         List<String> picks = editing(viewer).get(hotbar);
         if (picks.isEmpty()) {
             return Items.bare(Items.lore(Items.named(Material.LIGHT_GRAY_STAINED_GLASS_PANE, Component.text("Hotbar Slot " + (hotbar + 1), NamedTextColor.GREEN)),
@@ -247,14 +258,15 @@ final class HotbarManager {
         return Items.bare(Items.lore(Items.counted(first, picks.size()), lore));
     }
 
-    private static ItemStack shown(Game game, Player viewer, String pick) {
+    private static ItemStack shown(@Nullable Game game, Player viewer, String pick) {
         Category category = category(pick);
         if (category != null) return ItemStack.of(category.icon());
         Ware ware = ware(pick);
-        return ware != null ? ware.icon(game, viewer).withAmount(1) : ItemStack.of(Material.BARRIER);
+        return ware != null ? Wares.icon(ware, game, viewer).withAmount(1) : ItemStack.of(Material.BARRIER);
     }
 
-    private static String name(Game game, Player viewer, String pick) {
+    // a ware a hotbar order names is sold as goods, whose name reads no tier off a game
+    private static String name(@Nullable Game game, Player viewer, String pick) {
         Category category = category(pick);
         if (category != null) return category.name() + " (any)";
         Ware ware = ware(pick);

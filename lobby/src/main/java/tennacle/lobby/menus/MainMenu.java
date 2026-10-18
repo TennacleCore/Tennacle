@@ -156,12 +156,13 @@ public final class MainMenu {
             KitLayouts.Editable kit = kits.get(i);
             screen.press(slots[i], v -> {
                 Entry entry = Entry.of(Icons.of(kit.id())).name(kit.title() + " Layout Editor")
-                        .text("Edit your inventory layout for " + kit.title() + ".");
+                        .text(kit.screen() != null ? "Set what goes in each hotbar slot for " + kit.title() + "."
+                                : "Edit your inventory layout for " + kit.title() + ".");
                 if (kit.kit().armorMoves()) entry.text("Your armor can be moved too.");
                 return entry.action("Click to edit!").render(v);
             }, (v, click) -> {
                 String refused = KitLayouts.open(v, kit.id());
-                if (refused == null) v.closeInventory();
+                if (refused == null && kit.screen() == null) v.closeInventory(); // the editor is your own inventory
                 return refused;
             });
         }
