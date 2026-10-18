@@ -44,4 +44,34 @@ class PrefsTest extends HeadlessServerTest {
             p.player.remove();
         }
     }
+
+    /** Since 2026-09-21 every value read at login was dropped: the login fetch runs before the player counts as online. */
+    @Test
+    void theLoginFetchLands() {
+        MemoryVault store = new MemoryVault();
+        VaultKey<Integer> key = VaultKey.of("test:login", Codec.INT, 0);
+        PlayerPrefs.Entry<Integer, Integer> saved = PlayerPrefs.register(key);
+        PlayerPrefs.vault(() -> new io.github.term4.grotto.vault.Vault() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <T> java.util.concurrent.@org.jetbrains.annotations.NotNull CompletableFuture<T> get(@org.jetbrains.annotations.NotNull UUID player,
+                    @org.jetbrains.annotations.NotNull VaultKey<T> asked) {
+                if (asked.id().equals(key.id())) return java.util.concurrent.CompletableFuture.completedFuture((T) Integer.valueOf(7));
+                return store.get(player, asked);
+            }
+
+            @Override
+            public <T> java.util.concurrent.@org.jetbrains.annotations.NotNull CompletableFuture<Void> set(@org.jetbrains.annotations.NotNull UUID player,
+                    @org.jetbrains.annotations.NotNull VaultKey<T> asked, @org.jetbrains.annotations.NotNull T value) {
+                return store.set(player, asked, value);
+            }
+        });
+        PlayerPrefs.install();
+        FakePlayer p = FakePlayer.connect(instance, new Pos(6.5, 65, 0.5), "LoginKey");
+        try {
+            assertEquals(7, saved.of(p.player.getUuid()), "read during configuration, still kept");
+        } finally {
+            p.player.remove();
+        }
+    }
 }

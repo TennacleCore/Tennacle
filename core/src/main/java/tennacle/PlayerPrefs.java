@@ -113,7 +113,7 @@ public final class PlayerPrefs {
         node.addListener(AsyncPlayerConfigurationEvent.class, e -> {
             UUID player = e.getPlayer().getUuid();
             List<CompletableFuture<?>> loading = new ArrayList<>();
-            for (Entry<?, ?> entry : entries) loading.add(fetch(entry, player));
+            for (Entry<?, ?> entry : entries) loading.add(fetch(entry, e.getPlayer()));
             try {
                 CompletableFuture.allOf(loading.toArray(CompletableFuture[]::new))
                         .get(LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -130,21 +130,26 @@ public final class PlayerPrefs {
 
     // a key whose class loads after a login would read null for that player, and its owner falls back to defaults
     private static void catchUp(Entry<?, ?> entry) {
-        for (Player online : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+        var connections = MinecraftServer.getConnectionManager();
+        List<Player> connected = new ArrayList<>(connections.getOnlinePlayers());
+        connected.addAll(connections.getConfigPlayers());
+        for (Player online : connected) {
             try {
-                fetch(entry, online.getUuid()).get(LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                fetch(entry, online).get(LOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (Exception failed) {
                 LOGGER.error("{} did not load for {}", entry.key.id(), online.getUsername(), failed);
             }
         }
     }
 
-    private static <S, T> CompletableFuture<?> fetch(Entry<S, T> entry, UUID player) {
-        return vault.get().get(player, entry.key)
+    private static <S, T> CompletableFuture<?> fetch(Entry<S, T> entry, Player player) {
+        return vault.get().get(player.getUuid(), entry.key)
                 .thenAccept(stored -> {
-                    // a read landing after the timeout kick would otherwise refill the cache the kick cleared
-                    if (MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player) == null) return;
-                    entry.cache.put(player, entry.decode.apply(stored));
+                    // a read landing after the timeout kick would otherwise refill the cache the kick cleared. The
+                    // connection asks, not the online list: that holds only players past configuration, and the
+                    // login fetch runs during it
+                    if (!player.isOnline()) return;
+                    entry.cache.put(player.getUuid(), entry.decode.apply(stored));
                 });
     }
 }
