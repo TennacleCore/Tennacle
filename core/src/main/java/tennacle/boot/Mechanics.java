@@ -75,6 +75,16 @@ public final class Mechanics {
     }
 
     /** 1.8 mechanics + the full compat/fixes layer over shards: the two bridges are the whole integration. */
+    /**
+     * The clicks a block answers instead of taking a placement, unless sneaking (vanilla, both eras): beds, containers,
+     * and the wooden doors, trapdoors and fence gates a hand opens. The shard routing resolves each by key.
+     */
+    public static void blockUses() {
+        var vanilla = org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE;
+        org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations.register(vanilla.getBEDS(), vanilla.getCONTAINERS(),
+                vanilla.getWOODEN_DOORS(), vanilla.getTRAPDOOR(), vanilla.getFENCE_GATE());
+    }
+
     public static void install() {
         polyp = Polyp.getInstance();
         polyp.viaConnectionDetails = true; // the Via on the Velocity proxies reports each client's protocol
@@ -85,10 +95,7 @@ public final class Mechanics {
         // vanilla placement rules (stairs, slabs, fences, doors, ...): registered on the BlockManager, so
         // both plain instances and shard-routed placements resolve them
         org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations.registerDefault();
-        // a bed or container click is a use unless sneaking (vanilla, both eras); the shard routing resolves it by key
-        org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations.register(
-                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getBEDS(),
-                org.everbuild.blocksandstuff.blocks.group.VanillaBlockBehaviour.INSTANCE.getCONTAINERS());
+        blockUses();
         BlocksSystem.install(polyp); // after the rules above: the chest slot wraps the one registered there
         containers = ContainerSystem.install(polyp); // the opening itself: contents on the world, spilled on break
         AttackSystem.install(polyp);
