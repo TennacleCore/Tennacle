@@ -143,6 +143,31 @@ class SpongeTest extends HeadlessServerTest {
         });
     }
 
+    /** The user, 2026-10-18: water the sponge kept out stood still after it went, its source never flowing again. */
+    @Test
+    void waterReturnsWhenTheSpongeGoes() {
+        round("SpongeR", (game, fa, fb) -> {
+            Mechanics.fluids.place(game.shard(), new BlockVec(6, 65, 0), Block.WATER); // two past the cube's edge, x 4
+            ticks(game, 20);
+            BlockVec inside = new BlockVec(3, 65, 0);
+            assertTrue(game.shard().getBlock(inside).compare(Block.WATER), "it ran into the cube");
+            fa.player.teleport(new Pos(0.5, 66, -3.5, 0, 0)).join();
+            fa.player.setItemInMainHand(ItemStack.of(Material.SPONGE, 4));
+            BlockVec p = new BlockVec(0, 66, 0);
+            var event = new PlayerBlockPlaceEvent(fa.player, game.instance(), Block.SPONGE, BlockFace.TOP, p, new Pos(0.5, 1, 0.5), PlayerHand.MAIN);
+            EventDispatcher.call(event);
+            assertFalse(event.isCancelled(), "the sponge lands: " + chat(fa));
+            game.shard().setBlock(p, Block.SPONGE);
+            ticks(game, 30);
+            assertEquals(Block.AIR, game.shard().getBlock(inside), "drunk");
+            assertTrue(game.shard().getBlock(new BlockVec(6, 65, 0)).compare(Block.WATER), "the source outlives it");
+            ticks(game, 10);
+            assertEquals(Block.AIR, game.shard().getBlock(p), "the sponge is gone");
+            ticks(game, 20);
+            assertTrue(game.shard().getBlock(inside).compare(Block.WATER), "the source runs in again: " + game.shard().getBlock(inside));
+        });
+    }
+
     /** A game on the server clock has no tick of its own: the instance's pass carries its water (the user's no-flow). */
     @Test
     void waterFlowsOnTheServerClock() {

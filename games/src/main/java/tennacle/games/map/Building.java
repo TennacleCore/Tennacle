@@ -22,6 +22,7 @@ import net.minestom.server.instance.block.Block;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tennacle.commands.RulesCompletions;
+import tennacle.boot.Mechanics;
 import tennacle.games.Match;
 
 import java.util.List;
@@ -198,7 +199,8 @@ public final class Building {
     // cells whose break comes up empty-handed, by the tick of the break: Polyp drops at that tick's end
     private final it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap bare = new it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap();
     private long bareAge = -1;
-    private final List<Predicate<Point>> stills = new java.util.ArrayList<>();
+    // each still area with the fluids it turned away, woken when it lifts
+    private final java.util.Map<Predicate<Point>, Set<net.minestom.server.coordinate.BlockVec>> stills = new java.util.LinkedHashMap<>();
     private final List<Predicate<Point>> fixed = new java.util.ArrayList<>();
     private final Game game;
     private final Space space;
@@ -276,7 +278,7 @@ public final class Building {
             if (building.bare.get(key(e.position())) == e.world().worldAge()) e.setCancelled(true);
         });
         game.onWorld(FluidSpreadEvent.class, FluidSpreadEvent::world, e -> {
-            if (building.stilled(e.to())) e.setCancelled(true);
+            if (building.stilled(e.to(), e.from())) e.setCancelled(true);
         });
         game.on(ItemDropEvent.class, e -> {
             Player player = e.getPlayer();
@@ -319,10 +321,12 @@ public final class Building {
     }
 
     // a cell no fluid may run into: a reserved one under the rule, or one a module holds
-    private boolean stilled(Point pos) {
+    private boolean stilled(Point pos, net.minestom.server.coordinate.BlockVec from) {
         if (!game.rules().resolve(Scope.GAME, FLOW_RESERVED) && reservedFromFluids(pos)) return true;
-        for (Predicate<Point> still : stills) {
-            if (still.test(pos)) return true;
+        for (var still : stills.entrySet()) {
+            if (!still.getKey().test(pos)) continue;
+            still.getValue().add(from);
+            return true;
         }
         return false;
     }
@@ -337,8 +341,13 @@ public final class Building {
 
     /** Keeps every fluid out of {@code area} until the returned runnable is called (a sponge's cube). */
     public @NotNull Runnable still(@NotNull Predicate<Point> area) {
-        stills.add(area);
-        return () -> stills.remove(area);
+        stills.put(area, new java.util.HashSet<>());
+        return () -> {
+            Set<net.minestom.server.coordinate.BlockVec> refused = stills.remove(area);
+            // a refused fluid sleeps until a neighbor changes, and lifting the area changes no block
+            if (refused == null || Mechanics.fluids == null) return;
+            for (var from : refused) Mechanics.fluids.placed(game.shard(), from);
+        };
     }
 
     /** Keeps the blocks in {@code area} from every pick until the returned release runs. */
