@@ -21,6 +21,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
+import tennacle.Cooldown;
 import tennacle.Msg;
 import tennacle.Press;
 import tennacle.games.KitLayouts;
@@ -42,8 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class Hotbar {
 
     private static final Tag<String> ITEM = Tag.String("tennacle:lobby-item");
-    private static final Tag<Long> TOGGLED = Tag.Transient("tennacle:players-toggled");
-    private static final long TOGGLE_GAP_MS = 1000;
+    private static final Cooldown TOGGLE = new Cooldown("players-toggled", 1000);
     private static final AtomicBoolean INSTALLED = new AtomicBoolean();
     static final int GAMES = 0, MENU = 4, PLAYERS = 6, SETTINGS = 7, LEAVE = 8;
 
@@ -119,13 +119,10 @@ public final class Hotbar {
     }
 
     private static void togglePlayers(Player player) {
-        long now = System.currentTimeMillis();
-        Long last = player.getTag(TOGGLED);
-        if (last != null && now - last < TOGGLE_GAP_MS) {
+        if (!TOGGLE.pass(player)) {
             Msg.fail(player, "You must wait a second between uses!");
             return;
         }
-        player.setTag(TOGGLED, now);
         Settings.playersShown(player, !Settings.playersShown(player));
         player.getInventory().setItemStack(PLAYERS, players(player));
         sight(player);

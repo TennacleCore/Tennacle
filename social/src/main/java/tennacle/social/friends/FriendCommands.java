@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tennacle.Confirm;
+import tennacle.Cooldown;
 import tennacle.Msg;
 import tennacle.Seen;
 import tennacle.commands.AppCommand;
@@ -57,6 +58,8 @@ public final class FriendCommands {
             {"remove", "<player>", "Remove a player from your friends"},
             {"removeall", "", "Remove all your friends (excluding best friends)"},
             {"requests", "<page>", "View friend requests"}};
+
+    private static final Cooldown NOTICES_GAP = new Cooldown("friend-notices", 3000);
 
     private static volatile @Nullable BiConsumer<Player, Player> view;
 
@@ -346,6 +349,10 @@ public final class FriendCommands {
 
     // captured: all, then best friends only, then off, then all again
     private static void notifications(Player me) {
+        if (!NOTICES_GAP.pass(me)) { // captured: about three seconds between toggles
+            Msg.fail(me, "Please wait before doing that again!");
+            return;
+        }
         Friends.Notices next = switch (Friends.notices(me)) {
             case ALL -> Friends.Notices.BEST;
             case BEST -> Friends.Notices.OFF;

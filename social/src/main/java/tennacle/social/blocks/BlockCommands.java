@@ -1,11 +1,6 @@
 package tennacle.social.blocks;
 
 import io.github.term4.polyp.platform.player.PlayerNames;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
 import org.slf4j.Logger;
@@ -17,12 +12,15 @@ import tennacle.commands.Commands;
 import tennacle.social.friends.Friends;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static tennacle.social.Lines.good;
 import static tennacle.social.Lines.prose;
+import static tennacle.social.Lines.value;
 import static tennacle.social.Lines.who;
 
 
@@ -30,7 +28,7 @@ import static tennacle.social.Lines.who;
 final class BlockCommands {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BlockCommands.class);
-    private static final int ROWS = 8;
+    private static final int ROWS = 10;
 
     private BlockCommands() {}
 
@@ -116,14 +114,14 @@ final class BlockCommands {
                 Msg.fail(me, "You haven't blocked anyone.");
                 return;
             }
-            int pages = (list.size() + ROWS - 1) / ROWS;
+            List<Blocks.Blocked> sorted = list.stream()
+                    .sorted(Comparator.comparing(blocked -> blocked.name().toLowerCase(Locale.ROOT))).toList();
+            int pages = (sorted.size() + ROWS - 1) / ROWS;
             int at = Math.clamp(page, 1, pages);
-            me.sendMessage(prose("--- Blocked Players (Page " + at + " of " + pages + ") ---"));
-            for (Blocks.Blocked blocked : list.subList((at - 1) * ROWS, Math.min(list.size(), at * ROWS))) {
-                me.sendMessage(who(blocked.name()).append(Component.text("  "))
-                        .append(Component.text("[UNBLOCK]", NamedTextColor.GREEN).decorate(TextDecoration.BOLD)
-                                .clickEvent(ClickEvent.runCommand("/block remove " + blocked.name()))
-                                .hoverEvent(HoverEvent.showText(prose("Click to unblock " + blocked.name())))));
+            // captured: a numbered list, ten to a page, the numbers running on across pages
+            me.sendMessage(prose("------ Blocked Players (Page " + at + " of " + pages + ") ------"));
+            for (int i = (at - 1) * ROWS; i < Math.min(sorted.size(), at * ROWS); i++) {
+                me.sendMessage(value((i + 1) + ". ").append(who(sorted.get(i).name())));
             }
         }));
     }

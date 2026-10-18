@@ -154,8 +154,8 @@ class FriendsTest extends HeadlessServerTest {
             Friends.announce(b.player, "joined.");
             assertTrue(said(plain(a), "Friend » FrG joined."));
 
-            assertTrue(said(chat(a, "f notifications"), "Disabled friend join/leave notifications!"));
-            assertTrue(said(chat(a, "f notifications"), "Enabled friend join/leave notifications!"));
+            assertTrue(said(chat(a, "f notifications"), "Please wait before doing that again!"), "three seconds between toggles");
+            assertEquals(Friends.Notices.BEST, Friends.notices(a.player));
         } finally {
             a.player.remove();
             b.player.remove();
