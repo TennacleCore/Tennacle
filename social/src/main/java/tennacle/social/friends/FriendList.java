@@ -5,7 +5,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -20,9 +19,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import static tennacle.social.Lines.red;
+import static tennacle.social.Lines.accent;
+import static tennacle.social.Lines.bad;
+import static tennacle.social.Lines.prose;
 import static tennacle.social.Lines.rule;
-import static tennacle.social.Lines.yellow;
+import static tennacle.social.Lines.value;
+import static tennacle.social.Lines.who;
+
 
 /** The paged list as one chat message, Hypixel's shape: a centered header, eight rows, a short page padded out. */
 final class FriendList {
@@ -68,32 +71,32 @@ final class FriendList {
     private static Component header(String title, int page, int pages) {
         TextComponent.Builder line = Component.text();
         if (page > 1) line.append(arrow("<<", page - 1)).append(Component.text(" "));
-        line.append(Component.text(title + " (Page " + page + " of " + pages + ") ", NamedTextColor.GOLD));
+        line.append(value(title + " (Page " + page + " of " + pages + ") "));
         if (page < pages) line.append(arrow(">>", page + 1));
         return ChatWidth.center(line.build());
     }
 
     private static Component arrow(String text, int page) {
         String list = "/friend list " + page;
-        return Component.text(text, NamedTextColor.YELLOW, TextDecoration.BOLD)
+        return accent(text).decorate(TextDecoration.BOLD)
                 .clickEvent(ClickEvent.runCommand(list))
-                .hoverEvent(HoverEvent.showText(yellow("Click to view page " + page)));
+                .hoverEvent(HoverEvent.showText(prose("Click to view page " + page)));
     }
 
     private static Component row(Row row, boolean viewable, long now) {
-        Component name = Component.text(row.name() + " ", NamedTextColor.GRAY)
+        Component name = who(row.name() + " ")
                 .decoration(TextDecoration.BOLD, row.friend().best());
-        Component where = row.online() != null ? yellow(Whereabouts.of(row.online())) : red("is currently offline");
+        Component where = row.online() != null ? prose(Whereabouts.of(row.online())) : bad("is currently offline");
         TextComponent.Builder hover = Component.text();
         if (row.online() == null && row.lastSeen() > 0) {
-            hover.append(Component.text("Last seen " + span(now - row.lastSeen()) + " ago\n", NamedTextColor.GRAY));
+            hover.append(prose("Last seen " + span(now - row.lastSeen()) + " ago\n"));
         }
-        hover.append(Component.text("Friends for " + span(now - row.friend().since()), NamedTextColor.GRAY));
+        hover.append(prose("Friends for " + span(now - row.friend().since())));
         Component line = Component.text().append(name).append(where).build();
         boolean clickable = viewable && row.online() != null;
         if (clickable) {
-            hover.append(Component.text("\n\n")).append(yellow("Click here to view "))
-                    .append(Component.text(row.name(), NamedTextColor.GRAY)).append(yellow("'s profile"));
+            hover.append(Component.text("\n\n")).append(prose("Click here to view "))
+                    .append(who(row.name())).append(prose("'s profile"));
             line = line.clickEvent(ClickEvent.runCommand("/friend view " + row.name()));
         }
         return line.hoverEvent(HoverEvent.showText(hover.build()));

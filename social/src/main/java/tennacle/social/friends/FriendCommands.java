@@ -28,12 +28,15 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
+import static tennacle.social.Lines.accent;
+import static tennacle.social.Lines.bad;
+import static tennacle.social.Lines.dim;
 import static tennacle.social.Lines.frame;
-import static tennacle.social.Lines.green;
-import static tennacle.social.Lines.red;
+import static tennacle.social.Lines.good;
+import static tennacle.social.Lines.prose;
 import static tennacle.social.Lines.rule;
 import static tennacle.social.Lines.who;
-import static tennacle.social.Lines.yellow;
+
 
 /** {@code /friend} ({@code /f}, {@code /friends}) and {@code /fl}, worded as Hypixel's are. */
 public final class FriendCommands {
@@ -171,16 +174,16 @@ public final class FriendCommands {
                 }
                 return Requests.send(me.getUuid(), me.getUsername(), them, online != null).thenAccept(filed -> {
                     if (!filed) {
-                        frame(me, red("Please wait before sending this person another request!"));
+                        frame(me, bad("Please wait before sending this person another request!"));
                         return;
                     }
                     if (online == null) { // after Hypixel's offline guild invite
-                        frame(me, yellow("You sent an offline friend request to " + theirName
+                        frame(me, prose("You sent an offline friend request to " + theirName
                                 + "! They will have 5 minutes to accept once they come online!"));
                         return;
                     }
-                    frame(me, yellow("You sent a friend request to " + theirName + "! They have 5 minutes to accept it!"));
-                    frame(online, yellow("Friend request from ").append(who(me.getUsername())), buttons(me.getUsername()));
+                    frame(me, prose("You sent a friend request to " + theirName + "! They have 5 minutes to accept it!"));
+                    frame(online, prose("Friend request from ").append(who(me.getUsername())), buttons(me.getUsername()));
                 });
             });
         }));
@@ -197,9 +200,9 @@ public final class FriendCommands {
     // captured: the three buttons under an incoming request
     private static Component buttons(String from) {
         return button("[ACCEPT]", NamedTextColor.GREEN, "/friend accept " + from, "Click to accept the friend request")
-                .append(Component.text(" - ", NamedTextColor.DARK_GRAY))
+                .append(dim(" - "))
                 .append(button("[DENY]", NamedTextColor.RED, "/friend deny " + from, "Click to deny the friend request"))
-                .append(Component.text(" - ", NamedTextColor.DARK_GRAY))
+                .append(dim(" - "))
                 .append(button("[BLOCK]", NamedTextColor.GRAY, "/block add " + from,
                         "Click to block all future friend requests and chat messages from this player"));
     }
@@ -207,7 +210,7 @@ public final class FriendCommands {
     private static Component button(String text, NamedTextColor color, String command, String hover) {
         return Component.text(text, color, TextDecoration.BOLD)
                 .clickEvent(ClickEvent.runCommand(command))
-                .hoverEvent(HoverEvent.showText(Component.text(hover, NamedTextColor.AQUA)));
+                .hoverEvent(HoverEvent.showText(prose(hover)));
     }
 
     private static void accept(Player me, String name) {
@@ -239,9 +242,9 @@ public final class FriendCommands {
                 }
                 return Friends.befriend(me.getUuid(), me.getUsername(), target.id(), target.name(), Requests.clock.getAsLong())
                         .thenRun(() -> {
-                            frame(me, green("You are now friends with ").append(who(target.name())));
+                            frame(me, good("You are now friends with ").append(who(target.name())));
                             Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(target.id());
-                            if (online != null) frame(online, green("You are now friends with ").append(who(me.getUsername())));
+                            if (online != null) frame(online, good("You are now friends with ").append(who(me.getUsername())));
                         });
             });
         });
@@ -255,13 +258,13 @@ public final class FriendCommands {
             }
             return Requests.take(me.getUuid(), target.id()).thenAccept(request -> {
                 if (request == null) notInvited(me, target.name());
-                else frame(me, yellow("Declined " + target.name() + "'s friend request!"));
+                else frame(me, prose("Declined " + target.name() + "'s friend request!"));
             });
         }));
     }
 
     private static void notInvited(Player me, String name) {
-        me.sendMessage(red("That person hasn't invited you to be friends! Try ").append(yellow("/friend " + name)));
+        me.sendMessage(bad("That person hasn't invited you to be friends! Try ").append(accent("/friend " + name)));
     }
 
     private static void remove(Player me, String name) {
@@ -271,9 +274,9 @@ public final class FriendCommands {
                 return done();
             }
             return Friends.unfriend(me.getUuid(), friend.id()).thenRun(() -> {
-                frame(me, yellow("You removed ").append(who(friend.name())).append(yellow(" from your friends list!")));
+                frame(me, prose("You removed ").append(who(friend.name())).append(prose(" from your friends list!")));
                 Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(friend.id());
-                if (online != null) frame(online, who(me.getUsername()).append(yellow(" removed you from their friends list!")));
+                if (online != null) frame(online, who(me.getUsername()).append(prose(" removed you from their friends list!")));
             });
         }));
     }
@@ -286,11 +289,11 @@ public final class FriendCommands {
                 return done();
             }
             if (!Confirm.again(me, "friend removeall")) {
-                frame(me, yellow("This removes " + going.size() + " friends, all but your best friends. Run the command again to confirm."));
+                frame(me, prose("This removes " + going.size() + " friends, all but your best friends. Run the command again to confirm."));
                 return done();
             }
             CompletableFuture<?>[] all = going.stream().map(f -> Friends.unfriend(me.getUuid(), f.id())).toArray(CompletableFuture[]::new);
-            return CompletableFuture.allOf(all).thenRun(() -> frame(me, yellow("You removed " + going.size() + " friends.")));
+            return CompletableFuture.allOf(all).thenRun(() -> frame(me, prose("You removed " + going.size() + " friends.")));
         }));
     }
 
@@ -302,7 +305,7 @@ public final class FriendCommands {
             }
             boolean best = !friend.best();
             return Friends.best(me.getUuid(), friend.id(), best).thenRun(() -> frame(me, who(friend.name())
-                    .append(best ? green(" is now a best friend!") : yellow(" is no longer a best friend!"))));
+                    .append(best ? good(" is now a best friend!") : prose(" is no longer a best friend!"))));
         }));
     }
 
@@ -311,7 +314,7 @@ public final class FriendCommands {
         int page = bestOnly || arg == null ? 1 : parsePage(arg);
         guard(me, Friends.of(me.getUuid()).thenCompose(list -> {
             if (list.isEmpty()) {
-                me.sendMessage(yellow("You don't have any friends yet! Add some with ").append(Component.text("/friend add <player>", NamedTextColor.AQUA)));
+                me.sendMessage(prose("You don't have any friends yet! Add some with ").append(accent("/friend add <player>")));
                 return done();
             }
             return Seen.directory().byIds(list.stream().map(Friends.Friend::id).toList()).thenAccept(seen ->
@@ -329,9 +332,9 @@ public final class FriendCommands {
             }
             int pages = (list.size() + FriendList.ROWS - 1) / FriendList.ROWS;
             int at = Math.clamp(page, 1, pages);
-            me.sendMessage(yellow("--- Friend Requests (Page " + at + " of " + pages + ") ---"));
+            me.sendMessage(prose("--- Friend Requests (Page " + at + " of " + pages + ") ---"));
             for (Requests.Request request : list.subList((at - 1) * FriendList.ROWS, Math.min(list.size(), at * FriendList.ROWS))) {
-                me.sendMessage(yellow("From ").append(who(request.name())).append(Component.text("  "))
+                me.sendMessage(prose("From ").append(who(request.name())).append(Component.text("  "))
                         .append(button("[ACCEPT]", NamedTextColor.GREEN, "/friend accept " + request.name(), "Click to accept the friend request"))
                         .append(Component.text(" "))
                         .append(button("[DENY]", NamedTextColor.RED, "/friend deny " + request.name(), "Click to deny the friend request"))
@@ -349,7 +352,7 @@ public final class FriendCommands {
             case OFF -> Friends.Notices.ALL;
         };
         Friends.NOTICES.set(me, next);
-        frame(me, yellow(switch (next) {
+        frame(me, prose(switch (next) {
             case BEST -> "Enabled best friend join/leave notifications!";
             case OFF -> "Disabled friend join/leave notifications!";
             case ALL -> "Enabled friend join/leave notifications!";
@@ -369,14 +372,14 @@ public final class FriendCommands {
     // captured: one framed message, each command suggesting itself on click
     private static void help(Player me) {
         TextComponent.Builder out = Component.text().append(rule()).append(Component.newline())
-                .append(green("Friend Commands:"));
+                .append(good("Friend Commands:"));
         for (String[] row : HELP) {
             String form = "/friend " + row[0] + (row[1].isEmpty() ? "" : " " + row[1]);
             out.append(Component.newline()).append(Component.text()
-                    .append(yellow(form)).append(Component.text(" - ", NamedTextColor.GRAY))
-                    .append(Component.text(row[2], NamedTextColor.AQUA))
+                    .append(accent(form)).append(dim(" - "))
+                    .append(prose(row[2]))
                     .clickEvent(ClickEvent.suggestCommand(form))
-                    .hoverEvent(HoverEvent.showText(Component.text("Click to put the command in chat.", NamedTextColor.GRAY))));
+                    .hoverEvent(HoverEvent.showText(prose("Click to put the command in chat."))));
         }
         me.sendMessage(out.append(Component.newline()).append(rule()).build());
     }

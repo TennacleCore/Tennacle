@@ -143,7 +143,7 @@ class FriendsTest extends HeadlessServerTest {
             befriend(a, b);
             a.sent.clear();
             Friends.announce(b.player, "left.");
-            assertTrue(said(plain(a), "Friend > FrG left."), plain(a).toString());
+            assertTrue(said(plain(a), "Friend » FrG left."), plain(a).toString());
 
             assertTrue(said(chat(a, "f notifications"), "Enabled best friend join/leave notifications!"));
             a.sent.clear();
@@ -152,7 +152,7 @@ class FriendsTest extends HeadlessServerTest {
             assertTrue(said(chat(a, "f best FrG"), "FrG is now a best friend!"));
             a.sent.clear();
             Friends.announce(b.player, "joined.");
-            assertTrue(said(plain(a), "Friend > FrG joined."));
+            assertTrue(said(plain(a), "Friend » FrG joined."));
 
             assertTrue(said(chat(a, "f notifications"), "Disabled friend join/leave notifications!"));
             assertTrue(said(chat(a, "f notifications"), "Enabled friend join/leave notifications!"));

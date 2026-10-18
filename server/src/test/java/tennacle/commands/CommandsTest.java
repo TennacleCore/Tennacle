@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import tennacle.server.ServerWiring;
 
@@ -81,15 +82,14 @@ class CommandsTest extends HeadlessServerTest {
     }
 
     @Test
-    void theWelcomeListsFeatured() {
+    void theWelcomePointsToHelp() {
         FakePlayer a = FakePlayer.connect(instance, new Pos(706.5, 65, 706.5), "HelpD");
         try {
             a.sent.clear();
             Welcome.send(a.player);
             List<String> sent = a.sent(SystemChatPacket.class).stream()
                     .<String>map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
-            assertTrue(sent.stream().anyMatch(l -> l.contains("Tennacle") && l.contains("/duel") && l.contains("/help")),
-                    "the name, the featured commands, the way to the rest: " + sent);
+            assertEquals(List.of("Welcome to Tennacle! Type /help to see what you can do."), sent);
         } finally {
             a.player.remove();
         }

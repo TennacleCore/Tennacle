@@ -1,20 +1,17 @@
 package tennacle.social;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import tennacle.Msg;
 
-/** The social lines' shared grammar, Hypixel's: a blue rule above and below, names gray as a player with no rank. */
+/** The social lines' shared look: Hypixel's shapes (a framed notice, a paged list) in the house theme's roles. */
 public final class Lines {
-
-    public static final int RULE_WIDTH = 53;
 
     private Lines() {}
 
     public static @NotNull Component rule() {
-        return Msg.THEME.rule(RULE_WIDTH, NamedTextColor.BLUE);
+        return Msg.THEME.rule();
     }
 
     public static void frame(@NotNull Player to, @NotNull Component... lines) {
@@ -23,19 +20,37 @@ public final class Lines {
         to.sendMessage(rule());
     }
 
+    /** {@code tag » parts}, the house line for a notice with a subject. */
+    public static @NotNull Component tagged(@NotNull String tag, @NotNull Object... parts) {
+        return Msg.THEME.line(tag, Msg.THEME.mutedColor(), parts);
+    }
+
     public static @NotNull Component who(@NotNull String name) {
-        return Component.text(name, NamedTextColor.GRAY);
+        return Component.text(name, Msg.THEME.valueColor());
     }
 
-    public static @NotNull Component yellow(@NotNull String text) {
-        return Component.text(text, NamedTextColor.YELLOW);
+    public static @NotNull Component value(@NotNull Object value) {
+        return Component.text(String.valueOf(value), Msg.THEME.valueColor());
     }
 
-    public static @NotNull Component green(@NotNull String text) {
-        return Component.text(text, NamedTextColor.GREEN);
+    public static @NotNull Component prose(@NotNull String text) {
+        return Component.text(text, Msg.THEME.mutedColor());
     }
 
-    public static @NotNull Component red(@NotNull String text) {
-        return Component.text(text, NamedTextColor.RED);
+    public static @NotNull Component good(@NotNull String text) {
+        return Component.text(text, Msg.THEME.goodColor());
+    }
+
+    public static @NotNull Component bad(@NotNull String text) {
+        return Component.text(text, Msg.THEME.errorColor());
+    }
+
+    /** A command or a page arrow: something to click. */
+    public static @NotNull Component accent(@NotNull String text) {
+        return Component.text(text, Msg.THEME.accentColor());
+    }
+
+    public static @NotNull Component dim(@NotNull String text) {
+        return Component.text(text, Msg.THEME.dimColor());
     }
 }

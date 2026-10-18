@@ -3,7 +3,6 @@ package tennacle.social.messages;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Player;
@@ -25,8 +24,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 
-import static tennacle.social.Lines.green;
+import static tennacle.social.Lines.accent;
+import static tennacle.social.Lines.good;
+import static tennacle.social.Lines.prose;
 import static tennacle.social.Lines.who;
+
 
 /**
  * Private messages: {@code /msg} ({@code /w}, {@code /tell}), {@code /r}, and the conversation either opens with no
@@ -144,9 +146,9 @@ public final class Messages {
             return;
         }
         conversations.put(me.getUuid(), new Conversation(to.getUuid(), clock.getAsLong() + WINDOW_MILLIS));
-        me.sendMessage(green("Opened a chat conversation with ").append(who(to.getUsername()))
-                .append(green(" for the next 5 minutes. Use ")).append(Component.text("/chat a", NamedTextColor.AQUA))
-                .append(green(" to leave")));
+        me.sendMessage(good("Opened a chat conversation with ").append(who(to.getUsername()))
+                .append(good(" for the next 5 minutes. Use ")).append(accent("/chat a"))
+                .append(good(" to leave")));
     }
 
     private static @Nullable String refusal(Player me, Player to) {
@@ -173,9 +175,9 @@ public final class Messages {
 
     // captured: "To Name: text", the name suggesting a reply on click
     private static Component line(String direction, String name, String text) {
-        return Component.text(direction, NamedTextColor.LIGHT_PURPLE)
+        return accent(direction)
                 .append(who(name).clickEvent(ClickEvent.suggestCommand("/msg " + name + " ")))
-                .append(Component.text(": " + text, NamedTextColor.GRAY));
+                .append(prose(": " + text));
     }
 
     private static void forget(UUID player) {
