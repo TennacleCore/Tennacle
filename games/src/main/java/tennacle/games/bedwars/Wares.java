@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 
 import static tennacle.games.bedwars.Resources.EMERALD;
@@ -103,6 +104,9 @@ final class Wares {
 
     private static final Map<String, Ware> BY_ID = new LinkedHashMap<>();
     private static final Map<Material, String> ROLES = new HashMap<>();
+    /** A ware an item can be picked as: its material once the team color and skin are off, its shop icon to tell like ones apart. */
+    private record Pick(String id, Material plain, @Nullable ItemStack shown) {}
+    private static final Map<String, Pick> PICKS = new LinkedHashMap<>();
 
     static {
         goods(Tab.BLOCKS, "wool", "Wool", teamBlock(WOOL, 16), ItemStack.of(Material.WHITE_WOOL, 16), Price.of(4, IRON),
@@ -205,6 +209,41 @@ final class Wares {
         return ROLES.get(skinned != null ? skinned.plain() : item.material());
     }
 
+    /** The ware {@code item} is, for a hotbar order: what the shop sells it as, team color, skin and upgrades aside. */
+    static @Nullable String pickOf(@NotNull ItemStack item) {
+        Material plain = plainOf(item.material());
+        Pick first = null;
+        for (Pick pick : PICKS.values()) {
+            if (pick.plain() != plain) continue;
+            if (pick.shown() != null && Objects.equals(pick.shown().get(DataComponents.ENCHANTMENTS), item.get(DataComponents.ENCHANTMENTS))
+                    && Objects.equals(pick.shown().get(DataComponents.POTION_CONTENTS), item.get(DataComponents.POTION_CONTENTS))) {
+                return pick.id();
+            }
+            if (first == null) first = pick;
+        }
+        return first != null ? first.id() : null;
+    }
+
+    /** {@link #pickOf} as the kit's picks. */
+    static @NotNull List<String> picks(@NotNull ItemStack item) {
+        String id = pickOf(item);
+        return id != null ? List.of(HotbarOrders.WARE + id) : List.of();
+    }
+
+    /** Every ware a hotbar order can name, in shop order. */
+    static @NotNull List<Ware> pickable() {
+        return PICKS.keySet().stream().map(BY_ID::get).filter(Objects::nonNull).toList();
+    }
+
+    private static Material plainOf(Material material) {
+        String family = Tint.family(material.key().value());
+        if ("wool".equals(family)) return Material.WHITE_WOOL;
+        if ("terracotta".equals(family)) return Material.TERRACOTTA;
+        if ("stained_glass".equals(family)) return Material.GLASS;
+        Skins.Family skinned = Skins.familyOf(material);
+        return skinned != null ? skinned.plain() : material;
+    }
+
     /** A shop selling every ware; one a game. */
     static @NotNull Shop shop() {
         Shop shop = Shop.of();
@@ -241,6 +280,7 @@ final class Wares {
     private static void goods(Tab tab, String id, String name, BiFunction<Game, Player, ItemStack> stack, ItemStack icon,
                               Price price, String role, String... description) {
         goods(tab, id, name, stack, (g, p) -> icon, icon.material(), price, role, description);
+        PICKS.put(id, new Pick(id, plainOf(icon.material()), icon));
     }
 
     // the icon each viewer sees, and the material the role is filed under
@@ -248,6 +288,7 @@ final class Wares {
                               BiFunction<Game, Player, ItemStack> icon, Material plain, Price price, String role,
                               String... description) {
         ROLES.putIfAbsent(plain, role);
+        PICKS.putIfAbsent(id, new Pick(id, plainOf(plain), null));
         add(new Ware(Goods.of(id, price, role, stack), tab, List.of(name), List.of(icon), Items.gray(description), false));
     }
 
@@ -268,6 +309,7 @@ final class Wares {
         ItemStack stack = ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS, new PotionContents(type, null,
                 List.of(new CustomPotionEffect(effect, amplifier, ticks, false, particles, true))));
         ROLES.putIfAbsent(Material.POTION, "potions");
+        PICKS.put(id, new Pick(id, Material.POTION, stack));
         add(new Ware(Goods.of(id, price, "potions", (g, p) -> stack), Tab.POTIONS, List.of(name), Ware.fixed(List.of(stack)),
                 List.of(Component.text(line, NamedTextColor.BLUE)), false));
     }

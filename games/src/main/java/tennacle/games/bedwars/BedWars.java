@@ -186,6 +186,8 @@ public final class BedWars {
             .role("potions", ItemStack.of(Material.BREWING_STAND))
             .role("utility", ItemStack.of(Material.TNT))
             .layouts((g, p) -> KitLayouts.of(p, "bedwars"))
+            .orders(HotbarOrders::orders)
+            .picks(Wares::picks)
             .skin(Skins.skin())
             .stamp(Kit.UNBREAKABLE)
             .stamp(Upgrades::sharpened, Upgrades.SHARPNESS)
@@ -396,6 +398,7 @@ public final class BedWars {
                         FriendlyFire::new,
                         () -> new Beds(BED, BEDS).warning(Lines::bedsWarning), // five minutes before the clock, wherever it stands
                         () -> new Lives(COUNTERS).onDeath(Gear::died),
+                        HotbarOrders.Switch::new, // the after-bed hotbar takes over at the fall
                         Chests::new,
                         Compass::new,
                         Spoils::new,

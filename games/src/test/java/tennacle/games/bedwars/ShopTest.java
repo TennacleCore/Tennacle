@@ -144,6 +144,42 @@ class ShopTest extends HeadlessServerTest {
     }
 
     @Test
+    void anItemIsPickedAsItsWare() {
+        ItemStack sharpened = ItemStack.of(Material.STONE_SWORD).with(DataComponents.ENCHANTMENTS,
+                new net.minestom.server.item.component.EnchantmentList(java.util.Map.of(net.minestom.server.item.enchant.Enchantment.SHARPNESS, 1)));
+        assertEquals("stone-sword", Wares.pickOf(sharpened), "an upgrade leaves it the ware it was");
+        assertEquals("wool", Wares.pickOf(ItemStack.of(Material.RED_WOOL, 16)), "any team's wool");
+        assertEquals("bow", Wares.pickOf(ItemStack.of(Material.BOW)));
+        ItemStack power = ItemStack.of(Material.BOW).with(DataComponents.ENCHANTMENTS,
+                new net.minestom.server.item.component.EnchantmentList(java.util.Map.of(net.minestom.server.item.enchant.Enchantment.POWER, 1)));
+        assertEquals("power-bow", Wares.pickOf(power), "a like item told apart by its icon");
+        assertEquals("tnt", Wares.pickOf(ItemStack.of(Material.TNT)));
+    }
+
+    @Test
+    void hotbarOrdersRouteWhatIsBought() {
+        round("ShopH", (game, a) -> {
+            var kits = game.module(io.github.term4.grotto.modules.gear.Kits.class);
+            List<List<String>> main = new java.util.ArrayList<>(HotbarOrders.empty());
+            main.set(0, List.of("melee"));
+            main.set(3, List.of("ware:fireball", "utility"));
+            main.set(4, List.of("utility"));
+            List<List<String>> after = new java.util.ArrayList<>(HotbarOrders.empty());
+            after.set(8, List.of("ware:tnt"));
+            HotbarOrders.set(a, new HotbarOrders.Layouts(main, after));
+
+            assertTrue(kits.give(a, "utility", ItemStack.of(Material.TNT)));
+            assertTrue(kits.give(a, "utility", ItemStack.of(Material.FIRE_CHARGE)));
+            assertEquals(Material.TNT, a.getInventory().getItemStack(4).material(), "first in slot 5 as a utility item");
+            assertEquals(Material.FIRE_CHARGE, a.getInventory().getItemStack(3).material(), "first in slot 4 as itself");
+
+            game.state().set(Scope.team(Match.teamOf(game, a)), tennacle.games.beds.Beds.STANDS, false);
+            kits.rearrange(a);
+            assertEquals(Material.TNT, a.getInventory().getItemStack(8).material(), "the after-bed layout takes over");
+        });
+    }
+
+    @Test
     void aPickedUpSwordTakesTheWoodensSlot() {
         round("ShopF", (game, a) -> {
             a.getInventory().setItemStack(1, ItemStack.of(Material.IRON_INGOT, 5));
