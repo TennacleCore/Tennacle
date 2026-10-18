@@ -51,6 +51,7 @@ public final class TestWiring {
         Spectators.install();
         Rooms.install();
         tennacle.games.RulesCommands.register();
+        tennacle.games.MapCommand.register();
         TabStats.register();
         GameSounds.register();
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");
