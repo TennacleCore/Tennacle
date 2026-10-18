@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import tennacle.commands.AppCommand;
+import tennacle.access.Access;
 import tennacle.commands.Commands;
 import tennacle.commands.RulesCompletions;
 /**
@@ -34,6 +35,9 @@ import tennacle.commands.RulesCompletions;
  */
 public final class RulesCommands {
 
+    /** Changing a live game's rules. */
+    public static final String WRITE = "tennacle.dev.rules";
+
     private RulesCommands() {}
 
     public static void register() {
@@ -43,11 +47,9 @@ public final class RulesCommands {
                 .usage("/rules <@player|#team>", "that seat or side alone")
                 .usage("/rules paths [path]", "the mechanics tree a path can reach")
                 .featured();
-        if (Commands.devTools()) {
-            rules.usage("/rules <id|path> <value>", "set one for the game")
-                    .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
-                    .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through");
-        }
+        rules.usage("/rules <id|path> <value>", "set one for the game", WRITE)
+                .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only", WRITE)
+                .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through", WRITE);
         var key = ArgumentType.Word("key");
         var value = ArgumentType.StringArray("value");
         key.setSuggestionCallback(RulesCompletions.key());
@@ -123,8 +125,8 @@ public final class RulesCommands {
                 list(p, game, scope, id);
                 return;
             }
-            if (!Commands.devTools()) { // anyone in a game or watching it reaches here
-                Msg.fail(p, "Rules can only be changed with the dev tools on.");
+            if (!Access.allows(p, WRITE)) { // anyone in a game or watching it reaches here
+                Msg.fail(p, "You can't change a game's rules.");
                 return;
             }
             if (!words.isEmpty() && words.getFirst().equals("=")) words.removeFirst(); // the listing prints "id = value"

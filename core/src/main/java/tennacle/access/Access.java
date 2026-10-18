@@ -23,7 +23,7 @@ public final class Access {
 
     /** Where grants live and how a check is answered. */
     public interface Backend {
-        /** Answered from what was loaded at login, never a fetch: false for anyone it has not loaded. */
+        /** Answered from what was loaded at login, never a fetch; anyone not loaded holds what a player does. */
         boolean holds(@NotNull UUID player, @NotNull String node);
 
         @NotNull CompletableFuture<Grants> grants(@NotNull UUID player);

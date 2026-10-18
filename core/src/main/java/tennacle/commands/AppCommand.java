@@ -19,26 +19,43 @@ import java.util.List;
  */
 public final class AppCommand extends Command {
 
-    /** A player surface, or the dev toolset behind {@code tennacle.dev-commands}. */
+    /** A player surface ({@code tennacle.command.<name>}), or a dev tool ({@code tennacle.dev.<name>}). */
     public enum Audience { PLAYER, DEV }
 
-    /** One {@code /help} row: the form as typed, and what it does. */
-    public record Usage(@NotNull String form, @NotNull String what) {}
+    /** One {@code /help} row: the form as typed, and what it does; {@code node}, when set, is what reading it takes. */
+    public record Usage(@NotNull String form, @NotNull String what, @Nullable String node) {}
 
     private final Audience audience;
     private final String blurb;
     private final List<Usage> usages = new ArrayList<>();
+    private String node;
     private boolean featured;
 
     AppCommand(@NotNull Audience audience, @NotNull String blurb, @NotNull String name, @NotNull String... aliases) {
         super(name, aliases);
         this.audience = audience;
         this.blurb = blurb;
+        this.node = (audience == Audience.DEV ? "tennacle.dev." : "tennacle.command.") + name;
     }
 
     public @NotNull AppCommand usage(@NotNull String form, @NotNull String what) {
-        usages.add(new Usage(form, what));
+        return usage(form, what, null);
+    }
+
+    /** A form only some may use: listed for those who hold {@code node}. */
+    public @NotNull AppCommand usage(@NotNull String form, @NotNull String what, @Nullable String node) {
+        usages.add(new Usage(form, what, node));
         return this;
+    }
+
+    /** What seeing and running it takes; set before it registers. */
+    public @NotNull AppCommand node(@NotNull String node) {
+        this.node = node;
+        return this;
+    }
+
+    public @NotNull String node() {
+        return node;
     }
 
     /** Listed on the welcome screen. */
@@ -61,7 +78,7 @@ public final class AppCommand extends Command {
 
     /** The declared rows, or the bare command with its blurb when none were. */
     public @NotNull List<Usage> usages() {
-        return usages.isEmpty() ? List.of(new Usage("/" + getName(), blurb)) : List.copyOf(usages);
+        return usages.isEmpty() ? List.of(new Usage("/" + getName(), blurb, null)) : List.copyOf(usages);
     }
 
     public void usage(@NotNull CommandSender to) {

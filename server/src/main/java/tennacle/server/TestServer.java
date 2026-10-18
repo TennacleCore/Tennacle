@@ -190,11 +190,10 @@ public final class TestServer {
         boolean unauthenticated = Config.value("tennacle.velocity-secret") == null
                 && Config.value("tennacle.bungeeguard-tokens") == null;
         boolean devCommands = Config.flag("tennacle.dev-commands", loopback && unauthenticated);
-        Commands.devTools(devCommands); // before any module registers: a dev tool is registered only with them on
         Access.install();
         Access.everyone(devCommands ? Set.of("tennacle.dev.*") : Set.of()); // a dev build hands everyone the dev tools
         InstanceContainer world = LobbyModule.world(devCommands); // the test pads ride the dev flag
-        Commands.help(); // /help reads the registry every command below lands in
+        Commands.install(); // /help reads the registry every command below lands in
         // members build into their shard's overlay, never the map (the bridge already decorated the
         // placement listener - order-independent)
         MinecraftServer.getGlobalEventHandler().addChild(Shard.blockRouting());
@@ -227,13 +226,12 @@ public final class TestServer {
         PlayerPrefs.install();
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(MapPool.arenas(), shards, p -> p.setInstance(world, Playground.SPAWN));
-        if (devCommands) { // the edit verbs work on whatever world the builder stands in, the lobby included
-            Bloom.registerDefaultCommands();
-            Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
-            Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
-            Commands.describe(AppCommand.Audience.DEV, "give", "An item by material, for the editor.");
-            SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
-        }
+        // a builder's: the edit verbs work on whatever world the builder stands in, the lobby included
+        Commands.adopt("tennacle.build.", Bloom::registerDefaultCommands);
+        Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
+        Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
+        Commands.describe(AppCommand.Audience.DEV, "give", "An item by material, for the editor.");
+        SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
         // a builder walking into the editor leaves whatever they were in first - the compass, the ghost
         // body and the rest belong to that session, not to this one. Editor to editor is just a hop
         Bloom.onEntering(p -> {

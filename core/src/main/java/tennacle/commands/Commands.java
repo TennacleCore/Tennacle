@@ -1,13 +1,18 @@
 package tennacle.commands;
 
 import tennacle.Msg;
+import tennacle.access.Access;
 
 import io.github.term4.canvas.Canvas;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.CommandManager;
 import net.minestom.server.command.CommandSender;
+import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandExecutor;
 import net.minestom.server.command.builder.arguments.ArgumentType;
+import net.minestom.server.command.builder.condition.CommandCondition;
+import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -18,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The app's commands, each declared once with its blurb and usage rows: {@code /help}, the welcome screen and a
@@ -31,7 +37,6 @@ public final class Commands {
     private static final Map<String, AppCommand> registered = new LinkedHashMap<>();
     /** Listed, never dispatched here: a library registers these itself. */
     private static final Map<String, AppCommand> described = new LinkedHashMap<>();
-    private static volatile boolean devTools;
 
     private Commands() {}
 
@@ -43,28 +48,65 @@ public final class Commands {
         return new AppCommand(AppCommand.Audience.DEV, blurb, name, aliases);
     }
 
-    /** Whether the dev tools exist on this server ({@code tennacle.dev-commands}); set at boot, before any module installs. */
-    public static void devTools(boolean on) {
-        devTools = on;
-    }
-
-    public static boolean devTools() {
-        return devTools;
-    }
-
-    /** Registers with Minestom; a command without a default executor answers with its usage. A dev tool on a server without them is not registered at all. */
+    /**
+     * Registers with Minestom behind its node: a player without it never sees it, in the command list or on tab, and
+     * running it reads as an unknown command. A command without a default executor answers with its usage.
+     */
     public static void register(@NotNull AppCommand command) {
-        if (command.audience() == AppCommand.Audience.DEV && !devTools) return;
         if (command.getDefaultExecutor() == null) command.setDefaultExecutor((sender, ctx) -> usage(sender, command));
+        behind(command, command.node());
         MinecraftServer.getCommandManager().register(command);
         registered.put(command.getName(), command);
+    }
+
+    /** Puts what {@code registers} adds to Minestom (a library's own commands) behind {@code prefix + name}. */
+    public static void adopt(@NotNull String prefix, @NotNull Runnable registers) {
+        CommandManager manager = MinecraftServer.getCommandManager();
+        Set<Command> before = Set.copyOf(manager.getCommands());
+        registers.run();
+        for (Command command : List.copyOf(manager.getCommands())) {
+            if (before.contains(command)) continue;
+            behind(command, prefix + command.getName().replace("/", ""));
+            manager.unregister(command); // the graph captured the old condition when it was built
+            manager.register(command);
+        }
+    }
+
+    /** The registry's own wiring: {@code /help}, the unknown-command answer, and command lists that follow grants. */
+    public static void install() {
+        MinecraftServer.getCommandManager().setUnknownCommandCallback((sender, typed) -> unknown(sender));
+        Access.onChange(Player::refreshCommands);
+        help();
+    }
+
+    /** Whether {@code sender} sees {@code name}: a console sees everything. */
+    public static boolean visible(@NotNull CommandSender sender, @NotNull String name) {
+        Command command = MinecraftServer.getCommandManager().getCommand(name);
+        if (command == null) return false;
+        CommandCondition condition = command.getCondition();
+        return condition == null || condition.canUse(sender, null);
+    }
+
+    // the condition runs bare while the command list is built, and with what was typed when it runs
+    private static void behind(Command command, String node) {
+        CommandCondition existing = command.getCondition();
+        command.setCondition((sender, typed) -> {
+            if (existing != null && !existing.canUse(sender, typed)) return false;
+            if (!(sender instanceof Player player) || Access.allows(player, node)) return true;
+            if (typed != null) unknown(sender);
+            return false;
+        });
+    }
+
+    // a hidden command and one that doesn't exist answer alike
+    private static void unknown(CommandSender sender) {
+        Msg.fail(sender, "Unknown command. Type ", Msg.run("/help"), " for help.");
     }
 
     /** A library's command, so {@code /help} lists it. */
     public static @NotNull AppCommand describe(@NotNull AppCommand.Audience audience, @NotNull String name,
                                                @NotNull String blurb) {
         AppCommand entry = new AppCommand(audience, blurb, name);
-        if (audience == AppCommand.Audience.DEV && !devTools) return entry;
         described.put(name, entry);
         return entry;
     }
@@ -79,10 +121,11 @@ public final class Commands {
         return all().stream().filter(AppCommand::isFeatured).toList();
     }
 
-    /** By name or alias, any case. */
-    public static @Nullable AppCommand find(@NotNull String name) {
+    /** By name or alias, any case: one {@code sender} can see. */
+    public static @Nullable AppCommand find(@NotNull CommandSender sender, @NotNull String name) {
         String wanted = name.startsWith("/") ? name.substring(1) : name;
         for (AppCommand command : all()) {
+            if (!visible(sender, command.getName())) continue;
             for (String known : command.getNames()) {
                 if (known.equalsIgnoreCase(wanted)) return command;
             }
@@ -92,13 +135,14 @@ public final class Commands {
 
     public static void usage(@NotNull CommandSender to, @NotNull AppCommand command) {
         String[][] rows = command.usages().stream()
+                .filter(usage -> usage.node() == null || !(to instanceof Player player) || Access.allows(player, usage.node()))
                 .map(usage -> new String[]{usage.form(), usage.what()})
                 .toArray(String[][]::new);
         Msg.usage(to, "/" + command.getName() + " - " + command.blurb(), rows);
     }
 
     public static void usage(@NotNull CommandSender to, @NotNull String name) {
-        AppCommand command = find(name);
+        AppCommand command = find(to, name);
         if (command != null) usage(to, command);
     }
 
@@ -113,18 +157,18 @@ public final class Commands {
         };
     }
 
-    /** {@code /help [page]}, {@code /help <command>}, {@code /help dev [page]}. */
-    public static void help() {
+    /** {@code /help [page]}, {@code /help <command>}, {@code /help dev [page]}: what the reader can see. */
+    private static void help() {
         AppCommand help = player("help", "Every command, or one in detail.")
                 .usage("/help [page]", "the commands")
                 .usage("/help <command>", "one command's forms")
                 .usage("/help dev [page]", "the dev tools");
         var what = ArgumentType.Word("what");
-        what.setSuggestionCallback(Completions.of(() -> {
-            List<String> names = new ArrayList<>(all().stream().map(AppCommand::getName).toList());
+        what.setSuggestionCallback((sender, ctx, suggestion) -> {
+            List<String> names = new ArrayList<>(all().stream().map(AppCommand::getName).filter(name -> visible(sender, name)).toList());
             names.add("dev");
-            return names;
-        }));
+            Completions.offer(suggestion, names);
+        });
         var page = ArgumentType.Integer("page");
         help.setDefaultExecutor((sender, ctx) -> list(sender, AppCommand.Audience.PLAYER, 1));
         help.addSyntax((sender, ctx) -> one(sender, ctx.get(what), 1), what);
@@ -143,7 +187,7 @@ public final class Commands {
             list(sender, AppCommand.Audience.DEV, page);
             return;
         }
-        AppCommand command = find(word);
+        AppCommand command = find(sender, word);
         if (command == null) {
             Msg.fail(sender, "No command named ", Msg.v(what), ". ", Msg.run("/help"), " lists them.");
             return;
@@ -154,11 +198,11 @@ public final class Commands {
     private static void list(CommandSender sender, AppCommand.Audience audience, int page) {
         List<Component> rows = new ArrayList<>();
         for (AppCommand command : all()) {
-            if (command.audience() != audience) continue;
+            if (command.audience() != audience || !visible(sender, command.getName())) continue;
             rows.add(Msg.run("/" + command.getName()).append(Msg.THEME.prose(" - " + command.blurb())));
         }
         if (rows.isEmpty()) {
-            Msg.fail(sender, "No dev tools are on.");
+            Msg.fail(sender, audience == AppCommand.Audience.DEV ? "You have no dev tools." : "You have no commands.");
             return;
         }
         String header = audience == AppCommand.Audience.DEV ? "Dev tools" : "Commands";

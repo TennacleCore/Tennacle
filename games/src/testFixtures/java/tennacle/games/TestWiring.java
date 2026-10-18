@@ -24,7 +24,7 @@ public final class TestWiring {
     public static synchronized void ensure(InstanceContainer lobby) {
         if (wired) return;
         wired = true;
-        tennacle.commands.Commands.devTools(true); // the tests drive the dev tools too
+        tennacle.access.Access.everyone(java.util.Set.of("tennacle.dev.*")); // the tests drive the dev tools too
         tennacle.boot.Mechanics.polyp = MechanicsBoot.ensure();
         // the fork's placement rules before the fluid wrappers, as Mechanics.install orders them: a wrapper over
         // nothing answers a support-loss update with the block unchanged, and a ladder would never fall
@@ -42,7 +42,7 @@ public final class TestWiring {
         ShardManager shards = new ShardManager();
         Matches.install(lobby, new Pos(0.5, 65, 0.5), shards);
         tennacle.audit.Audit.install(shards);
-        tennacle.commands.Commands.help();
+        tennacle.commands.Commands.install();
         Duels.install();
         tennacle.social.SocialModule.install();
         Queues.install();

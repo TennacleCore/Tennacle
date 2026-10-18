@@ -95,13 +95,13 @@ class RulesListingTest extends HeadlessServerTest {
             lines(a, "rules space.build.outside unset");
             assertEquals(launched, row(lines(a, "rules space.build.outside"), "space.build.outside"),
                     "and unset puts the launch value and its mark back");
-            Commands.devTools(false);
+            tennacle.access.Access.everyone(java.util.Set.of());
             try {
                 assertTrue(lines(a, "rules space.build.outside false").stream()
-                        .anyMatch(l -> l.contains("Rules can only be changed with the dev tools on.")), "a player can't rewrite their game");
+                        .anyMatch(l -> l.contains("You can't change a game's rules.")), "a player can't rewrite their game");
                 assertEquals(launched, row(lines(a, "rules space.build.outside"), "space.build.outside"), "nothing changed");
             } finally {
-                Commands.devTools(true);
+                tennacle.access.Access.everyone(java.util.Set.of("tennacle.dev.*"));
             }
         } finally {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.aborted());

@@ -19,7 +19,7 @@ final class PrefsBackend implements Access.Backend {
     @Override
     public boolean holds(@NotNull UUID player, @NotNull String node) {
         Grants grants = GRANTS.of(player);
-        return grants != null && Access.matches(Access.effective(grants), node);
+        return Access.matches(Access.effective(grants != null ? grants : Grants.NONE), node);
     }
 
     @Override

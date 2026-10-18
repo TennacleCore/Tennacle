@@ -6,7 +6,7 @@ import java.util.Set;
 
 /** The staff ladder: each role holds its own nodes and every one below it. */
 public enum Role {
-    PLAYER("Player", Set.of()),
+    PLAYER("Player", Set.of("tennacle.command.*")),
     BUILDER("Builder", Set.of("tennacle.build.*")),
     MOD("Mod", Set.of("tennacle.moderate.*")),
     ADMIN("Admin", Set.of("*"));

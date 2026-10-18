@@ -7,16 +7,19 @@ import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.network.packet.server.play.DeclareCommandsPacket;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import tennacle.access.Access;
 import tennacle.server.ServerWiring;
 
 /** The registry answers /help, a bare command, the welcome, and a command that throws. */
@@ -84,17 +87,23 @@ class CommandsTest extends HeadlessServerTest {
     }
 
     @Test
-    void devToolsOffMeansAbsent() {
-        Commands.devTools(false);
+    void aHiddenCommandReadsUnknown() throws Exception {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(708.5, 65, 708.5), "HelpH");
+        Access.everyone(Set.of());
         try {
-            Commands.register(Commands.dev("offtool", "Never here."));
-            Commands.describe(AppCommand.Audience.DEV, "offlisted", "Never listed.");
-            assertNull(MinecraftServer.getCommandManager().getCommand("offtool"), "not registered at all");
-            assertTrue(Commands.all().stream().noneMatch(c -> c.getName().startsWith("off")), "and not in /help");
-            Commands.register(Commands.player("ontool", "Still here."));
-            assertNotNull(MinecraftServer.getCommandManager().getCommand("ontool"), "a player command still registers");
+            assertFalse(Commands.visible(a.player, "brokentool"));
+            assertEquals(List.of("Unknown command. Type /help for help."), chat(a, "brokentool"), "once");
+            assertEquals(List.of("Unknown command. Type /help for help."), chat(a, "nosuchthing"), "the same as one that isn't there");
+            assertTrue(chat(a, "help dev").contains("You have no dev tools."));
+            assertTrue(Commands.visible(a.player, "help"), "a player command stays");
+
+            a.sent.clear();
+            Access.grant(a.player.getUuid(), "tennacle.dev.brokentool").get(5, TimeUnit.SECONDS);
+            assertTrue(Commands.visible(a.player, "brokentool"), "a grant shows it");
+            assertFalse(a.sent(DeclareCommandsPacket.class).isEmpty(), "and the command list is sent again");
         } finally {
-            Commands.devTools(true);
+            Access.everyone(Set.of("tennacle.dev.*"));
+            a.player.remove();
         }
     }
 
