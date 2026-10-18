@@ -24,6 +24,7 @@ public final class TestWiring {
     public static synchronized void ensure(InstanceContainer lobby) {
         if (wired) return;
         wired = true;
+        tennacle.commands.Commands.devTools(true); // the tests drive the dev tools too
         tennacle.boot.Mechanics.polyp = MechanicsBoot.ensure();
         // the fork's placement rules before the fluid wrappers, as Mechanics.install orders them: a wrapper over
         // nothing answers a support-loss update with the block unchanged, and a ladder would never fall

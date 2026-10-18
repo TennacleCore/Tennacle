@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import tennacle.server.ServerWiring;
 
@@ -78,6 +80,21 @@ class CommandsTest extends HeadlessServerTest {
             assertTrue(sent.stream().anyMatch(l -> l.contains("Something went wrong")), sent.toString());
         } finally {
             a.player.remove();
+        }
+    }
+
+    @Test
+    void devToolsOffMeansAbsent() {
+        Commands.devTools(false);
+        try {
+            Commands.register(Commands.dev("offtool", "Never here."));
+            Commands.describe(AppCommand.Audience.DEV, "offlisted", "Never listed.");
+            assertNull(MinecraftServer.getCommandManager().getCommand("offtool"), "not registered at all");
+            assertTrue(Commands.all().stream().noneMatch(c -> c.getName().startsWith("off")), "and not in /help");
+            Commands.register(Commands.player("ontool", "Still here."));
+            assertNotNull(MinecraftServer.getCommandManager().getCommand("ontool"), "a player command still registers");
+        } finally {
+            Commands.devTools(true);
         }
     }
 

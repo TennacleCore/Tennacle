@@ -31,6 +31,7 @@ public final class Commands {
     private static final Map<String, AppCommand> registered = new LinkedHashMap<>();
     /** Listed, never dispatched here: a library registers these itself. */
     private static final Map<String, AppCommand> described = new LinkedHashMap<>();
+    private static volatile boolean devTools;
 
     private Commands() {}
 
@@ -42,8 +43,18 @@ public final class Commands {
         return new AppCommand(AppCommand.Audience.DEV, blurb, name, aliases);
     }
 
-    /** Registers with Minestom; a command without a default executor answers with its usage. */
+    /** Whether the dev tools exist on this server ({@code tennacle.dev-commands}); set at boot, before any module installs. */
+    public static void devTools(boolean on) {
+        devTools = on;
+    }
+
+    public static boolean devTools() {
+        return devTools;
+    }
+
+    /** Registers with Minestom; a command without a default executor answers with its usage. A dev tool on a server without them is not registered at all. */
     public static void register(@NotNull AppCommand command) {
+        if (command.audience() == AppCommand.Audience.DEV && !devTools) return;
         if (command.getDefaultExecutor() == null) command.setDefaultExecutor((sender, ctx) -> usage(sender, command));
         MinecraftServer.getCommandManager().register(command);
         registered.put(command.getName(), command);
@@ -53,6 +64,7 @@ public final class Commands {
     public static @NotNull AppCommand describe(@NotNull AppCommand.Audience audience, @NotNull String name,
                                                @NotNull String blurb) {
         AppCommand entry = new AppCommand(audience, blurb, name);
+        if (audience == AppCommand.Audience.DEV && !devTools) return entry;
         described.put(name, entry);
         return entry;
     }

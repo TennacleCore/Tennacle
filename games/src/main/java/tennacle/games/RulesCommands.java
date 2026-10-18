@@ -40,12 +40,14 @@ public final class RulesCommands {
         AppCommand rules = Commands.player("rules", "The running game's rules, live.")
                 .usage("/rules [package|id]", "read them, or one part - each marked with where its value comes from")
                 .usage("/rules <code>", "another live game's, by the code its board prints")
-                .usage("/rules <id|path> <value>", "set one for the game")
-                .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
-                .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through")
                 .usage("/rules <@player|#team>", "that seat or side alone")
                 .usage("/rules paths [path]", "the mechanics tree a path can reach")
                 .featured();
+        if (Commands.devTools()) {
+            rules.usage("/rules <id|path> <value>", "set one for the game")
+                    .usage("/rules <@player|#team> <id|path> <value>", "for one seat or side only")
+                    .usage("/rules [@player|#team] <id|path> unset", "drop it there: the scope above shows through");
+        }
         var key = ArgumentType.Word("key");
         var value = ArgumentType.StringArray("value");
         key.setSuggestionCallback(RulesCompletions.key());
@@ -119,6 +121,10 @@ public final class RulesCommands {
             }
             if (words.isEmpty() && !id.contains("/")) { // a name with no value reads it back, at whatever scope leads
                 list(p, game, scope, id);
+                return;
+            }
+            if (!Commands.devTools()) { // anyone in a game or watching it reaches here
+                Msg.fail(p, "Rules can only be changed with the dev tools on.");
                 return;
             }
             if (!words.isEmpty() && words.getFirst().equals("=")) words.removeFirst(); // the listing prints "id = value"
