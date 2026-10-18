@@ -173,6 +173,23 @@ class UpgradesTest extends HeadlessServerTest {
         });
     }
 
+    /** The user, 2026-10-18 on Solace: a trap bought went off at once on a foe standing still in their own base. */
+    @Test
+    void aTrapIgnoresWhoWasSentAway() {
+        round("UpgT", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            Pos bed = new Pos(-9.5, 65, 0.5); // beside team 1's bed head
+            EventDispatcher.call(new PlayerMoveEvent(b, bed, true)); // in while nothing is queued
+            b.teleport(new Pos(9.5, 65, 0.5)).join(); // sent home: a respawn, then standing still
+            EventDispatcher.call(new net.minestom.server.event.player.PlayerTickEvent(b)); // the harness ticks no players
+            give(a, Material.DIAMOND, 1);
+            UpgradeShop.open(game, a);
+            click(a, 14); // Blindness
+            assertEquals(1, Traps.queue(game, Match.teamOf(game, a)).size(), "nobody inside: it waits");
+            assertFalse(b.hasEffect(PotionEffect.BLINDNESS));
+        });
+    }
+
     @Test
     void magicMilkKeepsTrapsOff() {
         round("UpgD", (game, fa, fb) -> {
