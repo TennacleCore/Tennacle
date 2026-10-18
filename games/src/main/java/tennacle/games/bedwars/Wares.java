@@ -144,7 +144,7 @@ final class Wares {
                 "Golden Pickaxe (Efficiency III, Sharpness II)", "Diamond Pickaxe (Efficiency III)"));
         tool("axe", Gear.AXE, Gear.AXES, List.of("Wooden Axe (Efficiency I)", "Stone Axe (Efficiency I)",
                 "Iron Axe (Efficiency II)", "Diamond Axe (Efficiency III)"));
-        goods(Tab.RANGED, "arrow", "Arrow", Material.ARROW, 6, Price.of(2, GOLD), "ranged");
+        goods(Tab.RANGED, "arrow", "Arrow", Material.ARROW, 6, Price.of(2, GOLD), "ammo");
         goods(Tab.RANGED, "bow", "Bow", Material.BOW, 1, Price.of(12, GOLD), "ranged");
         ItemStack power = enchanted(Material.BOW, Map.of(Enchantment.POWER, 1));
         goods(Tab.RANGED, "power-bow", "Bow (Power I)", (g, p) -> power, power, Price.of(20, GOLD), "ranged");

@@ -236,10 +236,11 @@ class ShopTest extends HeadlessServerTest {
             HotbarManager.open(game, a);
             click(a, 17, new Click.Left(17)); // Utility onto the cursor
             click(a, 27 + 3, new Click.Left(27 + 3));
-            click(a, 9, new Click.Left(9)); // One Item
-            assertEquals("Choose a Pick", title(a));
-            int fireball = Wares.pickable().indexOf(Wares.of("fireball"));
-            click(a, 9 + fireball, new Click.Left(9 + fireball));
+            click(a, 17, new Click.Right(17));
+            assertEquals("Utility", title(a), "the shop's tab of single items");
+            int fireball = ItemShop.GRID[Wares.pickable().stream().filter(w -> w.tab() == Wares.Tab.UTILITY).toList()
+                    .indexOf(Wares.of("fireball"))];
+            click(a, fireball, new Click.Left(fireball));
             assertEquals("Hotbar Manager", title(a), "back, the item on the cursor");
             click(a, 27 + 3, new Click.Left(27 + 3));
             assertEquals(List.of("ware:fireball", "utility"), HotbarOrders.of(a).main().get(3), "dropped first");
@@ -247,18 +248,41 @@ class ShopTest extends HeadlessServerTest {
 
             click(a, 27 + 3, new Click.Left(27 + 3));
             assertEquals("Hotbar Slot 4", title(a));
-            click(a, 10, new Click.Left(10));
-            assertEquals(List.of("utility", "ware:fireball"), HotbarOrders.of(a).main().get(3), "moved earlier");
-            click(a, 9, new Click.Right(9));
+            click(a, 27, new Click.Left(27));
+            assertEquals(List.of("utility"), HotbarOrders.of(a).main().get(3), "picked up");
+            click(a, 28, new Click.Left(28));
+            assertEquals(List.of("utility", "ware:fireball"), HotbarOrders.of(a).main().get(3), "put down later");
+            click(a, 13, new Click.Left(13)); // Axe onto the cursor
+            click(a, 27, new Click.Left(27));
+            assertEquals(List.of("axe", "ware:fireball"), HotbarOrders.of(a).main().get(3), "swapped in");
+            click(a, 40, new Click.Left(40));
+            assertTrue(a.getInventory().getCursorItem().isAir(), "dropped where nothing goes: gone");
+            click(a, 27, new Click.Right(27));
             assertEquals(List.of("ware:fireball"), HotbarOrders.of(a).main().get(3), "taken off");
 
-            click(a, 21, new Click.Left(21));
+            click(a, 48, new Click.Left(48));
             assertEquals("Hotbar Manager", title(a));
+            click(a, 27 + 3, new Click.Right(27 + 3));
+            assertEquals(List.of(), HotbarOrders.of(a).main().get(3), "right click takes the first off");
             click(a, 5, new Click.Left(5));
             assertTrue(HotbarOrders.of(a).splits(), "the after-bed layout starts as a copy");
             assertEquals(HotbarOrders.of(a).main(), HotbarOrders.of(a).afterBed());
             click(a, 5, new Click.Right(5));
             assertFalse(HotbarOrders.of(a).splits(), "and goes again");
+        });
+    }
+
+    @Test
+    void arrowsStayOffTheHotbar() {
+        round("ShopJ", (game, a) -> {
+            var kits = game.module(io.github.term4.grotto.modules.gear.Kits.class);
+            List<List<String>> main = new java.util.ArrayList<>(HotbarOrders.empty());
+            main.set(0, List.of("melee"));
+            main.set(1, List.of("ranged"));
+            HotbarOrders.set(a, new HotbarOrders.Layouts(main, List.of()));
+            assertTrue(kits.give(a, "ammo", ItemStack.of(Material.ARROW, 6)));
+            assertTrue(a.getInventory().getItemStack(1).isAir(), "not a ranged item");
+            for (int i = 0; i < 9; i++) assertTrue(a.getInventory().getItemStack(i).material() != Material.ARROW);
         });
     }
 
@@ -272,6 +296,7 @@ class ShopTest extends HeadlessServerTest {
             assertFalse(ownClick(a, new Click.Left(5)));
             click(a, 10, new Click.Left(10)); // Blocks onto the cursor
             assertTrue(ownClick(a, new Click.Left(5)), "a held category stays out of it");
+            assertTrue(a.getInventory().getCursorItem().isAir(), "and leaves the cursor");
         });
     }
 

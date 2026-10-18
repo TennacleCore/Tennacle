@@ -48,10 +48,10 @@ class KitsTabTest extends HeadlessServerTest {
                     Screens.inventory(p.player).getItemStack(48).get(DataComponents.LORE).getFirst());
             assertEquals("To Kits", back);
 
-            press(p, new Click.Left(9)); // One Item: the shop's items, no game to color them
-            assertEquals("Choose a Pick", title(p));
+            press(p, new Click.Right(10)); // Blocks' single items, no game to color them
+            assertEquals("Blocks", title(p));
             boolean wool = false;
-            for (int i = 9; i < 45; i++) wool |= Screens.inventory(p.player).getItemStack(i).material() == Material.WHITE_WOOL;
+            for (int i = 18; i < 45; i++) wool |= Screens.inventory(p.player).getItemStack(i).material() == Material.WHITE_WOOL;
             assertTrue(wool, "wool shows white, as the shop does");
         } finally {
             p.player.remove();

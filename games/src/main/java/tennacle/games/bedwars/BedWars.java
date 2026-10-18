@@ -185,6 +185,7 @@ public final class BedWars {
             .role("ranged", ItemStack.of(Material.BOW))
             .role("potions", ItemStack.of(Material.BREWING_STAND))
             .role("utility", ItemStack.of(Material.TNT))
+            .stowed("ammo") // the user, 2026-10-18: arrows off the hotbar unless a slot names them
             .layouts((g, p) -> KitLayouts.of(p, "bedwars"))
             .orders(HotbarOrders::orders)
             .picks(Wares::picks)
