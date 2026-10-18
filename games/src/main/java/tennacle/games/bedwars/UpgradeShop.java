@@ -46,7 +46,7 @@ final class UpgradeShop {
         Screen.Builder window = Screen.rows(6).title(Component.text("Upgrades & Traps"));
         for (Upgrade upgrade : Upgrades.ALL) {
             window.button(upgrade.slot(), v -> icon(game, v, upgrade),
-                    (v, click) -> buy(game, v, upgrade.offer(), name(game, v, upgrade), click));
+                    (v, click) -> buy(game, v, upgrade.offer(), upgrade.names().get(onSale(game, v, upgrade) - 1), click));
         }
         for (Traps.Kind kind : Traps.Kind.values()) {
             Offer offer = game.module(Shop.class).offer(kind.id);
@@ -65,11 +65,9 @@ final class UpgradeShop {
         Screens.open(viewer, window.build());
     }
 
-    // the tier on sale, or the last when all are bought
-    private static String name(Game game, Player viewer, Upgrade upgrade) {
-        Rank rank = upgrade.offer();
-        int tier = Math.max(1, Math.min(rank.selling(game, viewer), upgrade.names().size()));
-        return upgrade.names().get(tier - 1);
+    // the tier on sale, or the last when all are bought: the name and the stack count both read it (captured)
+    private static int onSale(Game game, Player viewer, Upgrade upgrade) {
+        return Math.max(1, Math.min(upgrade.offer().selling(game, viewer), upgrade.names().size()));
     }
 
     private static ItemStack icon(Game game, Player viewer, Upgrade upgrade) {
@@ -96,8 +94,9 @@ final class UpgradeShop {
         lore.add(maxed ? Component.text("UNLOCKED", NamedTextColor.GREEN)
                 : affordable ? Component.text("Click to purchase!", NamedTextColor.YELLOW)
                 : Component.text("You don't have enough Diamonds!", NamedTextColor.RED));
-        ItemStack stack = Items.counted(ItemStack.of(upgrade.icon()), bought);
-        return Items.bare(Items.lore(Items.named(stack, Component.text(name(game, viewer, upgrade), color)), lore));
+        int tier = onSale(game, viewer, upgrade);
+        ItemStack stack = Items.counted(ItemStack.of(upgrade.icon()), tier);
+        return Items.bare(Items.lore(Items.named(stack, Component.text(upgrade.names().get(tier - 1), color)), lore));
     }
 
     private static ItemStack icon(Game game, Player viewer, Traps.Kind kind) {

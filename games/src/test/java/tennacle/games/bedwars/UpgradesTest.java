@@ -84,10 +84,14 @@ class UpgradesTest extends HeadlessServerTest {
             EventDispatcher.call(new PlayerEntityInteractEvent(a, keeper(game, a), PlayerHand.MAIN, Vec.ZERO));
             assertEquals("Upgrades & Traps", title(a));
             give(a, Material.DIAMOND, 30);
+            assertEquals(1, Screens.inventory(a).getItemStack(11).amount(), "the tier on sale, as Hypixel counts it (captured)");
+            assertEquals(1, Screens.inventory(a).getItemStack(10).amount(), "a single tier shows one");
             click(a, 11); // Reinforced Armor
             ItemStack helmet = a.getEquipment(EquipmentSlot.HELMET);
             assertEquals(1, helmet.get(DataComponents.ENCHANTMENTS, EnchantmentList.EMPTY).level(Enchantment.PROTECTION));
             assertTrue(chat(fa).contains(a.getUsername() + " purchased Reinforced Armor I"), chat(fa).toString());
+            UpgradeShop.open(game, a);
+            assertEquals(2, Screens.inventory(a).getItemStack(11).amount(), "tier II on sale now");
 
             click(a, 11);
             assertTrue(chat(fa).contains("Clicking too fast!"), "a second click at once");
