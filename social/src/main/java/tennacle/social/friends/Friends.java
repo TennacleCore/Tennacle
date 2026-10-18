@@ -18,9 +18,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
-import static tennacle.social.Lines.tagged;
+import static tennacle.social.Lines.green;
 import static tennacle.social.Lines.who;
-
+import static tennacle.social.Lines.yellow;
 
 /** Who is friends with whom, kept on both players' accounts, and the join and leave notices between them. */
 public final class Friends {
@@ -119,9 +119,9 @@ public final class Friends {
         }
     }
 
-    // "Friend » Name joined." to every online friend who listens
+    // captured: "Friend > Name joined." to every online friend who listens
     static void announce(Player player, String what) {
-        Component line = tagged("Friend", who(player.getUsername()), " " + what);
+        Component line = green("Friend > ").append(who(player.getUsername() + " ")).append(yellow(what));
         of(player.getUuid()).thenAccept(list -> {
             for (Friend friend : list) {
                 Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(friend.id());

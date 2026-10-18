@@ -2,6 +2,7 @@ package tennacle.social.channels;
 
 import io.github.term4.canvas.chat.Chat;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
@@ -21,9 +22,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static tennacle.social.Lines.good;
-import static tennacle.social.Lines.value;
-
+import static tennacle.social.Lines.green;
 
 /** What {@code /chat} picks between: everyone around you, or a channel a group registers (party, later guild). */
 public final class Channels {
@@ -96,8 +95,8 @@ public final class Channels {
         if (channel == null) player.removeTag(CHOSEN);
         else player.setTag(CHOSEN, name);
         // captured: "You are now in the ALL channel"
-        player.sendMessage(good("You are now in the ")
-                .append(value(name.toUpperCase(Locale.ROOT))).append(good(" channel")));
+        player.sendMessage(green("You are now in the ")
+                .append(Component.text(name.toUpperCase(Locale.ROOT), NamedTextColor.GOLD)).append(green(" channel")));
     }
 
     private static String choices() {

@@ -37,14 +37,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import java.util.function.BiConsumer;
 
-import static tennacle.social.Lines.accent;
-import static tennacle.social.Lines.bad;
 import static tennacle.social.Lines.frame;
-import static tennacle.social.Lines.good;
-import static tennacle.social.Lines.prose;
-import static tennacle.social.Lines.value;
+import static tennacle.social.Lines.red;
 import static tennacle.social.Lines.who;
-
+import static tennacle.social.Lines.yellow;
 /**
  * A leader and the players who accepted: one SIDE wherever a match is started. Only the leader duels or queues
  * outward; the party follows as their side, so a mode seats it on one team. The command set and its lines follow
@@ -334,7 +330,7 @@ public final class Parties {
         // captured: the blocked side's line, framed
         String blocked = Blocks.refusal(from, target, "You cannot invite that player since they have blocked you.");
         if (blocked != null) {
-            frame(from, bad(blocked));
+            frame(from, red(blocked));
             return;
         }
         if (!INVITES.admits(from, target)) {
@@ -365,17 +361,17 @@ public final class Parties {
         invites.computeIfAbsent(invited, uuid -> new ConcurrentHashMap<>())
                 .put(party, new Invite(party, from.getUsername(), target.getUsername(), expiry));
         Component sent = Component.text()
-                .append(who(from.getUsername())).append(prose(" invited ")).append(who(target.getUsername()))
-                .append(prose(" to the party! They have ")).append(value(INVITE_SECONDS))
-                .append(prose(" seconds to accept.")).build();
+                .append(who(from.getUsername())).append(yellow(" invited ")).append(who(target.getUsername()))
+                .append(yellow(" to the party! They have ")).append(Component.text(INVITE_SECONDS, NamedTextColor.RED))
+                .append(yellow(" seconds to accept.")).build();
         for (Player member : online(party)) frame(member, sent);
         String leaderName = party.names.getOrDefault(party.leader, from.getUsername());
         frame(target, Component.text()
-                .append(who(from.getUsername())).append(prose(" has invited you to join their party! You have "))
-                .append(value(INVITE_SECONDS)).append(prose(" seconds to accept. "))
-                .append(accent("Click here to join!")
+                .append(who(from.getUsername())).append(yellow(" has invited you to join their party! You have "))
+                .append(Component.text(INVITE_SECONDS, NamedTextColor.RED)).append(yellow(" seconds to accept. "))
+                .append(Component.text("Click here to join!", NamedTextColor.GOLD)
                         .clickEvent(ClickEvent.runCommand("/party join " + leaderName))
-                        .hoverEvent(HoverEvent.showText(prose("Click to join!"))))
+                        .hoverEvent(HoverEvent.showText(Component.text("Click to join!", NamedTextColor.YELLOW))))
                 .build());
         cues.accept(target, SoundSet.PARTY_INVITE);
     }
@@ -415,7 +411,7 @@ public final class Parties {
         withdraw(invite, player.getUuid());
         party.add(player);
         byMember.put(player.getUuid(), party);
-        Component line = who(player.getUsername()).append(prose(" joined the party."));
+        Component line = who(player.getUsername()).append(yellow(" joined the party."));
         for (Player member : online(party)) frame(member, line);
     }
 
@@ -425,11 +421,11 @@ public final class Parties {
         Invite invite = mine != null ? mine.get(party) : null;
         if (invite == null) return; // accepted, or voided with its party
         withdraw(invite, invited);
-        Component line = prose("The party invite to ").append(who(invite.to())).append(prose(" has expired."));
+        Component line = yellow("The party invite to ").append(who(invite.to())).append(yellow(" has expired."));
         for (Player member : online(party)) frame(member, line);
         Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(invited);
         if (target != null) {
-            frame(target, prose("The party invite from ").append(who(invite.from())).append(prose(" has expired.")));
+            frame(target, yellow("The party invite from ").append(who(invite.from())).append(yellow(" has expired.")));
         }
         settle(party);
     }
@@ -444,7 +440,8 @@ public final class Parties {
     /** A party down to its leader with no invite standing is disbanded, hypixel's line and all. */
     private static void settle(Party party) {
         if (byMember.get(party.leader) != party || party.members.size() > 1 || !party.invited.isEmpty()) return;
-        Component line = bad("The party was disbanded because all invites expired and the party was empty.");
+        Component line = Component.text("The party was disbanded because all invites expired and the party was empty.",
+                NamedTextColor.RED);
         for (Player member : online(party)) frame(member, line);
         dissolve(party);
     }
@@ -461,8 +458,8 @@ public final class Parties {
         }
         drop(party, player.getUuid());
         Channels.leave(player, CHANNEL);
-        frame(player, prose("You left the party."));
-        Component line = who(player.getUsername()).append(prose(" has left the party."));
+        frame(player, yellow("You left the party."));
+        Component line = who(player.getUsername()).append(yellow(" has left the party."));
         for (Player member : online(party)) frame(member, line);
         settle(party);
     }
@@ -480,9 +477,9 @@ public final class Parties {
         Player kicked = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(target);
         if (kicked != null) {
             Channels.leave(kicked, CHANNEL);
-            frame(kicked, prose("You have been kicked from the party by ").append(who(leader.getUsername())));
+            frame(kicked, yellow("You have been kicked from the party by ").append(who(leader.getUsername())));
         }
-        Component line = who(name).append(prose(" has been removed from the party."));
+        Component line = who(name).append(yellow(" has been removed from the party."));
         for (Player member : online(party)) frame(member, line);
         settle(party);
     }
@@ -498,15 +495,15 @@ public final class Parties {
         party.leader = target;
         party.members.remove(target);
         party.members.addFirst(target);
-        Component line = prose("The party was transferred to ").append(who(party.names.get(target)))
-                .append(prose(" by ")).append(who(leader.getUsername()));
+        Component line = yellow("The party was transferred to ").append(who(party.names.get(target)))
+                .append(yellow(" by ")).append(who(leader.getUsername()));
         for (Player member : online(party)) frame(member, line);
     }
 
     private static void disband(Player leader) {
         Party party = led(leader);
         if (party == null) return;
-        Component line = who(leader.getUsername()).append(prose(" has disbanded the party!"));
+        Component line = who(leader.getUsername()).append(yellow(" has disbanded the party!"));
         for (Player member : online(party)) frame(member, line);
         dissolve(party);
     }
@@ -525,7 +522,7 @@ public final class Parties {
             Msg.fail(leader, "Nobody in your party is offline.");
             return;
         }
-        Component line = prose("Kicked ").append(who(String.join(", ", gone))).append(prose(" because they were offline."));
+        Component line = yellow("Kicked ").append(who(String.join(", ", gone))).append(yellow(" because they were offline."));
         for (Player member : online(party)) frame(member, line);
         settle(party);
     }
@@ -534,9 +531,9 @@ public final class Parties {
         Party party = led(leader);
         if (party == null) return;
         party.allInvite = !party.allInvite;
-        Component line = prose("Party Settings: All Invite is now ")
-                .append(party.allInvite ? good("enabled") : bad("disabled"))
-                .append(prose("."));
+        Component line = yellow("Party Settings: All Invite is now ")
+                .append(party.allInvite ? Component.text("enabled", NamedTextColor.GREEN) : Component.text("disabled", NamedTextColor.RED))
+                .append(yellow("."));
         for (Player member : online(party)) frame(member, line);
     }
 
@@ -556,7 +553,7 @@ public final class Parties {
         boolean busy = away.stream().anyMatch(member -> warp.busy(member, leader));
         // captured: Hypixel's line, the window ours (Confirm)
         if (busy && !Confirm.again(leader, "party warp")) {
-            frame(leader, prose("Some players are still in-game, run the command again to confirm warp!"));
+            frame(leader, yellow("Some players are still in-game, run the command again to confirm warp!"));
             return;
         }
         List<String> warped = new ArrayList<>();
@@ -568,10 +565,10 @@ public final class Parties {
             }
             warped.add(member.getUsername());
             // captured: Hypixel's line to a summoned member
-            frame(member, prose("Party Leader, ").append(who(leader.getUsername())).append(prose(", summoned you to their server.")));
+            frame(member, yellow("Party Leader, ").append(who(leader.getUsername())).append(yellow(", summoned you to their server.")));
         }
         if (!warped.isEmpty()) {
-            frame(leader, prose("You summoned ").append(who(String.join(", ", warped))).append(prose(" to your server.")));
+            frame(leader, yellow("You summoned ").append(who(String.join(", ", warped))).append(yellow(" to your server.")));
         }
     }
 
@@ -589,9 +586,9 @@ public final class Parties {
             if (uuid.equals(party.leader)) continue;
             members = members.append(who(party.names.get(uuid))).append(dot(uuid)).append(Component.text(" "));
         }
-        frame(to, value("Party Size (" + party.members.size() + ")"),
-                prose("Party Leader: ").append(leader),
-                prose("Party Members: ").append(members));
+        frame(to, Component.text("Party Size (" + party.members.size() + ")", NamedTextColor.GOLD),
+                yellow("Party Leader: ").append(leader),
+                yellow("Party Members: ").append(members));
     }
 
     private static void say(Player speaker, String message) {
@@ -622,12 +619,12 @@ public final class Parties {
         Party party = byMember.get(player.getUuid());
         if (party == null) return;
         UUID uuid = player.getUuid();
-        Component minutes = value(rejoinTicks / 1200);
+        Component minutes = Component.text(rejoinTicks / 1200, NamedTextColor.RED);
         Component line = party.leader.equals(uuid)
-                ? prose("The party leader, ").append(who(player.getUsername())).append(prose(" has disconnected, they have "))
-                        .append(minutes).append(prose(" minutes to rejoin before the party is disbanded."))
-                : who(player.getUsername()).append(prose(" has disconnected, they have ")).append(minutes)
-                        .append(prose(" minutes to rejoin before they are removed from the party."));
+                ? yellow("The party leader, ").append(who(player.getUsername())).append(yellow(" has disconnected, they have "))
+                        .append(minutes).append(yellow(" minutes to rejoin before the party is disbanded."))
+                : who(player.getUsername()).append(yellow(" has disconnected, they have ")).append(minutes)
+                        .append(yellow(" minutes to rejoin before they are removed from the party."));
         for (Player member : online(party)) if (member != player) frame(member, line);
         Task grace = MinecraftServer.getSchedulerManager().buildTask(() -> graceOver(party, uuid))
                 .delay(TaskSchedule.tick((int) rejoinTicks)).schedule();
@@ -640,14 +637,14 @@ public final class Parties {
         graces.remove(uuid);
         if (byMember.get(uuid) != party) return; // left, kicked, or moved on meanwhile
         if (party.leader.equals(uuid)) {
-            Component line = prose("The party was disbanded because the party leader disconnected.");
+            Component line = yellow("The party was disbanded because the party leader disconnected.");
             for (Player member : online(party)) frame(member, line);
             dissolve(party);
             return;
         }
         String name = party.names.get(uuid);
         drop(party, uuid);
-        Component line = who(name).append(prose(" was removed from the party because they disconnected."));
+        Component line = who(name).append(yellow(" was removed from the party because they disconnected."));
         for (Player member : online(party)) frame(member, line);
         settle(party);
     }
@@ -658,7 +655,7 @@ public final class Parties {
         Party party = byMember.get(player.getUuid());
         if (party == null) return;
         party.names.put(player.getUuid(), player.getUsername());
-        Component line = who(player.getUsername()).append(prose(" has rejoined."));
+        Component line = who(player.getUsername()).append(yellow(" has rejoined."));
         for (Player member : online(party)) frame(member, line);
     }
 

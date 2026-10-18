@@ -12,17 +12,18 @@ import tennacle.commands.Commands;
 import tennacle.social.friends.Friends;
 
 import java.util.ArrayList;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static tennacle.social.Lines.good;
-import static tennacle.social.Lines.prose;
-import static tennacle.social.Lines.value;
+import static tennacle.social.Lines.green;
 import static tennacle.social.Lines.who;
-
+import static tennacle.social.Lines.yellow;
 
 /** {@code /block} ({@code /ignore}) add, remove and list; Hypixel's lines where captured. */
 final class BlockCommands {
@@ -82,7 +83,7 @@ final class BlockCommands {
                     Msg.fail(me, "You've already blocked " + target.name() + "!");
                     return done();
                 }
-                return Friends.sever(me.getUuid(), target.id()).thenRun(() -> me.sendMessage(good("Blocked " + target.name() + ".")));
+                return Friends.sever(me.getUuid(), target.id()).thenRun(() -> me.sendMessage(green("Blocked " + target.name() + ".")));
             });
         }));
     }
@@ -103,7 +104,7 @@ final class BlockCommands {
             }
             return left;
         })).thenRun(() -> {
-            if (removed.get()) me.sendMessage(good("Unblocked " + shown[0] + "."));
+            if (removed.get()) me.sendMessage(green("Unblocked " + shown[0] + "."));
             else Msg.fail(me, name + " isn't blocked!");
         }));
     }
@@ -119,9 +120,9 @@ final class BlockCommands {
             int pages = (sorted.size() + ROWS - 1) / ROWS;
             int at = Math.clamp(page, 1, pages);
             // captured: a numbered list, ten to a page, the numbers running on across pages
-            me.sendMessage(prose("------ Blocked Players (Page " + at + " of " + pages + ") ------"));
+            me.sendMessage(yellow("------ Blocked Players (Page " + at + " of " + pages + ") ------"));
             for (int i = (at - 1) * ROWS; i < Math.min(sorted.size(), at * ROWS); i++) {
-                me.sendMessage(value((i + 1) + ". ").append(who(sorted.get(i).name())));
+                me.sendMessage(Component.text((i + 1) + ". ", NamedTextColor.AQUA).append(yellow(sorted.get(i).name())));
             }
         }));
     }
