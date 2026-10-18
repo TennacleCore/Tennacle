@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
@@ -37,9 +38,9 @@ final class HotbarManager {
     static final List<Category> CATEGORIES = List.of(
             new Category("blocks", "Blocks", Material.TERRACOTTA, Tab.BLOCKS),
             new Category("melee", "Melee", Material.GOLDEN_SWORD, Tab.MELEE),
-            new Category("pickaxe", "Pickaxe", Material.IRON_PICKAXE, null),
-            new Category("axe", "Axe", Material.IRON_AXE, null),
-            new Category("shears", "Shears", Material.SHEARS, null),
+            new Category("pickaxe", "Pickaxe", Material.IRON_PICKAXE, Tab.TOOLS),
+            new Category("axe", "Axe", Material.IRON_AXE, Tab.TOOLS),
+            new Category("shears", "Shears", Material.SHEARS, Tab.TOOLS),
             new Category("ranged", "Ranged", Material.BOW, Tab.RANGED),
             new Category("potions", "Potions", Material.BREWING_STAND, Tab.POTIONS),
             new Category("utility", "Utility", Material.CRAFTING_TABLE, Tab.UTILITY));
@@ -96,6 +97,14 @@ final class HotbarManager {
                 } else {
                     order(game, v, hotbar);
                 }
+            });
+        }
+        if (game == null) {
+            manager.button(47, Items.lore(Items.named(Material.NETHER_STAR, Component.text("Edit Quick Buy", NamedTextColor.GREEN)),
+                    List.of(Items.gray("Choose the items on your shop's"), Items.gray("Quick Buy page."), Component.empty(),
+                            Component.text("Click to edit!", NamedTextColor.YELLOW))), (v, click) -> {
+                drop(v);
+                ItemShop.editor(v);
             });
         }
         manager.button(48, goBack(game != null ? "To Quick Buy" : "To Kits"), (v, click) -> {
@@ -177,26 +186,26 @@ final class HotbarManager {
     }
 
     // the shop's tabs for single items; the one chosen goes onto the cursor in the screen underneath
-    private static void items(@Nullable Game game, Player viewer, Category open, boolean swap) {
-        Screen.Builder page = window(open.tab().title);
-        List<Category> tabbed = CATEGORIES.stream().filter(c -> c.tab() != null).toList();
-        int first = (9 - tabbed.size()) / 2;
-        for (int i = 0; i < tabbed.size(); i++) {
-            Category category = tabbed.get(i);
-            boolean lit = category == open;
-            ItemStack icon = Items.named(category.tab().icon, Component.text(category.tab().title, NamedTextColor.GREEN));
+    private static void items(@Nullable Game game, Player viewer, Tab open, boolean swap) {
+        Screen.Builder page = window(open.title);
+        List<Tab> tabs = CATEGORIES.stream().map(Category::tab).filter(java.util.Objects::nonNull).distinct().toList();
+        int first = (9 - tabs.size()) / 2;
+        for (int i = 0; i < tabs.size(); i++) {
+            Tab tab = tabs.get(i);
+            boolean lit = tab == open;
+            ItemStack icon = Items.named(tab.icon, Component.text(tab.title, NamedTextColor.GREEN));
             if (!lit) icon = Items.lore(icon, List.of(Component.text("Click to view!", NamedTextColor.YELLOW)));
             page.button(first + i, Items.bare(icon), (v, click) -> {
-                if (!lit) items(game, v, category, true);
+                if (!lit) items(game, v, tab, true);
             });
             page.item(9 + first + i, ItemShop.pane(lit));
         }
-        List<Ware> wares = Wares.pickable().stream().filter(w -> w.tab() == open.tab()).toList();
+        List<Ware> wares = Wares.pickable().stream().filter(w -> w.tab() == open).toList();
         for (int i = 0; i < Math.min(wares.size(), ItemShop.GRID.length); i++) {
             Ware ware = wares.get(i);
             String pick = HotbarOrders.WARE + ware.offer().id();
-            page.button(ItemShop.GRID[i], v -> Items.bare(Items.lore(Items.named(Wares.icon(ware, game, v), Component.text(ware.name(game, v), NamedTextColor.GREEN)),
-                    List.of(Items.gray("Only this item, not the whole"), Items.gray(open.name() + " category."), Component.empty(),
+            page.button(ItemShop.GRID[i], v -> Items.bare(Items.lore(Items.named(Wares.icon(ware, game, v), Component.text(name(game, v, pick), NamedTextColor.GREEN)),
+                    List.of(Items.gray("Only this item, not every"), Items.gray("item of its kind."), Component.empty(),
                             Component.text("Click to pick up!", NamedTextColor.YELLOW)))), (v, click) -> {
                 Screens.back(v);
                 v.getInventory().setCursorItem(held(pick, shown(game, v, pick)));
@@ -227,7 +236,7 @@ final class HotbarManager {
             screen.button(10 + i, pickable(category), (v, click) -> {
                 if (click instanceof Click.Right && category.tab() != null) {
                     drop(v);
-                    items(game, v, category, false);
+                    items(game, v, category.tab(), false);
                 } else {
                     v.getInventory().setCursorItem(held(category.role(), pickable(category)));
                 }
@@ -317,12 +326,15 @@ final class HotbarManager {
         return ware != null ? Wares.icon(ware, game, viewer).withAmount(1) : ItemStack.of(Material.BARRIER);
     }
 
-    // a ware a hotbar order names is sold as goods, whose name reads no tier off a game
+    // a tool's name is its tier's, which needs a game: the pick reads as its kind
     private static String name(@Nullable Game game, Player viewer, String pick) {
         Category category = category(pick);
         if (category != null) return category.name() + " (any)";
         Ware ware = ware(pick);
-        return ware != null ? ware.name(game, viewer) : pick;
+        if (ware == null) return pick;
+        if (!ware.upgradable()) return ware.names().getFirst();
+        Category kind = category(Objects.requireNonNullElse(Wares.role(ware.icons().getFirst().apply(game, viewer)), ""));
+        return kind != null ? kind.name() : ware.names().getFirst();
     }
 
     private static @Nullable Category category(String pick) {

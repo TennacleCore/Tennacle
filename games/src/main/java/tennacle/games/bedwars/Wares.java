@@ -105,7 +105,8 @@ final class Wares {
     private static final Map<String, Ware> BY_ID = new LinkedHashMap<>();
     private static final Map<Material, String> ROLES = new HashMap<>();
     /** A ware an item can be picked as: its material once the team color and skin are off, its shop icon to tell like ones apart. */
-    private record Pick(String id, Material plain, @Nullable ItemStack shown) {}
+    // a tool's every tier is the one pick
+    private record Pick(String id, List<Material> plains, @Nullable ItemStack shown) {}
     private static final Map<String, Pick> PICKS = new LinkedHashMap<>();
 
     static {
@@ -140,6 +141,7 @@ final class Wares {
         add(new Ware(Rank.at("shears", Gear.SHEARS, Rank.Holder.SEAT, 1, Price.of(20, IRON)), Tab.TOOLS,
                 List.of("Permanent Shears"), Ware.fixed(List.of(ItemStack.of(Material.SHEARS))),
                 Items.gray("Great to get rid of wool. You will", "always spawn with these shears."), true));
+        PICKS.put("shears", new Pick("shears", List.of(Material.SHEARS), null));
         tool("pickaxe", Gear.PICKAXE, Gear.PICKAXES, List.of("Wooden Pickaxe (Efficiency I)", "Iron Pickaxe (Efficiency II)",
                 "Golden Pickaxe (Efficiency III, Sharpness II)", "Diamond Pickaxe (Efficiency III)"));
         tool("axe", Gear.AXE, Gear.AXES, List.of("Wooden Axe (Efficiency I)", "Stone Axe (Efficiency I)",
@@ -224,7 +226,7 @@ final class Wares {
         Material plain = plainOf(item.material());
         Pick first = null;
         for (Pick pick : PICKS.values()) {
-            if (pick.plain() != plain) continue;
+            if (!pick.plains().contains(plain)) continue;
             if (pick.shown() != null && Objects.equals(pick.shown().get(DataComponents.ENCHANTMENTS), item.get(DataComponents.ENCHANTMENTS))
                     && Objects.equals(pick.shown().get(DataComponents.POTION_CONTENTS), item.get(DataComponents.POTION_CONTENTS))) {
                 return pick.id();
@@ -244,8 +246,8 @@ final class Wares {
     static @NotNull ItemStack icon(@NotNull Ware ware, @Nullable Game game, @NotNull Player viewer) {
         if (game != null) return ware.icon(game, viewer);
         Pick pick = PICKS.get(ware.offer().id());
-        if (pick == null) return ItemStack.of(Material.BARRIER);
-        return pick.shown() != null ? pick.shown() : ItemStack.of(pick.plain());
+        if (pick == null) return ware.icons().getFirst().apply(null, viewer);
+        return pick.shown() != null ? pick.shown() : ItemStack.of(pick.plains().getFirst());
     }
 
     /** Every ware a hotbar order can name, in shop order. */
@@ -298,7 +300,7 @@ final class Wares {
     private static void goods(Tab tab, String id, String name, BiFunction<Game, Player, ItemStack> stack, ItemStack icon,
                               Price price, String role, String... description) {
         goods(tab, id, name, stack, (g, p) -> icon, icon.material(), price, role, description);
-        PICKS.put(id, new Pick(id, plainOf(icon.material()), icon));
+        PICKS.put(id, new Pick(id, List.of(plainOf(icon.material())), icon));
     }
 
     // the icon each viewer sees, and the material the role is filed under
@@ -306,7 +308,7 @@ final class Wares {
                               BiFunction<Game, Player, ItemStack> icon, Material plain, Price price, String role,
                               String... description) {
         ROLES.putIfAbsent(plain, role);
-        PICKS.putIfAbsent(id, new Pick(id, plainOf(plain), null));
+        PICKS.putIfAbsent(id, new Pick(id, List.of(plainOf(plain)), null));
         add(new Ware(Goods.of(id, price, role, stack), tab, List.of(name), List.of(icon), Items.gray(description), false));
     }
 
@@ -320,6 +322,7 @@ final class Wares {
         Rank rank = Rank.next(id, ladder, Rank.Holder.SEAT,
                 List.of(Price.of(10, IRON), Price.of(10, IRON), Price.of(3, GOLD), Price.of(6, GOLD)));
         add(new Ware(rank, Tab.TOOLS, names, Ware.fixed(tiers), List.of(), true));
+        PICKS.put(id, new Pick(id, tiers.stream().map(ItemStack::material).toList(), null));
     }
 
     private static void potion(String id, String name, PotionType type, PotionEffect effect, int amplifier, int ticks,
@@ -327,7 +330,7 @@ final class Wares {
         ItemStack stack = ItemStack.of(Material.POTION).with(DataComponents.POTION_CONTENTS, new PotionContents(type, null,
                 List.of(new CustomPotionEffect(effect, amplifier, ticks, false, particles, true))));
         ROLES.putIfAbsent(Material.POTION, "potions");
-        PICKS.put(id, new Pick(id, Material.POTION, stack));
+        PICKS.put(id, new Pick(id, List.of(Material.POTION), stack));
         add(new Ware(Goods.of(id, price, "potions", (g, p) -> stack), Tab.POTIONS, List.of(name), Ware.fixed(List.of(stack)),
                 List.of(Component.text(line, NamedTextColor.BLUE)), false));
     }

@@ -89,4 +89,43 @@ class KitsTabTest extends HeadlessServerTest {
             p.player.remove();
         }
     }
+
+    @Test
+    void toolsOpenTheToolsTab() {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(76.5, 65, 0.5), "KitTools");
+        try {
+            assertNull(KitLayouts.open(p.player, "bedwars"));
+            press(p, new Click.Right(12)); // Pickaxe
+            assertEquals("Tools", title(p));
+            boolean pickaxe = false;
+            for (int i = 18; i < 45; i++) pickaxe |= Screens.inventory(p.player).getItemStack(i).material() == Material.WOODEN_PICKAXE;
+            assertTrue(pickaxe, "the pickaxe as a single item");
+        } finally {
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void quickBuyEditsInTheLobby() {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(78.5, 65, 0.5), "KitQuick");
+        try {
+            assertNull(KitLayouts.open(p.player, "bedwars"));
+            press(p, new Click.Left(47));
+            assertEquals("Quick Buy", title(p));
+            press(p, new Click.Left(1)); // Blocks
+            assertEquals("Blocks", title(p));
+            press(p, new Click.Left(19)); // wool, the first ware
+            assertEquals("Adding to Quick Buy...", title(p));
+            press(p, new Click.Left(20)); // the second pin
+            assertEquals("Quick Buy", title(p));
+            var pins = tennacle.games.shop.Favorites.of(p.player, "bedwars:items");
+            assertEquals("wool", pins.get(1));
+            press(p, new Click.LeftShift(20));
+            assertEquals("", tennacle.games.shop.Favorites.of(p.player, "bedwars:items").get(1), "shift click takes it off");
+            press(p, new Click.Left(49));
+            assertEquals("Hotbar Manager", title(p), "Go Back leads where it opened from");
+        } finally {
+            p.player.remove();
+        }
+    }
 }

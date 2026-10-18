@@ -12,6 +12,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -23,7 +24,7 @@ final class QuickBuyPicker {
 
     private QuickBuyPicker() {}
 
-    static void open(Game game, Player viewer, Ware ware) {
+    static void open(@Nullable Game game, Player viewer, Ware ware) {
         Screen.Builder picker = Screen.rows(6).title(Component.text("Adding to Quick Buy..."));
         picker.item(4, v -> adding(game, v, ware));
         for (int i = 0; i < ItemShop.GRID.length; i++) {
@@ -31,19 +32,25 @@ final class QuickBuyPicker {
             picker.button(ItemShop.GRID[i], v -> pinned(game, v, index), (v, click) -> {
                 ItemShop.pin(v, index, ware.offer().id());
                 v.playSound(Lines.BOUGHT);
-                ItemShop.open(game, v, Tab.QUICK_BUY);
+                ItemShop.show(game, v, Tab.QUICK_BUY);
             });
         }
-        Screens.open(viewer, picker.build());
+        if (game == null) {
+            picker.button(49, Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)), List.of()),
+                    (v, click) -> ItemShop.show(null, v, ware.tab()));
+            Screens.swap(viewer, picker.build());
+        } else {
+            Screens.open(viewer, picker.build());
+        }
     }
 
-    private static ItemStack adding(Game game, Player viewer, Ware ware) {
+    private static ItemStack adding(@Nullable Game game, Player viewer, Ware ware) {
         List<Component> lore = ItemShop.header(game, viewer, ware);
         lore.add(Component.text("Adding item to Quick Slot!", NamedTextColor.YELLOW));
         return ItemShop.face(game, viewer, ware, lore);
     }
 
-    private static ItemStack pinned(Game game, Player viewer, int index) {
+    private static ItemStack pinned(@Nullable Game game, Player viewer, int index) {
         Ware there = Wares.of(ItemShop.pins(viewer).get(index));
         if (there == null) {
             return Items.lore(Items.named(Material.RED_STAINED_GLASS_PANE,

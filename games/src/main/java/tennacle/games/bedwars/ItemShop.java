@@ -29,6 +29,7 @@ import java.util.List;
  * The item shop as Hypixel draws it (captured 2026-09-24 and 27): a six-row chest a tab, the tabs across the top
  * over a row of panes, the wares in the middle three rows. A tab opens a new window, a purchase repaints the
  * open one. A number key over a ware buys it into that hotbar slot. Quick Buy is each player's own 21 pins.
+ * With no game ({@link #editor}) nothing is for sale: a click pins, the way a shift click does in a game.
  */
 final class ItemShop {
 
@@ -41,17 +42,32 @@ final class ItemShop {
         Screens.open(viewer, page(game, tab));
     }
 
-    private static Screen page(Game game, Tab open) {
+    /** Quick Buy to arrange outside a game, pushed over the current screen. */
+    static void editor(Player viewer) {
+        Screens.push(viewer, page(null, Tab.QUICK_BUY));
+    }
+
+    // the editor swaps its pages in place, so Go Back still leads where it was opened from
+    static void show(@Nullable Game game, Player viewer, Tab tab) {
+        if (game == null) Screens.swap(viewer, page(null, tab));
+        else open(game, viewer, tab);
+    }
+
+    private static Screen page(@Nullable Game game, Tab open) {
         Screen.Builder page = Screen.rows(6).title(Component.text(open.title));
         for (Tab tab : Tab.values()) {
-            page.button(tab.ordinal(), viewer -> tabIcon(tab, tab == open), (viewer, click) -> open(game, viewer, tab));
-            page.button(9 + tab.ordinal(), viewer -> pane(tab == open), (viewer, click) -> open(game, viewer, tab));
+            if (game == null && tab == Tab.ROTATING) continue;
+            page.button(tab.ordinal(), viewer -> tabIcon(tab, tab == open), (viewer, click) -> show(game, viewer, tab));
+            page.button(9 + tab.ordinal(), viewer -> pane(tab == open), (viewer, click) -> show(game, viewer, tab));
         }
         for (int i = 0; i < GRID.length; i++) {
             int index = i;
             page.button(GRID[i], viewer -> icon(game, viewer, open, index), (viewer, click) -> press(game, viewer, open, index, click));
         }
-        if (open == Tab.QUICK_BUY) {
+        if (game == null) {
+            page.button(49, Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)), List.of()),
+                    (viewer, click) -> Screens.back(viewer));
+        } else if (open == Tab.QUICK_BUY) {
             page.button(45, Items.bare(Items.lore(Items.named(Material.COMPASS, Component.text("Tracker Shop", NamedTextColor.GREEN)),
                     Compass.trackerLore())), (viewer, click) -> TrackerShop.open(game, viewer, false));
             page.button(53, Items.lore(Items.named(Material.BLAZE_POWDER, Component.text("Hotbar Manager", NamedTextColor.GREEN)),
@@ -59,7 +75,7 @@ final class ItemShop {
                             Component.text("Click to edit!", NamedTextColor.YELLOW))),
                     (viewer, click) -> HotbarManager.open(game, viewer));
         }
-        if (open == Tab.ROTATING) {
+        if (game != null && open == Tab.ROTATING) {
             page.item(49, Items.lore(Items.named(Material.PAPER, Component.text("What are Rotating Items?", NamedTextColor.GREEN)),
                     Items.gray("Rotating Items are items that are", "only available for a limited amount of",
                             "time. They may disappear and be", "replaced with another temporary", "item at any time.")));
@@ -99,7 +115,7 @@ final class ItemShop {
         return index < wares.size() ? wares.get(index) : null;
     }
 
-    private static ItemStack icon(Game game, Player viewer, Tab tab, int index) {
+    private static ItemStack icon(@Nullable Game game, Player viewer, Tab tab, int index) {
         Ware ware = at(viewer, tab, index);
         if (ware == null) return tab == Tab.QUICK_BUY ? emptySlot() : ItemStack.AIR;
         List<Component> lore = header(game, viewer, ware);
@@ -111,15 +127,27 @@ final class ItemShop {
         }
         if (tab == Tab.QUICK_BUY) {
             lore.add(Component.text("Shift Click to remove from Quick Buy!", NamedTextColor.AQUA));
+        } else if (game == null) {
+            lore.add(Component.text("Click to add to Quick Buy!", NamedTextColor.YELLOW));
         } else if (tab != Tab.ROTATING) {
             lore.add(Component.text("Shift Click to add to Quick Buy", NamedTextColor.AQUA));
         }
-        lore.add(last(game, viewer, ware));
+        if (game != null) lore.add(last(game, viewer, ware));
         return face(game, viewer, ware, lore);
     }
 
-    static List<Component> header(Game game, Player viewer, Ware ware) {
+    static List<Component> header(@Nullable Game game, Player viewer, Ware ware) {
         List<Component> lore = new ArrayList<>();
+        if (game != null) prices(game, viewer, ware, lore);
+        if (!lore.isEmpty()) lore.add(Component.empty());
+        if (!ware.description().isEmpty()) {
+            lore.addAll(ware.description());
+            lore.add(Component.empty());
+        }
+        return lore;
+    }
+
+    private static void prices(Game game, Player viewer, Ware ware, List<Component> lore) {
         if (!owned(game, viewer, ware)) {
             Price price = ware.offer().price(game, viewer);
             lore.add(Component.text("Cost: ", NamedTextColor.GRAY).append(Component.text(
@@ -133,12 +161,6 @@ final class ItemShop {
             lore.add(Component.text("Tier: ", NamedTextColor.GRAY)
                     .append(Component.text(roman(ware.tier(game, viewer)), NamedTextColor.YELLOW)));
         }
-        if (!lore.isEmpty()) lore.add(Component.empty());
-        if (!ware.description().isEmpty()) {
-            lore.addAll(ware.description());
-            lore.add(Component.empty());
-        }
-        return lore;
     }
 
     // captured: swords and axes carry the team's Sharpness, armor its Protection
@@ -165,7 +187,11 @@ final class ItemShop {
     }
 
     // captured: an owned permanent keeps a red name
-    static ItemStack face(Game game, Player viewer, Ware ware, List<Component> lore) {
+    static ItemStack face(@Nullable Game game, Player viewer, Ware ware, List<Component> lore) {
+        if (game == null) {
+            return Items.bare(Items.lore(Items.named(Wares.icon(ware, null, viewer),
+                    Component.text(ware.names().getFirst(), NamedTextColor.GREEN)), lore));
+        }
         Price price = ware.offer().price(game, viewer);
         boolean green = !owned(game, viewer, ware) && affordable(viewer, price);
         ItemStack icon = Items.named(ware.icon(game, viewer),
@@ -188,9 +214,18 @@ final class ItemShop {
                         Items.gray("any item in the shop to add it here.")));
     }
 
-    private static void press(Game game, Player viewer, Tab tab, int index, Click click) {
+    private static void press(@Nullable Game game, Player viewer, Tab tab, int index, Click click) {
         Ware ware = at(viewer, tab, index);
         if (click instanceof Click.Double) return; // the client's extra packet after two quick clicks; captured buying nothing
+        if (game == null) {
+            if (ware == null || click instanceof Click.HotbarSwap) return;
+            if (tab != Tab.QUICK_BUY) QuickBuyPicker.open(null, viewer, ware);
+            else if (click instanceof Click.LeftShift || click instanceof Click.RightShift || click instanceof Click.Right) {
+                pin(viewer, index, "");
+                Screens.repaint(viewer);
+            }
+            return;
+        }
         if (ware == null) {
             if (tab != Tab.QUICK_BUY) return;
             Lines.emptyQuickBuySlot(game).forEach(viewer::sendMessage);
