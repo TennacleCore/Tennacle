@@ -83,7 +83,10 @@ public final class Lobbies {
                                      @NotNull List<String> aliases) {
         Lobby lobby = new Lobby(id, name, icon, blurb, hosting, world, spawn, List.copyOf(aliases));
         if (!LOBBIES.isEmpty()) Wardrobe.outfit(world, Playground::outfit);
-        else LobbyCommands.upward(Lobbies::stepUp);
+        else {
+            LobbyCommands.upward(Lobbies::stepUp);
+            tennacle.audit.Audit.lobbies(Lobbies::label);
+        }
         LOBBIES.add(lobby);
         LobbyCommands.destination(id, lobby.aliases(), player -> HOME.put(player.getUuid(), lobby));
         return lobby;
@@ -118,6 +121,12 @@ public final class Lobbies {
 
     public static @NotNull Lobby home(@NotNull Player player) {
         return HOME.getOrDefault(player.getUuid(), main());
+    }
+
+    private static @Nullable String label(Instance world) {
+        Lobby lobby = of(world);
+        if (lobby == null) return null;
+        return lobby == main() ? "lobby" : "lobby " + lobby.id();
     }
 
     // Hypixel's /l: a game's lobby leads back to the main one

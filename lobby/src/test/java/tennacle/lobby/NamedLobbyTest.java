@@ -30,6 +30,7 @@ class NamedLobbyTest extends HeadlessServerTest {
         Lobbies.add("arcade", "Arcade", Material.CAKE, "", mode -> false, arcade, new Pos(0.5, 65, 0.5), List.of("ar"));
         FakePlayer p = FakePlayer.connect(instance, new Pos(84.5, 65, 0.5), "NamedL");
         try {
+            org.junit.jupiter.api.Assertions.assertEquals("lobby arcade", tennacle.audit.Audit.label(arcade), "the audit names it");
             MinecraftServer.getCommandManager().execute(p.player, "l ar");
             arrive(p, arcade);
             MinecraftServer.getCommandManager().execute(p.player, "l");

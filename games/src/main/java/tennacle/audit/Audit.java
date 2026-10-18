@@ -96,9 +96,18 @@ public final class Audit {
         return game.type().id() + "#" + game.code();
     }
 
+    private static volatile java.util.function.Function<Instance, @Nullable String> lobbies =
+            instance -> instance == Matches.lobby() ? "lobby" : null;
+
+    /** How a lobby world reads, null for any other; the lobbies name theirs, set from above. */
+    public static void lobbies(@NotNull java.util.function.Function<Instance, @Nullable String> name) {
+        lobbies = name;
+    }
+
     /** What an instance is to the app: the lobby, a map's world, the editor's, or a bare world. */
     public static @NotNull String label(@NotNull Instance instance) {
-        if (instance == Matches.lobby()) return "lobby";
+        String lobby = lobbies.apply(instance);
+        if (lobby != null) return lobby;
         Arena arena = arenaOf(instance);
         if (arena != null) return "map " + mapName(arena);
         Session editing = editorAt(instance);
