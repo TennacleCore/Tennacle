@@ -1,5 +1,9 @@
 package tennacle.lobby.menus;
 
+import tennacle.storage.ReplayStore;
+import tennacle.games.watch.Tapes;
+import tennacle.Msg;
+import net.minestom.server.inventory.click.Click;
 import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.screen.Entry;
 import io.github.term4.canvas.screen.Items;
@@ -137,8 +141,30 @@ public final class MainMenu {
             return screen.build();
         }
         return screen.pages(PAGE, games.size(), page, i -> v -> replay(v, games.get(i)),
-                i -> (v, click) -> watch(v, games.get(i)),
+                i -> (v, click) -> click instanceof Click.Right ? bookmark(v, games.get(i), page) : watch(v, games.get(i)),
                 to -> replays(viewer, to)).build();
+    }
+
+    private static @Nullable String bookmark(Player viewer, ReplayCatalog.Record game, int page) {
+        if (game.sample()) return "This is a sample replay!";
+        if (!game.watchable()) return "This replay has expired.";
+        Tapes.store().bookmark(viewer.getUuid(), game.id()).whenComplete((result, failed) ->
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                    if (failed != null) {
+                        Msg.fail(viewer, "That didn't save. Try again in a moment.");
+                        return;
+                    }
+                    switch (result) {
+                        case ADDED -> Msg.ok(viewer, "Bookmarked. It stays yours to watch after it would expire.");
+                        case REMOVED -> Msg.ok(viewer, "Bookmark removed.");
+                        case FULL -> Msg.fail(viewer, "You can bookmark " + ReplayStore.BOOKMARKS + " replays. Remove one first.");
+                        case MISSING -> Msg.fail(viewer, "Bookmarks need the replay database, which this server doesn't have.");
+                    }
+                    GAMES.remove(viewer.getUuid());
+                    Screen open = Screens.screen(viewer);
+                    if (open != null && "menu:replays".equals(open.key())) Screens.swap(viewer, replays(viewer, page));
+                }));
+        return null;
     }
 
     private static @Nullable String watch(Player viewer, ReplayCatalog.Record game) {
@@ -176,7 +202,10 @@ public final class MainMenu {
         }
         int more = game.sides().size() - shown.size();
         if (more > 0) entry.line(theme.prose("+" + more + (more == 1 ? " more team" : " more teams")));
-        return entry.action(game.watchable() || game.sample() ? "Click to watch!" : "Expired").render(viewer);
+        if (game.bookmarked()) entry.line(theme.good("Bookmarked"));
+        if (!game.watchable() && !game.sample()) return entry.action("Expired").render(viewer);
+        return entry.action("Click to watch!").action(game.bookmarked() ? "Right-click to remove the bookmark" : "Right-click to bookmark")
+                .render(viewer);
     }
 
     private static Screen kits() {

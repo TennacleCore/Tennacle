@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
@@ -26,7 +27,7 @@ public final class FileReplays implements ReplayStore {
     }
 
     @Override
-    public @NotNull CompletableFuture<byte @Nullable []> bytes(@NotNull String id) {
+    public @NotNull CompletableFuture<byte @Nullable []> bytes(@NotNull String id, @NotNull UUID viewer, boolean staff) {
         String key = keyOf(id);
         return key == null ? CompletableFuture.completedFuture(null) : blobs.get(key);
     }

@@ -59,7 +59,7 @@ record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull Match
         Imports.filesOnce(db, data);
         LOGGER.info("storage: postgres");
         PgStats stats = new PgStats(db);
-        long keep = TimeUnit.DAYS.toMillis(Config.integer("tennacle.replays.keep-days", 0)); // 0: kept forever
+        long keep = TimeUnit.DAYS.toMillis(Config.integer("tennacle.replays.keep-days", 30));
         PgReplays replays = new PgReplays(db, new FileReplayBlobs(replayDir), keep);
         // once every mode has named its career keys
         Runnable installed = () -> {
@@ -69,7 +69,7 @@ record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull Match
                     .repeat(TaskSchedule.hours(1)).schedule();
         };
         return new Stores(new StatRouting(new PgVault(db), stats), new PgDirectory(db), new PgMatches(db),
-                new PgPunishments(db), replays, new PgReplayCatalog(db), new PgApiKeys(db), installed, new Closer() {
+                new PgPunishments(db), replays, new PgReplayCatalog(db, keep), new PgApiKeys(db), installed, new Closer() {
             @Override
             public void left(@NotNull UUID player) {}
 

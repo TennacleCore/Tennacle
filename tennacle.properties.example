@@ -23,9 +23,9 @@ tennacle.arena-dir = arenas
 # tennacle.postgres.password = <the role's password>
 # tennacle.postgres.pool = 8
 
-# with postgres: days a replay stays watchable before its bytes are deleted (a bookmark or report can hold one
-# longer); 0 keeps every replay forever
-# tennacle.replays.keep-days = 0
+# with postgres: days a replay stays watchable. Past that only a player's bookmark keeps it, for them; a staff hold
+# (a report) keeps the bytes for staff alone; with neither the bytes are deleted. 0 keeps every replay forever
+# tennacle.replays.keep-days = 30
 
 # the public API, its own process (gradlew :api:installDist, then api/build/install/TennacleApi/bin/TennacleApi):
 # it reads the postgres settings above. Requests a minute per key

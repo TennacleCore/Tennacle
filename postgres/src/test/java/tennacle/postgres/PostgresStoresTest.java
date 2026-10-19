@@ -169,22 +169,47 @@ class PostgresStoresTest {
     }
 
     @Test
-    void replaysKeepThenExpire(@TempDir Path root) {
-        PgReplays replays = new PgReplays(db, new FileReplayBlobs(root), 1_000);
-        String kept = UUID.randomUUID().toString();
-        String held = UUID.randomUUID().toString();
+    void replaysKeepHoldAndBookmark(@TempDir Path root) {
+        long[] now = {10_500};
+        PgReplays replays = new PgReplays(db, new FileReplayBlobs(root), 1_000, () -> now[0]);
+        UUID player = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        String plain = UUID.randomUUID().toString();
+        String reported = UUID.randomUUID().toString();
+        String saved = UUID.randomUUID().toString();
         byte[] bytes = {1, 2, 3};
-        replays.put(new ReplayStore.Entry(kept, "AAAAA", "bridge", "Urban", 10_000, 600, 3), bytes).join();
-        replays.put(new ReplayStore.Entry(held, "BBBBB", "sumo", "Ring", 10_000, 20, 3), bytes).join();
-        assertTrue(Files.exists(root.resolve("bridge").resolve(kept + ".shard")), "the bytes in the blob store");
-        assertTrue(java.util.Arrays.equals(bytes, replays.bytes(kept).join()));
-        assertNull(replays.bytes(UUID.randomUUID().toString()).join());
+        for (String id : List.of(plain, reported, saved)) {
+            replays.put(new ReplayStore.Entry(id, "AAAAA", "bridge", "Urban", 10_000, 600, 3), bytes).join();
+        }
+        assertTrue(Files.exists(root.resolve("bridge").resolve(plain + ".shard")), "the bytes in the blob store");
+        assertTrue(java.util.Arrays.equals(bytes, replays.bytes(plain, other, false).join()), "everyone's within the keep");
+        assertNull(replays.bytes(UUID.randomUUID().toString(), other, false).join());
+        assertEquals(ReplayStore.Bookmark.ADDED, replays.bookmark(player, saved).join());
+        replays.hold(reported, 50_000).join();
 
-        replays.keep(held, 50_000).join();
-        assertTrue(replays.expire(20_000).join() >= 1);
-        assertNull(replays.bytes(kept).join(), "past its keep");
-        assertTrue(!Files.exists(root.resolve("bridge").resolve(kept + ".shard")), "and its bytes are gone");
-        assertTrue(java.util.Arrays.equals(bytes, replays.bytes(held).join()), "a hold outlasts the keep");
+        now[0] = 20_000;
+        assertNull(replays.bytes(plain, other, false).join(), "past the keep");
+        assertNull(replays.bytes(reported, player, false).join(), "a report hides it from players");
+        assertTrue(java.util.Arrays.equals(bytes, replays.bytes(reported, player, true).join()), "and keeps it for staff");
+        assertTrue(java.util.Arrays.equals(bytes, replays.bytes(saved, player, false).join()), "a bookmark keeps it for its player");
+        assertNull(replays.bytes(saved, other, false).join(), "and only them");
+        assertEquals(ReplayStore.Bookmark.MISSING, replays.bookmark(other, plain).join(), "too late to bookmark");
+
+        assertEquals(1, replays.expire(20_000).join(), "only what nothing keeps");
+        assertTrue(!Files.exists(root.resolve("bridge").resolve(plain + ".shard")), "its bytes are gone");
+        assertTrue(Files.exists(root.resolve("bridge").resolve(reported + ".shard")));
+        assertEquals(ReplayStore.Bookmark.REMOVED, replays.bookmark(player, saved).join());
+        now[0] = 60_000;
+        assertEquals(2, replays.expire(60_000).join(), "the hold ran out, the bookmark was taken back");
+
+        for (int i = 0; i < ReplayStore.BOOKMARKS; i++) {
+            String id = UUID.randomUUID().toString();
+            replays.put(new ReplayStore.Entry(id, "BBBBB", "sumo", "Ring", 59_900, 20, 3), bytes).join();
+            assertEquals(ReplayStore.Bookmark.ADDED, replays.bookmark(other, id).join());
+        }
+        String one = UUID.randomUUID().toString();
+        replays.put(new ReplayStore.Entry(one, "CCCCC", "sumo", "Ring", 59_900, 20, 3), bytes).join();
+        assertEquals(ReplayStore.Bookmark.FULL, replays.bookmark(other, one).join());
 
         String old = UUID.randomUUID().toString();
         assertEquals(1, replays.adoptOnce(() -> List.of(new ReplayStore.Entry(old, "CCCCC", "boxing", "Arena", 9_000_000_000_000L, 0, 3))).join());
@@ -206,7 +231,7 @@ class PostgresStoresTest {
                 List.of(new MatchStore.Side("1", "Red", "red", List.of(new MatchStore.Seat(a, "A"), new MatchStore.Seat(b, "B")))))).join();
         replays.put(new ReplayStore.Entry(older, "AAAAA", "bridge", "Urban", 61_000, 1200, 1), new byte[]{1}).join();
 
-        List<ReplayCatalog.Record> games = new PgReplayCatalog(db).of(a, "A", 10).join();
+        List<ReplayCatalog.Record> games = new PgReplayCatalog(db, 0).of(a, "A", 10).join();
         assertEquals(List.of(newer, older), games.stream().map(ReplayCatalog.Record::id).toList(), "newest first");
         ReplayCatalog.Record bridge = games.get(1);
         assertEquals("Urban", bridge.map());
@@ -217,6 +242,6 @@ class PostgresStoresTest {
         assertEquals(b, bridge.sides().get(1).seats().getFirst().id());
         assertTrue(!games.getFirst().watchable(), "no replay kept");
         assertNull(games.getFirst().winner());
-        assertTrue(new PgReplayCatalog(db).of(UUID.randomUUID(), "Nobody", 10).join().isEmpty());
+        assertTrue(new PgReplayCatalog(db, 0).of(UUID.randomUUID(), "Nobody", 10).join().isEmpty());
     }
 }

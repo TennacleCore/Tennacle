@@ -1,5 +1,6 @@
 package tennacle.games.watch;
 
+import tennacle.access.Access;
 import tennacle.looks.Look;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
@@ -54,6 +55,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class Theaters {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Theaters.class);
+    /** Watches a replay past its keep while a staff hold (a report) keeps it. */
+    public static final String STAFF = "tennacle.moderate.replays";
 
     private record Theater(String game, Shard stage, Playback playback, Arena arena, Dressing dressing,
                           Set<Player> watchers, double floor) {}
@@ -162,7 +165,7 @@ public final class Theaters {
         Thread.ofVirtual().name("tennacle-replay-" + id.substring(0, 8)).start(() -> {
             byte[] loaded;
             try {
-                loaded = Tapes.store().bytes(id).join();
+                loaded = Tapes.store().bytes(id, viewer.getUuid(), Access.allows(viewer, STAFF)).join();
             } catch (RuntimeException e) {
                 LOGGER.warn("the replay of game {} could not be read", id, e);
                 MinecraftServer.getSchedulerManager().scheduleNextTick(() ->

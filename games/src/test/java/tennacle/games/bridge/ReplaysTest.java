@@ -119,7 +119,7 @@ class ReplaysTest extends HeadlessServerTest {
         assertFalse(Files.exists(spool), "and is gone");
         assertFalse(Files.exists(spool.getParent()), "with the folder from before the mode folders");
         assertEquals("LEFT", ShardFile.userData(Files.readAllBytes(filed)).get(Replays.CODE), "with the header's data");
-        assertTrue(java.util.Arrays.equals(Files.readAllBytes(filed), Tapes.store().bytes("leftover").join()), "and the store finds it");
+        assertTrue(java.util.Arrays.equals(Files.readAllBytes(filed), Tapes.store().bytes("leftover", java.util.UUID.randomUUID(), false).join()), "and the store finds it");
         assertTrue(Files.exists(replays.resolve("boxing").resolve("loose.shard")), "the loose file moved under its mode");
         assertFalse(Files.exists(loose));
     }
@@ -184,7 +184,7 @@ class ReplaysTest extends HeadlessServerTest {
             BridgeRoundTest.tickUntil(game, "the game ends", () -> game.status() != Game.Status.OPEN);
             Path file = replays.resolve("bridge").resolve(game.id() + ".shard");
             await("the file lands under its mode", () -> Files.exists(file));
-            assertTrue(java.util.Arrays.equals(Files.readAllBytes(file), Tapes.store().bytes(game.id()).join()));
+            assertTrue(java.util.Arrays.equals(Files.readAllBytes(file), Tapes.store().bytes(game.id(), red.player.getUuid(), false).join()));
             await("the players hear it", () -> said(red, "This game has been recorded") && said(blue, "This game has been recorded"));
             String json = blue.sent(SystemChatPacket.class).stream()
                     .map(c -> GsonComponentSerializer.gson().serialize(c.message()))

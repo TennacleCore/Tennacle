@@ -68,7 +68,7 @@ public final class ApiServer {
         this.keys = new PgApiKeys(db);
         this.directory = new PgDirectory(db);
         this.stats = new PgStats(db);
-        this.catalog = new PgReplayCatalog(db);
+        this.catalog = new PgReplayCatalog(db, java.util.concurrent.TimeUnit.DAYS.toMillis(Config.integer("tennacle.replays.keep-days", 30)));
         this.limit = new RateLimit(perMinute);
     }
 

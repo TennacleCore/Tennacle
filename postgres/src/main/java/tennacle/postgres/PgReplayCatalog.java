@@ -1,6 +1,7 @@
 package tennacle.postgres;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tennacle.storage.ReplayCatalog;
 
 import java.sql.Connection;
@@ -15,36 +16,64 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/** A player's matches, with their replay where one is kept. */
+/** A player's matches, with their replay where one is kept and the player may still watch it. */
 public final class PgReplayCatalog implements ReplayCatalog {
 
     private record Row(String id, String code, String mode, String map, long startedAt, long endedAt, String winner,
-                       boolean watchable) {}
+                       boolean watchable, boolean bookmarked) {}
 
     private record SideName(String team, String name, String color) {}
 
-    private final Database db;
+    private interface Bind {
+        void bind(PreparedStatement s, int at) throws SQLException;
+    }
 
-    public PgReplayCatalog(@NotNull Database db) {
+    private final Database db;
+    private final long keepMillis;
+
+    /** {@code keepMillis} as the replay store's: past it, only a bookmark keeps a replay watchable. */
+    public PgReplayCatalog(@NotNull Database db, long keepMillis) {
         this.db = db;
+        this.keepMillis = keepMillis;
     }
 
     @Override
     public @NotNull CompletableFuture<List<Record>> of(@NotNull UUID player, @NotNull String name, int limit) {
-        return db.query(c -> records(c, matches(c, "m.id IN (SELECT match_id FROM match_players WHERE player = ?)",
-                s -> s.setObject(1, player), limit)));
+        return db.query(c -> records(c, matches(c, player, "m.id IN (SELECT match_id FROM match_players WHERE player = ?)",
+                (s, at) -> s.setObject(at, player), limit)));
     }
 
-    /** One match by its id, or null. */
-    public @NotNull CompletableFuture<Record> match(@NotNull String id) {
+    /** One match by its id, or null; watchable as it is for everyone. */
+    public @NotNull CompletableFuture<@Nullable Record> match(@NotNull String id) {
         return db.query(c -> {
-            List<Record> found = records(c, matches(c, "m.id = ?", s -> s.setString(1, id), 1));
+            List<Record> found = records(c, matches(c, null, "m.id = ?", (s, at) -> s.setString(at, id), 1));
             return found.isEmpty() ? null : found.getFirst();
         });
     }
 
-    private interface Bind {
-        void bind(PreparedStatement s) throws SQLException;
+    private List<Row> matches(Connection c, @Nullable UUID viewer, String where, Bind bind, int limit) throws SQLException {
+        String bookmarked = "EXISTS (SELECT 1 FROM replay_holds h WHERE h.replay_id = r.id AND h.kind = 'bookmark' AND h.holder = ?)";
+        try (PreparedStatement s = c.prepareStatement("SELECT m.id, coalesce(r.code, m.code), m.mode, "
+                + "coalesce(nullif(m.map, ''), r.map, ''), m.started_at, m.ended_at, m.winner, "
+                + "(r.id IS NOT NULL AND r.expired_at = 0 AND (? OR r.played_at >= ? OR " + bookmarked + ")), "
+                + bookmarked + " FROM matches m LEFT JOIN replays r ON r.id = m.id "
+                + "WHERE " + where + " ORDER BY m.ended_at DESC LIMIT ?")) {
+            UUID who = viewer == null ? Imports.UNKNOWN : viewer;
+            s.setBoolean(1, keepMillis <= 0);
+            s.setLong(2, System.currentTimeMillis() - keepMillis);
+            s.setObject(3, who);
+            s.setObject(4, who);
+            bind.bind(s, 5);
+            s.setInt(6, limit);
+            List<Row> out = new ArrayList<>();
+            try (ResultSet rows = s.executeQuery()) {
+                while (rows.next()) {
+                    out.add(new Row(rows.getString(1), rows.getString(2), rows.getString(3), rows.getString(4),
+                            rows.getLong(5), rows.getLong(6), rows.getString(7), rows.getBoolean(8), rows.getBoolean(9)));
+                }
+            }
+            return out;
+        }
     }
 
     private static List<Record> records(Connection c, List<Row> rows) throws SQLException {
@@ -61,28 +90,10 @@ public final class PgReplayCatalog implements ReplayCatalog {
                 SideName n = named.getOrDefault(side, new SideName(String.valueOf(side + 1), "", "white"));
                 sides.put(side, new Side(n.team(), n.name(), n.color(), seated.get(side)));
             }
-            out.add(new Record(row.id(), row.code(), row.mode(), row.map(), row.endedAt(),
-                    row.endedAt() - row.startedAt(), List.copyOf(sides.values()), row.winner(), false, row.watchable()));
+            out.add(new Record(row.id(), row.code(), row.mode(), row.map(), row.endedAt(), row.endedAt() - row.startedAt(),
+                    List.copyOf(sides.values()), row.winner(), false, row.watchable(), row.bookmarked()));
         }
         return out;
-    }
-
-    private static List<Row> matches(Connection c, String where, Bind bind, int limit) throws SQLException {
-        try (PreparedStatement s = c.prepareStatement("SELECT m.id, coalesce(r.code, m.code), m.mode, "
-                + "coalesce(nullif(m.map, ''), r.map, ''), m.started_at, m.ended_at, m.winner, "
-                + "(r.id IS NOT NULL AND r.expired_at = 0) FROM matches m LEFT JOIN replays r ON r.id = m.id "
-                + "WHERE " + where + " ORDER BY m.ended_at DESC LIMIT ?")) {
-            bind.bind(s);
-            s.setInt(2, limit);
-            List<Row> out = new ArrayList<>();
-            try (ResultSet rows = s.executeQuery()) {
-                while (rows.next()) {
-                    out.add(new Row(rows.getString(1), rows.getString(2), rows.getString(3), rows.getString(4),
-                            rows.getLong(5), rows.getLong(6), rows.getString(7), rows.getBoolean(8)));
-                }
-            }
-            return out;
-        }
     }
 
     private static Map<String, Map<Integer, SideName>> sideNames(Connection c, String[] ids) throws SQLException {

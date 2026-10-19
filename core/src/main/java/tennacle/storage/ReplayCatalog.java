@@ -20,9 +20,10 @@ public interface ReplayCatalog {
     /** {@code team} is what a {@link Record#winner} names; {@code color} a named text color. */
     record Side(@NotNull String team, @NotNull String name, @NotNull String color, @NotNull List<Seat> seats) {}
 
-    /** {@code mode} is the mode's id; {@code winner} null for a draw; {@code watchable} false once the replay expired. */
+    /** {@code mode} is the mode's id; {@code winner} null for a draw; {@code watchable} by the player asking. */
     record Record(@NotNull String id, @NotNull String code, @NotNull String mode, @NotNull String map, long playedAt,
-                  long lengthMillis, @NotNull List<Side> sides, @Nullable String winner, boolean sample, boolean watchable) {}
+                  long lengthMillis, @NotNull List<Side> sides, @Nullable String winner, boolean sample, boolean watchable,
+                  boolean bookmarked) {}
 
     /** {@code player}'s latest games, newest first. */
     @NotNull CompletableFuture<List<Record>> of(@NotNull UUID player, @NotNull String name, int limit);
@@ -60,7 +61,7 @@ public interface ReplayCatalog {
                 long length = (game[0].equals("sumo") ? 30 : game[0].startsWith("bedwars") ? 600 : 240) * 1000L
                         + random.nextInt(300_000);
                 String code = Long.toString(Math.abs(random.nextLong()) % 2_176_782_336L, 36).toUpperCase();
-                out.add(new Record("sample-" + i, code, game[0], game[1], at, length, sides, winner, true, false));
+                out.add(new Record("sample-" + i, code, game[0], game[1], at, length, sides, winner, true, false, false));
                 at -= length + 60_000L + random.nextInt(3 * 3_600_000);
             }
             return CompletableFuture.completedFuture(out);
