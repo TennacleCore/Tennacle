@@ -84,7 +84,8 @@ Time, in seconds, sampled once a second while they were alive and on the map.
 | Stat | Means |
 |---|---|
 | `time-at-base` | inside their own team's base box |
-| `time-at-mid` | within reach of the emerald generators in the middle |
+| `time-at-mid` | inside the map's middle, where it has one |
+| `time-at-emeralds` | within reach of an emerald generator |
 | `time-at-diamonds` | within reach of a diamond generator |
 | `time-at-other-bases`, split three ways | inside another team's base box, by that team's state at the time: |
 | | `time-at-bases-alive` (it still has its bed) |
@@ -111,11 +112,14 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
 | combat | `DamageAppliedEvent` and `BlockingDamageEvent` (Bed Wars doesn't install `Hits` today) |
 | items | `ConsumeAppliedEvent`, `ProjectileLaunchEvent`, `TntPrimeEvent`, `Creatures`, `BridgeEgg`, `PopupTower`, `Sponge` |
 | building | `Building`'s place and break counters (kept per seat today, not flushed) |
-| places | a once-a-second check against the markers: `BASE`, `DIAMOND`, `EMERALD` |
+| places | a once-a-second check against the markers (`BASE`, `DIAMOND`, `EMERALD`) and each map's middle |
 
-## Open
+## Decided (2026-10-19)
 
-1. **Chests:** net per visit, as above, or every item taken, even ones put back?
-2. **Mid and diamond reach:** a radius around each generator (say 8 blocks), or a box drawn per map?
-3. **Kept-in-game stats:** are any of these private? Places and chest takes say how a player plays. The public API
-   could show only the results, combat and building groups.
+1. **Chests:** net per visit, as above.
+2. **Mid:** only some maps have one: a small ring of generators around the center, usually emeralds (diamonds on
+   Tengshe), more an oval than a circle. A linear pattern like Acropolis's is no middle. Each map's middle is drawn by
+   hand, an oval (or a box) on the map, in the Bed Wars Zones page. A map without one keeps no `time-at-mid`.
+3. **Diamond and emerald reach:** a radius around each generator: 8 blocks by default, set per map on the same page.
+   Emeralds get their own `time-at-emeralds` beside `time-at-diamonds`.
+4. **Public:** every stat shows in the public API.
