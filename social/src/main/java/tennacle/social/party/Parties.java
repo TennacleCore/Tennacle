@@ -296,7 +296,7 @@ public final class Parties {
         });
         Commands.register(pl);
 
-        AppCommand pc = Commands.player("pc", "Say something to your party.")
+        AppCommand pc = Commands.player("pc", "Say something to your party.").speaks()
                 .usage("/pc <message>", "one line to the party, whatever channel you are in");
         var text = ArgumentType.StringArray("text");
         pc.addSyntax((sender, ctx) -> {

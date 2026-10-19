@@ -16,6 +16,7 @@ import tennacle.Msg;
 import tennacle.Seen;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
+import tennacle.moderation.Vanish;
 import tennacle.social.Audience;
 import tennacle.social.Choice;
 import tennacle.social.blocks.Blocks;
@@ -54,7 +55,7 @@ public final class Messages {
     public static void install() {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> forget(e.getPlayer().getUuid()));
 
-        AppCommand msg = Commands.player("msg", "Send a player a private message.", "w", "tell")
+        AppCommand msg = Commands.player("msg", "Send a player a private message.", "w", "tell").speaks()
                 .usage("/msg <player> <message>", "a private message")
                 .usage("/msg <player>", "talk to them in plain chat for five minutes")
                 .usage("/r [message]", "answer whoever messaged you last");
@@ -70,7 +71,7 @@ public final class Messages {
         }, target, text);
         Commands.register(msg);
 
-        AppCommand reply = Commands.player("r", "Answer whoever messaged you last.");
+        AppCommand reply = Commands.player("r", "Answer whoever messaged you last.").speaks();
         reply.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player me) reply(me, null);
         });
@@ -119,7 +120,7 @@ public final class Messages {
 
     private static void send(Player me, String name, @Nullable String text) {
         Player to = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
-        if (to != null) {
+        if (to != null && !Vanish.hides(me, to)) {
             reach(me, to, text);
             return;
         }

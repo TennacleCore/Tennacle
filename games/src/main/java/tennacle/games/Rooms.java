@@ -46,7 +46,7 @@ public final class Rooms {
 
     public static void install() {
         Chat.install(Rooms::of);
-        AppCommand all = Commands.player("ac", "Talk in the main chat, whatever channel you're in.")
+        AppCommand all = Commands.player("ac", "Talk in the main chat, whatever channel you're in.").speaks()
                 .usage("/ac <message>", "game, team or lobby chat, past /chat and an open conversation");
         var text = ArgumentType.StringArray("message");
         all.setDefaultExecutor((sender, ctx) -> Msg.fail(sender, "Invalid usage! '/ac <message>'"));

@@ -3,6 +3,7 @@ package tennacle.commands;
 import tennacle.Msg;
 import tennacle.access.Access;
 import tennacle.access.AccessCommands;
+import tennacle.moderation.Moderation;
 
 import io.github.term4.canvas.Canvas;
 import net.kyori.adventure.text.Component;
@@ -85,6 +86,7 @@ public final class Commands {
         Access.onChange(Player::refreshCommands);
         help();
         AccessCommands.register();
+        Moderation.install();
     }
 
     // Bukkit's: /AC runs /ac; what follows keeps its case, a name or a message being typed as meant

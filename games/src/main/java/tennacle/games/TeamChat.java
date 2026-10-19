@@ -88,7 +88,7 @@ public final class TeamChat implements GameModule {
 
     /** {@code /shout <message>}: the whole game hears it. */
     public static void register() {
-        AppCommand cmd = Commands.player("shout", "Say something to everyone in your game, not just your team.")
+        AppCommand cmd = Commands.player("shout", "Say something to everyone in your game, not just your team.").speaks()
                 .usage("/shout <message>", "the whole game hears it, once a cooldown");
         var text = ArgumentType.StringArray("text");
         cmd.setDefaultExecutor((sender, ctx) -> Commands.usage(sender, cmd));

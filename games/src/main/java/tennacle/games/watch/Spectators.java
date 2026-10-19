@@ -1,5 +1,6 @@
 package tennacle.games.watch;
 
+import tennacle.moderation.Vanish;
 import tennacle.Press;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -63,6 +64,11 @@ public final class Spectators {
             public boolean affects(@NotNull net.minestom.server.entity.Entity actor,
                                    @NotNull net.minestom.server.entity.Entity target) {
                 return !watches(actor) && !watches(target) && ShardPolicy.super.affects(actor, target);
+            }
+
+            @Override
+            public boolean sees(@NotNull Player viewer, @NotNull net.minestom.server.entity.Entity subject) {
+                return !Vanish.hides(viewer, subject) && ShardPolicy.super.sees(viewer, subject);
             }
         });
         // the compass and the feather; Grotto refuses a spectator's use, so listen past the cancel. Both events,

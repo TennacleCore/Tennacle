@@ -33,6 +33,7 @@ public final class AppCommand extends Command {
     private String node;
     private @Nullable Role lowest;
     private boolean featured;
+    private boolean speech;
 
     AppCommand(@NotNull Audience audience, @NotNull String blurb, @NotNull String name, @NotNull String... aliases) {
         super(name, aliases);
@@ -69,6 +70,16 @@ public final class AppCommand extends Command {
 
     public @Nullable Role role() {
         return lowest;
+    }
+
+    /** What it sends is said to other players, so a mute silences it. */
+    public @NotNull AppCommand speaks() {
+        speech = true;
+        return this;
+    }
+
+    public boolean speech() {
+        return speech;
     }
 
     /** Listed on the welcome screen. */
