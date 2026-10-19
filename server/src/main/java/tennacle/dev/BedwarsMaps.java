@@ -92,7 +92,8 @@ public final class BedwarsMaps {
                 String name = map.get("map").getAsString();
                 if (only != null && !only.contains(name)) continue;
                 String zipName = (map.has("archive") ? map.get("archive").getAsString() : name) + ".zip";
-                Path zip = find(archive, zipName);
+                // a map downloaded from live Hypixel names its world; the rest are the archive's
+                Path zip = map.has("world") ? Path.of(map.get("world").getAsString()) : find(archive, zipName);
                 if (zip == null) {
                     System.out.println(name + ": no " + zipName + " under " + archive);
                     continue;
