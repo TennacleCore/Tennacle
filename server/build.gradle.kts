@@ -68,6 +68,17 @@ tasks.register<JavaExec>("bedwarsFacing") {
     argumentProviders.add(CommandLineArgumentProvider { listOf("--reface", dir.get()) })
 }
 
+tasks.register<JavaExec>("scrimsMaps") {
+    description = "Builds Bridge arenas from -Pmaps (scrims_map.py's zip and json pairs); -Pout optional"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "tennacle.dev.ScrimsMaps"
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    workingDir = rootDir
+    val maps = providers.gradleProperty("maps")
+    val out = providers.gradleProperty("out").orElse(rootProject.layout.projectDirectory.dir("arenas/scrims").asFile.path)
+    argumentProviders.add(CommandLineArgumentProvider { listOf(maps.get(), out.get()) })
+}
+
 tasks.register<JavaExec>("arenaIcons") {
     description = "Lists each arena's map-menu icon in -Pdir (arenas/bedwars); -Pwrite=true stores the ones not hand-picked"
     classpath = sourceSets["main"].runtimeClasspath

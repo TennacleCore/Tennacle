@@ -13,7 +13,6 @@ import io.github.term4.barnacle.marker.Marker;
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
-import io.github.term4.bloom.mapmaking.LegacyAnvil;
 import io.github.term4.bloom.mapmaking.Teams;
 import io.github.term4.canvas.theme.Livery;
 import io.github.term4.canvas.theme.Tint;
@@ -31,20 +30,16 @@ import net.minestom.server.coordinate.Vec;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 /**
  * Hypixel's archived BedWars worlds as arenas: each world through Bloom's pre-1.13 reader, with the markers
@@ -156,37 +151,11 @@ public final class BedwarsMaps {
     }
 
     private static byte[] world(Path zip, JsonObject map) throws IOException {
-        Path temp = Files.createTempDirectory("bedwars-map");
-        try (ZipFile archive = new ZipFile(zip.toFile())) {
-            String root = null;
-            for (ZipEntry entry : archive.stream().toList()) {
-                int at = entry.getName().indexOf("region/");
-                if (at >= 0) {
-                    root = entry.getName().substring(0, at);
-                    break;
-                }
-            }
-            if (root == null) throw new IOException(zip + " holds no region/ folder");
-            for (ZipEntry entry : archive.stream().toList()) {
-                if (entry.isDirectory() || !entry.getName().startsWith(root)) continue;
-                Path target = temp.resolve(entry.getName().substring(root.length())).normalize();
-                if (!target.startsWith(temp)) throw new IOException("entry outside the world: " + entry.getName());
-                Files.createDirectories(target.getParent());
-                try (InputStream in = archive.getInputStream(entry)) {
-                    Files.copy(in, target);
-                }
-            }
-            if (!LegacyAnvil.isLegacy(temp)) throw new IOException(zip + " is not a pre-1.13 world");
-            return LegacyAnvil.toPolar(temp, instance -> {
-                clear(instance, room(map));
-                moveBeds(instance, map);
-                liveBlocks(instance, map);
-            });
-        } finally {
-            try (Stream<Path> paths = Files.walk(temp)) {
-                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
-            }
-        }
+        return LegacyZip.toPolar(zip, instance -> {
+            clear(instance, room(map));
+            moveBeds(instance, map);
+            liveBlocks(instance, map);
+        });
     }
 
     private static byte[] build(String id, JsonObject map, byte[] world) {
