@@ -37,6 +37,7 @@ import net.minestom.server.item.Material;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
+import net.minestom.server.entity.EntityType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -70,6 +71,21 @@ class ChestsTest extends HeadlessServerTest {
     @FunctionalInterface
     private interface Body {
         void run(Game game, FakePlayer a, FakePlayer b);
+    }
+
+    @Test
+    void chestsSayPunchToDeposit() {
+        round("ChestL", (game, fa, fb) -> {
+            for (BlockVec chest : List.of(CHEST, ENDER)) {
+                List<String> over = game.instance().getEntities().stream()
+                        .filter(e -> e.getEntityType() == EntityType.ARMOR_STAND && e.getCustomName() != null)
+                        .filter(e -> e.getPosition().x() == chest.x() + 0.5 && e.getPosition().z() == chest.z() + 0.5)
+                        .sorted(java.util.Comparator.comparingDouble(e -> -e.getPosition().y()))
+                        .map(e -> PlainTextComponentSerializer.plainText().serialize(e.getCustomName()) + " " + (e.getPosition().y() - chest.y()))
+                        .toList();
+                assertEquals(List.of("PUNCH TO 1.28125", "DEPOSIT 0.90625"), over, "over " + chest);
+            }
+        });
     }
 
     @Test
@@ -200,10 +216,10 @@ class ChestsTest extends HeadlessServerTest {
             assertTrue(Matches.enter(game, List.of(a.player)));
             assertTrue(Matches.enter(game, List.of(b.player)));
             await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
-            BedWarsRoundTest.live(game);
-            assertEquals("1", Match.teamOf(game, a.player), "the fixture's first side");
             game.shard().setBlock(CHEST, Block.CHEST.withProperty("facing", "east"));
             game.shard().setBlock(ENDER, Block.ENDER_CHEST.withProperty("facing", "east"));
+            BedWarsRoundTest.live(game);
+            assertEquals("1", Match.teamOf(game, a.player), "the fixture's first side");
             a.sent.clear();
             b.sent.clear();
             body.run(game, a, b);

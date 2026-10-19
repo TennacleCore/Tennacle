@@ -70,6 +70,11 @@ final class Lines {
                 new Hologram.Line(2.38125, rightClick(game)));
     }
 
+    // captured: stands 1.28125 and 0.90625 over the chest's block, on its middle
+    static final List<Hologram.Line> DEPOSIT_LABELS = List.of(
+            new Hologram.Line(1.78125, Component.text("PUNCH TO", NamedTextColor.GRAY)),
+            new Hologram.Line(1.40625, Component.text("DEPOSIT", NamedTextColor.GRAY)));
+
     static List<Hologram.Line> upgradeLabels(Game game) {
         boolean solo = game.rules().resolve(Scope.GAME, Roster.TEAM_SIZE) == 1;
         return List.of(new Hologram.Line(2.9125, Component.text(solo ? "SOLO" : "TEAM", NamedTextColor.AQUA)),

@@ -9,6 +9,8 @@ import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.canvas.hologram.Hologram;
+import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.roster.Team;
@@ -19,10 +21,12 @@ import io.github.term4.polyp.api.event.container.ContainerOpenEvent;
 import io.github.term4.polyp.mechanics.containers.ContainerKey;
 import io.github.term4.polyp.mechanics.containers.ContainerSystem;
 import io.github.term4.polyp.mechanics.containers.ContainersConfigResolver.ResolvedContainer;
+import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerStartDiggingEvent;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
@@ -70,6 +74,28 @@ final class Chests implements GameModule {
         lives.onDeath(death -> {
             if (death.last()) spill(death.victim(), death.seat().team());
         });
+        Phases phases = game.module(Phases.class);
+        if (phases != null) phases.onEnter(Match.LIVE, g -> label());
+    }
+
+    // captured: over every base's chests from the start to the end, an eliminated side's too
+    private void label() {
+        for (Team team : game.roster().teams()) {
+            RegionMarker base = game.arena().marker(BedWars.BASE, team.id());
+            if (base == null) continue;
+            for (RegionMarker.Cuboid box : base.boxes()) {
+                for (int x = box.min().blockX(); x <= box.max().blockX(); x++) {
+                    for (int y = box.min().blockY(); y <= box.max().blockY(); y++) {
+                        for (int z = box.min().blockZ(); z <= box.max().blockZ(); z++) {
+                            Block block = game.shard().getBlock(new BlockVec(x, y, z));
+                            if (!block.compare(Block.CHEST) && !block.compare(Block.ENDER_CHEST)) continue;
+                            Hologram labels = Hologram.at(new Pos(x + 0.5, y, z + 0.5), Match.scenery(game));
+                            Lines.DEPOSIT_LABELS.forEach(labels::line);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // another side's team chest while that side stands; files the store under its seat either way
