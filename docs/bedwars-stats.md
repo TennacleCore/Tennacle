@@ -118,8 +118,9 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
 
 1. **Chests:** net per visit, as above.
 2. **Mid:** only some maps have one: a small ring of generators around the center, usually emeralds (diamonds on
-   Tengshe), more an oval than a circle. A linear pattern like Acropolis's is no middle. Each map's middle is drawn by
-   hand, an oval (or a box) on the map, in the Bed Wars Zones page. A map without one keeps no `time-at-mid`.
+   Tengshe), more an oval than a circle. A linear pattern like Acropolis's is no middle. Each map's middle is a circle drawn
+   by hand in the Bed Wars Zones page (an oval only where a circle can't fit), reaching as far as the land around
+   the ring does. A map without one keeps no `time-at-mid`.
 3. **Diamond and emerald reach:** a radius around each generator: 8 blocks by default, set per map on the same page.
    Emeralds get their own `time-at-emeralds` beside `time-at-diamonds`.
 4. **Public:** every stat shows in the public API.
