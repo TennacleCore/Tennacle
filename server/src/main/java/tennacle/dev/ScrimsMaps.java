@@ -87,7 +87,7 @@ public final class ScrimsMaps {
         return manifest.meta().tags().contains("bridge");
     }
 
-    // the map picker as captured: its category, place, ranked flag and icon, by map name
+    // the map picker as captured: its category and page, place, ranked place and icon, by map name
     private static Map<String, JsonObject> picker(Path file) throws IOException {
         Map<String, JsonObject> out = new HashMap<>();
         if (!Files.exists(file)) return out;
@@ -113,8 +113,11 @@ public final class ScrimsMaps {
                         .put("guessed", guessed(map))
                         .put("picker", listed == null ? CompoundBinaryTag.empty() : CompoundBinaryTag.builder()
                                 .putString("category", listed.get("category").getAsString())
+                                .putInt("page", listed.get("page").getAsInt())
                                 .putInt("order", listed.get("order").getAsInt())
-                                .putBoolean("ranked", listed.get("ranked").getAsBoolean())
+                                .putInt("ranked", listed.get("ranked").getAsInt()) // its place on the ranked page, 0 off it
+                                .putString("rankedPage", listed.get("ranked page").getAsString())
+                                .putString("by", listed.get("by").getAsString())
                                 .putString("icon", listed.get("icon").getAsString()).build())
                         .build()).build());
         for (var element : map.getAsJsonArray("sides")) {

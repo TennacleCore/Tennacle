@@ -4,6 +4,7 @@ import io.github.term4.archipelago.shard.ShardView;
 import io.github.term4.archipelago.testsupport.FakePlayer;
 import io.github.term4.archipelago.testsupport.HeadlessServerTest;
 import io.github.term4.canvas.screen.Screens;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
@@ -150,7 +151,7 @@ class LobbyHotbarTest extends HeadlessServerTest {
             PlayMenu.open(p.player, "Bridge", mode -> mode.name().equals("bridge"), Icons::of);
             press(p, new Click.Right(10)); // the first size, 1v1
             var maps = Screens.inventory(p.player);
-            assertEquals(Material.FIREWORK_STAR, maps.getItemStack(10).material(), "a map a star");
+            assertFalse(maps.getItemStack(10).isAir(), "a map first");
             assertEquals(Material.FIREWORK_ROCKET, maps.getItemStack(40).material(), "Random Map under them");
             assertEquals(Material.ARROW, maps.getItemStack(49).material(), "and the way back");
             assertNull(Queues.of(p.player), "a right click plays nothing");
@@ -164,6 +165,28 @@ class LobbyHotbarTest extends HeadlessServerTest {
             Queues.dequeue(p.player);
             p.player.remove();
         }
+    }
+
+    @Test
+    void pickerPagesTurn() throws InterruptedException {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(58.5, 65, 0.5), "BarPages");
+        try {
+            PlayMenu.open(p.player, "Bridge", mode -> mode.name().equals("bridge"), Icons::of);
+            press(p, new Click.Right(10));
+            assertEquals("Competitive Maps", title(p), "the picker's first page");
+            later(p);
+            press(p, new Click.Left(53));
+            assertEquals("Legacy Maps", title(p), "next is its second");
+            later(p);
+            press(p, new Click.Left(45));
+            assertEquals("Competitive Maps", title(p), "and back");
+        } finally {
+            p.player.remove();
+        }
+    }
+
+    private static String title(FakePlayer p) {
+        return PlainTextComponentSerializer.plainText().serialize(Screens.inventory(p.player).getTitle());
     }
 
     @Test

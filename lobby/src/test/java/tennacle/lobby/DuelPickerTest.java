@@ -6,12 +6,12 @@ import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.inventory.InventoryPreClickEvent;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.click.Click;
-import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SystemChatPacket;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,11 +20,11 @@ import tennacle.games.Mode;
 import tennacle.lobby.menus.Icons;
 import tennacle.lobby.menus.PlayerMenu;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -75,13 +75,13 @@ class DuelPickerTest extends HeadlessServerTest {
             int slot = 9;
             while (games.getItemStack(slot).material() != Icons.of(bridge)) slot++;
             press(a, new Click.Right(slot));
-            assertEquals(Material.FIREWORK_STAR, Screens.inventory(a.player).getItemStack(10).material(), "the maps open");
+            var first = Screens.inventory(a.player).getItemStack(10);
+            assertFalse(first.isAir(), "the maps open");
             Thread.sleep(220); // past a menu's double-click gap
             for (int i = 0; i < 3; i++) a.player.tick(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
             b.sent.clear();
             press(a, new Click.Left(10));
-            String first = bridge.arena().names().stream().min(Comparator.comparing(map -> Matches.mapName(bridge, map))).orElseThrow();
-            String line = "duel request from MapA on " + Matches.mapName(bridge, first);
+            String line = "duel request from MapA on " + PlainTextComponentSerializer.plainText().serialize(first.get(DataComponents.CUSTOM_NAME));
             assertTrue(plain(b).stream().anyMatch(l -> l.contains(line)), "the request names the map: " + plain(b));
         } finally {
             a.player.remove();
