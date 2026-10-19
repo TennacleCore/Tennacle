@@ -33,7 +33,7 @@ public final class Play {
     private Play() {}
 
     public static void install() {
-        AppCommand play = Commands.dev("play", "Join a game, or the queue for one.")
+        AppCommand play = Commands.player("play", "Join a game, or the queue for one.")
                 .usage("/play <game> [map]", "take a seat, on that map if you name one")
                 .usage("/play <game> <platform> [map]", "on that platform")
                 .featured();
