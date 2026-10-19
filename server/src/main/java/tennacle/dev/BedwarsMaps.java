@@ -290,14 +290,24 @@ public final class BedwarsMaps {
         return out;
     }
 
-    // centered on the spawn block, reach back and front along the forge's line, left and right across it
+    // centered on the spawn block, reach back and front along the forge's line, left and right across it; a side named
+    // on its own ("back", "front", "down", "up") takes its own reach, back being toward the forge
     private static RegionMarker baseBox(String group, Vec spawn, Vec forge, JsonObject box) {
         int along = box.get("back and front").getAsInt(), across = box.get("left and right").getAsInt();
-        int up = box.get("down and up").getAsInt();
+        int reach = box.get("down and up").getAsInt();
+        int back = side(box, "back", along), front = side(box, "front", along);
+        int down = side(box, "down", reach), up = side(box, "up", reach);
         boolean alongX = Math.abs(forge.x() - spawn.x()) >= Math.abs(forge.z() - spawn.z());
-        int rx = alongX ? along : across, rz = alongX ? across : along;
+        double toward = alongX ? forge.x() - spawn.x() : forge.z() - spawn.z();
+        int lo = toward < 0 ? back : front, hi = toward < 0 ? front : back; // reach below and above the spawn on that axis
         BlockVec center = new BlockVec(spawn.blockX(), spawn.blockY(), spawn.blockZ());
-        return new RegionMarker("bedwars:base", group, "", center.sub(rx, up, rz), center.add(rx, up, rz));
+        BlockVec min = alongX ? center.sub(lo, down, across) : center.sub(across, down, lo);
+        BlockVec max = alongX ? center.add(hi, up, across) : center.add(across, up, hi);
+        return new RegionMarker("bedwars:base", group, "", min, max);
+    }
+
+    private static int side(JsonObject box, String name, int even) {
+        return box.has(name) ? box.get(name).getAsInt() : even;
     }
 
     // how many of each mode's spawners drop iron at the point, keyed as the arena's bedwars-<mode> tags
