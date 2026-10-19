@@ -229,7 +229,8 @@ public final class Spectators {
         if (watched == null) watched = ghosting(viewer);
         if (watched == null || viewer.getHeldSlot() != COMPASS_SLOT
                 || viewer.getItemInMainHand().material() != Material.COMPASS) return;
-        Lineup.open(viewer, alive(watched));
+        Game game = watched;
+        Lineup.open(viewer, alive(watched), who -> Matches.grotto().spectating(who) == game || game.isGhost(who));
     }
 
     // the game whose dead seat this is, waiting on a respawn: unbound, so the shard tag cannot say

@@ -29,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -123,10 +124,15 @@ public final class Lineup {
 
     /** Opens the picker on {@code entries}; nobody alive says so instead. */
     public static void open(@NotNull Player viewer, @NotNull List<Entry> entries) {
-        open(viewer, entries, 0);
+        open(viewer, entries, who -> true);
     }
 
-    private static void open(Player viewer, List<Entry> entries, int page) {
+    /** {@link #open}, a click doing nothing once {@code still} turns false: a ghost respawned with the picker open. */
+    public static void open(@NotNull Player viewer, @NotNull List<Entry> entries, @NotNull Predicate<Player> still) {
+        open(viewer, entries, still, 0);
+    }
+
+    private static void open(Player viewer, List<Entry> entries, Predicate<Player> still, int page) {
         if (entries.isEmpty()) {
             Msg.say(viewer, "Nobody is alive right now.");
             return;
@@ -139,6 +145,7 @@ public final class Lineup {
             screen.button(9 + i - at * PAGE, Items.head(entry.skin(), Component.text(entry.name(), entry.color())),
                     (who, click) -> {
                         who.closeInventory();
+                        if (!still.test(who)) return;
                         Entity body = click instanceof Click.Right ? entry.body().get() : null;
                         Pos to = entry.at().get();
                         if (to == null) {
@@ -158,11 +165,11 @@ public final class Lineup {
                     Component.text("Page " + (at + 1) + " of " + pages, NamedTextColor.YELLOW)));
             if (at > 0) {
                 screen.button(PREV, Items.named(Material.ARROW, Component.text("Previous page", NamedTextColor.GRAY)),
-                        (who, click) -> open(who, entries, at - 1));
+                        (who, click) -> open(who, entries, still, at - 1));
             }
             if (at < pages - 1) {
                 screen.button(NEXT, Items.named(Material.ARROW, Component.text("Next page", NamedTextColor.GRAY)),
-                        (who, click) -> open(who, entries, at + 1));
+                        (who, click) -> open(who, entries, still, at + 1));
             }
         }
         Screens.open(viewer, screen.build());

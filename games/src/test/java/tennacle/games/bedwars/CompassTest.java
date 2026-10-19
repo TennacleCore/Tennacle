@@ -7,6 +7,7 @@ import tennacle.games.Mode;
 import tennacle.games.TestWiring;
 import tennacle.games.lives.Lives;
 import tennacle.games.watch.Lineup;
+import tennacle.games.watch.Spectators;
 import tennacle.looks.Palette;
 
 import io.github.term4.archipelago.shard.ShardManager;
@@ -16,6 +17,7 @@ import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.modules.flow.Countdown;
+import io.github.term4.grotto.modules.combat.Respawns;
 import io.github.term4.grotto.state.Scope;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.coordinate.BlockVec;
@@ -116,6 +118,30 @@ class CompassTest extends HeadlessServerTest {
 
             game.module(Lives.class).fell(a);
             assertEquals("", game.state().get(Scope.slot(game.roster().slotOf(a).index()), Compass.TRACKING), "gone at a death");
+        } finally {
+            end(game, fa, fb);
+        }
+    }
+
+    /** The user, 2026-10-19: a picker held open through the respawn still teleported a living player. */
+    @Test
+    void aRespawnEndsThePicker() {
+        Game game = launch("bedwars-solo");
+        FakePlayer fa = seat(game, "PickA"), fb = seat(game, "PickB");
+        try {
+            BedWarsRoundTest.live(game);
+            Player a = fa.player, b = fb.player;
+            Respawns respawns = game.module(Respawns.class);
+            game.module(Lives.class).fell(a);
+            a.setHeldItemSlot((byte) Spectators.COMPASS_SLOT);
+            EventDispatcher.call(new PlayerUseItemEvent(a, PlayerHand.MAIN, a.getItemInMainHand(), 0));
+            Inventory picker = Screens.inventory(a);
+            assertNotNull(picker, "the ghost's picker");
+            BedWarsRoundTest.tickUntil(game, "the respawn", () -> !respawns.isDead(a));
+            Pos spawned = a.getPosition();
+            b.teleport(new Pos(12.5, 65, 12.5)).join();
+            EventDispatcher.call(new InventoryPreClickEvent(picker, a, new Click.Left(9)));
+            assertEquals(spawned, a.getPosition(), "no teleport once alive");
         } finally {
             end(game, fa, fb);
         }
