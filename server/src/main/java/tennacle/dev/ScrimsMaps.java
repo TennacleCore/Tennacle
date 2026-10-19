@@ -11,7 +11,10 @@ import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Markers;
+import net.kyori.adventure.nbt.BinaryTagTypes;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.nbt.ListBinaryTag;
+import net.kyori.adventure.nbt.StringBinaryTag;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
@@ -66,7 +69,8 @@ public final class ScrimsMaps {
                 byte[] arena = build(id, map, LegacyZip.toPolar(zip, instance -> {}));
                 Files.write(target, arena);
                 written++;
-                System.out.println(name + ": " + id + ".bncl, " + arena.length / 1024 + " KB, from " + map.get("capture").getAsString());
+                System.out.println(name + ": " + id + ".bncl, " + arena.length / 1024 + " KB, from " + map.get("capture").getAsString()
+                        + (map.has("guessed") && !map.getAsJsonArray("guessed").isEmpty() ? "; GUESSED " + map.get("guessed") : ""));
             }
         }
         System.out.println(written + " arenas in " + out.toAbsolutePath());
@@ -86,7 +90,8 @@ public final class ScrimsMaps {
                 .world(world)
                 .user(CompoundBinaryTag.builder().put("scrims", CompoundBinaryTag.builder()
                         .putString("capture", map.get("capture").getAsString())
-                        .putString("symmetry", map.get("symmetry").getAsString()).build()).build());
+                        .putString("symmetry", map.get("symmetry").getAsString())
+                        .put("guessed", guessed(map)).build()).build());
         for (var element : map.getAsJsonArray("sides")) {
             JsonObject side = element.getAsJsonObject();
             String group = String.valueOf(TEAMS.indexOf(side.get("team").getAsString()) + 1);
@@ -103,6 +108,15 @@ public final class ScrimsMaps {
         builder.marker(new LimitMarker("bridge:void", "", "", null, map.get("void").getAsDouble(), null));
         builder.marker(new DataMarker("bloom:starter", "", "", CompoundBinaryTag.builder().putString("s", "bridge").build(), 1));
         return builder.build();
+    }
+
+    // what no capture showed, so a later duel knows to probe it
+    private static ListBinaryTag guessed(JsonObject map) {
+        ListBinaryTag.Builder<StringBinaryTag> out = ListBinaryTag.builder(BinaryTagTypes.STRING);
+        if (map.has("guessed")) {
+            for (var need : map.getAsJsonArray("guessed")) out.add(StringBinaryTag.stringBinaryTag(need.getAsString()));
+        }
+        return out.build();
     }
 
     private static Pos pos(JsonArray v) {
