@@ -16,6 +16,13 @@ tennacle.port = 25566
 tennacle.data-dir = data
 tennacle.arena-dir = arenas
 
+# account data, the player directory, matches and punishments in PostgreSQL; unset, they stay as files under
+# data-dir. postgres/setup.sql makes the role and database. The first boot against a database copies data-dir in
+# tennacle.postgres.url = jdbc:postgresql://localhost:5432/tennacle
+# tennacle.postgres.user = tennacle
+# tennacle.postgres.password = <the role's password>
+# tennacle.postgres.pool = 8
+
 # hands every player the staff tools (/gamemode, /lag, /shard stall and friends), which otherwise need
 # tennacle.staff.<command> or a role holding it. On by default only on a loopback bind
 # tennacle.dev-commands = false

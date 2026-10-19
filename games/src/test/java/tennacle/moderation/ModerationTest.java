@@ -50,11 +50,11 @@ class ModerationTest extends HeadlessServerTest {
 
     @Test
     void lengthsReadAndParse() {
-        assertTrue(Mutes.parse("30m") == 1_800_000L && Mutes.parse("1W") == 604_800_000L);
-        assertTrue(Mutes.parse("0h") < 0 && Mutes.parse("5y") < 0 && Mutes.parse("h") < 0);
-        assertTrue(Mutes.parse("perm") == Mute.FOREVER && Mutes.parse("Permanent") == Mute.FOREVER);
-        assertTrue(Mutes.span(7_200_000L).equals("2 hours") && Mutes.span(5_400_000L).equals("2 hours"));
-        assertTrue(Mutes.span(1_000L).equals("1 second") && Mutes.span(0).equals("1 second"));
+        assertTrue(Lengths.parse("30m") == 1_800_000L && Lengths.parse("1W") == 604_800_000L);
+        assertTrue(Lengths.parse("0h") < 0 && Lengths.parse("5y") < 0 && Lengths.parse("h") < 0);
+        assertTrue(Lengths.parse("perm") == Punishments.FOREVER && Lengths.parse("Permanent") == Punishments.FOREVER);
+        assertTrue(Lengths.span(7_200_000L).equals("2 hours") && Lengths.span(5_400_000L).equals("2 hours"));
+        assertTrue(Lengths.span(1_000L).equals("1 second") && Lengths.span(0).equals("1 second"));
     }
 
     @Test
@@ -81,13 +81,13 @@ class ModerationTest extends HeadlessServerTest {
             assertTrue(said(run(mod, "mute MuteMod 1h"), "You can't mute MuteMod"), "staff at the same level");
 
             long now = System.currentTimeMillis();
-            Mutes.clock = () -> now + 3 * 3_600_000L;
+            Moderation.clock = () -> now + 3 * 3_600_000L;
             try {
                 PlayerChatEvent later = new PlayerChatEvent(a.player, List.of(a.player), "back");
                 EventDispatcher.call(later);
                 assertFalse(later.isCancelled(), "it runs out");
             } finally {
-                Mutes.clock = System::currentTimeMillis;
+                Moderation.clock = System::currentTimeMillis;
             }
 
             assertTrue(said(run(mod, "unmute MuteA"), "MuteA can chat again."));
@@ -96,13 +96,13 @@ class ModerationTest extends HeadlessServerTest {
             a.sent.clear();
             assertTrue(said(run(mod, "mute MuteA perm"), "MuteA is muted permanently."));
             assertTrue(said(plain(a), "You are muted permanently."), plain(a).toString());
-            Mutes.clock = () -> now + 520 * 604_800_000L;
+            Moderation.clock = () -> now + 520 * 604_800_000L;
             try {
                 PlayerChatEvent years = new PlayerChatEvent(a.player, List.of(a.player), "still?");
                 EventDispatcher.call(years);
                 assertTrue(years.isCancelled(), "it never runs out");
             } finally {
-                Mutes.clock = System::currentTimeMillis;
+                Moderation.clock = System::currentTimeMillis;
             }
             assertTrue(said(run(mod, "unmute MuteA"), "MuteA can chat again."));
             run(a, "msg MuteB hi");
@@ -111,6 +111,34 @@ class ModerationTest extends HeadlessServerTest {
             mod.player.remove();
             a.player.remove();
             b.player.remove();
+        }
+    }
+
+    @Test
+    void bansTurnAwayAndList() {
+        FakePlayer mod = FakePlayer.connect(instance, new Pos(940.5, 65, 0.5), "BanMod");
+        FakePlayer a = FakePlayer.connect(instance, new Pos(942.5, 65, 0.5), "BanA");
+        long now = System.currentTimeMillis();
+        Moderation.clock = () -> now;
+        try {
+            Access.role(mod.player.getUuid(), Role.MOD).join();
+            assertTrue(said(run(mod, "history BanA"), "BanA has a clean record."));
+            List<String> banned = run(mod, "ban BanA 7d cheating");
+            assertTrue(said(banned, "BanA is banned for 1 week."), banned.toString());
+            var refused = Bans.refusal(a.player.getUuid());
+            assertTrue(refused != null && PlainTextComponentSerializer.plainText().serialize(refused)
+                    .equals("You are banned for another 1 week.\n\nReason: cheating"), String.valueOf(refused));
+            assertTrue(said(run(mod, "unban BanA"), "BanA can join again."));
+            assertTrue(Bans.refusal(a.player.getUuid()) == null, "lifted");
+            assertTrue(said(run(mod, "unban BanA"), "BanA isn't banned."));
+
+            List<String> history = run(mod, "history BanA");
+            assertTrue(said(history, "BanA has 1 on record"), history.toString());
+            assertTrue(said(history, ", for 1 week, by BanMod. Reason: cheating. Lifted by BanMod."), history.toString());
+        } finally {
+            Moderation.clock = System::currentTimeMillis;
+            mod.player.remove();
+            a.player.remove();
         }
     }
 

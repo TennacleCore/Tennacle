@@ -6,6 +6,7 @@ description = "The Tennacle server: boot, the dev tools, and the modules install
 
 dependencies {
     implementation(project(":lobby"))
+    implementation(project(":postgres"))
     runtimeOnly("org.tinylog:tinylog-api:2.8.0")
     runtimeOnly("org.tinylog:tinylog-impl:2.8.0")
     runtimeOnly("org.tinylog:slf4j-tinylog:2.8.0")

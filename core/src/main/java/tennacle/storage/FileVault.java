@@ -162,6 +162,11 @@ public final class FileVault implements Vault {
         }, io);
     }
 
+    /** One player's file as key id to stored bytes, for moving it to another backend. */
+    public static @NotNull Map<String, byte[]> entries(@NotNull Path file) throws IOException {
+        return read(Files.readAllBytes(file));
+    }
+
     private static Map<String, byte[]> read(byte[] bytes) {
         Map<String, byte[]> entries = new HashMap<>();
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes))) {

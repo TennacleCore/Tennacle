@@ -25,6 +25,7 @@ import tennacle.looks.GameSounds;
 import tennacle.looks.TabStats;
 import tennacle.social.party.Parties;
 import tennacle.storage.MatchLog;
+import tennacle.storage.MatchStore;
 
 import java.nio.file.Path;
 
@@ -35,7 +36,7 @@ import java.nio.file.Path;
 public final class GamesModule {
 
     /** Where the games keep what they write, and the secret behind their ids. */
-    public record Data(@NotNull Vault vault, @NotNull Path matchLog, @NotNull Path replays, @NotNull String gameSecret) {}
+    public record Data(@NotNull Vault vault, @NotNull MatchStore matches, @NotNull Path replays, @NotNull String gameSecret) {}
 
     private GamesModule() {}
 
@@ -44,7 +45,7 @@ public final class GamesModule {
         ReplayCommands.register(shards, home);
         Matches.install(home, homeSpawn, shards);
         Matches.grotto().vault(data.vault());
-        MatchLog.install(data.matchLog());
+        MatchLog.install(data.matches());
         Matches.grotto().onGameEnd(MatchLog::ended);
         Replays.install(data.replays(), shards); // every game, spooled as it runs, kept as a file under its mode
         Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto

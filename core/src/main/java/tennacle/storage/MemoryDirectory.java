@@ -39,7 +39,7 @@ public class MemoryDirectory implements Directory {
         byName.put(key(entry.name()), entry.id());
     }
 
-    synchronized List<Entry> entries() {
+    public synchronized @NotNull List<Entry> entries() {
         return List.copyOf(byId.values());
     }
 

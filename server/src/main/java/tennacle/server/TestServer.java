@@ -46,9 +46,7 @@ import tennacle.lobby.LobbyModule;
 import tennacle.lobby.Playground;
 import tennacle.social.SocialModule;
 import tennacle.storage.Atomic;
-import tennacle.storage.FileDirectory;
-import tennacle.storage.FileVault;
-import tennacle.storage.MatchLog;
+import tennacle.moderation.Moderation;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -74,7 +72,7 @@ import java.util.stream.Collectors;
  * {@code tennacle.test-pads} lays the lobby's test pads, off unless set.
  *
  * <p>Everything the deployment decides comes through {@link Config}: port, bind, directories, forwarding
- * secret, whether every player holds the staff tools. The libraries persist nothing - {@link FileVault} is the server's
+ * secret, whether every player holds the staff tools. The libraries persist nothing - {@link Stores} is the server's
  * answer to where account data lives, installed here before anything reads it.
  */
 public final class TestServer {
@@ -213,17 +211,17 @@ public final class TestServer {
         look();
 
         // the libraries store nothing: account data is the app's, and this is where it lands
-        FileVault vault = new FileVault(data.resolve("players"));
-        FileDirectory directory = new FileDirectory(data.resolve("directory.tsv"));
-        Seen.use(directory);
+        Stores stores = Stores.open(data);
+        Seen.use(stores.directory());
+        Moderation.store(stores.punishments());
         Path replays = Storage.dir("replay-dir", "replays");
         leftovers(data, replays);
         SocialModule.install();
         GamesModule.install(world, Playground.SPAWN, shards,
-                new GamesModule.Data(vault, data.resolve("matches"), replays, gameSecret(data)));
+                new GamesModule.Data(stores.vault(), stores.matches(), replays, gameSecret(data)));
         LobbyModule.install(world);
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
-                e -> vault.forget(e.getPlayer().getUuid()));
+                e -> stores.closer().left(e.getPlayer().getUuid()));
         PlayerPrefs.install();
         // /arena edit|save: the map maker - arena layers become ordinary shards the /shard family drives
         Bloom.install(MapPool.arenas(), shards, p -> p.setInstance(world, Playground.SPAWN));
@@ -267,7 +265,7 @@ public final class TestServer {
         // a map loads on its first game, off the tick thread (Matches.begin), and leaves once idle this long
         int idle = Config.integer("tennacle.map-idle-minutes", 10);
         Matches.grotto().expireBasesAfter(idle > 0 ? Duration.ofMinutes(idle) : null);
-        shutdownSteps(vault, directory);
+        shutdownSteps(stores);
         server.start(bind, port);
         LOGGER.info("listening on {}:{} (dev commands {})", bind, port, devCommands ? "on" : "off");
     }
@@ -286,7 +284,7 @@ public final class TestServer {
         }
     }
 
-    private static void shutdownSteps(FileVault vault, FileDirectory directory) {
+    private static void shutdownSteps(Stores stores) {
         Shutdown.step("live games", 15, () -> onTick(15, () -> {
             for (Game game : List.copyOf(Matches.grotto().games())) {
                 if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
@@ -295,16 +293,12 @@ public final class TestServer {
         Shutdown.step("replays", 20, () -> Tapes.flush(15, TimeUnit.SECONDS)); // the cut games' files land
         Shutdown.step("editor", 10, () -> onTick(10, TestServer::autosaveAll));
         Shutdown.step("player data", 15, () -> {
-            vault.flush(10, TimeUnit.SECONDS);
-            vault.close();
             // the kicks come after these steps, too late to stamp a last seen
             long now = System.currentTimeMillis();
             for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
-                directory.seen(player.getUuid(), player.getUsername(), now);
+                stores.directory().seen(player.getUuid(), player.getUsername(), now);
             }
-            directory.flush(5, TimeUnit.SECONDS);
-            directory.close();
-            MatchLog.flush(5, TimeUnit.SECONDS);
+            stores.closer().close(10, TimeUnit.SECONDS);
         });
         // before the clocks: a stage shard ticks on its own domain, and nothing else closes one
         Shutdown.step("theaters", 10, () -> onTick(10, Theaters::closeAll));

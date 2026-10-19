@@ -105,6 +105,10 @@ public final class PlayerPrefs {
         vault = source;
     }
 
+    public static @NotNull Vault vault() {
+        return vault.get();
+    }
+
     /** Wire the login fetch + disconnect eviction; once, at boot. */
     public static void install() {
         if (installed) return;

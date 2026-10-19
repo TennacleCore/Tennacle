@@ -143,7 +143,7 @@ class PregameTest extends HeadlessServerTest {
     /** The audit, 2026-09-29: a game that fills its seats through /play never reached the match log. */
     @Test
     void theFillIsLogged(@TempDir Path dir) throws Exception {
-        MatchLog.install(dir);
+        MatchLog.install(new tennacle.storage.FileMatchStore(dir));
         Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
                 BedWarsRoundTest.fixture()));
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
