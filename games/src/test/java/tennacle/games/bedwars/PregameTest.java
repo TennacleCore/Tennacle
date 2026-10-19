@@ -69,9 +69,9 @@ class PregameTest extends HeadlessServerTest {
             game.state().set(Scope.GAME, Countdown.START_AT, 3);
             BedWarsRoundTest.live(game);
             assertEquals(Match.teamOf(game, a.player), Match.teamOf(game, b.player), "a side lands together");
-            List<String> order = game.roster().teams().stream().map(t -> t.id()).toList();
+            List<String> order = BedWars.rushOrder(game.roster().teams().stream().map(t -> t.id()).toList());
             assertEquals(order.subList(0, 2), List.of(Match.teamOf(game, a.player), Match.teamOf(game, c.player)),
-                    "the first teams fill, as arrivals seat");
+                    "first rushes fill first");
             assertTrue(a.sent(DisplayScoreboardPacket.class).stream().anyMatch(d -> d.position() == BELOW_NAME),
                     "health under names from the start");
             for (FakePlayer p : all) {
@@ -86,6 +86,14 @@ class PregameTest extends HeadlessServerTest {
     }
 
     /** Captured: Hypixel sends the start block a line a message; the user, 2026-09-29: sent whole, it wrapped. */
+    /** Captured two-player games: Red and Gray on 29 of 35 eight-team maps, Red and Yellow on 7 of 9 four-team. */
+    @Test
+    void rushesFillInPairs() {
+        assertEquals(List.of("red", "gray", "blue", "green", "yellow", "aqua", "white", "pink"),
+                BedWars.rushOrder(List.of("red", "blue", "green", "yellow", "aqua", "white", "pink", "gray")));
+        assertEquals(List.of("red", "yellow", "blue", "green"), BedWars.rushOrder(List.of("red", "blue", "green", "yellow")));
+    }
+
     @Test
     void theStartGoesByLine() {
         Game game = Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null), BedWarsRoundTest.fixture());

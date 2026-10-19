@@ -232,6 +232,14 @@ public final class BedWars {
     }
 
     // captured: a blacksmith, which Via shows a 1.8 client for an armorer
+    // captured: two players start on Red and Gray, or Red and Yellow on four teams, first rushes across the ring's seam
+    static List<String> rushOrder(List<String> teams) {
+        if (teams.size() < 3) return teams;
+        List<String> out = new ArrayList<>(List.of(teams.getFirst(), teams.getLast()));
+        out.addAll(teams.subList(1, teams.size() - 1));
+        return out;
+    }
+
     private static Entity shopkeeper() {
         LivingEntity keeper = new LivingEntity(EntityType.VILLAGER);
         keeper.editEntityMeta(VillagerMeta.class, meta -> meta.setVillagerData(new VillagerMeta.VillagerData(
@@ -392,7 +400,7 @@ public final class BedWars {
                         PartyExit::new,
                         TeamChat::new, HiddenNames::new,
                         () -> Rooms.of(ROOMS, "bedwars", LOBBY), // before the seats open: the room is down as they do
-                        () -> Staging.during(Match.OPENING).clear(LOBBY).together(Matches::together)
+                        () -> Staging.during(Match.OPENING).clear(LOBBY).together(Matches::together).order(BedWars::rushOrder)
                                 .seating((g, p) -> g.module(Kits.class).apply(p)),
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),
                         Respawns::manual,
