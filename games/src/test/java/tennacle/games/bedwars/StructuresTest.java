@@ -237,24 +237,25 @@ class StructuresTest extends HeadlessServerTest {
         });
     }
 
-    /** The user, 2026-10-19: Hypixel's wool never fills a player's feet, though their head is fair. */
+    /** Captured 2026-10-19: Hypixel's wool never fills a cell a player's box overlaps, so a catch leaves room to stand. */
     @Test
-    void woolSparesTheFeet() {
+    void woolSparesThePlayer() {
         round("EggE", (game, fa, fb) -> {
             Player a = fa.player, b = fb.player;
-            b.teleport(new Pos(6.5, 66, 5.5)).join(); // feet in the y 66 cell, head in y 67
+            b.teleport(new Pos(6.5, 66.5, 5.5)).join(); // the box spans y 66.5 to 68.3: three cells
             BridgeEgg eggs = game.module(BridgeEgg.class);
             Entity egg = new Entity(EntityType.EGG);
-            egg.setInstance(game.instance(), new Pos(4.5, 68.6, 5.5)).join();
+            egg.setInstance(game.instance(), new Pos(4.5, 72.6, 5.5)).join();
             try {
                 eggs.trail(a, egg, egg.getPosition());
                 ticks(game, 2);
-                egg.teleport(new Pos(6.5, 67.6, 5.5)).join(); // wool at y 66: b's feet
-                ticks(game, 1);
-                egg.teleport(new Pos(6.5, 68.6, 5.5)).join(); // wool at y 67: b's head
+                for (double y : new double[] {70.6, 69.6, 68.6, 67.6}) { // wool at y 69, 68, 67, 66
+                    egg.teleport(new Pos(6.5, y, 5.5)).join();
+                    ticks(game, 1);
+                }
                 ticks(game, 8);
-                assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(6, 66, 5)), "not in the feet");
-                assertTrue(game.shard().getBlock(new BlockVec(6, 67, 5)).name().endsWith("_wool"), "the head is fair");
+                assertTrue(game.shard().getBlock(new BlockVec(6, 69, 5)).name().endsWith("_wool"), "over the box");
+                for (int y = 66; y <= 68; y++) assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(6, y, 5)), "not in the box at y " + y);
             } finally {
                 egg.remove();
             }

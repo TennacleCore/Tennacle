@@ -115,19 +115,19 @@ public final class BridgeEgg implements GameModule {
 
     private void lay(Player thrower, Pos at, Block wool) {
         for (BlockVec cell : cells(at)) {
-            if (atFeet(cell) || !building.place(thrower, cell, wool)) continue;
+            if (inPlayer(cell) || !building.place(thrower, cell, wool)) continue;
             game.forEachAudience(v -> v.playSound(BLOCK, cell.x(), cell.y(), cell.z()));
         }
     }
 
-    // the user, 2026-10-19: Hypixel never lays one where a player's feet are, though their head is fair
-    private boolean atFeet(BlockVec cell) {
+    // captured 2026-10-19: in a falling thrower's column a three-cell gap rides with them, never a cell their box overlaps
+    private boolean inPlayer(BlockVec cell) {
         for (Player member : game.members()) {
             if (game.isGhost(member)) continue;
             Pos p = member.getPosition();
             double half = member.getBoundingBox().width() / 2;
-            if (p.blockY() == cell.blockY() && p.x() + half > cell.x() && p.x() - half < cell.x() + 1
-                    && p.z() + half > cell.z() && p.z() - half < cell.z() + 1) return true;
+            if (p.x() + half > cell.x() && p.x() - half < cell.x() + 1 && p.z() + half > cell.z() && p.z() - half < cell.z() + 1
+                    && p.y() + member.getBoundingBox().height() > cell.y() && p.y() < cell.y() + 1) return true;
         }
         return false;
     }
