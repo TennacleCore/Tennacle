@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public final class Database implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Database.class);
-    private static final String[] MIGRATIONS = {"V1.sql"};
+    private static final String[] MIGRATIONS = {"V1.sql", "V2.sql"};
 
     @FunctionalInterface
     public interface Work<T> {

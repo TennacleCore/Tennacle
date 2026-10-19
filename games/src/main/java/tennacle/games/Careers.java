@@ -1,5 +1,7 @@
 package tennacle.games;
 
+import tennacle.storage.StatKeys;
+
 import io.github.term4.grotto.vault.Vault;
 import io.github.term4.grotto.vault.VaultKey;
 import net.minestom.server.MinecraftServer;
@@ -55,6 +57,7 @@ public final class Careers {
     /** Signs {@code mode} up with a card; its {@code /stats} line reads the card. */
     public static synchronized void card(@NotNull String mode, @NotNull Card card) {
         CARDS.put(mode, card);
+        card.keys().forEach(StatKeys::register);
         sheet(mode, (to, uuid, username) -> read(uuid, card).thenAccept(values -> {
             List<Object> parts = new java.util.ArrayList<>(List.of(Msg.v(username), " " + card.title() + ": "));
             for (int i = 0; i < card.rows().size(); i++) {

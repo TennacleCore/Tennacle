@@ -261,6 +261,7 @@ public final class TestServer {
         Canvas.profile("minemen", Msg.MINEMEN);
         Canvas.profile("scrims", Msg.SCRIMS);
 
+        stores.installed().run();
         Health.install();
         // a map loads on its first game, off the tick thread (Matches.begin), and leaves once idle this long
         int idle = Config.integer("tennacle.map-idle-minutes", 10);

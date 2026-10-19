@@ -11,6 +11,9 @@ import tennacle.moderation.Punishments;
 import tennacle.moderation.Punishments.Kind;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchStore;
+import tennacle.storage.StatKeys;
+import tennacle.storage.StatRouting;
+import tennacle.storage.StatStore;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -132,6 +135,34 @@ class PostgresStoresTest {
         new PgVault(db).set(term, COUNT, 13).join();
         Imports.filesOnce(db, data);
         assertEquals(13, new PgVault(db).get(term, COUNT).join(), "a second boot imports nothing");
+    }
+
+    @Test
+    void statsMoveAndRank() {
+        VaultKey<Integer> kills = VaultKey.of("test:career-kills", Codec.INT, 0);
+        PgVault blobs = new PgVault(db);
+        PgStats stats = new PgStats(db);
+        UUID a = UUID.randomUUID();
+        UUID b = UUID.randomUUID();
+        blobs.set(a, kills, 5).join();
+        blobs.set(b, kills, 9).join();
+
+        StatKeys.register(kills);
+        stats.adopt(StatKeys.all()).join();
+        StatRouting vault = new StatRouting(blobs, stats);
+        assertEquals(5, vault.get(a, kills).join(), "moved out of the blob");
+        assertEquals(0, blobs.get(a, kills).join(), "and the blob is gone");
+
+        CompletableFuture<?>[] bumps = IntStream.range(0, 10)
+                .mapToObj(i -> vault.update(a, kills, n -> n + 1)).toArray(CompletableFuture[]::new);
+        CompletableFuture.allOf(bumps).join();
+        assertEquals(List.of(new StatStore.Standing(a, 15), new StatStore.Standing(b, 9)), stats.top(kills.id(), 2).join());
+        vault.set(b, COUNT, 3).join();
+        assertEquals(3, blobs.get(b, COUNT).join(), "other keys stay account data");
+
+        blobs.set(a, kills, 100).join();
+        stats.adopt(StatKeys.all()).join();
+        assertEquals(15, vault.get(a, kills).join(), "a key moves once");
     }
 
     @Test
