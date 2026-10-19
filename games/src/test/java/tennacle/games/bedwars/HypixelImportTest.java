@@ -15,12 +15,15 @@ import net.minestom.server.coordinate.Pos;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.minestom.server.network.packet.server.play.SystemChatPacket;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -154,8 +157,8 @@ class HypixelImportTest extends HeadlessServerTest {
 
     @Test
     void copiesAnotherPlayersPart() {
-        FakePlayer a = FakePlayer.connect(instance, new Pos(8.5, 65, 0.5), "ShareA");
-        FakePlayer b = FakePlayer.connect(instance, new Pos(10.5, 65, 0.5), "ShareB");
+        FakePlayer a = FakePlayer.connect(instance, new Pos(8.5, 65, 0.5), "CopyA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(10.5, 65, 0.5), "CopyB");
         try {
             List<String> pins = new java.util.ArrayList<>(java.util.Collections.nCopies(21, ""));
             pins.set(0, "fireball");
@@ -163,21 +166,14 @@ class HypixelImportTest extends HeadlessServerTest {
             KitLayouts.set(a.player, "bridge", Map.of("sword", 4, "bow", 0));
             List<List<String>> before = HotbarOrders.of(b.player).main();
 
-            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "ShareA"), "bedwars", "quickbuy");
-            for (int i = 0; i < 2; i++) { // the visibility check, then the read
-                MinecraftServer.getSchedulerManager().processTick();
-                MinecraftServer.getSchedulerManager().processTickEnd();
-            }
-            assertEquals(pins, Favorites.of(b.player, ItemShop.FRONT), "the quick buy came across");
+            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "CopyA"), "bedwars", "quickbuy");
+            until("the quick buy came across", () -> pins.equals(Favorites.of(b.player, ItemShop.FRONT)));
             assertEquals(before, HotbarOrders.of(b.player).main(), "the hotbar stayed");
             assertNull(KitLayouts.of(b.player, "bridge"), "and nothing else");
 
             b.player.removeTag(net.minestom.server.tag.Tag.Transient("tennacle:cooldown:kit-import"));
-            MinecraftServer.getCommandManager().execute(b.player, "kit copy ShareA bridge layout");
-            for (int i = 0; i < 2; i++) {
-                MinecraftServer.getSchedulerManager().processTick();
-                MinecraftServer.getSchedulerManager().processTickEnd();
-            }
+            MinecraftServer.getCommandManager().execute(b.player, "kit copy CopyA bridge layout");
+            until("the bridge layout came across", () -> KitLayouts.of(b.player, "bridge") != null);
             assertEquals(4, KitLayouts.of(b.player, "bridge").get("sword"), "/kit copy names one part");
         } finally {
             a.player.remove();
@@ -187,31 +183,36 @@ class HypixelImportTest extends HeadlessServerTest {
 
     @Test
     void hiddenLayoutsStayPut() {
-        FakePlayer a = FakePlayer.connect(instance, new Pos(12.5, 65, 0.5), "HideA");
-        FakePlayer b = FakePlayer.connect(instance, new Pos(14.5, 65, 0.5), "HideB");
+        FakePlayer a = FakePlayer.connect(instance, new Pos(12.5, 65, 0.5), "VeilA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(14.5, 65, 0.5), "VeilB");
         try {
             List<String> pins = new java.util.ArrayList<>(java.util.Collections.nCopies(21, ""));
             pins.set(0, "tnt");
             Favorites.set(a.player, ItemShop.FRONT, pins);
             tennacle.games.imports.LayoutVisibility.VISIBILITY.set(a.player, tennacle.social.Audience.NOBODY);
-            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "HideA"), "bedwars", "quickbuy");
-            for (int i = 0; i < 2; i++) { // the visibility check, then the read
-                MinecraftServer.getSchedulerManager().processTick();
-                MinecraftServer.getSchedulerManager().processTickEnd();
-            }
+            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "VeilA"), "bedwars", "quickbuy");
+            until("the refusal", () -> b.sent(SystemChatPacket.class).stream().anyMatch(c -> PlainTextComponentSerializer.plainText()
+                    .serialize(c.message()).contains("aren't visible to you")));
             assertNull(Favorites.of(b.player, ItemShop.FRONT), "nothing came across");
 
             tennacle.games.imports.LayoutVisibility.VISIBILITY.set(a.player, tennacle.social.Audience.EVERYONE);
             b.player.removeTag(net.minestom.server.tag.Tag.Transient("tennacle:cooldown:kit-import"));
-            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "HideA"), "bedwars", "quickbuy");
-            for (int i = 0; i < 2; i++) {
-                MinecraftServer.getSchedulerManager().processTick();
-                MinecraftServer.getSchedulerManager().processTickEnd();
-            }
-            assertEquals(pins, Favorites.of(b.player, ItemShop.FRONT), "visible again, copied");
+            KitImports.copy(b.player, new KitImports.Owner(a.player.getUuid(), "VeilA"), "bedwars", "quickbuy");
+            until("visible again, copied", () -> pins.equals(Favorites.of(b.player, ItemShop.FRONT)));
         } finally {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    // a copy rides the stores' futures, each step landing the tick after its future completes
+    private static void until(String what, java.util.function.BooleanSupplier done) {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (!done.getAsBoolean() && System.currentTimeMillis() < deadline) {
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            Thread.onSpinWait();
+        }
+        assertTrue(done.getAsBoolean(), what);
     }
 }
