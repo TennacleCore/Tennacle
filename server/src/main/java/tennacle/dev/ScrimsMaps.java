@@ -42,8 +42,8 @@ import java.util.stream.Stream;
  */
 public final class ScrimsMaps {
 
-    // the ordinals' own colors
-    private static final List<String> TEAMS = List.of("red", "blue");
+    // the ordinals' own colors: Livery's team 1 is blue
+    private static final List<String> TEAMS = List.of("blue", "red");
 
     private ScrimsMaps() {}
 
