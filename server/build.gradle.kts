@@ -75,7 +75,7 @@ tasks.register<JavaExec>("scrimsMaps") {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
     workingDir = rootDir
     val maps = providers.gradleProperty("maps")
-    val out = providers.gradleProperty("out").orElse(rootProject.layout.projectDirectory.dir("arenas/scrims").asFile.path)
+    val out = providers.gradleProperty("out").orElse(rootProject.layout.projectDirectory.dir("arenas").asFile.path)
     argumentProviders.add(CommandLineArgumentProvider { listOf(maps.get(), out.get()) })
 }
 

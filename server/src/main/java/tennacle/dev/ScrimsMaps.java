@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.github.term4.barnacle.ArenaBuilder;
+import io.github.term4.barnacle.format.ArenaContainer;
+import io.github.term4.barnacle.format.ArenaManifest;
 import io.github.term4.barnacle.marker.DataMarker;
 import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.PosMarker;
@@ -25,9 +27,10 @@ import java.util.stream.Stream;
 
 /**
  * Bridge Scrims maps as Bridge arenas: each world and marker file {@code research/scrims/scrims_map.py} wrote from
- * a capture. The worlds are Scrims'; each arena names them as its author.
+ * a capture. The worlds are Scrims'; each arena names them as its author. Scrims is the source of truth: a map
+ * replaces the bridge arena of its name.
  * <p>Args: the folder of {@code <map>.zip} and {@code <map>.json} pairs, then the output folder
- * ({@code arenas/scrims} by default, out of the bridge rotation).
+ * ({@code arenas} by default).
  * {@code gradlew scrimsMaps -Pmaps=... [-Pout=...]}
  */
 public final class ScrimsMaps {
@@ -54,15 +57,25 @@ public final class ScrimsMaps {
                 }
                 Path zip = file.resolveSibling(file.getFileName().toString().replaceFirst("\\.json$", ".zip"));
                 String name = map.get("map").getAsString();
-                String id = "scrims-" + name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+                String id = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+                Path target = out.resolve(id + ".bncl");
+                if (Files.exists(target) && !bridge(target)) {
+                    System.out.println(name + ": " + target + " is not a bridge arena, left alone");
+                    continue;
+                }
                 byte[] arena = build(id, map, LegacyZip.toPolar(zip, instance -> {}));
-                Files.write(out.resolve(id + ".bncl"), arena);
+                Files.write(target, arena);
                 written++;
                 System.out.println(name + ": " + id + ".bncl, " + arena.length / 1024 + " KB, from " + map.get("capture").getAsString());
             }
         }
         System.out.println(written + " arenas in " + out.toAbsolutePath());
         System.exit(0);
+    }
+
+    private static boolean bridge(Path arena) throws IOException {
+        var manifest = ArenaManifest.fromBytes(ArenaContainer.unpack(Files.readAllBytes(arena)).get(ArenaContainer.MANIFEST));
+        return manifest.meta().tags().contains("bridge");
     }
 
     private static byte[] build(String id, JsonObject map, byte[] world) {
