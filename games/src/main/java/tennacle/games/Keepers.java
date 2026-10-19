@@ -1,6 +1,8 @@
 package tennacle.games;
 
+import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
 import io.github.term4.polyp.api.event.projectile.PearlTeleportEvent;
+import io.github.term4.polyp.entity.DroppedItemEntity;
 import io.github.term4.grotto.modules.gear.Kits;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
@@ -53,6 +55,8 @@ public final class Keepers implements GameModule, Building.Reserves {
 
     private record Standing(PointMarker at, Npc npc) {}
 
+    private record Drop(Player by, long tick) {}
+
     private static final String LOOK = "keepers:look";
     /** Blocks around a keeper, across and up, that a pearl may not land in; {@code 0} = none. */
     public static final StateKey<Double> SPACE = StateKey.of("keeper.space", Codec.DOUBLE, 1.5);
@@ -63,7 +67,13 @@ public final class Keepers implements GameModule, Building.Reserves {
     /** How far below and above a keeper's feet that column runs (captured: 5). */
     public static final StateKey<Integer> RESERVE_HEIGHT = StateKey.of("keeper.reserve.height", Codec.INT, 5);
 
+    /** Ticks after a drop that an item lying in a keeper's space goes back to its dropper, since nobody can walk in
+     *  for it (the user, 2026-10-18: about 3 s, Hypixel); {@code -1} = it stays. */
+    public static final StateKey<Integer> RETURN = StateKey.of("keeper.return", Codec.INT, 60);
+
     private final List<Post> posts = new ArrayList<>();
+    private final Map<DroppedItemEntity, Drop> dropped = new IdentityHashMap<>();
+    private Function<ItemStack, @Nullable String> roles = item -> null;
     private final Map<Entity, Standing> standing = new IdentityHashMap<>();
     private Game game;
 
@@ -71,6 +81,12 @@ public final class Keepers implements GameModule, Building.Reserves {
 
     public static @NotNull Keepers of() {
         return new Keepers();
+    }
+
+    /** The kit role an item handed back takes, so it lands where the player keeps it. */
+    public @NotNull Keepers roles(@NotNull Function<ItemStack, @Nullable String> roles) {
+        this.roles = roles;
+        return this;
     }
 
     /** A {@code body} at every {@code key} point, doing {@code use} on a right click. */
@@ -94,7 +110,7 @@ public final class Keepers implements GameModule, Building.Reserves {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.of(SPACE, LOOK_INVISIBLE, RESERVE, RESERVE_HEIGHT);
+        return Set.of(SPACE, LOOK_INVISIBLE, RESERVE, RESERVE_HEIGHT, RETURN);
     }
 
     @Override
@@ -112,16 +128,39 @@ public final class Keepers implements GameModule, Building.Reserves {
         game.state().alarms().register(LOOK, (tick, payload) -> {
             game.state().alarms().arm(LOOK, tick + 1);
             look();
+            returnDropped();
+        });
+        game.onWorld(ItemSpawnEvent.class, ItemSpawnEvent::world, e -> {
+            if (e.cause() == ItemSpawnEvent.Cause.PLAYER_DROP && e.player() != null && game.roster().slotOf(e.player()) != null) {
+                dropped.put(e.item(), new Drop(e.player(), game.tick()));
+            }
         });
         if (!standing.isEmpty()) game.state().alarms().arm(LOOK, game.tick() + 1);
         // captured: a pearl cannot land in a shopkeeper's space; the user: it is refused and handed back, no use spent
         game.on(PearlTeleportEvent.class, PearlTeleportEvent::shooter, e -> {
             if (!(e.shooter() instanceof Player thrower) || game.roster().slotOf(thrower) == null || !inSpace(e.target())) return;
             e.setCancelled(true);
-            ItemStack pearl = ItemStack.of(Material.ENDER_PEARL);
-            Kits kits = game.module(Kits.class);
-            if (kits == null || !kits.give(thrower, null, pearl)) thrower.getInventory().addItemStack(pearl);
+            handBack(thrower, ItemStack.of(Material.ENDER_PEARL));
         });
+    }
+
+    private void returnDropped() {
+        if (dropped.isEmpty()) return;
+        int wait = game.rules().resolve(Scope.GAME, RETURN);
+        dropped.entrySet().removeIf(entry -> {
+            DroppedItemEntity item = entry.getKey();
+            Player owner = entry.getValue().by();
+            if (item.isRemoved() || wait < 0 || !game.members().contains(owner)) return true;
+            if (game.tick() - entry.getValue().tick() < wait || !inSpace(item.getPosition())) return false;
+            item.remove();
+            handBack(owner, item.getItemStack());
+            return true;
+        });
+    }
+
+    private void handBack(Player player, ItemStack stack) {
+        Kits kits = game.module(Kits.class);
+        if (kits == null || !kits.give(player, roles.apply(stack), stack)) player.getInventory().addItemStack(stack);
     }
 
     /** Whether {@code at} lies within {@link #SPACE} of a keeper, across, or up from its feet. */
