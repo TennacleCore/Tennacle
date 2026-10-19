@@ -18,6 +18,7 @@ import net.kyori.adventure.nbt.StringBinaryTag;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -25,7 +26,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.stream.Stream;
 
@@ -53,6 +56,7 @@ public final class ScrimsMaps {
         Path out = Path.of(args[1]);
         Files.createDirectories(out);
         int written = 0;
+        Map<String, JsonObject> picker = picker(Path.of(args[0]).resolveSibling("picker.json"));
         try (Stream<Path> files = Files.list(Path.of(args[0]))) {
             for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
                 JsonObject map;
@@ -67,7 +71,7 @@ public final class ScrimsMaps {
                     System.out.println(name + ": " + target + " is not a bridge arena, left alone");
                     continue;
                 }
-                byte[] arena = build(id, map, LegacyZip.toPolar(zip, instance -> {}));
+                byte[] arena = build(id, map, picker.get(name), LegacyZip.toPolar(zip, instance -> {}));
                 Files.write(target, arena);
                 written++;
                 System.out.println(name + ": " + id + ".bncl, " + arena.length / 1024 + " KB, from " + map.get("capture").getAsString()
@@ -83,7 +87,19 @@ public final class ScrimsMaps {
         return manifest.meta().tags().contains("bridge");
     }
 
-    private static byte[] build(String id, JsonObject map, byte[] world) {
+    // the map picker as captured: its category, place, ranked flag and icon, by map name
+    private static Map<String, JsonObject> picker(Path file) throws IOException {
+        Map<String, JsonObject> out = new HashMap<>();
+        if (!Files.exists(file)) return out;
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            for (var entry : new Gson().fromJson(reader, JsonObject.class).getAsJsonArray("maps")) {
+                out.put(entry.getAsJsonObject().get("name").getAsString(), entry.getAsJsonObject());
+            }
+        }
+        return out;
+    }
+
+    private static byte[] build(String id, JsonObject map, @Nullable JsonObject listed, byte[] world) {
         JsonArray spawn = map.getAsJsonArray("spawn");
         ArenaBuilder builder = new ArenaBuilder(id).name(map.get("map").getAsString()).authors(authors(map))
                 .tags("bridge")
@@ -92,7 +108,13 @@ public final class ScrimsMaps {
                 .user(CompoundBinaryTag.builder().put("scrims", CompoundBinaryTag.builder()
                         .putString("capture", map.get("capture").getAsString())
                         .putString("symmetry", map.get("symmetry").getAsString())
-                        .put("guessed", guessed(map)).build()).build());
+                        .put("guessed", guessed(map))
+                        .put("picker", listed == null ? CompoundBinaryTag.empty() : CompoundBinaryTag.builder()
+                                .putString("category", listed.get("category").getAsString())
+                                .putInt("order", listed.get("order").getAsInt())
+                                .putBoolean("ranked", listed.get("ranked").getAsBoolean())
+                                .putString("icon", listed.get("icon").getAsString()).build())
+                        .build()).build());
         for (var element : map.getAsJsonArray("sides")) {
             JsonObject side = element.getAsJsonObject();
             String group = String.valueOf(TEAMS.indexOf(side.get("team").getAsString()) + 1);
