@@ -110,8 +110,8 @@ class CommandsTest extends HeadlessServerTest {
 
     @Test
     void gamemodeShortcutsAndTargets() {
-        FakePlayer a = FakePlayer.connect(instance, new Pos(710.5, 65, 710.5), "ModeA");
-        FakePlayer b = FakePlayer.connect(instance, new Pos(712.5, 65, 712.5), "ModeB");
+        FakePlayer a = FakePlayer.connect(instance, new Pos(710.5, 65, 710.5), "GmA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(712.5, 65, 712.5), "GmB");
         try {
             chat(a, "gmsp");
             assertEquals(GameMode.SPECTATOR, a.player.getGameMode());
@@ -119,9 +119,9 @@ class CommandsTest extends HeadlessServerTest {
             assertEquals(GameMode.CREATIVE, a.player.getGameMode());
             chat(a, "gm 2");
             assertEquals(GameMode.ADVENTURE, a.player.getGameMode());
-            chat(a, "gma ModeB");
+            chat(a, "gma GmB");
             assertEquals(GameMode.ADVENTURE, b.player.getGameMode(), "a player's, named");
-            chat(a, "gm survival ModeB");
+            chat(a, "gm survival GmB");
             assertEquals(GameMode.SURVIVAL, b.player.getGameMode());
             Access.everyone(Set.of());
             assertEquals(List.of("Unknown command. Type /help for help."), chat(b, "gmc"), "a player without the node");
