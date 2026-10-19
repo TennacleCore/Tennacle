@@ -105,7 +105,9 @@ public final class ScrimsMaps {
                 .tags("bridge")
                 .spawn(new Pos(spawn.get(0).getAsDouble(), spawn.get(1).getAsDouble(), spawn.get(2).getAsDouble()))
                 .world(world)
-                .user(CompoundBinaryTag.builder().put("scrims", CompoundBinaryTag.builder()
+                .user(CompoundBinaryTag.builder()
+                        .putString(ArenaIcons.ICON, listed == null ? "" : listed.get("icon").getAsString()) // Scrims' own, repeats and all
+                        .put("scrims", CompoundBinaryTag.builder()
                         .putString("capture", map.get("capture").getAsString())
                         .putString("symmetry", map.get("symmetry").getAsString())
                         .put("guessed", guessed(map))

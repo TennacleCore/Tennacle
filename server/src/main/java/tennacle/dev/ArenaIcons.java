@@ -25,6 +25,7 @@ import java.util.stream.Stream;
  * icon the arena holds, else a thing its name names ({@code dragonstar}: dragon, star) and then the block that most
  * sets its world apart (a block's share of this map, weighted by how few maps share it, as search engines weigh
  * words), filler aside (air, fluids, bedrock, and the team-colored wool, clay and glass every base is built from).
+ * A map taken from a network's picker keeps that picker's icon, though another map shares it.
  */
 public final class ArenaIcons {
 
@@ -61,7 +62,7 @@ public final class ArenaIcons {
             String held = meta.user().getString(ICON);
             String icon = picked.get(meta.id());
             String from = "picked";
-            if (icon == null && !held.isEmpty() && used.add(held)) {
+            if (icon == null && !held.isEmpty() && (fromPicker(meta) || used.add(held))) {
                 icon = held;
                 from = "kept";
             }
@@ -80,6 +81,10 @@ public final class ArenaIcons {
             Files.write(arena.file(), ArenaContainer.pack(entries));
         }
         System.exit(0);
+    }
+
+    private static boolean fromPicker(ArenaMeta meta) {
+        return meta.user().getCompound("scrims").getCompound("picker").keySet().contains("icon");
     }
 
     private static Read read(Path file) {
