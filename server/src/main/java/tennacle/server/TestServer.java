@@ -69,11 +69,12 @@ import java.util.stream.Collectors;
 /**
  * The games server: the party, games and lobby modules over Grotto + Polyp + Archipelago, installed in that order.
  * Boot only - the pieces live in {@link Mechanics} (systems + bridges), {@link SocialModule}, {@link GamesModule},
- * {@link LobbyModule} and the dev tools. The dev toolset ({@link DevCommands}, the test pads, the arsenal) exists
- * only where {@code tennacle.dev-commands} says so - on a loopback bind by default.
+ * {@link LobbyModule} and the staff tools ({@link DevCommands} and the rest), always registered behind their
+ * permission nodes. {@code tennacle.dev-commands} hands every player those nodes, and lays the test pads: on a loopback
+ * bind by default.
  *
  * <p>Everything the deployment decides comes through {@link Config}: port, bind, directories, forwarding
- * secret, whether the dev commands exist. The libraries persist nothing - {@link FileVault} is the server's
+ * secret, whether every player holds the staff tools. The libraries persist nothing - {@link FileVault} is the server's
  * answer to where account data lives, installed here before anything reads it.
  */
 public final class TestServer {
@@ -194,7 +195,7 @@ public final class TestServer {
         tennacle.hypixel.HypixelApi.install(Config.value("tennacle.hypixel-api-key"));
         Access.owners(Arrays.stream(Config.string("tennacle.owners", "").split(",")).map(String::trim)
                 .filter(owner -> !owner.isEmpty()).collect(Collectors.toSet()));
-        Access.everyone(devCommands ? Set.of("tennacle.dev.*") : Set.of()); // a dev build hands everyone the dev tools
+        Access.everyone(devCommands ? Set.of("tennacle.staff.*") : Set.of()); // a dev build hands everyone the staff tools
         InstanceContainer world = LobbyModule.world(devCommands); // the test pads ride the dev flag
         Commands.install(); // /help reads the registry every command below lands in
         // members build into their shard's overlay, never the map (the bridge already decorated the
@@ -203,14 +204,11 @@ public final class TestServer {
         ShardTabList.install(); // tab names + completion follow each shard's TabScope
 
         ShardManager shards = new ShardManager();
-        if (devCommands) {
-            ShardCommands.register(shards, world);
-            DevCommands.register(Mechanics.polyp);
-            SimTpsCommands.register(Mechanics.polyp, shards, world);
-            PresetCommands.register(Mechanics.polyp, world); // /preset: the mechanics preset at each scope, live
-        } else {
-            LOGGER.info("dev commands off (tennacle.dev-commands)");
-        }
+        ShardCommands.register(shards, world);
+        DevCommands.register(Mechanics.polyp);
+        SimTpsCommands.register(Mechanics.polyp, shards, world);
+        PresetCommands.register(Mechanics.polyp, world); // /preset: the mechanics preset at each scope, live
+        if (!devCommands) LOGGER.info("staff tools only for those who hold them (tennacle.dev-commands off)");
         palette(); // a seasonal look is one config line: every map's arms, kits, cages and names follow
         look();
 
@@ -222,7 +220,7 @@ public final class TestServer {
         leftovers(data, replays);
         SocialModule.install();
         GamesModule.install(world, Playground.SPAWN, shards,
-                new GamesModule.Data(vault, data.resolve("matches"), replays, gameSecret(data)), devCommands);
+                new GamesModule.Data(vault, data.resolve("matches"), replays, gameSecret(data)));
         LobbyModule.install(world);
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
                 e -> vault.forget(e.getPlayer().getUuid()));
@@ -231,9 +229,9 @@ public final class TestServer {
         Bloom.install(MapPool.arenas(), shards, p -> p.setInstance(world, Playground.SPAWN));
         // a builder's: the edit verbs work on whatever world the builder stands in, the lobby included
         Commands.adopt("tennacle.build.", Bloom::registerDefaultCommands);
-        Commands.describe(AppCommand.Audience.DEV, "arena", "The map maker: edit, save, section a map.");
-        Commands.describe(AppCommand.Audience.DEV, "marker", "The markers of the map being edited.");
-        Commands.describe(AppCommand.Audience.DEV, "give", "An item by material, for the editor.");
+        Commands.describe(AppCommand.Audience.STAFF, "arena", "The map maker: edit, save, section a map.");
+        Commands.describe(AppCommand.Audience.STAFF, "marker", "The markers of the map being edited.");
+        Commands.describe(AppCommand.Audience.STAFF, "give", "An item by material, for the editor.");
         SectionCommands.install(); // /arena section reads starter geometry, so it is ours to add
         // a builder walking into the editor leaves whatever they were in first - the compass, the ghost
         // body and the rest belong to that session, not to this one. Editor to editor is just a hop

@@ -50,7 +50,7 @@ public final class Access {
         backend = source;
     }
 
-    /** Nodes every player holds on this server: the dev tools on a dev build. */
+    /** Nodes every player holds on this server: the staff tools on a dev build. */
     public static void everyone(@NotNull Set<String> nodes) {
         everyone = Set.copyOf(nodes);
     }

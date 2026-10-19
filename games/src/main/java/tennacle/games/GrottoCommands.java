@@ -26,7 +26,7 @@ public final class GrottoCommands {
     private GrottoCommands() {}
 
     public static void register() {
-        AppCommand grotto = Commands.dev("grotto", "Spectate a player's game; derive a game id from a board code.")
+        AppCommand grotto = Commands.staff("grotto", "Spectate a player's game; derive a game id from a board code.")
                 .usage("/grotto spectate <player>", "follow them into their game")
                 .usage("/grotto id <code> [date]", "derive a game id from a board code");
         var target = ArgumentType.Word("player");

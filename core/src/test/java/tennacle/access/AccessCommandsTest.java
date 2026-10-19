@@ -63,11 +63,11 @@ class AccessCommandsTest extends HeadlessServerTest {
             assertTrue(Access.allows(t.player, "tennacle.moderate.mute"));
             assertTrue(said(chat(boss, "role RoleT"), "RoleT is a Mod."));
 
-            assertTrue(said(chat(boss, "grant RoleT tennacle.dev.audit"), "RoleT now holds tennacle.dev.audit."));
-            assertTrue(Access.allows(t.player, "tennacle.dev.audit"));
-            assertTrue(said(chat(boss, "role RoleT"), "On top: tennacle.dev.audit."));
-            assertTrue(said(chat(boss, "revoke RoleT tennacle.dev.audit"), "RoleT no longer holds tennacle.dev.audit."));
-            assertFalse(Access.allows(t.player, "tennacle.dev.audit"));
+            assertTrue(said(chat(boss, "grant RoleT tennacle.staff.audit"), "RoleT now holds tennacle.staff.audit."));
+            assertTrue(Access.allows(t.player, "tennacle.staff.audit"));
+            assertTrue(said(chat(boss, "role RoleT"), "On top: tennacle.staff.audit."));
+            assertTrue(said(chat(boss, "revoke RoleT tennacle.staff.audit"), "RoleT no longer holds tennacle.staff.audit."));
+            assertFalse(Access.allows(t.player, "tennacle.staff.audit"));
             assertTrue(said(chat(boss, "revoke RoleT tennacle.moderate.mute"), "wasn't granted tennacle.moderate.mute on its own"));
             assertTrue(said(chat(boss, "grant RoleT tennacle..x"), "isn't a permission"));
             assertTrue(said(chat(boss, "role RoleBoss"), "Owner (from the server config)"));

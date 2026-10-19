@@ -63,7 +63,7 @@ public final class ShardCommands {
     }
 
     public static void register(ShardManager shards, InstanceContainer world) {
-        AppCommand shard = Commands.dev("shard", "Isolated game worlds over one map.")
+        AppCommand shard = Commands.staff("shard", "Isolated game worlds over one map.")
                 .usage("/shard create <name>", "new game on its own clock")
                 .usage("/shard child <parent> <new>", "layer over a game (relative diff)")
                 .usage("/shard join <name>", "play: same map, your own diff")
@@ -489,7 +489,7 @@ public final class ShardCommands {
         wave.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player p) Msg.shard(p, Msg.v(p.getUsername()), " waves at the game");
         });
-        wave.setCondition((sender, typed) -> !(sender instanceof Player p) || Access.allows(p, "tennacle.dev.wave"));
+        wave.setCondition((sender, typed) -> !(sender instanceof Player p) || Access.allows(p, "tennacle.staff.wave"));
         WorldCommands.register(wave, w -> w instanceof Shard);
     }
 

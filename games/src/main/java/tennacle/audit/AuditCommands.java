@@ -27,7 +27,7 @@ public final class AuditCommands {
     private AuditCommands() {}
 
     public static void register() {
-        AppCommand audit = Commands.dev("audit", "The server's worlds: instances, games, shards, players.")
+        AppCommand audit = Commands.staff("audit", "The server's worlds: instances, games, shards, players.")
                 .usage("/audit", "every instance, with its games and shard trees")
                 .usage("/audit instances", "every world and what stands in it")
                 .usage("/audit minis", "every game: who is in, who watches, its tree")

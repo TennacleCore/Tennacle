@@ -25,7 +25,7 @@ public final class SimTpsCommands {
     private SimTpsCommands() {}
 
     public static void register(Polyp polyp, ShardManager shards, InstanceContainer world) {
-        AppCommand cmd = Commands.dev("simtps", "A simulated tick rate: slow motion or fast.")
+        AppCommand cmd = Commands.staff("simtps", "A simulated tick rate: slow motion or fast.")
                 .usage("/simtps self <1-100|native>", "dilate YOUR player scope")
                 .usage("/simtps shard <name> <1-100|native>", "dilate one shard (its members only)")
                 .usage("/simtps instance <1-100|native>", "dilate the base map")

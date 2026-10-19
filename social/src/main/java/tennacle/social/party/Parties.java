@@ -306,7 +306,7 @@ public final class Parties {
         Channels.register(new Channels.Channel(CHANNEL, List.of("p"), Parties::partyOnline, Parties::chatLine,
                 "You're not in a party."));
 
-        AppCommand parties = Commands.dev("parties", "Every party and its members.");
+        AppCommand parties = Commands.staff("parties", "Every party and its members.");
         parties.setDefaultExecutor((sender, ctx) -> listAll(sender));
         Commands.register(parties);
     }

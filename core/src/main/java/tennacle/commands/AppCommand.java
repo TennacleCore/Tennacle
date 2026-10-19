@@ -19,8 +19,8 @@ import java.util.List;
  */
 public final class AppCommand extends Command {
 
-    /** A player surface ({@code tennacle.command.<name>}), or a dev tool ({@code tennacle.dev.<name>}). */
-    public enum Audience { PLAYER, DEV }
+    /** A player surface ({@code tennacle.command.<name>}), or a staff tool ({@code tennacle.staff.<name>}). */
+    public enum Audience { PLAYER, STAFF }
 
     /** One {@code /help} row: the form as typed, and what it does; {@code node}, when set, is what reading it takes. */
     public record Usage(@NotNull String form, @NotNull String what, @Nullable String node) {}
@@ -35,7 +35,7 @@ public final class AppCommand extends Command {
         super(name, aliases);
         this.audience = audience;
         this.blurb = blurb;
-        this.node = (audience == Audience.DEV ? "tennacle.dev." : "tennacle.command.") + name;
+        this.node = (audience == Audience.STAFF ? "tennacle.staff." : "tennacle.command.") + name;
     }
 
     public @NotNull AppCommand usage(@NotNull String form, @NotNull String what) {

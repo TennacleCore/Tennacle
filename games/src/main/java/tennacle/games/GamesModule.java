@@ -40,8 +40,8 @@ public final class GamesModule {
     private GamesModule() {}
 
     public static void install(@NotNull InstanceContainer home, @NotNull Pos homeSpawn, @NotNull ShardManager shards,
-                               @NotNull Data data, boolean devCommands) {
-        ReplayCommands.register(shards, home, devCommands);
+                               @NotNull Data data) {
+        ReplayCommands.register(shards, home);
         Matches.install(home, homeSpawn, shards);
         Matches.grotto().vault(data.vault());
         MatchLog.install(data.matchLog());

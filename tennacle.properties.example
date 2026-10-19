@@ -16,7 +16,8 @@ tennacle.port = 25566
 tennacle.data-dir = data
 tennacle.arena-dir = arenas
 
-# /gm, /lag, /shard stall and friends. On by default only on a loopback bind
+# hands every player the staff tools (/gamemode, /lag, /shard stall and friends), which otherwise need
+# tennacle.staff.<command> or a role holding it. On by default only on a loopback bind
 # tennacle.dev-commands = false
 
 # usernames or uuids that are always admin, comma separated: who hands out /role on a fresh server

@@ -36,8 +36,8 @@ class AccessTest extends HeadlessServerTest {
         Set<String> mod = Access.effective(new Grants(Role.MOD, Set.of()));
         assertTrue(Access.matches(mod, "tennacle.build.arena"), "a mod builds");
         assertTrue(Access.matches(mod, "tennacle.moderate.kick"));
-        assertFalse(Access.matches(mod, "tennacle.dev.audit"));
-        assertTrue(Access.matches(Access.effective(new Grants(Role.ADMIN, Set.of())), "tennacle.dev.audit"));
+        assertFalse(Access.matches(mod, "tennacle.staff.audit"));
+        assertTrue(Access.matches(Access.effective(new Grants(Role.ADMIN, Set.of())), "tennacle.staff.audit"));
         assertFalse(Access.matches(Access.effective(Grants.NONE), "tennacle.build.arena"));
     }
 
@@ -84,9 +84,9 @@ class AccessTest extends HeadlessServerTest {
     @Test
     void everyoneHoldsTheServerWide() {
         FakePlayer p = FakePlayer.connect(instance, new Pos(2.5, 65, 0.5), "AccB");
-        Access.everyone(Set.of("tennacle.dev.*"));
+        Access.everyone(Set.of("tennacle.staff.*"));
         try {
-            assertTrue(Access.allows(p.player, "tennacle.dev.audit"));
+            assertTrue(Access.allows(p.player, "tennacle.staff.audit"));
             assertFalse(Access.allows(p.player, "tennacle.build.arena"));
         } finally {
             Access.everyone(Set.of());

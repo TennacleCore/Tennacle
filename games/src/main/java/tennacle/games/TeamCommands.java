@@ -58,7 +58,7 @@ public final class TeamCommands {
         });
         Commands.register(team);
 
-        AppCommand side = Commands.dev("side", "Put a player on a side, live.")
+        AppCommand side = Commands.staff("side", "Put a player on a side, live.")
                 .usage("/side <player> <team>", "onto a free seat of that side; the id, or its color")
                 .usage("/side swap <player> <player>", "the two trade sides");
         var who = ArgumentType.Word("player");

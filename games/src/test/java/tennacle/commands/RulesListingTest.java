@@ -101,7 +101,7 @@ class RulesListingTest extends HeadlessServerTest {
                         .anyMatch(l -> l.contains("You can't change a game's rules.")), "a player can't rewrite their game");
                 assertEquals(launched, row(lines(a, "rules space.build.outside"), "space.build.outside"), "nothing changed");
             } finally {
-                tennacle.access.Access.everyone(java.util.Set.of("tennacle.dev.*"));
+                tennacle.access.Access.everyone(java.util.Set.of("tennacle.staff.*"));
             }
         } finally {
             if (game != null && game.status() == Game.Status.OPEN) game.end(Outcome.aborted());

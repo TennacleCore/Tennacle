@@ -36,7 +36,7 @@ import tennacle.commands.RulesCompletions;
 public final class RulesCommands {
 
     /** Changing a live game's rules. */
-    public static final String WRITE = "tennacle.dev.rules";
+    public static final String WRITE = "tennacle.staff.rules";
 
     private RulesCommands() {}
 

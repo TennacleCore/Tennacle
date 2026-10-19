@@ -15,7 +15,7 @@ class ReplayCommandsTest extends HeadlessServerTest {
     /** Off the dev build, a player's /replay is the watch alone: no seeking someone else's theater, no commits. */
     @Test
     void playersWatchOnly() {
-        ReplayCommands.register(new ShardManager(), instance, false);
+        ReplayCommands.register(new ShardManager(), instance);
         Command replay = MinecraftServer.getCommandManager().getCommand("replay");
         assertNotNull(replay);
         assertEquals(1, replay.getSyntaxes().size(), "watch alone");

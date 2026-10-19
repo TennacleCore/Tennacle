@@ -4,6 +4,8 @@ import tennacle.games.watch.Spectators;
 import io.github.term4.polyp.mechanics.attribute.catalog.VanillaPotions;
 import tennacle.boot.Mechanics;
 import tennacle.Msg;
+import tennacle.commands.Completions;
+import java.util.Map;
 import tennacle.games.Skins;
 import tennacle.dev.Arsenal;
 import tennacle.dev.LagSimulator;
@@ -57,6 +59,26 @@ public final class DevCommands {
 
     private DevCommands() {}
 
+    private static final Map<String, GameMode> MODES = Map.ofEntries(
+            Map.entry("survival", GameMode.SURVIVAL), Map.entry("s", GameMode.SURVIVAL), Map.entry("0", GameMode.SURVIVAL),
+            Map.entry("creative", GameMode.CREATIVE), Map.entry("c", GameMode.CREATIVE), Map.entry("1", GameMode.CREATIVE),
+            Map.entry("adventure", GameMode.ADVENTURE), Map.entry("a", GameMode.ADVENTURE), Map.entry("2", GameMode.ADVENTURE),
+            Map.entry("spectator", GameMode.SPECTATOR), Map.entry("sp", GameMode.SPECTATOR), Map.entry("3", GameMode.SPECTATOR));
+
+    private static List<String> onlineNames() {
+        return MinecraftServer.getConnectionManager().getOnlinePlayers().stream().map(Player::getUsername).toList();
+    }
+
+    private static void gamemode(net.minestom.server.command.CommandSender sender, String name, GameMode mode) {
+        Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
+        if (target == null) {
+            Msg.fail(sender, "No player named ", Msg.v(name), " is online.");
+            return;
+        }
+        gamemode(target, mode);
+        if (sender != target) Msg.tag(sender, "gm", target.getUsername() + "'s gamemode: ", Msg.v(mode.name().toLowerCase()));
+    }
+
     private static void gamemode(Player p, GameMode mode) {
         if (Spectators.gamemode(p, mode)) return; // a spectator's bodies, or a refusal
         p.setGameMode(mode);
@@ -103,43 +125,48 @@ public final class DevCommands {
         skins();
 
         // what the tab is ACTUALLY being sent for this viewer - the tab differs per client generation
-        AppCommand tabdump = Commands.dev("tabdump", "What the tab list is sending you.");
+        AppCommand tabdump = Commands.staff("tabdump", "What the tab list is sending you.");
         tabdump.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player viewer)) return;
             for (String line : ShardTabList.describe(viewer)) viewer.sendMessage(Msg.v(line));
         });
         Commands.register(tabdump);
         // the SEQUENCE of tab packets that reached this client - what a snapshot cannot show
-        AppCommand tablog = Commands.dev("tablog", "The tab packets you received, in order.");
+        AppCommand tablog = Commands.staff("tablog", "The tab packets you received, in order.");
         tablog.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player viewer)) return;
             for (String line : ShardTabList.history(viewer)) viewer.sendMessage(Msg.v(line));
         });
         Commands.register(tablog);
 
-        AppCommand gm = Commands.dev("gm", "Your gamemode.")
-                .usage("/gm <mode>", "survival, creative, adventure or spectator");
-        Argument<GameMode> mode = ArgumentType.Enum("mode", GameMode.class).setFormat(ArgumentEnum.Format.LOWER_CASED);
-        gm.addSyntax((sender, ctx) -> {
-            if (sender instanceof Player p) gamemode(p, ctx.get(mode));
+        AppCommand gamemode = Commands.staff("gamemode", "Set a gamemode, yours or a player's.", "gm")
+                .usage("/gamemode <mode> [player]", "survival, creative, adventure or spectator (s, c, a, sp, or 0 to 3)");
+        Argument<String> mode = ArgumentType.Word("mode").from(MODES.keySet().toArray(String[]::new));
+        Argument<String> target = ArgumentType.Word("player");
+        target.setSuggestionCallback(Completions.of(DevCommands::onlineNames));
+        gamemode.addSyntax((sender, ctx) -> {
+            if (sender instanceof Player p) gamemode(p, MODES.get(ctx.get(mode)));
         }, mode);
-        Commands.register(gm);
-
-        AppCommand gmc = Commands.dev("gmc", "Creative mode.");
-        gmc.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) gamemode(p, GameMode.CREATIVE);
-        });
-        Commands.register(gmc);
-
-        AppCommand gms = Commands.dev("gms", "Survival mode.");
-        gms.setDefaultExecutor((sender, ctx) -> {
-            if (sender instanceof Player p) gamemode(p, GameMode.SURVIVAL);
-        });
-        Commands.register(gms);
+        gamemode.addSyntax((sender, ctx) -> gamemode(sender, ctx.get(target), MODES.get(ctx.get(mode))), mode, target);
+        Commands.register(gamemode);
+        for (var shortcut : List.of(Map.entry("gms", GameMode.SURVIVAL), Map.entry("gmc", GameMode.CREATIVE),
+                Map.entry("gma", GameMode.ADVENTURE), Map.entry("gmsp", GameMode.SPECTATOR))) {
+            GameMode to = shortcut.getValue();
+            String title = to.name().charAt(0) + to.name().substring(1).toLowerCase();
+            AppCommand cmd = Commands.staff(shortcut.getKey(), title + " mode, yours or a player's.")
+                    .usage("/" + shortcut.getKey() + " [player]", title + " mode");
+            Argument<String> who = ArgumentType.Word("player");
+            who.setSuggestionCallback(Completions.of(DevCommands::onlineNames));
+            cmd.setDefaultExecutor((sender, ctx) -> {
+                if (sender instanceof Player p) gamemode(p, to);
+            });
+            cmd.addSyntax((sender, ctx) -> gamemode(sender, ctx.get(who), to), who);
+            Commands.register(cmd);
+        }
 
         // /fly: toggle survival flight (double-jump to lift); while flying, fall damage is exempt. A gamemode
         // switch clears allowFlying (Minestom stamps it from the mode), so re-run /fly after /gms.
-        AppCommand fly = Commands.dev("fly", "Toggle flight.");
+        AppCommand fly = Commands.staff("fly", "Toggle flight.");
         fly.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             boolean on = !p.isAllowFlying();
@@ -150,7 +177,7 @@ public final class DevCommands {
         Commands.register(fly);
 
         // /boom resolves the SHOOTER's world: a shard blast only rocks that game, a main-map one never reaches it
-        AppCommand boom = Commands.dev("boom", "A blast where you stand, in your own world.");
+        AppCommand boom = Commands.staff("boom", "A blast where you stand, in your own world.");
         boom.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             Mechanics.explosions.explode(MechanicsWorld.of(p), p.getPosition(), 4.0f, p, null);
@@ -160,7 +187,7 @@ public final class DevCommands {
         // test-only latency simulator. Purely test-side - mechanics is untouched.
         final LagSimulator lag = new LagSimulator();
         lag.install();
-        AppCommand lagCmd = Commands.dev("lag", "Give yourself a simulated ping.")
+        AppCommand lagCmd = Commands.staff("lag", "Give yourself a simulated ping.")
                 .usage("/lag", "what is set, and what the keep-alive actually measured")
                 .usage("/lag <ms>", "simulated round trip, split over both directions (0 = off)")
                 .usage("/lag in <ticks> out <ms>", "set each direction yourself");
@@ -188,7 +215,7 @@ public final class DevCommands {
         Commands.register(lagCmd);
 
         // /compat: toggle this player between the global 1.8 profile and a per-player modern override (mode switch demo)
-        AppCommand compatCmd = Commands.dev("compat", "Toggle your mechanics between 1.8 and the latest version.");
+        AppCommand compatCmd = Commands.staff("compat", "Toggle your mechanics between 1.8 and the latest version.");
         compatCmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof PolypPlayer op)) return;
             boolean turningOff = polyp.profiles().player(op) == null; // no per-player override = currently on the global profile
@@ -205,7 +232,7 @@ public final class DevCommands {
         // /ns: A/B the two client sprint/swim gates. "food" clamps the wire food to 6 (steady 3-shank bar, nothing
         // else); "blind [duration]" holds a hidden blindness (fog lerps out at duration/20, but the sky-block and
         // darkness ride effect PRESENCE - short durations strobe under jitter, longer ones block the sky steadily)
-        AppCommand ns = Commands.dev("ns", "A/B the client's two sprint gates.")
+        AppCommand ns = Commands.staff("ns", "A/B the client's two sprint gates.")
                 .usage("/ns", "toggle the food clamp")
                 .usage("/ns food | blind [ticks] | off", "pick a gate");
         Argument<Integer> blindTicks = ArgumentType.Integer("duration").setDefaultValue(5);
@@ -238,7 +265,7 @@ public final class DevCommands {
         }, net.minestom.server.timer.TaskSchedule.immediate(), net.minestom.server.timer.TaskSchedule.tick(1));
 
         // /shorts: A/B the byte-exact Animatium velocity vs the lossy LpVec3 (take a >2 b/t knockback to compare)
-        AppCommand shortsCmd = Commands.dev("shorts", "A/B byte-exact velocity shorts against the lossy vector.");
+        AppCommand shortsCmd = Commands.staff("shorts", "A/B byte-exact velocity shorts against the lossy vector.");
         shortsCmd.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof PolypPlayer op)) return;
             CompatConfig current = polyp.profiles().resolve(op, MechanicsKeys.COMPAT);
@@ -251,7 +278,7 @@ public final class DevCommands {
         Commands.register(shortsCmd);
 
         // /suffocate: drops a stone block into your head to test suffocation damage (be in survival - /gms)
-        AppCommand suffocate = Commands.dev("suffocate", "A stone block in your head.");
+        AppCommand suffocate = Commands.staff("suffocate", "A stone block in your head.");
         suffocate.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p) || p.getInstance() == null) return;
             p.getInstance().setBlock(p.getPosition().add(0, p.getEyeHeight(), 0), Block.STONE);
@@ -261,7 +288,7 @@ public final class DevCommands {
 
         // /explode [power]: explosion at your feet (no source, so you feel the falloff knockback + take the damage)
         ExplosionSystem explosions = Mechanics.explosions;
-        AppCommand explode = Commands.dev("explode", "An explosion at your feet.")
+        AppCommand explode = Commands.staff("explode", "An explosion at your feet.")
                 .usage("/explode [power]", "power 4 by default");
         Argument<Integer> explodePower = ArgumentType.Integer("power");
         explode.setDefaultExecutor((sender, ctx) -> {
@@ -276,7 +303,7 @@ public final class DevCommands {
 
         // /explodeat <dx> <dy> <dz> [power]: detonate at your feet + offset (power 2 = fireball) - decouples
         // detonation height from distance for the head-gate model test
-        AppCommand explodeAt = Commands.dev("explodeat", "Detonate at an offset from your feet.")
+        AppCommand explodeAt = Commands.staff("explodeat", "Detonate at an offset from your feet.")
                 .usage("/explodeat <dx> <dy> <dz> [power]", "power default 2 = fireball");
         Argument<Double> exAtX = ArgumentType.Double("dx");
         Argument<Double> exAtY = ArgumentType.Double("dy");
@@ -293,7 +320,7 @@ public final class DevCommands {
         Commands.register(explodeAt);
 
         // /sword: a blockable diamond sword (right-click + hold to block; 1.8 = (1+f)*0.5 damage, pre-armor)
-        AppCommand sword = Commands.dev("sword", "A blockable diamond sword.");
+        AppCommand sword = Commands.staff("sword", "A blockable diamond sword.");
         sword.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player p) {
                 p.getInventory().addItemStack(VanillaBlocking.item(Material.DIAMOND_SWORD));
@@ -303,7 +330,7 @@ public final class DevCommands {
         Commands.register(sword);
 
         // /arsenal: the mechanics test rig's body - what the lobby handed every arrival before it was a lobby
-        AppCommand arsenal = Commands.dev("arsenal", "The test rig's body: survival, diamond, one of everything.");
+        AppCommand arsenal = Commands.staff("arsenal", "The test rig's body: survival, diamond, one of everything.");
         arsenal.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player p) {
                 Arsenal.give(p);
@@ -313,7 +340,7 @@ public final class DevCommands {
         Commands.register(arsenal);
 
         // /nbsword: a non-blockable diamond sword (opted out) - should NOT reduce damage while right-click held
-        AppCommand nbsword = Commands.dev("nbsword", "A diamond sword that never blocks.");
+        AppCommand nbsword = Commands.staff("nbsword", "A diamond sword that never blocks.");
         nbsword.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player p) {
                 p.getInventory().addItemStack(VanillaBlocking.nonBlocking(ItemStack.of(Material.DIAMOND_SWORD)));
@@ -323,7 +350,7 @@ public final class DevCommands {
         Commands.register(nbsword);
 
         // /enchant <enchantment> [level]: enchant the held item (e.g. /enchant fire_aspect 2)
-        AppCommand enchant = Commands.dev("enchant", "Enchant the held item.")
+        AppCommand enchant = Commands.staff("enchant", "Enchant the held item.")
                 .usage("/enchant <enchantment> [level]", "e.g. /enchant fire_aspect 2");
         Argument<String> enchName = ArgumentType.Word("enchantment");
         enchName.setSuggestionCallback(tennacle.commands.Completions.of(() ->
@@ -338,7 +365,7 @@ public final class DevCommands {
         Commands.register(enchant);
 
         // /effect <effect> [strength] [seconds]  |  /effect clear
-        AppCommand effectCmd = Commands.dev("effect", "Apply a potion effect.")
+        AppCommand effectCmd = Commands.staff("effect", "Apply a potion effect.")
                 .usage("/effect <effect> [strength] [seconds]", "e.g. /effect strength 2")
                 .usage("/effect clear", "clear all effects");
         Argument<String> effName = ArgumentType.Word("effect");
@@ -362,13 +389,13 @@ public final class DevCommands {
         VelocityCapCommands.install(playerNode);
         MinecraftServer.getGlobalEventHandler().addChild(playerNode);
 
-        AppCommand velCap = Commands.dev("velcap", "Velocity cap A/B: the snapped vector.");
+        AppCommand velCap = Commands.staff("velcap", "Velocity cap A/B: the snapped vector.");
         velCap.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player p) VelocityCapCommands.applyNormalCap(p);
         });
         Commands.register(velCap);
 
-        AppCommand velCapBridge = Commands.dev("velcapbridge", "Velocity cap A/B: the exact 1.8 short over ViaBridge.");
+        AppCommand velCapBridge = Commands.staff("velcapbridge", "Velocity cap A/B: the exact 1.8 short over ViaBridge.");
         velCapBridge.setDefaultExecutor((sender, ctx) -> {
             if (sender instanceof Player p) VelocityCapCommands.applyBridgeCap(p);
         });
@@ -403,7 +430,7 @@ public final class DevCommands {
 
     // the skin picker: Skins holds the families and the picks, the standard menus will front them later
     private static void skins() {
-        AppCommand skin = Commands.dev("skin", "The face of what you buy and pick up, per family.")
+        AppCommand skin = Commands.staff("skin", "The face of what you buy and pick up, per family.")
                 .usage("/skin [family] [face]", "list the families, a family's faces, or pick one");
         skin.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;

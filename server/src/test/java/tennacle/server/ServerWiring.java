@@ -5,7 +5,7 @@ import net.minestom.server.instance.InstanceContainer;
 import tennacle.dev.DevCommands;
 import tennacle.lobby.LobbyWiring;
 
-/** Every module's wiring plus the dev tools, for the tests that drive the whole server. */
+/** Every module's wiring plus the staff tools, for the tests that drive the whole server. */
 public final class ServerWiring {
 
     private static boolean wired;

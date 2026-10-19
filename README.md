@@ -26,8 +26,8 @@ Modules, each over the ones before it; social, games and lobby each install thro
 - `social` - parties and who may invite whom (`SocialModule`)
 - `games` - the match layer, matchmaking, spectating, replays, the looks and every mode (`GamesModule`)
 - `lobby` - the lobby worlds, hotbar, NPCs, menus and settings (`LobbyModule`)
-- `server` - `TestServer` (boot: installs the modules in that order) and the dev tools (`DevCommands`,
-  `ShardCommands`, /lag, /enchant, ...)
+- `server` - `TestServer` (boot: installs the modules in that order) and the staff tools (`DevCommands`,
+  `ShardCommands`, /gamemode, /lag, /enchant, ...), always registered behind `tennacle.staff.<command>`
 
 Test harness: `core`'s test fixtures (`FakePlayer`, `HeadlessServerTest`), then `TestWiring` (games) and
 `LobbyWiring` (lobby) for a module's tests over the ones below it.

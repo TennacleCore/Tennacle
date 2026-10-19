@@ -47,8 +47,8 @@ public final class Commands {
         return new AppCommand(AppCommand.Audience.PLAYER, blurb, name, aliases);
     }
 
-    public static @NotNull AppCommand dev(@NotNull String name, @NotNull String blurb, @NotNull String... aliases) {
-        return new AppCommand(AppCommand.Audience.DEV, blurb, name, aliases);
+    public static @NotNull AppCommand staff(@NotNull String name, @NotNull String blurb, @NotNull String... aliases) {
+        return new AppCommand(AppCommand.Audience.STAFF, blurb, name, aliases);
     }
 
     /**
@@ -182,16 +182,16 @@ public final class Commands {
         };
     }
 
-    /** {@code /help [page]}, {@code /help <command>}, {@code /help dev [page]}: what the reader can see. */
+    /** {@code /help [page]}, {@code /help <command>}, {@code /help staff [page]}: what the reader can see. */
     private static void help() {
         AppCommand help = player("help", "Every command, or one in detail.")
                 .usage("/help [page]", "the commands")
                 .usage("/help <command>", "one command's forms")
-                .usage("/help dev [page]", "the dev tools");
+                .usage("/help staff [page]", "the staff tools");
         var what = ArgumentType.Word("what");
         what.setSuggestionCallback((sender, ctx, suggestion) -> {
             List<String> names = new ArrayList<>(all().stream().map(AppCommand::getName).filter(name -> visible(sender, name)).toList());
-            names.add("dev");
+            if (all().stream().anyMatch(c -> c.audience() == AppCommand.Audience.STAFF && visible(sender, c.getName()))) names.add("staff");
             Completions.offer(suggestion, names);
         });
         var page = ArgumentType.Integer("page");
@@ -201,15 +201,15 @@ public final class Commands {
         register(help);
     }
 
-    // a page number, the dev listing, or a command by name
+    // a page number, the staff listing, or a command by name
     private static void one(CommandSender sender, String what, int page) {
         String word = what.toLowerCase(Locale.ROOT);
         if (word.chars().allMatch(Character::isDigit)) {
             list(sender, AppCommand.Audience.PLAYER, Integer.parseInt(word));
             return;
         }
-        if (word.equals("dev")) {
-            list(sender, AppCommand.Audience.DEV, page);
+        if (word.equals("staff")) {
+            list(sender, AppCommand.Audience.STAFF, page);
             return;
         }
         AppCommand command = find(sender, word);
@@ -227,11 +227,11 @@ public final class Commands {
             rows.add(Msg.run("/" + command.getName()).append(Msg.THEME.prose(" - " + command.blurb())));
         }
         if (rows.isEmpty()) {
-            Msg.fail(sender, audience == AppCommand.Audience.DEV ? "You have no dev tools." : "You have no commands.");
+            Msg.fail(sender, audience == AppCommand.Audience.STAFF ? "You have no staff tools." : "You have no commands.");
             return;
         }
-        String header = audience == AppCommand.Audience.DEV ? "Dev tools" : "Commands";
-        String prefix = audience == AppCommand.Audience.DEV ? "/help dev " : "/help ";
+        String header = audience == AppCommand.Audience.STAFF ? "Staff tools" : "Commands";
+        String prefix = audience == AppCommand.Audience.STAFF ? "/help staff " : "/help ";
         sender.sendMessage(Msg.THEME.page(Canvas.isFlat(sender), header, rows, page, PER_PAGE, n -> prefix + n));
     }
 }

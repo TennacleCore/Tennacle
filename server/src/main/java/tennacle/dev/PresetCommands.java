@@ -34,7 +34,7 @@ public final class PresetCommands {
     private static final Object GLOBAL = new Object();
 
     public static void register(Polyp polyp, InstanceContainer lobby) {
-        AppCommand cmd = Commands.dev("preset", "The mechanics preset at each scope, live.")
+        AppCommand cmd = Commands.staff("preset", "The mechanics preset at each scope, live.")
                 .usage("/preset lobby <preset>", "the lobby map - a game's own rules still win")
                 .usage("/preset global <preset>", "the whole server, as if Mechanics.PRESET said so")
                 .usage("/preset self <preset>", "only you, for an A/B against the player beside you")
