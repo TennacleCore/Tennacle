@@ -149,7 +149,8 @@ public final class PlayerPrefs {
                     // connection asks, not the online list: that holds only players past configuration, and the
                     // login fetch runs during it
                     if (!player.isOnline()) return;
-                    entry.cache.put(player.getUuid(), entry.decode.apply(stored));
+                    // a set while the read was out is newer than what it read
+                    entry.cache.putIfAbsent(player.getUuid(), entry.decode.apply(stored));
                 });
     }
 }
