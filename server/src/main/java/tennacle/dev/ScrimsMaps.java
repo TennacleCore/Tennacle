@@ -24,6 +24,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
@@ -101,7 +102,9 @@ public final class ScrimsMaps {
             builder.marker(region("bridge:goal", group, side.getAsJsonObject("goal")));
             builder.marker(region("section", group, side.getAsJsonObject("section")));
         }
-        builder.marker(region("bridge:build", "", map.getAsJsonObject("build")));
+        List<RegionMarker.Cuboid> build = new ArrayList<>(); // flat slices: the band gates y
+        for (var box : map.getAsJsonArray("build")) build.add(cuboid(box.getAsJsonObject()));
+        builder.marker(new RegionMarker("bridge:build", "", "", build, null, 0));
         builder.marker(region("center", "", map.getAsJsonObject("center")));
         builder.marker(region(Markers.BOUNDS.id(), "", map.getAsJsonObject("bounds")));
         builder.marker(new LimitMarker("bridge:height", "pinned", "", null, map.get("height").getAsDouble(), null));
@@ -124,7 +127,11 @@ public final class ScrimsMaps {
     }
 
     private static RegionMarker region(String key, String group, JsonObject box) {
-        return new RegionMarker(key, group, "", block(box.getAsJsonArray("min")), block(box.getAsJsonArray("max")));
+        return new RegionMarker(key, group, "", List.of(cuboid(box)), null, 0);
+    }
+
+    private static RegionMarker.Cuboid cuboid(JsonObject box) {
+        return new RegionMarker.Cuboid(block(box.getAsJsonArray("min")), block(box.getAsJsonArray("max")));
     }
 
     private static BlockVec block(JsonArray v) {
