@@ -1,5 +1,7 @@
 package tennacle.commands;
 
+import tennacle.access.Access;
+import tennacle.access.Role;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandExecutor;
@@ -29,6 +31,7 @@ public final class AppCommand extends Command {
     private final String blurb;
     private final List<Usage> usages = new ArrayList<>();
     private String node;
+    private @Nullable Role lowest;
     private boolean featured;
 
     AppCommand(@NotNull Audience audience, @NotNull String blurb, @NotNull String name, @NotNull String... aliases) {
@@ -56,6 +59,16 @@ public final class AppCommand extends Command {
 
     public @NotNull String node() {
         return node;
+    }
+
+    /** The lowest staff role that holds it ({@link Access#lowest}); unset, a staff tool is the admin's alone. */
+    public @NotNull AppCommand role(@NotNull Role role) {
+        this.lowest = role;
+        return this;
+    }
+
+    public @Nullable Role role() {
+        return lowest;
     }
 
     /** Listed on the welcome screen. */

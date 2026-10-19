@@ -115,7 +115,7 @@ public final class AccessCommands {
 
     private static Set<String> grantable() {
         Set<String> out = new TreeSet<>(Commands.nodes());
-        for (Role role : Role.values()) out.addAll(role.nodes());
+        for (Role role : Role.values()) out.addAll(Access.held(role));
         for (String node : List.copyOf(out)) {
             int dot = node.lastIndexOf('.');
             if (dot > 0) out.add(node.substring(0, dot) + ".*");

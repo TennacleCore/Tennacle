@@ -58,6 +58,7 @@ public final class Commands {
     public static void register(@NotNull AppCommand command) {
         if (command.getDefaultExecutor() == null) command.setDefaultExecutor((sender, ctx) -> usage(sender, command));
         behind(command, command.node());
+        if (command.role() != null) Access.lowest(command.node(), command.role());
         MinecraftServer.getCommandManager().register(command);
         registered.put(command.getName(), command);
     }

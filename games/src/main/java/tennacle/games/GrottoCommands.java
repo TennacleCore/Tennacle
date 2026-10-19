@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
+import tennacle.access.Role;
 /** {@code /grotto} - DEV tooling, like {@code DevCommands}: chat over the api for the test environment (spectate,
  *  {@link GameIds#derive} as {@code id}). Not a player surface; the live map is {@code /audit}. */
 public final class GrottoCommands {
@@ -26,7 +27,7 @@ public final class GrottoCommands {
     private GrottoCommands() {}
 
     public static void register() {
-        AppCommand grotto = Commands.staff("grotto", "Spectate a player's game; derive a game id from a board code.")
+        AppCommand grotto = Commands.staff("grotto", "Spectate a player's game; derive a game id from a board code.").role(Role.MOD)
                 .usage("/grotto spectate <player>", "follow them into their game")
                 .usage("/grotto id <code> [date]", "derive a game id from a board code");
         var target = ArgumentType.Word("player");

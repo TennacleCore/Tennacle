@@ -11,6 +11,7 @@ import tennacle.social.Audience;
 import tennacle.social.Choice;
 import tennacle.social.blocks.Blocks;
 import tennacle.social.channels.Channels;
+import tennacle.access.Role;
 
 import io.github.term4.canvas.theme.SoundSet;
 import io.github.term4.polyp.platform.player.PlayerNames;
@@ -306,7 +307,7 @@ public final class Parties {
         Channels.register(new Channels.Channel(CHANNEL, List.of("p"), Parties::partyOnline, Parties::chatLine,
                 "You're not in a party."));
 
-        AppCommand parties = Commands.staff("parties", "Every party and its members.");
+        AppCommand parties = Commands.staff("parties", "Every party and its members.").role(Role.MOD);
         parties.setDefaultExecutor((sender, ctx) -> listAll(sender));
         Commands.register(parties);
     }

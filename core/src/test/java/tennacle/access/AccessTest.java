@@ -36,9 +36,20 @@ class AccessTest extends HeadlessServerTest {
         Set<String> mod = Access.effective(new Grants(Role.MOD, Set.of()));
         assertTrue(Access.matches(mod, "tennacle.build.arena"), "a mod builds");
         assertTrue(Access.matches(mod, "tennacle.moderate.kick"));
-        assertFalse(Access.matches(mod, "tennacle.staff.audit"));
-        assertTrue(Access.matches(Access.effective(new Grants(Role.ADMIN, Set.of())), "tennacle.staff.audit"));
+        assertFalse(Access.matches(mod, "tennacle.staff.boom"), "a tool naming no role is the admin's");
+        assertTrue(Access.matches(Access.effective(new Grants(Role.ADMIN, Set.of())), "tennacle.staff.boom"));
         assertFalse(Access.matches(Access.effective(Grants.NONE), "tennacle.build.arena"));
+    }
+
+    @Test
+    void aToolNamesItsLowestRole() {
+        Access.lowest("tennacle.staff.lowtool", Role.BUILDER);
+        tennacle.commands.Commands.register(tennacle.commands.Commands.staff("modtool", "A look at things.").role(Role.MOD));
+        assertTrue(Access.matches(Access.effective(new Grants(Role.BUILDER, Set.of())), "tennacle.staff.lowtool"));
+        assertTrue(Access.matches(Access.effective(new Grants(Role.MOD, Set.of())), "tennacle.staff.lowtool"), "and every role above");
+        assertFalse(Access.matches(Access.effective(Grants.NONE), "tennacle.staff.lowtool"));
+        assertTrue(Access.matches(Access.effective(new Grants(Role.MOD, Set.of())), "tennacle.staff.modtool"), "registering names it");
+        assertFalse(Access.matches(Access.effective(new Grants(Role.BUILDER, Set.of())), "tennacle.staff.modtool"));
     }
 
     @Test

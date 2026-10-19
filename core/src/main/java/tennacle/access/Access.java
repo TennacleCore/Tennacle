@@ -7,9 +7,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -37,6 +39,7 @@ public final class Access {
     private static volatile Backend backend = new PrefsBackend();
     private static volatile Set<String> everyone = Set.of();
     private static volatile Set<String> owners = Set.of();
+    private static final Map<Role, Set<String>> lowest = new ConcurrentHashMap<>();
     private static final List<Consumer<Player>> changed = new CopyOnWriteArrayList<>();
 
     private Access() {}
@@ -93,11 +96,23 @@ public final class Access {
         changed.add(listener);
     }
 
+    /** {@code role} and every role above it hold {@code node}: a tool names the lowest staff role that uses it. */
+    public static void lowest(@NotNull String node, @NotNull Role role) {
+        lowest.computeIfAbsent(role, r -> ConcurrentHashMap.newKeySet()).add(node);
+    }
+
+    /** What {@code role} holds of its own: its ladder nodes and the tools that name it lowest. */
+    public static @NotNull Set<String> held(@NotNull Role role) {
+        Set<String> out = new HashSet<>(role.nodes());
+        out.addAll(lowest.getOrDefault(role, Set.of()));
+        return out;
+    }
+
     /** Every node {@code grants} holds: its role's, the roles' below it, and its own. */
     public static @NotNull Set<String> effective(@NotNull Grants grants) {
         Set<String> out = new HashSet<>(grants.nodes());
         for (Role role : Role.values()) {
-            if (grants.role().atLeast(role)) out.addAll(role.nodes());
+            if (grants.role().atLeast(role)) out.addAll(held(role));
         }
         return out;
     }

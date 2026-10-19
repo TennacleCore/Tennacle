@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
+import tennacle.access.Role;
 /**
  * The polyp example server's dev/test toolset plus the shard-aware {@code /boom}: lag simulation, profile
  * switches, explosions, enchants, effects, blockable swords, velocity-cap A/B.
@@ -125,21 +126,21 @@ public final class DevCommands {
         skins();
 
         // what the tab is ACTUALLY being sent for this viewer - the tab differs per client generation
-        AppCommand tabdump = Commands.staff("tabdump", "What the tab list is sending you.");
+        AppCommand tabdump = Commands.staff("tabdump", "What the tab list is sending you.").role(Role.MOD);
         tabdump.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player viewer)) return;
             for (String line : ShardTabList.describe(viewer)) viewer.sendMessage(Msg.v(line));
         });
         Commands.register(tabdump);
         // the SEQUENCE of tab packets that reached this client - what a snapshot cannot show
-        AppCommand tablog = Commands.staff("tablog", "The tab packets you received, in order.");
+        AppCommand tablog = Commands.staff("tablog", "The tab packets you received, in order.").role(Role.MOD);
         tablog.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player viewer)) return;
             for (String line : ShardTabList.history(viewer)) viewer.sendMessage(Msg.v(line));
         });
         Commands.register(tablog);
 
-        AppCommand gamemode = Commands.staff("gamemode", "Set a gamemode, yours or a player's.", "gm")
+        AppCommand gamemode = Commands.staff("gamemode", "Set a gamemode, yours or a player's.", "gm").role(Role.BUILDER)
                 .usage("/gamemode <mode> [player]", "survival, creative, adventure or spectator (s, c, a, sp, or 0 to 3)");
         Argument<String> mode = ArgumentType.Word("mode").from(MODES.keySet().toArray(String[]::new));
         Argument<String> target = ArgumentType.Word("player");
@@ -153,7 +154,7 @@ public final class DevCommands {
                 Map.entry("gma", GameMode.ADVENTURE), Map.entry("gmsp", GameMode.SPECTATOR))) {
             GameMode to = shortcut.getValue();
             String title = to.name().charAt(0) + to.name().substring(1).toLowerCase();
-            AppCommand cmd = Commands.staff(shortcut.getKey(), title + " mode, yours or a player's.")
+            AppCommand cmd = Commands.staff(shortcut.getKey(), title + " mode, yours or a player's.").role(Role.BUILDER)
                     .usage("/" + shortcut.getKey() + " [player]", title + " mode");
             Argument<String> who = ArgumentType.Word("player");
             who.setSuggestionCallback(Completions.of(DevCommands::onlineNames));
@@ -166,7 +167,7 @@ public final class DevCommands {
 
         // /fly: toggle survival flight (double-jump to lift); while flying, fall damage is exempt. A gamemode
         // switch clears allowFlying (Minestom stamps it from the mode), so re-run /fly after /gms.
-        AppCommand fly = Commands.staff("fly", "Toggle flight.");
+        AppCommand fly = Commands.staff("fly", "Toggle flight.").role(Role.BUILDER);
         fly.setDefaultExecutor((sender, ctx) -> {
             if (!(sender instanceof Player p)) return;
             boolean on = !p.isAllowFlying();

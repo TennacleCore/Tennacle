@@ -17,6 +17,7 @@ import java.util.List;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
 import tennacle.commands.Completions;
+import tennacle.access.Role;
 /**
  * {@code /audit} - the server's worlds for an admin: instances on top, the games and shard trees over each, and
  * every player's whereabouts, with the counts hovering their names and the trees and rosters opening as screens
@@ -27,7 +28,7 @@ public final class AuditCommands {
     private AuditCommands() {}
 
     public static void register() {
-        AppCommand audit = Commands.staff("audit", "The server's worlds: instances, games, shards, players.")
+        AppCommand audit = Commands.staff("audit", "The server's worlds: instances, games, shards, players.").role(Role.MOD)
                 .usage("/audit", "every instance, with its games and shard trees")
                 .usage("/audit instances", "every world and what stands in it")
                 .usage("/audit minis", "every game: who is in, who watches, its tree")

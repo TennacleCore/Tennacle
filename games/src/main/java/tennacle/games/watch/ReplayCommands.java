@@ -33,6 +33,7 @@ import static tennacle.commands.Ops.offClock;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
 import tennacle.access.Access;
+import tennacle.access.Role;
 /** {@code /replay}: record a shard, play it back into a fresh theater, seek/reverse/rewind/commit. */
 public final class ReplayCommands {
 
@@ -62,6 +63,7 @@ public final class ReplayCommands {
 
     /** Players watch; the recording and timeline tools are {@link #TOOLS}'. */
     public static void register(ShardManager shards, InstanceContainer world) {
+        Access.lowest(TOOLS, Role.MOD);
         Path replayDir = Storage.dir("replay-dir", "replays");
         AppCommand replay = Commands.player("replay", "Watch a game's replay.")
                 .usage("/replay watch <game>", "watch a recorded game by its id or board code")
