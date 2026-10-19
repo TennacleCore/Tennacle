@@ -1,12 +1,13 @@
 package tennacle.games.watch;
 
+import tennacle.storage.FileReplays;
+import tennacle.storage.ReplayStore;
 import tennacle.looks.Frames;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.Msg;
 import tennacle.games.Match;
-import tennacle.storage.Atomic;
 
 import io.github.term4.archipelago.replay.Playback;
 import io.github.term4.archipelago.replay.Recording;
@@ -143,7 +144,12 @@ public final class Replays {
     private Replays() {}
 
     public static void install(@NotNull Path replays, @NotNull ShardManager shardManager) {
-        Tapes.install(replays);
+        install(replays, new FileReplays(replays), shardManager);
+    }
+
+    /** The spools under {@code replays}, finished replays in {@code store}. */
+    public static void install(@NotNull Path replays, @NotNull ReplayStore store, @NotNull ShardManager shardManager) {
+        Tapes.install(replays, store);
         if (installed) return; // channels, sources and listeners are server-wide: once
         installed = true;
         Replay.register(LINES);
@@ -259,21 +265,27 @@ public final class Replays {
         long ticks = Match.playTime(game);
         List<UUID> seated = game.roster().participants().stream().map(Roster.Participant::uuid).distinct().toList();
         Component line = recordedLine(game.id(), mapName, ticks);
-        Path file = Tapes.fileFor(game.id(), mode != null ? mode.name() : null);
-        if (file == null) return;
-        CompletableFuture<Void> landed = recording.stopAsync(data -> stamp(data, game, mode)).thenAccept(bytes -> {
-            if (bytes == null) return; // the encode failed and logged
-            try {
-                Atomic.write(file, bytes);
-                recording.discard();
-            } catch (IOException e) {
-                LOGGER.warn("the replay of game {} was not saved", game.id(), e);
-                return;
-            }
-            for (UUID uuid : seated) {
-                Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
-                if (player != null) player.sendMessage(line);
-            }
+        String folder = Tapes.folderOf(mode != null ? mode.name() : null);
+        CompletableFuture<Void> landed = recording.stopAsync(data -> stamp(data, game, mode)).thenCompose(bytes -> {
+            if (bytes == null) return CompletableFuture.completedFuture(null); // the encode failed and logged
+            ReplayStore.Entry entry = new ReplayStore.Entry(game.id(), game.code(), folder, mapName,
+                    System.currentTimeMillis(), ticks, bytes.length);
+            return Tapes.store().put(entry, bytes).handle((kept, failed) -> {
+                if (failed != null) {
+                    LOGGER.warn("the replay of game {} was not saved", game.id(), failed);
+                    return null;
+                }
+                try {
+                    recording.discard();
+                } catch (IOException e) {
+                    LOGGER.warn("the spool of game {} was not dropped", game.id(), e);
+                }
+                for (UUID uuid : seated) {
+                    Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
+                    if (player != null) player.sendMessage(line);
+                }
+                return null;
+            });
         });
         Tapes.landing(landed);
     }

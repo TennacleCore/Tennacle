@@ -26,6 +26,7 @@ import tennacle.looks.TabStats;
 import tennacle.social.party.Parties;
 import tennacle.storage.MatchLog;
 import tennacle.storage.MatchStore;
+import tennacle.storage.ReplayStore;
 
 import java.nio.file.Path;
 
@@ -36,7 +37,9 @@ import java.nio.file.Path;
 public final class GamesModule {
 
     /** Where the games keep what they write, and the secret behind their ids. */
-    public record Data(@NotNull Vault vault, @NotNull MatchStore matches, @NotNull Path replays, @NotNull String gameSecret) {}
+    /** {@code replays} holds the spools of games in progress; finished ones go to {@code replayStore}. */
+    public record Data(@NotNull Vault vault, @NotNull MatchStore matches, @NotNull Path replays,
+                       @NotNull ReplayStore replayStore, @NotNull String gameSecret) {}
 
     private GamesModule() {}
 
@@ -47,7 +50,7 @@ public final class GamesModule {
         Matches.grotto().vault(data.vault());
         MatchLog.install(data.matches());
         Matches.grotto().onGameEnd(MatchLog::ended);
-        Replays.install(data.replays(), shards); // every game, spooled as it runs, kept as a file under its mode
+        Replays.install(data.replays(), data.replayStore(), shards); // every game, spooled as it runs
         Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto
         Queues.install(); // /play's duels: the first parties that fill both teams start
         Play.install(); // /play <game> [platform]: Hypixel's ids

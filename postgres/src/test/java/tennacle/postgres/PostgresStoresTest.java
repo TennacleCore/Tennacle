@@ -9,8 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tennacle.moderation.Punishments;
 import tennacle.moderation.Punishments.Kind;
+import tennacle.storage.FileReplayBlobs;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchStore;
+import tennacle.storage.ReplayStore;
 import tennacle.storage.StatKeys;
 import tennacle.storage.StatRouting;
 import tennacle.storage.StatStore;
@@ -163,6 +165,29 @@ class PostgresStoresTest {
         blobs.set(a, kills, 100).join();
         stats.adopt(StatKeys.all()).join();
         assertEquals(15, vault.get(a, kills).join(), "a key moves once");
+    }
+
+    @Test
+    void replaysKeepThenExpire(@TempDir Path root) {
+        PgReplays replays = new PgReplays(db, new FileReplayBlobs(root), 1_000);
+        String kept = UUID.randomUUID().toString();
+        String held = UUID.randomUUID().toString();
+        byte[] bytes = {1, 2, 3};
+        replays.put(new ReplayStore.Entry(kept, "AAAAA", "bridge", "Urban", 10_000, 600, 3), bytes).join();
+        replays.put(new ReplayStore.Entry(held, "BBBBB", "sumo", "Ring", 10_000, 20, 3), bytes).join();
+        assertTrue(Files.exists(root.resolve("bridge").resolve(kept + ".shard")), "the bytes in the blob store");
+        assertTrue(java.util.Arrays.equals(bytes, replays.bytes(kept).join()));
+        assertNull(replays.bytes(UUID.randomUUID().toString()).join());
+
+        replays.keep(held, 50_000).join();
+        assertTrue(replays.expire(20_000).join() >= 1);
+        assertNull(replays.bytes(kept).join(), "past its keep");
+        assertTrue(!Files.exists(root.resolve("bridge").resolve(kept + ".shard")), "and its bytes are gone");
+        assertTrue(java.util.Arrays.equals(bytes, replays.bytes(held).join()), "a hold outlasts the keep");
+
+        String old = UUID.randomUUID().toString();
+        assertEquals(1, replays.adoptOnce(() -> List.of(new ReplayStore.Entry(old, "CCCCC", "boxing", "Arena", 9_000_000_000_000L, 0, 3))).join());
+        assertEquals(0, replays.adoptOnce(() -> { throw new AssertionError("not read twice"); }).join());
     }
 
     @Test

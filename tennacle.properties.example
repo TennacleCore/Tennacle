@@ -23,6 +23,10 @@ tennacle.arena-dir = arenas
 # tennacle.postgres.password = <the role's password>
 # tennacle.postgres.pool = 8
 
+# with postgres: days a replay stays watchable before its bytes are deleted (a bookmark or report can hold one
+# longer); 0 keeps every replay forever
+# tennacle.replays.keep-days = 0
+
 # hands every player the staff tools (/gamemode, /lag, /shard stall and friends), which otherwise need
 # tennacle.staff.<command> or a role holding it. On by default only on a loopback bind
 # tennacle.dev-commands = false

@@ -36,11 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -148,8 +144,7 @@ public final class Theaters {
     public static void watch(@NotNull Player viewer, @NotNull String idOrCode, @Nullable Arena map) {
         ShardManager manager = shards;
         String id = idOf(idOrCode);
-        Path file = id == null || manager == null ? null : Tapes.fileOf(id);
-        if (file == null || !Files.exists(file)) {
+        if (id == null || manager == null) {
             Msg.fail(viewer, "No replay found for ", Msg.v(idOrCode), ".");
             return;
         }
@@ -167,19 +162,25 @@ public final class Theaters {
         Thread.ofVirtual().name("tennacle-replay-" + id.substring(0, 8)).start(() -> {
             byte[] loaded;
             try {
-                loaded = Files.readAllBytes(file);
-            } catch (IOException e) {
+                loaded = Tapes.store().bytes(id).join();
+            } catch (RuntimeException e) {
+                LOGGER.warn("the replay of game {} could not be read", id, e);
                 MinecraftServer.getSchedulerManager().scheduleNextTick(() ->
                         Msg.fail(viewer, "That replay could not be read."));
                 return;
             }
+            if (loaded == null) {
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() ->
+                        Msg.fail(viewer, "No replay found for ", Msg.v(idOrCode), "."));
+                return;
+            }
             // the stage, its playback and the admits all on the server tick: a domain player's command runs on
             // THEIR shard's clock, and Replay.play relays into the stage's own live clock from there
-            MinecraftServer.getSchedulerManager().scheduleNextTick(() -> open(viewer, id, map, loaded, file));
+            MinecraftServer.getSchedulerManager().scheduleNextTick(() -> open(viewer, id, map, loaded));
         });
     }
 
-    private static void open(Player viewer, String id, @Nullable Arena map, byte[] bytes, Path file) {
+    private static void open(Player viewer, String id, @Nullable Arena map, byte[] bytes) {
         ShardManager manager = shards;
         UserData.View data = ShardFile.userData(bytes);
         String modeName = data.get(Replays.MODE);
@@ -212,7 +213,7 @@ public final class Theaters {
         String code = data.get(Replays.CODE);
         List<String> lineup = data.get(Replays.LINEUP);
         List<String> health = data.get(Replays.HEALTH);
-        Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", playedOn(data, file), mode,
+        Dressing dressing = new Dressing(stage, playback, id, code != null ? code : "", playedOn(data), mode,
                 lookName != null ? lookName : "tennacle", lineup != null ? lineup : List.of(),
                 health != null ? health : List.of());
         playback.ghostNames(dressing::listName); // before the first move op raises a ghost
@@ -269,8 +270,8 @@ public final class Theaters {
         return true;
     }
 
-    // the stamped day; a file from before the stamp is dated by the day it was written, which ended the game
-    private static LocalDate playedOn(UserData.View data, Path file) {
+    // the stamped day; a replay from before the stamp is dated today
+    private static LocalDate playedOn(UserData.View data) {
         String stamped = data.get(Replays.PLAYED);
         if (stamped != null) {
             try {
@@ -278,11 +279,7 @@ public final class Theaters {
             } catch (java.time.format.DateTimeParseException ignored) {
             }
         }
-        try {
-            return Files.getLastModifiedTime(file).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        } catch (IOException e) {
-            return LocalDate.now();
-        }
+        return LocalDate.now();
     }
 
     private static void admit(Player viewer, Theater theater, boolean controller) {

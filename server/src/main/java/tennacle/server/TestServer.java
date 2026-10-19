@@ -211,14 +211,14 @@ public final class TestServer {
         look();
 
         // the libraries store nothing: account data is the app's, and this is where it lands
-        Stores stores = Stores.open(data);
-        Seen.use(stores.directory());
-        Moderation.store(stores.punishments());
         Path replays = Storage.dir("replay-dir", "replays");
         leftovers(data, replays);
+        Stores stores = Stores.open(data, replays);
+        Seen.use(stores.directory());
+        Moderation.store(stores.punishments());
         SocialModule.install();
         GamesModule.install(world, Playground.SPAWN, shards,
-                new GamesModule.Data(stores.vault(), stores.matches(), replays, gameSecret(data)));
+                new GamesModule.Data(stores.vault(), stores.matches(), replays, stores.replays(), gameSecret(data)));
         LobbyModule.install(world);
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
                 e -> stores.closer().left(e.getPlayer().getUuid()));

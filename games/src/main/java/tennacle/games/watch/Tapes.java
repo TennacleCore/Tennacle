@@ -1,6 +1,6 @@
 package tennacle.games.watch;
 
-import tennacle.storage.Atomic;
+import tennacle.storage.ReplayStore;
 import io.github.term4.archipelago.replay.Replay;
 import io.github.term4.archipelago.storage.ShardFile;
 import io.github.term4.archipelago.storage.UserData;
@@ -23,10 +23,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 /**
- * Where a replay lives on disk: {@code <mode>/<game id>.shard} under the replay directory, and the spool in
- * {@code <mode>/spool/} that grows in its place while the game runs. The spool is gone once the file is kept;
- * a game a stop cuts short still lands ({@link #flush} waits for the file), and one a crash cuts leaves its
- * spool for the next boot to file ({@link #install}). Nothing here knows what a game is.
+ * Where a replay lives: finished, in the {@link ReplayStore}; while the game runs, as a spool in
+ * {@code <mode>/spool/} under the local replay directory. The spool is gone once the replay is kept; a game a
+ * stop cuts short still lands ({@link #flush} waits for it), and one a crash cuts leaves its spool for the next
+ * boot to keep ({@link #install}). Nothing here knows what a game is.
  */
 public final class Tapes {
 
@@ -35,15 +35,54 @@ public final class Tapes {
     static final int SPOOL_TICKS = 1200;
 
     private static volatile @Nullable Path dir;
+    private static volatile @Nullable ReplayStore store;
 
     private static final Set<CompletableFuture<?>> landing = ConcurrentHashMap.newKeySet();
 
     private Tapes() {}
 
-    /** Sets the directory and files whatever a crash left spooled under it. */
-    static void install(@NotNull Path replays) {
+    /** Sets the directory and keeps whatever a crash left spooled under it. */
+    static void install(@NotNull Path replays, @NotNull ReplayStore replayStore) {
         dir = replays;
+        store = replayStore;
         sweep(replays);
+    }
+
+    public static @NotNull ReplayStore store() {
+        ReplayStore installed = store;
+        if (installed == null) throw new IllegalStateException("Tapes.install first");
+        return installed;
+    }
+
+    /** Every finished replay in the local folders, described from its own header: what a new index starts from. */
+    public static @NotNull List<ReplayStore.Entry> onDisk(@NotNull Path replays) {
+        List<ReplayStore.Entry> out = new ArrayList<>();
+        if (!Files.isDirectory(replays)) return out;
+        try (Stream<Path> folders = Files.list(replays)) {
+            for (Path folder : folders.filter(Files::isDirectory).toList()) {
+                try (Stream<Path> files = Files.list(folder)) {
+                    for (Path file : files.filter(f -> f.getFileName().toString().endsWith(".shard")).toList()) {
+                        String id = file.getFileName().toString().replaceFirst("\\.shard$", "");
+                        try {
+                            byte[] bytes = Files.readAllBytes(file);
+                            out.add(entry(id, folder.getFileName().toString(), ShardFile.userData(bytes),
+                                    Files.getLastModifiedTime(file).toMillis(), bytes.length));
+                        } catch (IOException | RuntimeException unreadable) {
+                            LOGGER.warn("{} was left out of the replay index", file, unreadable);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.warn("the replay directory {} was not read", replays, e);
+        }
+        return out;
+    }
+
+    static ReplayStore.Entry entry(String id, String mode, UserData.View data, long playedAt, long size) {
+        String code = data.get(Replays.CODE);
+        String map = data.get(Replays.MAP);
+        return new ReplayStore.Entry(id, code == null ? "" : code, mode, map == null ? "" : map, playedAt, 0, size);
     }
 
     /** Where a game's spool grows while it plays, or null until {@link #install}. */
@@ -52,35 +91,10 @@ public final class Tapes {
         return at == null ? null : at.resolve(folderOf(mode)).resolve("spool").resolve(gameId + ".spool");
     }
 
-    /** Where a game's replay lands when it ends, or null until {@link #install}. */
-    static @Nullable Path fileFor(@NotNull String gameId, @Nullable String mode) {
-        Path at = dir;
-        return at == null ? null : at.resolve(folderOf(mode)).resolve(gameId + ".shard");
-    }
-
     /** Holds {@code write} against {@link #flush} until it lands. */
     static void landing(@NotNull CompletableFuture<?> write) {
         landing.add(write);
         write.whenComplete((v, e) -> landing.remove(write));
-    }
-
-    /**
-     * {@code <mode>/<game id>.shard} under the replay directory, once installed: the first mode folder holding
-     * it, else where a run before the mode folders kept it (may not exist).
-     */
-    public static @Nullable Path fileOf(@NotNull String gameId) {
-        Path at = dir;
-        if (at == null) return null;
-        String name = gameId + ".shard";
-        try (Stream<Path> entries = Files.list(at)) {
-            for (Path folder : entries.filter(Files::isDirectory).toList()) {
-                Path file = folder.resolve(name);
-                if (Files.exists(file)) return file;
-            }
-        } catch (IOException ignored) {
-            // no replay directory yet: nothing recorded
-        }
-        return at.resolve(name);
     }
 
     /** Waits for the files of games that just ended to land; {@code false} = one was still in flight. */
@@ -96,7 +110,7 @@ public final class Tapes {
         }
     }
 
-    private static String folderOf(@Nullable String mode) {
+    static String folderOf(@Nullable String mode) {
         return mode == null || mode.isBlank() ? "games" : mode;
     }
 
@@ -143,9 +157,10 @@ public final class Tapes {
             if (bytes == null) {
                 LOGGER.warn("the spool of game {} held nothing to keep; dropped", id);
             } else {
-                Path file = at.resolve(folderOf(ShardFile.userData(bytes).get(Replays.MODE))).resolve(id + ".shard");
-                Atomic.write(file, bytes);
-                LOGGER.info("filed the replay of game {} from its spool, cut where the last run stopped", id);
+                UserData.View data = ShardFile.userData(bytes);
+                store().put(entry(id, folderOf(data.get(Replays.MODE)), data, Files.getLastModifiedTime(spool).toMillis(),
+                        bytes.length), bytes).join();
+                LOGGER.info("kept the replay of game {} from its spool, cut where the last run stopped", id);
             }
             Files.deleteIfExists(spool);
         } catch (IOException | RuntimeException e) {
