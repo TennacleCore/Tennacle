@@ -406,6 +406,8 @@ public final class BedWars {
                 .rule(Spectating.NIGHT_VISION, true)
                 .rule(HealthDisplay.FROM, Match.LIVE) // captured: health under names and in the tab comes with the start
                 .rule(Staging.DRAW, true) // captured: no team shows until the start, a party lands together
+                // captured: 90 void deaths 38 to 1055 ms after dropping under y 0, a check once a second
+                .rule(Limits.EVERY, 20)
                 .rule(Building.BREAK, List.of(Building.PLACED, Building.GRASS)) // the map's blocks never come up, its plants do; the beds are Beds'
                 .rule(Building.BLAST, List.of(Building.PLACED)) // a fireball or TNT takes placed blocks, never the map
                 .rule(Building.BREAK_OUTSIDE, List.of(Building.PLACED, Building.GRASS));

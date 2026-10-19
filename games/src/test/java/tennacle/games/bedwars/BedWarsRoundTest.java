@@ -202,6 +202,37 @@ class BedWarsRoundTest extends HeadlessServerTest {
         }
     }
 
+    /** Captured: Hypixel checks for the void once a second, not on every move. */
+    @Test
+    void theVoidChecksOnceASecond() {
+        Mode solo = Matches.mode("bedwars-solo");
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(solo, Matches.platformFor(null), fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwVoidA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwVoidB");
+        try {
+            a.player.setInstance(game.instance(), ROOM).join();
+            b.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player)));
+            assertTrue(Matches.enter(game, List.of(b.player)));
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            live(game);
+            Respawns respawns = game.module(Respawns.class);
+            Pos under = new Pos(0.5, 40, 0.5); // the fixture's void is y 50
+            a.player.teleport(under).join();
+            EventDispatcher.call(new PlayerMoveEvent(a.player, under, false));
+            assertFalse(respawns.isDead(a.player), "not on the move itself");
+            long from = game.tick();
+            tickUntil(game, "the sweep", () -> respawns.isDead(a.player));
+            assertTrue(game.tick() - from <= 20, "within a second: " + (game.tick() - from));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
     @Test
     void anEggHitCreditsTheVoid() {
         Mode solo = Matches.mode("bedwars-solo");
