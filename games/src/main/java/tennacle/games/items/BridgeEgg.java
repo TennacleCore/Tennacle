@@ -28,16 +28,18 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The Bridge Egg (captured 2026-09-25, 95 eggs): a vanilla egg that leaves the thrower's wool under where it was
- * five ticks before, an L of three per tick, for thirty ticks or until it hits something or leaves the build limits.
+ * The Bridge Egg (captured 2026-09-25, 95 eggs; 2026-10-19, thrown down while falling): a vanilla egg flying straight
+ * down the thrower's look that leaves their wool under where it was four ticks before, an L of three per tick, for
+ * thirty ticks or until it hits something or leaves the build limits.
  * One throw a second; a refusal costs nothing. Any mode with building rules may list it.
  */
 public final class BridgeEgg implements GameModule {
 
     public static final StateKey<Long> COOLDOWN = StateKey.of("bridge-egg.cooldown", Codec.LONG, 20L);
     public static final StateKey<Integer> LIFE = StateKey.of("bridge-egg.life", Codec.INT, 30);
-    /** Ticks between where the egg was and the wool there. */
-    public static final StateKey<Integer> DELAY = StateKey.of("bridge-egg.delay", Codec.INT, 5);
+    /** Ticks between where the egg was and the wool there. Hypixel's read five or six from its spawn packet, which
+     *  already carries the throw tick's step; from that step, four (every other tick five: it lays two ticks at once). */
+    public static final StateKey<Integer> DELAY = StateKey.of("bridge-egg.delay", Codec.INT, 4);
     /** The wool starts at the egg's position this many ticks into its flight. */
     public static final StateKey<Integer> START = StateKey.of("bridge-egg.start", Codec.INT, 2);
 
@@ -69,6 +71,8 @@ public final class BridgeEgg implements GameModule {
                 e.setCancelled(true);
                 return;
             }
+            // captured: no spread, 9 of 9 straight down at exactly 0 across
+            e.setVelocity(thrower.getPosition().direction().mul(e.resolvedFlight().speed()));
             trail(thrower, e.projectile(), e.spawnPos());
         });
     }

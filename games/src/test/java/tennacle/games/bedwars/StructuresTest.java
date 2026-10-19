@@ -142,7 +142,7 @@ class StructuresTest extends HeadlessServerTest {
     }
 
     @Test
-    void anEggLeavesWoolFiveTicksBehind() {
+    void anEggLeavesWoolFourTicksBehind() {
         round("EggA", (game, fa, fb) -> {
             Player a = fa.player;
             BridgeEgg eggs = game.module(BridgeEgg.class);
@@ -157,7 +157,7 @@ class StructuresTest extends HeadlessServerTest {
                 egg.teleport(new Pos(6.5, 67, 5.5)).join(); // the first step: bare, as captured
                 ticks(game, 1);
                 egg.teleport(new Pos(7.5, 67, 5.5)).join(); // the second: the first wool
-                ticks(game, 5);
+                ticks(game, 4);
                 assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(7, 65, 5)), "nothing yet");
                 ticks(game, 1);
                 assertTrue(game.shard().getBlock(new BlockVec(7, 65, 5)).name().endsWith("_wool"), "under the egg");
@@ -214,6 +214,25 @@ class StructuresTest extends HeadlessServerTest {
                 ticks(game, 6);
                 assertEquals(Block.AIR, game.shard().getBlock(new BlockVec(7, 68, 5)), "the first step stays bare");
                 assertTrue(game.shard().getBlock(new BlockVec(9, 68, 5)).name().endsWith("_wool"), "the first wool is two ticks in");
+            } finally {
+                egg.remove();
+            }
+        });
+    }
+
+    /** Captured 2026-10-19: Hypixel's egg goes exactly where the thrower looks, 9 of 9 straight down. */
+    @Test
+    void aBridgeEggFliesStraight() {
+        round("EggD", (game, fa, fb) -> {
+            Player a = fa.player;
+            a.teleport(new Pos(0.5, 70, 0.5, 0, 90)).join();
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            ProjectileEntity egg = projectiles.launch(ProjectileSnapshot.of(a, Egg.INSTANCE).withItem(ItemStack.of(Material.EGG)).withConfig(Vanilla18.projectiles()));
+            assertNotNull(egg, "the egg flies");
+            try {
+                assertEquals(0, egg.getVelocity().x(), 1e-9, "no spread across");
+                assertEquals(0, egg.getVelocity().z(), 1e-9);
+                assertTrue(egg.getVelocity().y() < 0, "straight down");
             } finally {
                 egg.remove();
             }
