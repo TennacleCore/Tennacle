@@ -52,6 +52,7 @@ class ModerationTest extends HeadlessServerTest {
     void lengthsReadAndParse() {
         assertTrue(Mutes.parse("30m") == 1_800_000L && Mutes.parse("1W") == 604_800_000L);
         assertTrue(Mutes.parse("0h") < 0 && Mutes.parse("5y") < 0 && Mutes.parse("h") < 0);
+        assertTrue(Mutes.parse("perm") == Mute.FOREVER && Mutes.parse("Permanent") == Mute.FOREVER);
         assertTrue(Mutes.span(7_200_000L).equals("2 hours") && Mutes.span(5_400_000L).equals("2 hours"));
         assertTrue(Mutes.span(1_000L).equals("1 second") && Mutes.span(0).equals("1 second"));
     }
@@ -91,6 +92,19 @@ class ModerationTest extends HeadlessServerTest {
 
             assertTrue(said(run(mod, "unmute MuteA"), "MuteA can chat again."));
             assertTrue(said(run(mod, "unmute MuteA"), "MuteA isn't muted."));
+
+            a.sent.clear();
+            assertTrue(said(run(mod, "mute MuteA perm"), "MuteA is muted permanently."));
+            assertTrue(said(plain(a), "You are muted permanently."), plain(a).toString());
+            Mutes.clock = () -> now + 520 * 604_800_000L;
+            try {
+                PlayerChatEvent years = new PlayerChatEvent(a.player, List.of(a.player), "still?");
+                EventDispatcher.call(years);
+                assertTrue(years.isCancelled(), "it never runs out");
+            } finally {
+                Mutes.clock = System::currentTimeMillis;
+            }
+            assertTrue(said(run(mod, "unmute MuteA"), "MuteA can chat again."));
             run(a, "msg MuteB hi");
             assertTrue(said(plain(b), "From MuteA: hi"), plain(b).toString());
         } finally {

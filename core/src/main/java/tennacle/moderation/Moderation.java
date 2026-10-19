@@ -14,6 +14,7 @@ import tennacle.Seen;
 import tennacle.access.Access;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
+import tennacle.commands.Completions;
 import tennacle.storage.Directory;
 
 import java.util.concurrent.CompletableFuture;
@@ -36,7 +37,6 @@ public final class Moderation {
 
         var who = ArgumentType.Word("player");
         who.setSuggestionCallback(PlayerNames.suggestAll());
-        var length = ArgumentType.Word("duration");
         var reason = ArgumentType.StringArray("reason");
 
         AppCommand kick = Commands.player("kick", "Remove a player from the server.").node(KICK)
@@ -45,8 +45,10 @@ public final class Moderation {
         kick.addSyntax((sender, ctx) -> kick(sender, ctx.get(who), String.join(" ", ctx.get(reason))), who, reason);
         Commands.register(kick);
 
-        AppCommand mute = Commands.player("mute", "Stop a player from chatting for a while.").node(MUTE)
-                .usage("/mute <player> <duration> [reason]", "30m, 2h, 7d or 1w; online or not");
+        var length = ArgumentType.Word("duration");
+        length.setSuggestionCallback(Completions.of(() -> java.util.Set.of("perm", "30m", "1h", "1d", "7d")));
+        AppCommand mute = Commands.player("mute", "Stop a player from chatting.").node(MUTE)
+                .usage("/mute <player> <duration> [reason]", "30m, 2h, 7d, 1w or perm; online or not");
         mute.addSyntax((sender, ctx) -> mute(sender, ctx.get(who), ctx.get(length), ""), who, length);
         mute.addSyntax((sender, ctx) -> mute(sender, ctx.get(who), ctx.get(length), String.join(" ", ctx.get(reason))),
                 who, length, reason);
@@ -75,10 +77,8 @@ public final class Moderation {
         }
         Seen.find(target.getUsername()).thenCompose(entry -> outranks(sender, entry, "kick")).thenAccept(may -> {
             if (!may) return;
-            Component screen = Component.text("You were kicked from the server.", NamedTextColor.RED);
-            if (!reason.isEmpty()) screen = screen.append(Component.text("\n\nReason: ", NamedTextColor.GRAY))
-                    .append(Component.text(reason, NamedTextColor.WHITE));
-            target.kick(screen);
+            // the reason alone: Velocity already prefixes "You were kicked from <server>:"
+            target.kick(Component.text(reason.isEmpty() ? "No reason given." : reason, NamedTextColor.RED));
             Msg.tag(sender, "kick", "Kicked ", Msg.v(target.getUsername()), ".");
         }).exceptionally(failed -> failed(sender, "kick", name, failed));
     }
@@ -86,17 +86,18 @@ public final class Moderation {
     private static void mute(CommandSender sender, String name, String typed, String reason) {
         long length = Mutes.parse(typed);
         if (length < 0) {
-            Msg.err(sender, "mute", Msg.v(typed), " isn't a length. Try 30m, 2h, 7d or 1w.");
+            Msg.err(sender, "mute", Msg.v(typed), " isn't a length. Try 30m, 2h, 7d, 1w or perm.");
             return;
         }
         String by = sender instanceof Player me ? me.getUsername() : "Console";
         found(sender, name, "mute", target -> outranks(sender, target, "mute").thenCompose(may -> {
             if (!may) return CompletableFuture.completedFuture(null);
-            Mute mute = new Mute(Mutes.clock.getAsLong() + length, reason, by);
+            Mute mute = new Mute(length == Mute.FOREVER ? Mute.FOREVER : Mutes.clock.getAsLong() + length, reason, by);
+            String lasting = mute.permanent() ? "permanently" : "for " + Mutes.span(length);
             return Mutes.set(target.id(), mute).thenRun(() -> {
-                Msg.tag(sender, "mute", Msg.v(target.name()), " is muted for " + Mutes.span(length) + ".");
+                Msg.tag(sender, "mute", Msg.v(target.name()), " is muted " + lasting + ".");
                 Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(target.id());
-                if (online != null) Msg.fail(online, "You are muted for " + Mutes.span(length) + "." + Mutes.why(mute));
+                if (online != null) Msg.fail(online, "You are muted " + lasting + "." + Mutes.why(mute));
             });
         }));
     }

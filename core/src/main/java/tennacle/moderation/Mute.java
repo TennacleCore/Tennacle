@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 public record Mute(long until, @NotNull String reason, @NotNull String by) {
 
     public static final Mute NONE = new Mute(0, "", "");
+    public static final long FOREVER = Long.MAX_VALUE;
 
     static final Codec<Mute> CODEC = StructCodec.struct(
             "until", Codec.LONG, Mute::until,
@@ -17,5 +18,9 @@ public record Mute(long until, @NotNull String reason, @NotNull String by) {
 
     public boolean active(long now) {
         return until > now;
+    }
+
+    public boolean permanent() {
+        return until == FOREVER;
     }
 }

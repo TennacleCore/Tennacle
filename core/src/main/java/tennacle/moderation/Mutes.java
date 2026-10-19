@@ -60,7 +60,8 @@ public final class Mutes {
     private static boolean silenced(Player player) {
         Mute mute = of(player);
         if (mute == null) return false;
-        Msg.fail(player, "You are muted for another " + span(mute.until() - clock.getAsLong()) + "." + why(mute));
+        String left = mute.permanent() ? "permanently" : "for another " + span(mute.until() - clock.getAsLong());
+        Msg.fail(player, "You are muted " + left + "." + why(mute));
         return true;
     }
 
@@ -79,9 +80,11 @@ public final class Mutes {
         throw new AssertionError();
     }
 
-    /** {@code 45s}, {@code 30m}, {@code 2h}, {@code 7d} or {@code 1w} in millis; -1 when it isn't one. */
+    /** {@code 45s}, {@code 30m}, {@code 2h}, {@code 7d} or {@code 1w} in millis, {@link Mute#FOREVER} for {@code perm}; -1 when it isn't one. */
     static long parse(String typed) {
-        Matcher m = LENGTH.matcher(typed.toLowerCase(Locale.ROOT));
+        String lower = typed.toLowerCase(Locale.ROOT);
+        if (lower.equals("perm") || lower.equals("permanent")) return Mute.FOREVER;
+        Matcher m = LENGTH.matcher(lower);
         if (!m.matches()) return -1;
         long n = Long.parseLong(m.group(1));
         if (n == 0) return -1;
