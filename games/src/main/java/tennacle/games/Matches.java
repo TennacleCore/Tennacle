@@ -552,16 +552,20 @@ public final class Matches {
 
     /**
      * The pool's name for {@code word}: a map as players read it, as the pool lists it, or without the pool's
-     * prefix, case, spaces and dashes aside ({@code sky_rise}, {@code SkyRise}); null for none.
+     * prefix, case, spaces and dashes aside ({@code sky_rise}, {@code SkyRise}); null for none. A whole name wins
+     * over a stripped one: {@code hyperfrost} is Hyperfrost, never {@code exp-hyperfrost}.
      */
     public static @Nullable String mapNamed(@NotNull Mode mode, @NotNull String word) {
         String want = squash(word);
         Set<String> names = mode.arena().names();
         for (String name : names) {
-            if (squash(name).equals(want) || squash(name.substring(name.indexOf('-') + 1)).equals(want)) return name;
+            if (squash(name).equals(want)) return name;
         }
         for (String name : names) {
             if (squash(mapName(mode, name)).equals(want)) return name; // Pernicious, which pernicious-v2 plays as
+        }
+        for (String name : names) {
+            if (squash(name.substring(name.indexOf('-') + 1)).equals(want)) return name;
         }
         return null;
     }

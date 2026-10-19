@@ -78,6 +78,14 @@ class BridgeRoundTest extends HeadlessServerTest {
     }
 
     @Test
+    void wholeNameBeatsPrefix() {
+        Mode bridge = Matches.mode("bridge");
+        assertEquals("hyperfrost", Matches.mapNamed(bridge, "hyperfrost"), "never its experimental twin");
+        assertEquals("outpost", Matches.mapNamed(bridge, "Outpost"), "nor Old Outpost");
+        assertEquals("exp-hyperfrost", Matches.mapNamed(bridge, "Exp. Hyperfrost"));
+    }
+
+    @Test
     void aFullRound() {
         Mode bridge = Matches.mode("bridge");
         Game game = Matches.launch(bridge, Matches.platformFor("scrims"), fixture()); // the launch fold, nobody seated
