@@ -145,7 +145,7 @@ public final class MainMenu {
             entry.line(Component.text(titled(side.team()) + ": ", color).append(Component.text(names, NamedTextColor.WHITE)));
         }
         int more = game.sides().size() - shown.size();
-        if (more > 0) entry.line(theme.prose("+" + more + " more teams"));
+        if (more > 0) entry.line(theme.prose("+" + more + (more == 1 ? " more team" : " more teams")));
         return entry.action("Click to watch!").render(viewer);
     }
 

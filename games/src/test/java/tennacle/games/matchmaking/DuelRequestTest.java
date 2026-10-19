@@ -61,7 +61,7 @@ class DuelRequestTest extends HeadlessServerTest {
             a.sent.clear();
             b.sent.clear();
             MinecraftServer.getCommandManager().execute(a.player, "duel FillB bedwars-solo");
-            assertEquals(1, plain(a).stream().filter(l -> l.contains("fills up through /play bedwars_eight_one")).count(),
+            assertEquals(1, plain(a).stream().filter(l -> l.contains("can't be dueled. Join with /play bedwars_eight_one")).count(),
                     "turned away: " + plain(a));
             assertTrue(plain(b).stream().noneMatch(l -> l.contains("FillA")), "no request reached them: " + plain(b));
             assertFalse(Matches.launchedFull().contains("bedwars-solo"));

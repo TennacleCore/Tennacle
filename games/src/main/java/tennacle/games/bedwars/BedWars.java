@@ -310,8 +310,8 @@ public final class BedWars {
         Careers.card("bedwars", new Careers.Card("Bed Wars", List.of(CAREER_WINS, CAREER_LOSSES, CAREER_KILLS,
                 CAREER_DEATHS, CAREER_FINAL_KILLS, CAREER_FINAL_DEATHS, CAREER_BEDS), List.of(
                 Careers.Card.count("Wins", 0), Careers.Card.count("Losses", 1), Careers.Card.count("Kills", 2),
-                Careers.Card.count("Deaths", 3), Careers.Card.count("Final kills", 4),
-                Careers.Card.count("Final deaths", 5), Careers.Card.count("Beds broken", 6))));
+                Careers.Card.count("Deaths", 3), Careers.Card.count("Final Kills", 4),
+                Careers.Card.count("Final Deaths", 5), Careers.Card.count("Beds Broken", 6))));
     }
 
     // captured: the timeline's events, the middle's tiers among them

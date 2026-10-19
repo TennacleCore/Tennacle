@@ -84,7 +84,10 @@ public final class Cards {
     }
 
     /** Hypixel's play-again line under a duel card: {@code /duel <opponent> <words>}. */
-    public static @NotNull BiFunction<Game, Player, Component> playAgain(@NotNull String words) {
-        return (g, me) -> HypixelCard.playAgain(Summary.won(g, me), "/duel " + Match.opponentName(g, me) + " " + words);
+    public static @NotNull BiFunction<Game, Player, @Nullable Component> playAgain(@NotNull String words) {
+        return (g, me) -> {
+            String opponent = Match.opponentName(g, me);
+            return opponent.isEmpty() ? null : HypixelCard.playAgain(Summary.won(g, me), "/duel " + opponent + " " + words);
+        };
     }
 }

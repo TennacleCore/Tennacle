@@ -58,7 +58,7 @@ public final class SpectateCommands {
             if (!Spectating.allowed(open.getFirst())) { Msg.fail(me, "That game doesn't allow spectators."); return; }
             Spectators.exit(me);
             Spectators.enter(open.getFirst(), me, null);
-            Msg.ok(me, "Watching the ", Msg.v(open.getFirst().type().id()), ". ", Msg.run("/l"), " to leave.");
+            Msg.ok(me, "Watching the ", Msg.v(title(open.getFirst())), ". ", Msg.run("/l"), " to leave.");
         });
         spectate.addSyntax((sender, ctx) -> {
             if (!(sender instanceof Player me)) return;
@@ -93,21 +93,26 @@ public final class SpectateCommands {
             if (!Spectating.allowed(game)) { Msg.fail(me, "That game doesn't allow spectators."); return; }
             Spectators.exit(me); // only now: a view elsewhere ends once this one is certain
             Spectators.enter(game, me, target);
-            Msg.ok(me, "Watching ", Msg.v(target.getUsername()), "'s ", Msg.v(game.type().id()), ". ", Msg.run("/l"), " to leave.");
+            Msg.ok(me, "Watching ", Msg.v(target.getUsername()), "'s ", Msg.v(title(game)), ". ", Msg.run("/l"), " to leave.");
         }, name);
         Commands.register(spectate);
     }
 
-    /** {@code me} watching {@code game} as {@code /spectate} would put them there; why not, else null. */
+    /** {@code me} watching {@code game} as {@code /spectate} would put them there; why not (third person, lowercase), else null. */
     public static @org.jetbrains.annotations.Nullable String watch(@org.jetbrains.annotations.NotNull Player me,
                                                                    @org.jetbrains.annotations.NotNull Game game) {
-        if (Matches.grotto().engaged(me)) return "You're in a game.";
-        if (game.status() != Game.Status.OPEN) return "That game is over.";
-        if (game.roster().reservedSlotOf(me.getUsername()) != null) return "You're still part of that game; /rejoin gets you back in.";
-        if (!Spectating.allowed(game)) return "That game doesn't allow spectators.";
+        if (Matches.grotto().engaged(me)) return "they're in a game.";
+        if (game.status() != Game.Status.OPEN) return "that game is over.";
+        if (game.roster().reservedSlotOf(me.getUsername()) != null) return "they still have a seat in that game.";
+        if (!Spectating.allowed(game)) return "that game doesn't allow spectators.";
         Spectators.exit(me);
         Spectators.enter(game, me, null);
         return null;
+    }
+
+    private static String title(Game game) {
+        Mode mode = Matches.modeOf(game);
+        return mode != null ? mode.title() : game.type().id();
     }
 
     // a seat held for the viewer makes it their own game: the way back in is the seat, never a view of it

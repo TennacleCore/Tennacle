@@ -27,6 +27,8 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,6 +53,8 @@ import java.util.function.BiConsumer;
  * {@code /duel <player>} alone opens what {@link #picker(BiConsumer)} set. Modes register at boot.
  */
 public final class Duels {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Duels.class);
 
     /** {@code within}: a 1v1 between party mates, which only the one named accepts. {@code targetParty} is the
      *  party it reached ({@link Parties#partyOf}), {@code targetLeader} who led it then. */
@@ -164,7 +168,7 @@ public final class Duels {
             return;
         }
         if (Matches.joinable(mode)) {
-            Msg.fail(me, Msg.v(mode.title()), " fills up through ", Msg.run(Play.line(mode)), ".");
+            Msg.fail(me, Msg.v(mode.title()), " can't be dueled. Join with ", Msg.run(Play.line(mode)), ".");
             return;
         }
         Options options;
@@ -182,7 +186,7 @@ public final class Duels {
             return;
         }
         if (!REQUESTS.admits(me, target)) {
-            Msg.fail(me, Msg.v(target.getUsername()), " takes no duel requests.");
+            Msg.fail(me, Msg.v(target.getUsername()), " has duel requests disabled.");
             return;
         }
         boolean within = Parties.together(me, target); // party mates: a 1v1 between the two, whoever leads
@@ -307,9 +311,9 @@ public final class Duels {
         CompletableFuture<Game> launch = Matches.begin(mode, platform, List.of(a, b), options);
         launch.whenComplete((game, failure) -> {
             if (failure != null) {
-                // a missing map says so; a bad ruleset path fails inside the launch, which tears its own shard down
-                String why = failure instanceof IllegalStateException ? failure.getMessage()
-                        : "The duel could not start: " + failure.getMessage();
+                // a bad ruleset path fails inside the launch, which tears its own shard down
+                LOGGER.warn("a {} duel failed to start", mode.name(), failure);
+                String why = "That game couldn't start. Try again in a moment.";
                 for (Player p : a) Msg.fail(p, why);
                 for (Player p : b) Msg.fail(p, why);
                 return;

@@ -563,7 +563,7 @@ public record Look(@NotNull Theme theme, @NotNull DeathLine death, @NotNull Verd
         Mode mode = Matches.modeOf(game);
         if (mode == null || mode.intro().isEmpty()) return List.of();
         boolean duel = mode.family() == Mode.Family.DUEL;
-        String title = duel ? Character.toUpperCase(mode.name().charAt(0)) + mode.name().substring(1) + " Duel" : mode.banner();
+        String title = duel ? mode.title() + " Duel" : mode.banner();
         HypixelIntro intro = HypixelIntro.of(title);
         mode.intro().forEach(intro::line);
         Player foe = duel ? Match.opponent(game, viewer) : null; // captured: a game's banner names no opponent

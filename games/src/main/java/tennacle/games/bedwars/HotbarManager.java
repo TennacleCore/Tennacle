@@ -79,7 +79,7 @@ final class HotbarManager {
             }
             Screens.repaint(v);
         });
-        categories(game, manager);
+        categories(game, manager, "To Hotbar Manager");
         manager.row(2, divider("Picks", "Hotbar"));
         for (int slot = 0; slot < HotbarOrders.SLOTS; slot++) {
             int hotbar = slot;
@@ -113,7 +113,7 @@ final class HotbarManager {
             else Screens.back(v);
         });
         manager.button(49, Items.lore(Items.named(Material.BOOK, Component.text("Import Layouts", NamedTextColor.GREEN)),
-                List.of(Items.gray("Copy your quick buy or hotbar"), Items.gray("in from another server."), Component.empty(),
+                List.of(Items.gray("Copy your Quick Buy or hotbar"), Items.gray("in from another server."), Component.empty(),
                         Component.text("Click to choose!", NamedTextColor.YELLOW))), (v, click) -> {
             drop(v);
             ImportMenu.open(v, BedWarsLayouts.MODE);
@@ -137,7 +137,7 @@ final class HotbarManager {
     // one slot's order in a row, first on the left, arranged as a kit editor's slots are
     private static void order(@Nullable Game game, Player viewer, int hotbar) {
         Screen.Builder screen = window("Hotbar Slot " + (hotbar + 1));
-        categories(game, screen);
+        categories(game, screen, "To Hotbar Slot " + (hotbar + 1));
         screen.row(2, divider("Picks", "Order"));
         for (int i = 0; i < HotbarOrders.PICKS; i++) {
             int at = i;
@@ -186,7 +186,7 @@ final class HotbarManager {
     }
 
     // the shop's tabs for single items; the one chosen goes onto the cursor in the screen underneath
-    private static void items(@Nullable Game game, Player viewer, Tab open, boolean swap) {
+    private static void items(@Nullable Game game, Player viewer, Tab open, String back, boolean swap) {
         Screen.Builder page = window(open.title);
         List<Tab> tabs = CATEGORIES.stream().map(Category::tab).filter(java.util.Objects::nonNull).distinct().toList();
         int first = (9 - tabs.size()) / 2;
@@ -196,7 +196,7 @@ final class HotbarManager {
             ItemStack icon = Items.named(tab.icon, Component.text(tab.title, NamedTextColor.GREEN));
             if (!lit) icon = Items.lore(icon, List.of(Component.text("Click to view!", NamedTextColor.YELLOW)));
             page.button(first + i, Items.bare(icon), (v, click) -> {
-                if (!lit) items(game, v, tab, true);
+                if (!lit) items(game, v, tab, back, true);
             });
             page.item(9 + first + i, ItemShop.pane(lit));
         }
@@ -211,7 +211,7 @@ final class HotbarManager {
                 v.getInventory().setCursorItem(held(pick, shown(game, v, pick)));
             });
         }
-        page.button(49, goBack("To the hotbar"), (v, click) -> Screens.back(v));
+        page.button(49, goBack(back), (v, click) -> Screens.back(v));
         if (swap) Screens.swap(viewer, page.build());
         else Screens.push(viewer, page.build());
     }
@@ -230,13 +230,13 @@ final class HotbarManager {
                 });
     }
 
-    private static void categories(@Nullable Game game, Screen.Builder screen) {
+    private static void categories(@Nullable Game game, Screen.Builder screen, String back) {
         for (int i = 0; i < CATEGORIES.size(); i++) {
             Category category = CATEGORIES.get(i);
             screen.button(10 + i, pickable(category), (v, click) -> {
                 if (click instanceof Click.Right && category.tab() != null) {
                     drop(v);
-                    items(game, v, category.tab(), false);
+                    items(game, v, category.tab(), back, false);
                 } else {
                     v.getInventory().setCursorItem(held(category.role(), pickable(category)));
                 }
@@ -255,7 +255,7 @@ final class HotbarManager {
             lore.add(Component.empty());
             lore.add(Component.text("Right Click to turn it off!", NamedTextColor.YELLOW));
         } else {
-            lore.add(Items.gray("Off: the same layout all game."));
+            lore.add(Items.gray("Off: one layout for the whole game."));
             lore.add(Component.empty());
             lore.add(Component.text("Click to give it its own!", NamedTextColor.YELLOW));
         }
@@ -314,7 +314,7 @@ final class HotbarManager {
         }
         String pick = picks.get(at);
         return Items.bare(Items.lore(Items.named(shown(game, viewer, pick), Component.text(name(game, viewer, pick), NamedTextColor.GREEN)),
-                List.of(Items.gray(at == 0 ? "First: takes this slot over the rest." : "Here when nothing before it is."), Component.empty(),
+                List.of(Items.gray(at == 0 ? "Top pick for this slot." : "Used when nothing to its left is."), Component.empty(),
                         Component.text("Click to pick up!", NamedTextColor.YELLOW),
                         Component.text("Right Click to remove!", NamedTextColor.YELLOW))));
     }

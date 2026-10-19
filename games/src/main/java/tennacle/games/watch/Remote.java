@@ -144,7 +144,7 @@ public final class Remote {
                 return;
             }
             if (!remote.controllers.containsKey(p)) {
-                Msg.fail(p, "Whoever started the watch holds the remote.");
+                Msg.fail(p, "Only the player who started this replay can change it.");
                 return;
             }
             double asked = Math.max(MIN_RATE, Math.min(MAX_RATE, ctx.get(speed)));
@@ -356,11 +356,11 @@ public final class Remote {
         if (pages > 1) {
             screen.item(49, Items.named(Material.PAPER, Component.text("Page " + (at + 1) + " of " + pages, NamedTextColor.YELLOW)));
             if (at > 0) {
-                screen.button(45, Items.named(Material.ARROW, Component.text("Previous page", NamedTextColor.GRAY)),
+                screen.button(45, Items.named(Material.ARROW, Component.text("Previous Page", NamedTextColor.GRAY)),
                         (who, click) -> bookmarks(who, at - 1));
             }
             if (at < pages - 1) {
-                screen.button(53, Items.named(Material.ARROW, Component.text("Next page", NamedTextColor.GRAY)),
+                screen.button(53, Items.named(Material.ARROW, Component.text("Next Page", NamedTextColor.GRAY)),
                         (who, click) -> bookmarks(who, at + 1));
             }
         }

@@ -101,7 +101,7 @@ public final class TeamChat implements GameModule {
     public static void shout(@NotNull Player me, @NotNull String message) {
         Game game = gameOf(me);
         if (game == null) {
-            Msg.fail(me, "You are not in a game.");
+            Msg.fail(me, "You're not in a game.");
             return;
         }
         if (benched(game, me)) {

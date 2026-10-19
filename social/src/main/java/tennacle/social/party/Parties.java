@@ -73,7 +73,7 @@ public final class Parties {
         @Override
         public @Nullable String bring(@NotNull Player member, @NotNull Player leader) {
             Instance world = leader.getInstance();
-            if (world == null) return "You aren't anywhere yet.";
+            if (world == null) return "there's nowhere to bring them yet.";
             member.setInstance(world, leader.getPosition());
             return null;
         }
@@ -334,7 +334,7 @@ public final class Parties {
             return;
         }
         if (!INVITES.admits(from, target)) {
-            Msg.fail(from, Msg.v(target.getUsername()), " takes no party invites.");
+            Msg.fail(from, Msg.v(target.getUsername()), " has party invites disabled.");
             return;
         }
         if (party != null && party.members.contains(target.getUuid())) {

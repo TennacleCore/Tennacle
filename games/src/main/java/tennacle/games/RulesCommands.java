@@ -42,7 +42,7 @@ public final class RulesCommands {
 
     public static void register() {
         AppCommand rules = Commands.player("rules", "The running game's rules, live.")
-                .usage("/rules [package|id]", "read them, or one part - each marked with where its value comes from")
+                .usage("/rules [package|id]", "read them, or one part, each marked with where its value comes from")
                 .usage("/rules <code>", "another live game's, by the code its board prints")
                 .usage("/rules <@player|#team>", "that seat or side alone")
                 .usage("/rules paths [path]", "the mechanics tree a path can reach")

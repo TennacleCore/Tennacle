@@ -149,8 +149,8 @@ public final class Boxing {
         Duels.mode(boxing);
         Flags.offer(boxing, "preset");
         Careers.card("boxing", new Careers.Card("Boxing", List.of(CAREER_HITS, CAREER_SPRINT, CAREER_COMBO), List.of(
-                Careers.Card.count("Hits", 0), new Careers.Row("W-tap", v -> wtap(v[0], v[1])),
-                Careers.Card.count("Best combo", 2))));
+                Careers.Card.count("Hits", 0), new Careers.Row("W-Taps", v -> wtap(v[0], v[1])),
+                Careers.Card.count("Best Combo", 2))));
     }
 
     static String wtap(int hits, int sprint) {

@@ -102,7 +102,7 @@ public final class AccessCommands {
     private static void found(CommandSender sender, String name, Function<Directory.Entry, CompletableFuture<?>> then) {
         Seen.find(name).thenCompose(target -> {
             if (target == null) {
-                Msg.err(sender, "role", "No player found with name ", Msg.v(name), ".");
+                Msg.err(sender, "role", "No player named ", Msg.v(name), ".");
                 return CompletableFuture.completedFuture(null);
             }
             return then.apply(target);

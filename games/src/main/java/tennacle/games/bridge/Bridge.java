@@ -245,7 +245,7 @@ public final class Bridge {
             if (!(sender instanceof Player p)) return;
             var names = Cages.variants().stream().map(v -> v.isEmpty() ? "default" : v).sorted().toList();
             String mine = Cages.choiceOf(p);
-            Msg.say(p, "Cages: ", Msg.v(names.isEmpty() ? "none authored yet" : String.join(", ", names)),
+            Msg.say(p, "Cages: ", Msg.v(names.isEmpty() ? "none yet" : String.join(", ", names)),
                     ". Yours: ", Msg.v(mine.isEmpty() ? "default" : mine), ".");
         });
         var variantArg = ArgumentType.Word("variant");

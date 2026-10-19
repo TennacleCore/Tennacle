@@ -164,11 +164,11 @@ public final class Lineup {
             screen.item(PAPER, Items.named(Material.PAPER,
                     Component.text("Page " + (at + 1) + " of " + pages, NamedTextColor.YELLOW)));
             if (at > 0) {
-                screen.button(PREV, Items.named(Material.ARROW, Component.text("Previous page", NamedTextColor.GRAY)),
+                screen.button(PREV, Items.named(Material.ARROW, Component.text("Previous Page", NamedTextColor.GRAY)),
                         (who, click) -> open(who, entries, still, at - 1));
             }
             if (at < pages - 1) {
-                screen.button(NEXT, Items.named(Material.ARROW, Component.text("Next page", NamedTextColor.GRAY)),
+                screen.button(NEXT, Items.named(Material.ARROW, Component.text("Next Page", NamedTextColor.GRAY)),
                         (who, click) -> open(who, entries, still, at + 1));
             }
         }

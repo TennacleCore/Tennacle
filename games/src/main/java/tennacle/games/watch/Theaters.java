@@ -150,7 +150,7 @@ public final class Theaters {
         String id = idOf(idOrCode);
         Path file = id == null || manager == null ? null : Tapes.fileOf(id);
         if (file == null || !Files.exists(file)) {
-            Msg.fail(viewer, "No replay of a game ", Msg.v(idOrCode), ".");
+            Msg.fail(viewer, "No replay found for ", Msg.v(idOrCode), ".");
             return;
         }
         if (Game.of(viewer) != null) {
@@ -203,7 +203,8 @@ public final class Theaters {
             playback = Replay.play(stage, bytes);
         } catch (RuntimeException e) {
             manager.destroy(stage);
-            Msg.fail(viewer, "That replay could not be opened: " + e.getMessage());
+            LOGGER.warn("replay {} failed to open", id, e);
+            Msg.fail(viewer, "That replay couldn't be opened.");
             return;
         }
         playback.holdAtEnd(true); // the last frame stays up until the watchers leave; the last one out closes the theater
@@ -225,7 +226,12 @@ public final class Theaters {
                     continue;
                 }
                 admit(member, theater, member == viewer);
-                Msg.ok(member, "Watching the replay of game ", Msg.v(id), ". ", Msg.run("/l"), " to leave.");
+                if (mode != null) {
+                    Msg.ok(member, "Watching the replay of ", Msg.v(mode.title()), " on ", Msg.v(arena.meta().name()), ". ",
+                            Msg.run("/l"), " to leave.");
+                } else {
+                    Msg.ok(member, "Watching the replay. ", Msg.run("/l"), " to leave.");
+                }
             }
         } catch (RuntimeException e) {
             // a stage with its own clock thread would tick on forever with nobody in it

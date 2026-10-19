@@ -120,7 +120,7 @@ public final class PlayerPrefs {
             } catch (Exception failed) {
                 LOGGER.error("player data did not load for {}", e.getPlayer().getUsername(), failed);
                 for (Entry<?, ?> entry : entries) entry.cache.remove(player);
-                e.getPlayer().kick(Component.text("Could not load your data - try again in a moment"));
+                e.getPlayer().kick(Component.text("Couldn't load your data. Try again in a moment."));
             }
         });
         node.addListener(PlayerDisconnectEvent.class, e -> {

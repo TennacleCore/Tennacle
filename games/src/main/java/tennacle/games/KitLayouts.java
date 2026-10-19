@@ -190,7 +190,7 @@ public final class KitLayouts {
     public static @Nullable String open(@NotNull Player player, @NotNull String kitId) {
         Editable editable = EDITABLE.get(kitId);
         if (editable == null) return "No kit to arrange for " + kitId + ". Kits: " + String.join(", ", EDITABLE.keySet()) + ".";
-        if (Game.of(player) != null) return "Not mid-game. Edit kits from the lobby.";
+        if (Game.of(player) != null) return "You can't edit kits during a game.";
         if (editing(player)) return "You're already arranging a kit. Close your inventory to save.";
         if (editable.screen() != null) {
             editable.screen().accept(player);

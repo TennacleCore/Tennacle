@@ -13,6 +13,8 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +34,8 @@ import tennacle.social.party.Parties;
  * through its leader and sits together; {@code /lobby} steps out.
  */
 public final class Queues {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Queues.class);
 
     private record Entry(UUID leader, String id, String platform, @Nullable String map, int size, String label, long since) {
         // a map picked waits for the same pick, never for a random one
@@ -166,14 +170,14 @@ public final class Queues {
             return "No map named " + mapWord + " for " + mode.title() + ". Maps: " + String.join(", ", Matches.mapNames(mode)) + ".";
         }
         Platform platform = Matches.platformFor(platformName);
-        String label = label(mode, id) + (platform.name().equals(Platform.DEFAULT.name()) ? "" : " (" + platform.name() + ")")
+        String label = label(mode, id) + (platform.name().equals(Platform.DEFAULT.name()) ? "" : " (" + Character.toUpperCase(platform.name().charAt(0)) + platform.name().substring(1) + ")")
                 + (map != null ? " on " + Matches.mapName(mode, map) : "");
         String unfit = unfit(me, seats, label, "play " + id + " " + platform.name() + " " + map, again);
         if (unfit != null) return unfit;
         List<Player> side = Parties.of(me);
         try {
             int onMap = Matches.seatsPerSide(mode);
-            if (onMap < seats) return mode.title() + "'s maps seat " + onMap + " a side.";
+            if (onMap < seats) return mode.title() + " maps fit " + onMap + (onMap == 1 ? " player" : " players") + " per team.";
         } catch (IllegalStateException e) { // the map may not be authored yet
             return e.getMessage();
         }
@@ -266,8 +270,9 @@ public final class Queues {
         Options options = map == null ? Options.NONE : new Options(map, null, Options.NONE.rules(), List.of(), List.of());
         Matches.begin(mode, platform, List.of(a, b), options).whenComplete((game, failure) -> {
             if (failure != null) {
-                for (Player p : a) Msg.fail(p, "The match could not start: " + failure.getMessage());
-                for (Player p : b) Msg.fail(p, "The match could not start: " + failure.getMessage());
+                LOGGER.warn("a queued {} match failed to start", mode.name(), failure);
+                for (Player p : a) Msg.fail(p, "That game couldn't start. Try again in a moment.");
+                for (Player p : b) Msg.fail(p, "That game couldn't start. Try again in a moment.");
                 return;
             }
             for (Player p : a) Msg.say(p, label + " vs ", Msg.v(names(b)), ".");

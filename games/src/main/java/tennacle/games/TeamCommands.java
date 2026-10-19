@@ -52,7 +52,7 @@ public final class TeamCommands {
                 }
                 String who = members.isEmpty() ? "empty" : String.join(", ", members);
                 boolean ours = mine != null && mine.team().equals(side.id());
-                Msg.say(p, Component.text(side.id(), side.color()), ": ",
+                Msg.say(p, Component.text(Palette.name(side), side.color()), ": ",
                         Msg.v(who), ours ? " (yours)" : "");
             }
         });

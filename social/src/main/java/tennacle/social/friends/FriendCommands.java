@@ -289,11 +289,11 @@ public final class FriendCommands {
                 return done();
             }
             if (!Confirm.again(me, "friend removeall")) {
-                frame(me, yellow("This removes " + going.size() + " friends, all but your best friends. Run the command again to confirm."));
+                frame(me, yellow("This removes " + going.size() + (going.size() == 1 ? " friend" : " friends") + ", all but your best friends. Run the command again to confirm."));
                 return done();
             }
             CompletableFuture<?>[] all = going.stream().map(f -> Friends.unfriend(me.getUuid(), f.id())).toArray(CompletableFuture[]::new);
-            return CompletableFuture.allOf(all).thenRun(() -> frame(me, yellow("You removed " + going.size() + " friends.")));
+            return CompletableFuture.allOf(all).thenRun(() -> frame(me, yellow("You removed " + going.size() + (going.size() == 1 ? " friend." : " friends."))));
         }));
     }
 

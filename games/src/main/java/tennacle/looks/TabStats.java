@@ -79,7 +79,7 @@ public final class TabStats {
         for (String name : Matches.modes()) {
             Mode mode = Matches.mode(name);
             if (mode == null || mode.tabStats().isEmpty()) continue;
-            Msg.say(p, "  " + name + ": ",
+            Msg.say(p, "  " + mode.title() + ": ",
                     Msg.v(String.join(", ", mode.tabStats().stream().map(Mode.SeatStat::label).toList())));
         }
         Msg.say(p, "Pick with ", Msg.run("/tabstats <stat> [stat ...]"), ", or ", Msg.run("/tabstats all"), ".");

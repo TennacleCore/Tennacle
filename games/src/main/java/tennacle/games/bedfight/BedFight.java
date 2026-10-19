@@ -204,6 +204,7 @@ public final class BedFight {
         Rulesets.check(Mechanics.polyp.profiles().global(), TYPE);
         // no teamScore: the last side standing wins
         Mode bedfight = Mode.of("bedfight", TYPE, arena, MechanicsProfile::builder, Rulesets.BASE, Rulesets.variants())
+                .title("Bed Fight")
                 .intro(Component.text("Bridge across and break the enemy bed.", NamedTextColor.YELLOW),
                         Component.text("While your bed stands you respawn.", NamedTextColor.YELLOW),
                         Component.empty(),

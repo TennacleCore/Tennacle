@@ -59,7 +59,7 @@ public final class Marks {
         lore.add(theme.dim("At " + Remote.stamp(mark.tick())));
         ItemStack head = Items.lore(Items.named(Material.PLAYER_HEAD,
                 Component.text(data.getString("victim"), fell)
-                        .append(Component.text(" - FINAL KILL", NamedTextColor.AQUA))), lore);
+                        .append(Component.text(" (Final Kill)", NamedTextColor.AQUA))), lore);
         String textures = data.getString("skin");
         if (textures.isEmpty()) return head;
         String signature = data.getString("skinSig");

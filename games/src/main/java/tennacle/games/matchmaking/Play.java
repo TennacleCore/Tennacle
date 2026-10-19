@@ -15,6 +15,8 @@ import net.minestom.server.command.builder.suggestion.SuggestionCallback;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +31,8 @@ import tennacle.social.party.Parties;
  * filling, or a new one; a duel queues it ({@link Queues}). A party sits together, so it has to fit one team.
  */
 public final class Play {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Play.class);
 
     private Play() {}
 
@@ -138,7 +142,8 @@ public final class Play {
         for (Player p : left) Matches.toLobby(p); // a new game loads off the tick: wait in the lobby
         Matches.open(mode, platform, map).whenComplete((game, failure) -> {
             if (failure != null) {
-                for (Player p : side) Msg.fail(p, "The game could not start: " + failure.getMessage());
+                LOGGER.warn("a {} game failed to start", mode.name(), failure);
+                for (Player p : side) Msg.fail(p, "That game couldn't start. Try again in a moment.");
                 return;
             }
             if (Matches.enter(game, side)) joined(side, mode, game);

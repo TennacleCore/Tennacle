@@ -85,7 +85,7 @@ class AccessCommandsTest extends HeadlessServerTest {
         try {
             assertTrue(said(chat(boss, "role gone builder"), "Gone is now a Builder."));
             assertEquals(Role.BUILDER, Access.grants(away).get(5, TimeUnit.SECONDS).role());
-            assertTrue(said(chat(boss, "role nobodyhere"), "No player found with name nobodyhere."));
+            assertTrue(said(chat(boss, "role nobodyhere"), "No player named nobodyhere."));
         } finally {
             boss.player.remove();
         }

@@ -42,7 +42,7 @@ public record Options(@Nullable String map, @Nullable String platform,
             if (mode.arena().named(name) == null) {
                 String wants = mode.arena().wanting(name); // built, but held out: say so rather than deny it exists
                 throw new IllegalArgumentException(wants != null
-                        ? name + " is out of " + mode.title() + "'s rotation until it has " + wants + "."
+                        ? name + " isn't available right now."
                         : "No map named " + name + " for " + mode.title()
                                 + ". Maps: " + String.join(", ", mode.arena().names()) + ".");
             }

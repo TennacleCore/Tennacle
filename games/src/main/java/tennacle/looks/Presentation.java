@@ -208,11 +208,13 @@ public final class Presentation implements GameModule {
     public void onDecided(@NotNull Game game, @NotNull Outcome outcome) {
         Look look = Matches.lookOf(game);
         if (outcome.equals(Outcome.aborted())) {
-            Match.say(game, Msg.THEME.prose("The duel was cancelled: your opponent never showed."));
+            Mode mode = Matches.modeOf(game);
+            boolean duel = mode != null && mode.family() == Mode.Family.DUEL;
+            Match.say(game, Msg.THEME.prose(duel ? "The duel was canceled: your opponent never showed." : "The game was canceled."));
             return;
         }
         if (outcome.winner() == null) {
-            Match.say(game, look.theme().prose(TimeLimit.expired(game) ? "Time's up - draw." : "Draw."));
+            Match.say(game, look.theme().prose(TimeLimit.expired(game) ? "Time's up! It's a draw." : "Draw."));
             return;
         }
         Player winner = game.firstMember(m -> outcome.winner().equals(Match.teamOf(game, m)));

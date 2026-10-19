@@ -177,7 +177,7 @@ public final class Commands {
                 executor.apply(sender, context);
             } catch (Throwable t) {
                 LOGGER.error("/{} threw", command.getName(), t);
-                Msg.fail(sender, "Something went wrong running that command. The log has the details.");
+                Msg.fail(sender, "Something went wrong. Try again in a moment.");
             }
         };
     }
