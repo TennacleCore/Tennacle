@@ -85,8 +85,7 @@ public final class ScrimsMaps {
 
     private static byte[] build(String id, JsonObject map, byte[] world) {
         JsonArray spawn = map.getAsJsonArray("spawn");
-        ArenaBuilder builder = new ArenaBuilder(id).name(map.get("map").getAsString()).authors(map.has("author") && !map.get("author").isJsonNull()
-                        ? new String[]{map.get("author").getAsString(), "Scrims"} : new String[]{"Scrims"})
+        ArenaBuilder builder = new ArenaBuilder(id).name(map.get("map").getAsString()).authors(authors(map))
                 .tags("bridge")
                 .spawn(new Pos(spawn.get(0).getAsDouble(), spawn.get(1).getAsDouble(), spawn.get(2).getAsDouble()))
                 .world(world)
@@ -121,6 +120,14 @@ public final class ScrimsMaps {
             for (var need : map.getAsJsonArray("guessed")) out.add(StringBinaryTag.stringBinaryTag(need.getAsString()));
         }
         return out.build();
+    }
+
+    // the builders a map name credits, then Scrims
+    private static String[] authors(JsonObject map) {
+        List<String> out = new ArrayList<>();
+        if (map.has("authors")) for (var a : map.getAsJsonArray("authors")) out.add(a.getAsString());
+        out.add("Scrims");
+        return out.toArray(String[]::new);
     }
 
     private static Pos pos(JsonArray v) {
