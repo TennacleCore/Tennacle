@@ -34,23 +34,37 @@ public final class PgMatches implements MatchStore {
 
     /** False when a match with this id is already stored. */
     static boolean insert(Connection c, Match match) throws SQLException {
-        try (PreparedStatement s = c.prepareStatement("INSERT INTO matches (id, code, mode, platform, outcome, winner, "
-                + "started_at, ended_at, ticks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING")) {
+        try (PreparedStatement s = c.prepareStatement("INSERT INTO matches (id, code, mode, platform, map, outcome, "
+                + "winner, started_at, ended_at, ticks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING")) {
             s.setString(1, match.id());
             s.setString(2, match.code());
             s.setString(3, match.mode());
             s.setString(4, match.platform());
-            s.setString(5, match.outcome());
-            s.setString(6, match.winner());
-            s.setLong(7, match.startedAt());
-            s.setLong(8, match.endedAt());
-            s.setLong(9, match.ticks());
+            s.setString(5, match.map());
+            s.setString(6, match.outcome());
+            s.setString(7, match.winner());
+            s.setLong(8, match.startedAt());
+            s.setLong(9, match.endedAt());
+            s.setLong(10, match.ticks());
             if (s.executeUpdate() == 0) return false;
+        }
+        try (PreparedStatement s = c.prepareStatement("INSERT INTO match_sides (match_id, side, team, name, color) "
+                + "VALUES (?, ?, ?, ?, ?)")) {
+            for (int side = 0; side < match.sides().size(); side++) {
+                Side described = match.sides().get(side);
+                s.setString(1, match.id());
+                s.setInt(2, side);
+                s.setString(3, described.team());
+                s.setString(4, described.name());
+                s.setString(5, described.color());
+                s.addBatch();
+            }
+            s.executeBatch();
         }
         try (PreparedStatement s = c.prepareStatement(
                 "INSERT INTO match_players (match_id, side, seat, player, name) VALUES (?, ?, ?, ?, ?)")) {
             for (int side = 0; side < match.sides().size(); side++) {
-                List<Seat> seats = match.sides().get(side);
+                List<Seat> seats = match.sides().get(side).seats();
                 for (int seat = 0; seat < seats.size(); seat++) {
                     UUID id = seats.get(seat).id();
                     s.setString(1, match.id());

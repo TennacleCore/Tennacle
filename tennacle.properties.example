@@ -27,6 +27,12 @@ tennacle.arena-dir = arenas
 # longer); 0 keeps every replay forever
 # tennacle.replays.keep-days = 0
 
+# the public API, its own process (gradlew :api:installDist, then api/build/install/TennacleApi/bin/TennacleApi):
+# it reads the postgres settings above. Requests a minute per key
+# tennacle.api.bind = 127.0.0.1
+# tennacle.api.port = 8090
+# tennacle.api.per-minute = 120
+
 # hands every player the staff tools (/gamemode, /lag, /shard stall and friends), which otherwise need
 # tennacle.staff.<command> or a role holding it. On by default only on a loopback bind
 # tennacle.dev-commands = false

@@ -1,5 +1,7 @@
 package tennacle.server;
 
+import tennacle.api.ApiCommand;
+import tennacle.lobby.menus.MainMenu;
 import io.github.term4.archipelago.Storage;
 import io.github.term4.archipelago.Viewers;
 import io.github.term4.archipelago.shard.Shard;
@@ -216,10 +218,13 @@ public final class TestServer {
         Stores stores = Stores.open(data, replays);
         Seen.use(stores.directory());
         Moderation.store(stores.punishments());
+        ApiCommand.keys(stores.apiKeys());
+        ApiCommand.register();
         SocialModule.install();
         GamesModule.install(world, Playground.SPAWN, shards,
                 new GamesModule.Data(stores.vault(), stores.matches(), replays, stores.replays(), gameSecret(data)));
         LobbyModule.install(world);
+        MainMenu.catalog(stores.catalog());
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,
                 e -> stores.closer().left(e.getPlayer().getUuid()));
         PlayerPrefs.install();

@@ -68,6 +68,20 @@ public final class PgStats implements StatStore {
         });
     }
 
+    /** Every stat {@code player} has, by name. */
+    public @NotNull CompletableFuture<java.util.Map<String, Long>> of(@NotNull UUID player) {
+        return db.query(c -> {
+            try (PreparedStatement s = c.prepareStatement("SELECT stat, value FROM stats WHERE player = ? ORDER BY stat")) {
+                s.setObject(1, player);
+                java.util.Map<String, Long> out = new java.util.LinkedHashMap<>();
+                try (ResultSet rows = s.executeQuery()) {
+                    while (rows.next()) out.put(rows.getString(1), rows.getLong(2));
+                }
+                return out;
+            }
+        });
+    }
+
     /** Moves the stats still kept as account blobs into rows, once per key. */
     public @NotNull CompletableFuture<Void> adopt(@NotNull Collection<VaultKey<Integer>> keys) {
         return db.transaction(c -> {

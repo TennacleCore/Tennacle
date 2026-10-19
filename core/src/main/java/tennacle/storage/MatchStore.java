@@ -13,10 +13,13 @@ public interface MatchStore {
 
     record Seat(@NotNull UUID id, @NotNull String name) {}
 
+    /** {@code team} is Grotto's id, what a winner names; {@code name} as players read it, {@code color} a named text color. */
+    record Side(@NotNull String team, @NotNull String name, @NotNull String color, @NotNull List<Seat> seats) {}
+
     /** {@code outcome} is Grotto's kind; {@code winner} a team id or null. Times in epoch millis. */
     record Match(@NotNull String id, @NotNull String code, @NotNull String mode, @NotNull String platform,
-                 @NotNull String outcome, @Nullable String winner, long startedAt, long endedAt, long ticks,
-                 @NotNull List<List<Seat>> sides) {}
+                 @NotNull String map, @NotNull String outcome, @Nullable String winner, long startedAt, long endedAt,
+                 long ticks, @NotNull List<Side> sides) {}
 
     @NotNull CompletableFuture<Void> add(@NotNull Match match);
 

@@ -10,11 +10,14 @@ import tennacle.boot.Config;
 import tennacle.games.watch.Tapes;
 import tennacle.moderation.Punishments;
 import tennacle.moderation.VaultPunishments;
+import tennacle.api.ApiKeys;
 import tennacle.postgres.Database;
+import tennacle.postgres.PgApiKeys;
 import tennacle.postgres.Imports;
 import tennacle.postgres.PgDirectory;
 import tennacle.postgres.PgMatches;
 import tennacle.postgres.PgPunishments;
+import tennacle.postgres.PgReplayCatalog;
 import tennacle.postgres.PgReplays;
 import tennacle.postgres.PgStats;
 import tennacle.postgres.PgVault;
@@ -25,6 +28,7 @@ import tennacle.storage.FileReplayBlobs;
 import tennacle.storage.FileReplays;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchStore;
+import tennacle.storage.ReplayCatalog;
 import tennacle.storage.ReplayStore;
 import tennacle.storage.StatKeys;
 import tennacle.storage.StatRouting;
@@ -35,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 
 /** Where durable data lives: PostgreSQL when {@code tennacle.postgres.url} is set, the files under data/ otherwise. */
 record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull MatchStore matches,
-              @NotNull Punishments punishments, @NotNull ReplayStore replays, @NotNull Runnable installed,
-              @NotNull Closer closer) {
+              @NotNull Punishments punishments, @NotNull ReplayStore replays, @NotNull ReplayCatalog catalog,
+              @NotNull ApiKeys apiKeys, @NotNull Runnable installed, @NotNull Closer closer) {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Stores.class);
 
@@ -65,7 +69,7 @@ record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull Match
                     .repeat(TaskSchedule.hours(1)).schedule();
         };
         return new Stores(new StatRouting(new PgVault(db), stats), new PgDirectory(db), new PgMatches(db),
-                new PgPunishments(db), replays, installed, new Closer() {
+                new PgPunishments(db), replays, new PgReplayCatalog(db), new PgApiKeys(db), installed, new Closer() {
             @Override
             public void left(@NotNull UUID player) {}
 
@@ -83,7 +87,7 @@ record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull Match
         FileMatchStore matches = new FileMatchStore(data.resolve("matches"));
         LOGGER.info("storage: files under {}", data.toAbsolutePath());
         return new Stores(vault, directory, matches, new VaultPunishments(() -> vault), new FileReplays(replayDir),
-                () -> {}, new Closer() {
+                ReplayCatalog.SAMPLES, ApiKeys.NONE, () -> {}, new Closer() {
             @Override
             public void left(@NotNull UUID player) {
                 vault.forget(player);

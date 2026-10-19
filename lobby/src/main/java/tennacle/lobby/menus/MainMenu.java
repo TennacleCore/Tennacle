@@ -19,7 +19,10 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.games.Careers;
 import tennacle.games.KitLayouts;
 import tennacle.games.imports.ImportMenu;
-import tennacle.games.watch.ReplayCatalog;
+import tennacle.games.Matches;
+import tennacle.games.Mode;
+import tennacle.games.watch.Theaters;
+import tennacle.storage.ReplayCatalog;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -41,17 +44,22 @@ public final class MainMenu {
             .withZone(ZoneId.systemDefault());
     private static final Map<UUID, Map<String, int[]>> CAREERS = new ConcurrentHashMap<>();
     private static final java.util.Set<String> READING = ConcurrentHashMap.newKeySet();
+    private static final int LISTED = 45;
+    private static final Map<UUID, List<ReplayCatalog.Record>> GAMES = new ConcurrentHashMap<>();
     private static volatile ReplayCatalog catalog = ReplayCatalog.SAMPLES;
 
     private static final List<Tab> TABS = List.of(
             new Tab("profile", v -> Items.head(v.getSkin(), Component.empty()), "Profile", "Your stats in every game.",
                     v -> profile(v.getUuid(), v.getUsername(), true)),
-            new Tab("replays", v -> ItemStack.of(Material.BOOK), "Replays", "Watch the games you played.", v -> replays(v, 0)),
+            new Tab("replays", v -> ItemStack.of(Material.BOOK), "Replays", "Watch the games you played.", v -> {
+                GAMES.remove(v.getUuid()); // fresh each visit: a game just played shows up
+                return replays(v, 0);
+            }),
             new Tab("kits", v -> ItemStack.of(Material.ANVIL), "Kits", "Edit your layout for each game.", v -> kits()));
 
     private MainMenu() {}
 
-    /** Where the replays tab lists games from; samples until the database exists. */
+    /** Where the replays tab lists games from; samples without a database. */
     public static void catalog(@NotNull ReplayCatalog source) {
         catalog = source;
     }
@@ -111,15 +119,34 @@ public final class MainMenu {
     }
 
     private static Screen replays(Player viewer, int page) {
-        List<ReplayCatalog.Record> games = catalog.of(viewer.getUuid(), viewer.getUsername());
+        List<ReplayCatalog.Record> games = GAMES.get(viewer.getUuid());
         Screen.Builder screen = hub("replays", "Replays").key("menu:replays");
+        if (games == null) {
+            screen.item(31, v -> Entry.of(Material.CLOCK).name("Loading...").render(v));
+            catalog.of(viewer.getUuid(), viewer.getUsername(), LISTED).whenComplete((found, failed) -> {
+                GAMES.put(viewer.getUuid(), failed != null ? List.of() : found);
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                    Screen open = Screens.screen(viewer);
+                    if (open != null && "menu:replays".equals(open.key())) Screens.swap(viewer, replays(viewer, page));
+                });
+            });
+            return screen.build();
+        }
         if (games.isEmpty()) {
             screen.item(31, v -> Entry.of(Material.PAPER).name("No Games Yet").text("Games you play will show up here!").render(v));
             return screen.build();
         }
         return screen.pages(PAGE, games.size(), page, i -> v -> replay(v, games.get(i)),
-                i -> (v, click) -> games.get(i).sample() ? "This is a sample replay!" : null,
+                i -> (v, click) -> watch(v, games.get(i)),
                 to -> replays(viewer, to)).build();
+    }
+
+    private static @Nullable String watch(Player viewer, ReplayCatalog.Record game) {
+        if (game.sample()) return "This is a sample replay!";
+        if (!game.watchable()) return "This replay has expired.";
+        viewer.closeInventory();
+        Theaters.watch(viewer, game.id());
+        return null;
     }
 
     private static ItemStack replay(Player viewer, ReplayCatalog.Record game) {
@@ -131,7 +158,9 @@ public final class MainMenu {
             if (side.seats().stream().anyMatch(seat -> seat.id().equals(viewer.getUuid()))) mine = side;
         }
         boolean win = mine != null && mine == won;
-        Entry entry = Entry.of(Icons.titled(game.mode())).name(game.mode())
+        Mode mode = Matches.mode(game.mode());
+        String title = mode != null ? mode.title() : game.mode();
+        Entry entry = Entry.of(Icons.of(game.mode())).name(title)
                 .text(WHEN.format(Instant.ofEpochMilli(game.playedAt())), "Duration: " + clock(game.lengthMillis()))
                 .fact("Map", game.map())
                 .fact("Result", game.winner() == null ? theme.prose("Draw") : win ? theme.good("Win") : theme.bad("Loss"));
@@ -140,13 +169,14 @@ public final class MainMenu {
         if (mine != null && mine != won) shown.add(mine);
         for (ReplayCatalog.Side side : game.sides()) if (!shown.contains(side) && shown.size() < 3) shown.add(side);
         for (ReplayCatalog.Side side : shown) {
-            NamedTextColor color = NamedTextColor.NAMES.valueOr(side.team(), NamedTextColor.WHITE);
+            NamedTextColor color = NamedTextColor.NAMES.valueOr(side.color(), NamedTextColor.WHITE);
             String names = String.join(", ", side.seats().stream().map(ReplayCatalog.Seat::name).toList());
-            entry.line(Component.text(titled(side.team()) + ": ", color).append(Component.text(names, NamedTextColor.WHITE)));
+            String label = side.name().isEmpty() ? "Team " + side.team() : side.name();
+            entry.line(Component.text(label + ": ", color).append(Component.text(names, NamedTextColor.WHITE)));
         }
         int more = game.sides().size() - shown.size();
         if (more > 0) entry.line(theme.prose("+" + more + (more == 1 ? " more team" : " more teams")));
-        return entry.action("Click to watch!").render(viewer);
+        return entry.action(game.watchable() || game.sample() ? "Click to watch!" : "Expired").render(viewer);
     }
 
     private static Screen kits() {
@@ -168,7 +198,4 @@ public final class MainMenu {
         return String.format("%02d:%02d", seconds / 60, seconds % 60);
     }
 
-    private static String titled(String word) {
-        return word.isEmpty() ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1);
-    }
 }

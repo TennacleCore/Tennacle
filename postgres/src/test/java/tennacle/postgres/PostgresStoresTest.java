@@ -12,6 +12,7 @@ import tennacle.moderation.Punishments.Kind;
 import tennacle.storage.FileReplayBlobs;
 import tennacle.storage.FileVault;
 import tennacle.storage.MatchStore;
+import tennacle.storage.ReplayCatalog;
 import tennacle.storage.ReplayStore;
 import tennacle.storage.StatKeys;
 import tennacle.storage.StatRouting;
@@ -191,19 +192,31 @@ class PostgresStoresTest {
     }
 
     @Test
-    void matchesKeepEverySeat() {
+    void catalogListsPlayedGames(@TempDir Path root) {
         PgMatches matches = new PgMatches(db);
+        PgReplays replays = new PgReplays(db, new FileReplayBlobs(root), 0);
         UUID a = UUID.randomUUID();
         UUID b = UUID.randomUUID();
-        String id = UUID.randomUUID().toString();
-        matches.add(new MatchStore.Match(id, "code1", "bridge", "scrims", "winner", "1", 1_000, 2_000, 40,
-                List.of(List.of(new MatchStore.Seat(a, "A")), List.of(new MatchStore.Seat(b, "B"))))).join();
-        long seated = db.query(c -> {
-            try (var rows = c.createStatement().executeQuery("SELECT count(*) FROM match_players WHERE match_id = '" + id + "'")) {
-                rows.next();
-                return rows.getLong(1);
-            }
-        }).join();
-        assertEquals(2, seated);
+        String older = UUID.randomUUID().toString();
+        String newer = UUID.randomUUID().toString();
+        matches.add(new MatchStore.Match(older, "AAAAA", "bridge", "scrims", "Urban", "winner", "1", 1_000, 61_000, 1200,
+                List.of(new MatchStore.Side("1", "Blue", "blue", List.of(new MatchStore.Seat(a, "A"))),
+                        new MatchStore.Side("2", "Red", "red", List.of(new MatchStore.Seat(b, "B")))))).join();
+        matches.add(new MatchStore.Match(newer, "BBBBB", "sumo", "hypixel", "Ring", "draw", null, 100_000, 130_000, 600,
+                List.of(new MatchStore.Side("1", "Red", "red", List.of(new MatchStore.Seat(a, "A"), new MatchStore.Seat(b, "B")))))).join();
+        replays.put(new ReplayStore.Entry(older, "AAAAA", "bridge", "Urban", 61_000, 1200, 1), new byte[]{1}).join();
+
+        List<ReplayCatalog.Record> games = new PgReplayCatalog(db).of(a, "A", 10).join();
+        assertEquals(List.of(newer, older), games.stream().map(ReplayCatalog.Record::id).toList(), "newest first");
+        ReplayCatalog.Record bridge = games.get(1);
+        assertEquals("Urban", bridge.map());
+        assertEquals(60_000, bridge.lengthMillis());
+        assertEquals("1", bridge.winner());
+        assertTrue(bridge.watchable(), "its replay is kept");
+        assertEquals(List.of("Blue", "Red"), bridge.sides().stream().map(ReplayCatalog.Side::name).toList());
+        assertEquals(b, bridge.sides().get(1).seats().getFirst().id());
+        assertTrue(!games.getFirst().watchable(), "no replay kept");
+        assertNull(games.getFirst().winner());
+        assertTrue(new PgReplayCatalog(db).of(UUID.randomUUID(), "Nobody", 10).join().isEmpty());
     }
 }

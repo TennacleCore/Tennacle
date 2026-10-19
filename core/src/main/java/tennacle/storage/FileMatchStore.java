@@ -65,6 +65,7 @@ public final class FileMatchStore implements MatchStore {
         field(line, "code", match.code()).append(',');
         field(line, "mode", match.mode()).append(',');
         field(line, "platform", match.platform()).append(',');
+        field(line, "map", match.map()).append(',');
         field(line, "outcome", match.outcome()).append(',');
         field(line, "winner", match.winner() == null ? "" : match.winner()).append(',');
         line.append("\"startedAt\":").append(match.startedAt()).append(',');
@@ -74,15 +75,19 @@ public final class FileMatchStore implements MatchStore {
         line.append("\"sides\":[");
         for (int i = 0; i < match.sides().size(); i++) {
             if (i > 0) line.append(',');
-            line.append('[');
-            List<Seat> side = match.sides().get(i);
-            for (int j = 0; j < side.size(); j++) {
+            Side side = match.sides().get(i);
+            line.append('{');
+            field(line, "team", side.team()).append(',');
+            field(line, "name", side.name()).append(',');
+            field(line, "color", side.color()).append(",\"seats\":[");
+            List<Seat> seats = side.seats();
+            for (int j = 0; j < seats.size(); j++) {
                 if (j > 0) line.append(',');
                 line.append('{');
-                field(line, "id", side.get(j).id().toString()).append(',');
-                field(line, "name", side.get(j).name()).append('}');
+                field(line, "id", seats.get(j).id().toString()).append(',');
+                field(line, "name", seats.get(j).name()).append('}');
             }
-            line.append(']');
+            line.append("]}");
         }
         return line.append("]}\n").toString();
     }

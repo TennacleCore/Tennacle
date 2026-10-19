@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import tennacle.looks.Palette;
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.vault.Vault;
@@ -49,6 +50,7 @@ public final class GamesModule {
         Matches.install(home, homeSpawn, shards);
         Matches.grotto().vault(data.vault());
         MatchLog.install(data.matches());
+        MatchLog.teamNames(Palette::titled);
         Matches.grotto().onGameEnd(MatchLog::ended);
         Replays.install(data.replays(), data.replayStore(), shards); // every game, spooled as it runs
         Duels.install(); // /duel <player> [mode] [platform]: 1v1s over Grotto

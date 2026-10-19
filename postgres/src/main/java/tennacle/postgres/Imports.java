@@ -124,12 +124,15 @@ public final class Imports {
         return count;
     }
 
-    // older lines list each side as names; newer ones as {id, name}
+    // the oldest lines list each side as names, later ones as {id, name}, the newest as {team, name, color, seats}
     static MatchStore.Match match(JsonObject o, Map<String, Seen> byName) {
-        List<List<MatchStore.Seat>> sides = new ArrayList<>();
+        List<MatchStore.Side> sides = new ArrayList<>();
+        int index = 0;
         for (JsonElement side : o.getAsJsonArray("sides")) {
+            index++;
             List<MatchStore.Seat> seats = new ArrayList<>();
-            for (JsonElement seat : side.getAsJsonArray()) {
+            JsonObject described = side.isJsonObject() ? side.getAsJsonObject() : null;
+            for (JsonElement seat : described != null ? described.getAsJsonArray("seats") : side.getAsJsonArray()) {
                 if (seat.isJsonObject()) {
                     seats.add(new MatchStore.Seat(UUID.fromString(seat.getAsJsonObject().get("id").getAsString()),
                             seat.getAsJsonObject().get("name").getAsString()));
@@ -138,10 +141,12 @@ public final class Imports {
                     seats.add(new MatchStore.Seat(known == null ? UNKNOWN : known.id(), seat.getAsString()));
                 }
             }
-            sides.add(seats);
+            sides.add(described != null
+                    ? new MatchStore.Side(text(described, "team"), text(described, "name"), text(described, "color"), seats)
+                    : new MatchStore.Side(String.valueOf(index), "", "white", seats));
         }
         String winner = text(o, "winner");
-        return new MatchStore.Match(text(o, "id"), text(o, "code"), text(o, "mode"), text(o, "platform"),
+        return new MatchStore.Match(text(o, "id"), text(o, "code"), text(o, "mode"), text(o, "platform"), text(o, "map"),
                 text(o, "outcome"), winner.isEmpty() ? null : winner, o.get("startedAt").getAsLong(),
                 o.get("endedAt").getAsLong(), o.has("ticks") ? o.get("ticks").getAsLong() : 0, sides);
     }

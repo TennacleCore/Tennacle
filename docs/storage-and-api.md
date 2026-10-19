@@ -1,8 +1,48 @@
-# Storage and the APIs: draft
+# Storage and the APIs
 
-Where Tennacle keeps each kind of data, and the two APIs that will read it: a private one for our own services and
-a public one for players' bots. Drafted 2026-10-19 with Postgres live for accounts, the directory, matches and
-punishments. Nothing below the "Today" section is built. The open questions at the end are yours to answer.
+Where Tennacle keeps each kind of data, and the two APIs that read it: a private one for our own services and a
+public one for players' bots. Drafted 2026-10-19; the "Today" table is how it stood before the decisions below.
+
+## Decided and built (2026-10-19)
+
+- **Replay bytes go to a bucket, behind an index.** `ReplayStore` is the seam. With Postgres it is `PgReplays`: a
+  `replays` row per game over a `ReplayBlobs` store. The blob store is still the replay folder (`FileReplayBlobs`);
+  an S3 one waits for a bucket to exist. Without Postgres, `FileReplays` is the folder as it always was.
+- **The Replays tab is real.** `PgReplayCatalog` joins `matches`, `match_sides`, `match_players` and `replays`.
+  A click watches the game; an expired one says so. Matches now record their map and each side's team, name and color.
+- **Stats are rows.** The career keys a mode puts on its `/stats` card (`StatKeys`) live in the `stats` table,
+  ranked by `(stat, value desc)`. A `StatRouting` vault sends them there, so Grotto's counters didn't change. The
+  blobs already stored moved over once at boot.
+- **The public API is its own process** (`:api`, `TennacleApi`). Keys come from `/api new` in game, shown once and
+  stored hashed in `api_keys`. Each key is limited per minute, a token bucket in the process. Endpoints:
+  `/v1/key`, `/v1/players/{name|uuid}`, `.../stats`, `.../matches`, `/v1/matches/{id}`,
+  `/v1/leaderboards/{mode}/{stat}`.
+- **Replays are watched in game only.** The API says whether a match's replay is still watchable; it serves no bytes.
+- **Not built yet:** the private API and every Redis seam (presence, parties, cross-server messages, a shared rate
+  limit). A revoked key keeps working for up to a minute in a running API process, which caches key lookups.
+
+## Retention, researched
+
+Nobody publishes much, but what is known:
+
+| Who | How long a replay lasts |
+|---|---|
+| Hypixel | 1 to 4 days by rank (VIP 1, MVP+ 4) when launched in 2020; later quoted as 3 days for everyone. No favorites. Staff said they don't have the space to keep them. |
+| Valorant | one patch, and at most 21 days |
+| Overwatch 2 | wiped on most patches; a few can be pinned until the next |
+| Dota 2 | about 2 weeks on Valve's servers |
+| ReplayCore (hosted Minecraft replays) | 7 days on the starter plan, 14 on pro; users pushed back that appeals take longer |
+
+The pattern: short by default, because storage at a big network's volume is the cost; anything kept longer is
+kept because something asked for it (a favorite, a report, an appeal). Our files average 360 KB. On R2, at
+$0.015 per GB-month, 30 days of 50,000 games a day is about 540 GB, around $8 a month. Space is not what limits us
+at our size.
+
+Recommendation, for when you choose: ordinary games for **30 days**; a game someone bookmarks or reports held
+(`ReplayStore.keep`) until it is dealt with, plus an appeal window, say 90 days after. Ranked and tournament games
+longer, once those exist. A replay also stops being watchable when the recording format changes past what the
+player can read. That is a version check, separate from retention. For now `tennacle.replays.keep-days` is unset,
+so nothing is deleted.
 
 ## Today
 
@@ -103,13 +143,8 @@ players by Bed Wars final kills; it can't do that through `player_data`. So:
 5. **Settings stay blobs.** Kits, hotbars and preferences have no reason to be queryable, and keeping them opaque
    keeps the schema small.
 
-## Open questions
+## Still open
 
-1. **Replay bytes:** an S3-compatible bucket (recommended) or Postgres? And which bucket in production: MinIO
-   on our own box, or R2 or B2 hosted?
-2. **Retention:** how long does an ordinary game's replay stay watchable, and what keeps one longer?
-3. **Public replay downloads:** may a bot download the raw replay, or only see its metadata and a code to watch
-   in game? The raw file holds every player's every move and chat line.
-4. **API process:** a separate service (recommended) or inside the main server to begin with?
-5. **Stats:** move career stats into a stats table now (recommended, before more stats pile up as blobs)?
-6. **Which public endpoints first**, if the list above isn't the right first cut?
+1. **Which bucket:** MinIO on our own box, or R2 or B2 hosted. R2 charges nothing to read data back out.
+2. **Retention:** turn it on with `tennacle.replays.keep-days` once you settle on a number; 30 is the recommendation above.
+3. **Reports:** a reports system would call `ReplayStore.keep` on the reported game.

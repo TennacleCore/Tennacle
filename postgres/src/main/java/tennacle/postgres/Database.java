@@ -24,7 +24,8 @@ import java.util.concurrent.TimeUnit;
 public final class Database implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Database.class);
-    private static final String[] MIGRATIONS = {"V1.sql", "V2.sql", "V3.sql"};
+    private static final String[] MIGRATIONS = {"V1.sql", "V2.sql", "V3.sql", "V4.sql", "V5.sql"};
+    private static final long MIGRATION_LOCK = 0x54454E4E; // TENN
 
     @FunctionalInterface
     public interface Work<T> {
@@ -111,24 +112,34 @@ public final class Database implements AutoCloseable {
 
     private void migrate() throws SQLException, IOException {
         try (Connection connection = pool.getConnection(); Statement statement = connection.createStatement()) {
-            statement.execute("CREATE TABLE IF NOT EXISTS schema_version (version int PRIMARY KEY)");
-            int at;
-            try (var rows = statement.executeQuery("SELECT coalesce(max(version), 0) FROM schema_version")) {
-                rows.next();
-                at = rows.getInt(1);
+            // the game server and the API service may start together
+            statement.execute("SELECT pg_advisory_lock(" + MIGRATION_LOCK + ")");
+            try {
+                migrate(connection, statement);
+            } finally {
+                statement.execute("SELECT pg_advisory_unlock(" + MIGRATION_LOCK + ")");
             }
-            for (int version = at + 1; version <= MIGRATIONS.length; version++) {
-                String sql = resource(MIGRATIONS[version - 1]);
-                int applying = version;
-                inTransaction(connection, c -> {
-                    try (Statement s = c.createStatement()) {
-                        s.execute(sql);
-                        s.execute("INSERT INTO schema_version VALUES (" + applying + ")");
-                    }
-                    return null;
-                });
-                LOGGER.info("database schema at version {}", version);
-            }
+        }
+    }
+
+    private static void migrate(Connection connection, Statement statement) throws SQLException, IOException {
+        statement.execute("CREATE TABLE IF NOT EXISTS schema_version (version int PRIMARY KEY)");
+        int at;
+        try (var rows = statement.executeQuery("SELECT coalesce(max(version), 0) FROM schema_version")) {
+            rows.next();
+            at = rows.getInt(1);
+        }
+        for (int version = at + 1; version <= MIGRATIONS.length; version++) {
+            String sql = resource(MIGRATIONS[version - 1]);
+            int applying = version;
+            inTransaction(connection, c -> {
+                try (Statement s = c.createStatement()) {
+                    s.execute(sql);
+                    s.execute("INSERT INTO schema_version VALUES (" + applying + ")");
+                }
+                return null;
+            });
+            LOGGER.info("database schema at version {}", version);
         }
     }
 
