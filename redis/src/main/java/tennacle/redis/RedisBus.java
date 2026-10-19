@@ -32,6 +32,7 @@ public final class RedisBus implements Bus {
     private final Thread subscriber;
     private volatile boolean closed;
     private volatile JedisPubSub current;
+    private volatile boolean down;
 
     public RedisBus(@NotNull Redis redis) {
         this.redis = redis;
@@ -70,6 +71,8 @@ public final class RedisBus implements Bus {
             JedisPubSub pubSub = new JedisPubSub() {
                 @Override
                 public void onPSubscribe(String pattern, int count) {
+                    if (down) LOGGER.info("the event bus has Redis again");
+                    down = false;
                     subscribed.countDown();
                 }
 
@@ -91,7 +94,8 @@ public final class RedisBus implements Bus {
                 connection.psubscribe(pubSub, CHANNELS);
             } catch (RuntimeException e) {
                 if (closed) return;
-                LOGGER.warn("the event bus lost Redis; retrying in {}s", RETRY_MILLIS / 1000, e);
+                if (!down) LOGGER.warn("the event bus has no Redis; retrying every {}s", RETRY_MILLIS / 1000, e);
+                down = true; // once per outage, not once a retry
                 try {
                     Thread.sleep(RETRY_MILLIS);
                 } catch (InterruptedException interrupted) {
