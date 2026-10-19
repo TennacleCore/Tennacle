@@ -25,6 +25,9 @@ import tennacle.games.Mode;
 import tennacle.games.TestWiring;
 
 import java.util.List;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.coordinate.Point;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -69,7 +72,7 @@ class PregameTest extends HeadlessServerTest {
             game.state().set(Scope.GAME, Countdown.START_AT, 3);
             BedWarsRoundTest.live(game);
             assertEquals(Match.teamOf(game, a.player), Match.teamOf(game, b.player), "a side lands together");
-            List<String> order = BedWars.rushOrder(game.roster().teams().stream().map(t -> t.id()).toList());
+            List<String> order = BedWars.rushOrder(game, game.roster().teams().stream().map(t -> t.id()).toList());
             assertEquals(order.subList(0, 2), List.of(Match.teamOf(game, a.player), Match.teamOf(game, c.player)),
                     "first rushes fill first");
             assertTrue(a.sent(DisplayScoreboardPacket.class).stream().anyMatch(d -> d.position() == BELOW_NAME),
@@ -86,12 +89,24 @@ class PregameTest extends HeadlessServerTest {
     }
 
     /** Captured: Hypixel sends the start block a line a message; the user, 2026-09-29: sent whole, it wrapped. */
-    /** Captured two-player games: Red and Gray on 29 of 35 eight-team maps, Red and Yellow on 7 of 9 four-team. */
+    /** The user, 2026-10-18: first rushes fill together, whichever base is nearest; a near tie keeps team order. */
     @Test
     void rushesFillInPairs() {
-        assertEquals(List.of("red", "gray", "blue", "green", "yellow", "aqua", "white", "pink"),
-                BedWars.rushOrder(List.of("red", "blue", "green", "yellow", "aqua", "white", "pink", "gray")));
-        assertEquals(List.of("red", "yellow", "blue", "green"), BedWars.rushOrder(List.of("red", "blue", "green", "yellow")));
+        List<String> eight = List.of("red", "blue", "green", "yellow", "aqua", "white", "pink", "gray");
+        // Airshow's beds: Red's nearest is Gray (54 against 80)
+        Map<String, Point> airshow = Map.of("red", new Vec(-40, 63, -78), "blue", new Vec(40, 67, -78),
+                "green", new Vec(78, 67, -40), "yellow", new Vec(78, 67, 40), "aqua", new Vec(40, 67, 78),
+                "white", new Vec(-40, 67, 78), "pink", new Vec(-78, 67, 40), "gray", new Vec(-78, 67, -40));
+        assertEquals(List.of("red", "gray", "blue", "green", "yellow", "aqua", "white", "pink"), BedWars.rushOrder(eight, airshow::get));
+        // bases paired along each side: Red's nearest is Blue
+        Map<String, Point> sides = Map.of("red", new Vec(-30, 64, -90), "blue", new Vec(30, 64, -90),
+                "green", new Vec(90, 64, -30), "yellow", new Vec(90, 64, 30), "aqua", new Vec(30, 64, 90),
+                "white", new Vec(-30, 64, 90), "pink", new Vec(-90, 64, 30), "gray", new Vec(-90, 64, -30));
+        assertEquals(eight, BedWars.rushOrder(eight, sides::get));
+        Map<String, Point> square = Map.of("red", new Vec(0, 64, -80), "blue", new Vec(80, 64, 0),
+                "green", new Vec(0, 64, 80), "yellow", new Vec(-80, 64, 0));
+        List<String> four = List.of("red", "blue", "green", "yellow");
+        assertEquals(four, BedWars.rushOrder(four, square::get), "a square has no first rush");
     }
 
     @Test

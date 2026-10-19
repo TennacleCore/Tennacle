@@ -44,6 +44,8 @@ import io.github.term4.barnacle.marker.LimitMarker;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.RegionMarker;
+import net.minestom.server.coordinate.Point;
+import org.jetbrains.annotations.Nullable;
 import tennacle.games.TeamBlocks;
 import tennacle.games.items.BridgeEgg;
 import tennacle.games.items.Creatures;
@@ -107,6 +109,7 @@ import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.potion.PotionEffect;
 
 import java.util.ArrayList;
+import java.util.function.Function;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -232,11 +235,37 @@ public final class BedWars {
     }
 
     // captured: a blacksmith, which Via shows a 1.8 client for an armorer
-    // captured: two players start on Red and Gray, or Red and Yellow on four teams, first rushes across the ring's seam
-    static List<String> rushOrder(List<String> teams) {
-        if (teams.size() < 3) return teams;
-        List<String> out = new ArrayList<>(List.of(teams.getFirst(), teams.getLast()));
-        out.addAll(teams.subList(1, teams.size() - 1));
+    // the user, 2026-10-18: first rushes fill together, a team then the base nearest it; a near tie keeps team order
+    private static final double RUSH_TIE = 2;
+
+    static List<String> rushOrder(Game game, List<String> teams) {
+        return rushOrder(teams, team -> {
+            RegionMarker bed = game.arena().marker(BED, team);
+            return bed == null ? null : bed.boxes().getFirst().min();
+        });
+    }
+
+    static List<String> rushOrder(List<String> teams, Function<String, @Nullable Point> bed) {
+        List<String> out = new ArrayList<>();
+        for (String team : teams) {
+            if (out.contains(team)) continue;
+            out.add(team);
+            Point at = bed.apply(team);
+            if (at == null) continue;
+            String nearest = null;
+            double best = Double.MAX_VALUE, next = Double.MAX_VALUE;
+            for (String other : teams) {
+                Point there = other.equals(team) ? null : bed.apply(other);
+                if (there == null) continue;
+                double d = Math.hypot(there.x() - at.x(), there.z() - at.z());
+                if (d < best) {
+                    next = best;
+                    best = d;
+                    nearest = other;
+                } else if (d < next) next = d;
+            }
+            if (nearest != null && next - best > RUSH_TIE && !out.contains(nearest)) out.add(nearest);
+        }
         return out;
     }
 
@@ -391,7 +420,7 @@ public final class BedWars {
                         () -> new Forges(spawners),
                         Mid::new,
                         BedWars::shop,
-                        () -> Keepers.of().at(SHOP, BedWars::shopkeeper, BedWars::shop, Lines::shopLabels)
+                        () -> Keepers.of().roles(Wares::role).at(SHOP, BedWars::shopkeeper, BedWars::shop, Lines::shopLabels)
                                 .at(UPGRADES, BedWars::shopkeeper, BedWars::upgrades, Lines::upgradeLabels),
                         Regions::of,
                         Traps::new,
