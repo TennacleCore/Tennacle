@@ -4,95 +4,137 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tennacle.PlayerPrefs;
+import tennacle.access.Access;
+import tennacle.api.ApiKeys;
 import tennacle.boot.Config;
+import tennacle.net.LocalBus;
+import tennacle.net.LocalPresence;
+import tennacle.net.Network;
+import tennacle.net.RateLimiter;
+import tennacle.net.Topics;
 import tennacle.postgres.Database;
 import tennacle.postgres.PgApiKeys;
 import tennacle.postgres.PgDirectory;
 import tennacle.postgres.PgReplayCatalog;
 import tennacle.postgres.PgStats;
+import tennacle.postgres.PgVault;
+import tennacle.redis.Redis;
+import tennacle.redis.RedisBus;
+import tennacle.redis.RedisPresence;
+import tennacle.redis.RedisRateLimiter;
 import tennacle.storage.Directory;
 import tennacle.storage.ReplayCatalog;
+import tennacle.storage.StatRouting;
 import tennacle.storage.StatStore;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
  * The public API, v1: read-only JSON for players' bots and sites, one key per player ({@code /api new} in game,
  * sent as {@code API-Key}). Its own process, so a flood of requests never costs a game tick. Every response is
- * built field by field here: the stores' records can change without breaking anyone's bot.
+ * built field by field here: the stores' records can change without breaking anyone's bot. The private API, for
+ * our own tools, listens beside it on its own port ({@link PrivateApi}).
  */
 public final class ApiServer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ApiServer.class);
     private static final UUID UNKNOWN = new UUID(0, 0);
-    private static final long KEY_CACHE_MILLIS = 60_000; // a revoked key works this much longer at most
+    private static final long KEY_CACHE_MILLIS = 60_000;
+
+    /** {@code privatePort} 0 picks a free one; no {@code tokens}, no private API. */
+    public record Settings(@NotNull String bind, int port, int perMinute, long keepMillis, @NotNull String privateBind,
+                           int privatePort, @NotNull Set<String> tokens) {}
 
     private record Known(@Nullable UUID owner, long until) {}
 
-    private static final class Failure extends RuntimeException {
-        final int status;
-
-        Failure(int status, String message) {
-            super(message, null, false, false);
-            this.status = status;
-        }
-    }
-
     private final HttpServer http;
+    private final @Nullable PrivateApi internal;
     private final PgApiKeys keys;
     private final Directory directory;
     private final PgStats stats;
     private final PgReplayCatalog catalog;
-    private final RateLimit limit;
+    private final RateLimiter limit;
+    private final int perMinute;
     private final Map<String, Known> known = new ConcurrentHashMap<>();
 
-    private ApiServer(HttpServer http, Database db, int perMinute) {
+    private ApiServer(HttpServer http, Database db, Settings settings, RateLimiter limit) throws IOException {
         this.http = http;
         this.keys = new PgApiKeys(db);
         this.directory = new PgDirectory(db);
         this.stats = new PgStats(db);
-        this.catalog = new PgReplayCatalog(db, java.util.concurrent.TimeUnit.DAYS.toMillis(Config.integer("tennacle.replays.keep-days", 30)));
-        this.limit = new RateLimit(perMinute);
+        this.catalog = new PgReplayCatalog(db, settings.keepMillis());
+        this.limit = limit;
+        this.perMinute = settings.perMinute();
+        this.internal = settings.tokens().isEmpty() ? null
+                : PrivateApi.start(db, directory, settings.privateBind(), settings.privatePort(), settings.tokens());
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         String url = Config.value("tennacle.postgres.url");
         if (url == null) throw new IllegalStateException("the API reads the database: set tennacle.postgres.url");
         Database db = Database.connect(url, Config.string("tennacle.postgres.user", "tennacle"),
                 Config.value("tennacle.postgres.password"), Config.integer("tennacle.api.pool", 8));
-        String bind = Config.string("tennacle.api.bind", "127.0.0.1");
-        int port = Config.integer("tennacle.api.port", 8090);
-        ApiServer server = start(db, bind, port, Config.integer("tennacle.api.per-minute", 120));
+        RateLimiter limit = network(Config.value("tennacle.redis.url"));
+        Settings settings = new Settings(Config.string("tennacle.api.bind", "127.0.0.1"), Config.integer("tennacle.api.port", 8090),
+                Config.integer("tennacle.api.per-minute", 120),
+                TimeUnit.DAYS.toMillis(Config.integer("tennacle.replays.keep-days", 30)),
+                Config.string("tennacle.api.private-bind", "127.0.0.1"), Config.integer("tennacle.api.private-port", 8091),
+                Arrays.stream(Config.string("tennacle.api.private-tokens", "").split(",")).map(String::trim)
+                        .filter(token -> !token.isEmpty()).collect(Collectors.toSet()));
+        Access.owners(Arrays.stream(Config.string("tennacle.owners", "").split(",")).map(String::trim)
+                .filter(owner -> !owner.isEmpty()).collect(Collectors.toSet()));
+        ApiServer server = start(db, settings, limit);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             server.stop();
+            Network.bus().close();
             db.close();
         }, "tennacle-api-stop"));
-        LOGGER.info("public API on {}:{}/v1", bind, port);
+        LOGGER.info("public API on {}:{}/v1", settings.bind(), server.port());
+        if (server.internal == null) LOGGER.info("private API off: no tennacle.api.private-tokens");
+        else LOGGER.info("private API on {}:{}/internal/v1", settings.privateBind(), server.internal.port());
     }
 
-    public static @NotNull ApiServer start(@NotNull Database db, @NotNull String bind, int port, int perMinute) throws IOException {
-        HttpServer http = HttpServer.create(new InetSocketAddress(bind, port), 0);
-        ApiServer server = new ApiServer(http, db, perMinute);
-        http.createContext("/v1/", server::handle);
+    // Redis carries the moderation events to the game servers and shares the rate limit; without it neither leaves
+    private static RateLimiter network(@Nullable String url) throws InterruptedException {
+        if (url == null) {
+            Network.use(new LocalBus(), new LocalPresence(), "api");
+            LOGGER.warn("no tennacle.redis.url: private API actions reach game servers only at the player's next login");
+            return RateLimiter.local();
+        }
+        Redis redis = Redis.connect(url);
+        RedisBus bus = new RedisBus(redis);
+        if (!bus.ready(5, TimeUnit.SECONDS)) LOGGER.warn("the event bus is not subscribed yet");
+        Network.use(bus, new RedisPresence(redis), "api");
+        return new RedisRateLimiter(redis);
+    }
+
+    public static @NotNull ApiServer start(@NotNull Database db, @NotNull Settings settings, @NotNull RateLimiter limit) throws IOException {
+        PlayerPrefs.vault(() -> new StatRouting(new PgVault(db), new PgStats(db))); // grants read through it
+        HttpServer http = HttpServer.create(new InetSocketAddress(settings.bind(), settings.port()), 0);
+        ApiServer server = new ApiServer(http, db, settings, limit);
+        http.createContext("/v1/", exchange -> Http.serve(exchange, LOGGER, server::handle));
         http.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         http.start();
+        Network.bus().subscribe(Topics.KEY_REVOKED, e -> server.known.values().removeIf(k -> e.owner().equals(k.owner())));
         return server;
     }
 
@@ -100,89 +142,70 @@ public final class ApiServer {
         return http.getAddress().getPort();
     }
 
-    public void stop() {
-        http.stop(0);
+    public @Nullable PrivateApi internal() {
+        return internal;
     }
 
-    private void handle(HttpExchange exchange) throws IOException {
-        try (exchange) {
-            try {
-                if (!exchange.getRequestMethod().equals("GET")) throw new Failure(405, "Only GET is supported.");
-                UUID owner = authorize(exchange);
-                send(exchange, 200, route(exchange.getRequestURI(), owner));
-            } catch (Failure failure) {
-                send(exchange, failure.status, error(failure.getMessage()));
-            } catch (RuntimeException e) {
-                Throwable cause = e instanceof CompletionException && e.getCause() != null ? e.getCause() : e;
-                if (cause instanceof Failure failure) {
-                    send(exchange, failure.status, error(failure.getMessage()));
-                } else {
-                    LOGGER.error("{} failed", exchange.getRequestURI(), e);
-                    send(exchange, 500, error("Something went wrong on our side."));
-                }
-            }
-        }
+    public void stop() {
+        http.stop(0);
+        if (internal != null) internal.stop();
+    }
+
+    private JsonElement handle(HttpExchange exchange) {
+        if (!exchange.getRequestMethod().equals("GET")) throw new Http.Failure(405, "Only GET is supported.");
+        UUID owner = authorize(exchange);
+        URI uri = exchange.getRequestURI();
+        List<String> path = List.of(uri.getPath().substring("/v1/".length()).split("/"));
+        Map<String, String> query = Http.query(uri.getRawQuery());
+        return switch (path.getFirst()) {
+            case "key" -> path.size() == 1 ? key(owner) : Http.notFound();
+            case "players" -> switch (path.size()) {
+                case 2 -> player(player(path.get(1)));
+                case 3 -> switch (path.get(2)) {
+                    case "stats" -> stats(player(path.get(1)));
+                    case "matches" -> matches(player(path.get(1)), bounded(query, "limit", 20, 50));
+                    default -> Http.notFound();
+                };
+                default -> Http.notFound();
+            };
+            case "matches" -> path.size() == 2 ? match(path.get(1)) : Http.notFound();
+            case "leaderboards" -> path.size() == 3 ? leaderboard(path.get(1), path.get(2), bounded(query, "limit", 10, 100)) : Http.notFound();
+            default -> Http.notFound();
+        };
     }
 
     private UUID authorize(HttpExchange exchange) {
         String key = exchange.getRequestHeaders().getFirst("API-Key");
-        if (key == null || key.isBlank()) throw new Failure(401, "Send your key as the API-Key header. /api new in game makes one.");
+        if (key == null || key.isBlank()) throw new Http.Failure(401, "Send your key as the API-Key header. /api new in game makes one.");
         long now = System.currentTimeMillis();
         Known cached = known.get(key);
         if (cached == null || cached.until() < now) {
             cached = new Known(keys.owner(key).join(), now + KEY_CACHE_MILLIS);
             known.put(key, cached);
         }
-        if (cached.owner() == null) throw new Failure(401, "That key isn't valid. It may have been revoked.");
-        RateLimit.Spent spent = limit.spend(key, now);
-        exchange.getResponseHeaders().add("RateLimit-Limit", String.valueOf(limit.perMinute()));
+        if (cached.owner() == null) throw new Http.Failure(401, "That key isn't valid. It may have been revoked.");
+        RateLimiter.Spent spent = limit.spend(ApiKeys.hash(key), perMinute, now);
+        exchange.getResponseHeaders().add("RateLimit-Limit", String.valueOf(perMinute));
         exchange.getResponseHeaders().add("RateLimit-Remaining", String.valueOf(spent.remaining()));
         if (!spent.allowed()) {
             exchange.getResponseHeaders().add("Retry-After", String.valueOf(spent.retryAfterSeconds()));
-            throw new Failure(429, "Too many requests. Try again in " + spent.retryAfterSeconds() + "s.");
+            throw new Http.Failure(429, "Too many requests. Try again in " + spent.retryAfterSeconds() + "s.");
         }
         return cached.owner();
-    }
-
-    private JsonElement route(URI uri, UUID owner) {
-        List<String> path = List.of(uri.getPath().substring("/v1/".length()).split("/"));
-        Map<String, String> query = query(uri.getRawQuery());
-        return switch (path.getFirst()) {
-            case "key" -> path.size() == 1 ? key(owner) : notFound();
-            case "players" -> switch (path.size()) {
-                case 2 -> player(player(path.get(1)));
-                case 3 -> switch (path.get(2)) {
-                    case "stats" -> stats(player(path.get(1)));
-                    case "matches" -> matches(player(path.get(1)), bounded(query, "limit", 20, 50));
-                    default -> notFound();
-                };
-                default -> notFound();
-            };
-            case "matches" -> path.size() == 2 ? match(path.get(1)) : notFound();
-            case "leaderboards" -> path.size() == 3 ? leaderboard(path.get(1), path.get(2), bounded(query, "limit", 10, 100)) : notFound();
-            default -> notFound();
-        };
     }
 
     private JsonElement key(UUID owner) {
         JsonObject out = new JsonObject();
         out.addProperty("owner", owner.toString());
-        out.addProperty("perMinute", limit.perMinute());
+        out.addProperty("perMinute", perMinute);
         return out;
     }
 
     private Directory.Entry player(String nameOrId) {
-        Directory.Entry entry;
-        try {
-            entry = directory.byId(UUID.fromString(nameOrId)).join();
-        } catch (IllegalArgumentException notAnId) {
-            entry = directory.byName(nameOrId).join();
-        }
-        if (entry == null) throw new Failure(404, "No player " + nameOrId + " has joined.");
-        return entry;
+        return PrivateApi.find(directory, nameOrId);
     }
 
-    private static JsonObject player(Directory.Entry entry) {
+    static JsonObject player(Directory.Entry entry) {
         JsonObject out = new JsonObject();
         out.addProperty("uuid", entry.id().toString());
         out.addProperty("name", entry.name());
@@ -215,7 +238,7 @@ public final class ApiServer {
 
     private JsonElement match(String id) {
         ReplayCatalog.Record game = catalog.match(id).join();
-        if (game == null) throw new Failure(404, "No match " + id + ".");
+        if (game == null) throw new Http.Failure(404, "No match " + id + ".");
         return match(game);
     }
 
@@ -227,7 +250,7 @@ public final class ApiServer {
         out.addProperty("map", game.map());
         out.addProperty("endedAt", game.playedAt());
         out.addProperty("lengthMillis", game.lengthMillis());
-        out.add("winner", game.winner() == null ? JsonNull.INSTANCE : new com.google.gson.JsonPrimitive(game.winner()));
+        out.add("winner", game.winner() == null ? JsonNull.INSTANCE : new JsonPrimitive(game.winner()));
         JsonArray sides = new JsonArray();
         for (ReplayCatalog.Side side : game.sides()) {
             JsonObject s = new JsonObject();
@@ -237,7 +260,7 @@ public final class ApiServer {
             JsonArray players = new JsonArray();
             for (ReplayCatalog.Seat seat : side.seats()) {
                 JsonObject p = new JsonObject();
-                p.add("uuid", seat.id().equals(UNKNOWN) ? JsonNull.INSTANCE : new com.google.gson.JsonPrimitive(seat.id().toString()));
+                p.add("uuid", seat.id().equals(UNKNOWN) ? JsonNull.INSTANCE : new JsonPrimitive(seat.id().toString()));
                 p.addProperty("name", seat.name());
                 players.add(p);
             }
@@ -260,7 +283,7 @@ public final class ApiServer {
             row.addProperty("rank", i + 1);
             row.addProperty("uuid", top.get(i).player().toString());
             Directory.Entry entry = names.get(top.get(i).player());
-            row.add("name", entry == null ? JsonNull.INSTANCE : new com.google.gson.JsonPrimitive(entry.name()));
+            row.add("name", entry == null ? JsonNull.INSTANCE : new JsonPrimitive(entry.name()));
             row.addProperty("value", top.get(i).value());
             ranks.add(row);
         }
@@ -271,41 +294,15 @@ public final class ApiServer {
         return out;
     }
 
-    private static JsonElement notFound() {
-        throw new Failure(404, "No such endpoint.");
-    }
-
     private static int bounded(Map<String, String> query, String name, int fallback, int max) {
         String raw = query.get(name);
         if (raw == null) return fallback;
         try {
             int value = Integer.parseInt(raw);
-            if (value < 1 || value > max) throw new Failure(400, name + " goes from 1 to " + max + ".");
+            if (value < 1 || value > max) throw new Http.Failure(400, name + " goes from 1 to " + max + ".");
             return value;
         } catch (NumberFormatException e) {
-            throw new Failure(400, name + " must be a number.");
-        }
-    }
-
-    private static Map<String, String> query(@Nullable String raw) {
-        if (raw == null || raw.isEmpty()) return Map.of();
-        return java.util.Arrays.stream(raw.split("&")).map(pair -> pair.split("=", 2)).filter(kv -> kv.length == 2)
-                .collect(Collectors.toMap(kv -> java.net.URLDecoder.decode(kv[0], StandardCharsets.UTF_8),
-                        kv -> java.net.URLDecoder.decode(kv[1], StandardCharsets.UTF_8), (a, b) -> b));
-    }
-
-    private static JsonObject error(String message) {
-        JsonObject out = new JsonObject();
-        out.addProperty("error", message);
-        return out;
-    }
-
-    private static void send(HttpExchange exchange, int status, JsonElement body) throws IOException {
-        byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-        exchange.sendResponseHeaders(status, bytes.length);
-        try (OutputStream out = exchange.getResponseBody()) {
-            out.write(bytes);
+            throw new Http.Failure(400, name + " must be a number.");
         }
     }
 }

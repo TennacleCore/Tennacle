@@ -31,4 +31,9 @@ final class PrefsBackend implements Access.Backend {
     public @NotNull CompletableFuture<Grants> change(@NotNull UUID player, @NotNull UnaryOperator<Grants> change) {
         return GRANTS.update(player, change);
     }
+
+    @Override
+    public @NotNull CompletableFuture<Void> reload(@NotNull UUID player) {
+        return GRANTS.refresh(player).thenApply(grants -> null);
+    }
 }

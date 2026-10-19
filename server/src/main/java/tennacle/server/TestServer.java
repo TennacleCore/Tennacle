@@ -191,6 +191,7 @@ public final class TestServer {
         boolean unauthenticated = Config.value("tennacle.velocity-secret") == null
                 && Config.value("tennacle.bungeeguard-tokens") == null;
         boolean devCommands = Config.flag("tennacle.dev-commands", loopback && unauthenticated);
+        Runnable network = Networks.open(); // the bus first: the installs below subscribe to it
         Access.install();
         tennacle.hypixel.HypixelApi.install(Config.value("tennacle.hypixel-api-key"));
         Access.owners(Arrays.stream(Config.string("tennacle.owners", "").split(",")).map(String::trim)
@@ -198,6 +199,7 @@ public final class TestServer {
         Access.everyone(devCommands ? Set.of("tennacle.staff.*") : Set.of()); // a dev build hands everyone the staff tools
         InstanceContainer world = LobbyModule.world(Config.flag("tennacle.test-pads", false));
         Commands.install(); // /help reads the registry every command below lands in
+        tennacle.net.Network.install();
         // members build into their shard's overlay, never the map (the bridge already decorated the
         // placement listener - order-independent)
         MinecraftServer.getGlobalEventHandler().addChild(Shard.blockRouting());
@@ -271,7 +273,7 @@ public final class TestServer {
         // a map loads on its first game, off the tick thread (Matches.begin), and leaves once idle this long
         int idle = Config.integer("tennacle.map-idle-minutes", 10);
         Matches.grotto().expireBasesAfter(idle > 0 ? Duration.ofMinutes(idle) : null);
-        shutdownSteps(stores);
+        shutdownSteps(stores, network);
         server.start(bind, port);
         LOGGER.info("listening on {}:{} (dev commands {})", bind, port, devCommands ? "on" : "off");
     }
@@ -290,7 +292,7 @@ public final class TestServer {
         }
     }
 
-    private static void shutdownSteps(Stores stores) {
+    private static void shutdownSteps(Stores stores, Runnable network) {
         Shutdown.step("live games", 15, () -> onTick(15, () -> {
             for (Game game : List.copyOf(Matches.grotto().games())) {
                 if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
@@ -310,6 +312,7 @@ public final class TestServer {
         Shutdown.step("theaters", 10, () -> onTick(10, Theaters::closeAll));
         Shutdown.step("shard clocks", 10, ExecutionDomain::shutdown);
         Shutdown.step("health endpoint", 5, Health::stop);
+        Shutdown.step("network", 5, network);
     }
 
     /** Runs {@code action} on the tick thread and waits: game teardown is not safe from a shutdown thread. */

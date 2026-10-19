@@ -1,5 +1,10 @@
 package tennacle.social.messages;
 
+import java.util.concurrent.CompletableFuture;
+import net.minestom.server.timer.TaskSchedule;
+import tennacle.access.Access;
+import tennacle.net.Topics;
+import tennacle.net.Network;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -47,6 +52,12 @@ public final class Messages {
 
     private record Conversation(UUID with, long until) {}
 
+    /** A message to another server, waiting on its answer. */
+    private record Pending(Player from, String text) {}
+
+    static volatile long answerMillis = 3_000;
+    private static final Map<String, Pending> pending = new ConcurrentHashMap<>();
+
     private static final Map<UUID, Last> lastFrom = new ConcurrentHashMap<>();
     private static final Map<UUID, Conversation> conversations = new ConcurrentHashMap<>();
 
@@ -54,6 +65,8 @@ public final class Messages {
 
     public static void install() {
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class, e -> forget(e.getPlayer().getUuid()));
+        Network.bus().subscribe(Topics.WHISPER, Messages::heard);
+        Network.bus().subscribe(Topics.WHISPERED, Messages::answered);
 
         AppCommand msg = Commands.player("msg", "Send a player a private message.", "w", "tell").speaks()
                 .usage("/msg <player> <message>", "a private message")
@@ -90,12 +103,8 @@ public final class Messages {
             return false;
         }
         Player to = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(open.with());
-        if (to == null) {
-            conversations.remove(me.getUuid());
-            Msg.fail(me, "That player is not online!");
-            return true;
-        }
-        deliver(me, to, message);
+        if (to == null) remote(me, open.with(), message);
+        else deliver(me, to, message);
         return true;
     }
 
@@ -111,11 +120,8 @@ public final class Messages {
             return;
         }
         Player to = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(last.from());
-        if (to == null) {
-            Msg.fail(me, "That player is not online!");
-            return;
-        }
-        reach(me, to, text);
+        if (to == null) remote(me, last.from(), text);
+        else reach(me, to, text);
     }
 
     private static void send(Player me, String name, @Nullable String text) {
@@ -125,7 +131,7 @@ public final class Messages {
             return;
         }
         Seen.directory().byName(name).thenAccept(known -> {
-            if (known != null) Msg.fail(me, "That player is not online!");
+            if (known != null) remote(me, known.id(), text);
             else Msg.fail(me, "Can't find a player by the name of '" + name + "'");
         }).exceptionally(failed -> {
             LOGGER.warn("looking up {} for {} failed", name, me.getUsername(), failed);
@@ -144,10 +150,7 @@ public final class Messages {
             Msg.fail(me, refused);
             return;
         }
-        conversations.put(me.getUuid(), new Conversation(to.getUuid(), clock.getAsLong() + WINDOW_MILLIS));
-        me.sendMessage(green("Opened a chat conversation with ").append(who(to.getUsername()))
-                .append(green(" for the next 5 minutes. Use ")).append(Component.text("/chat a", NamedTextColor.AQUA))
-                .append(green(" to leave")));
+        open(me, to.getUuid(), to.getUsername());
     }
 
     private static @Nullable String refusal(Player me, Player to) {
@@ -177,6 +180,89 @@ public final class Messages {
         return Component.text(direction, NamedTextColor.LIGHT_PURPLE)
                 .append(who(name).clickEvent(ClickEvent.suggestCommand("/msg " + name + " ")))
                 .append(Component.text(": " + text, NamedTextColor.GRAY));
+    }
+
+    // on another server: the checks run here, against what they stored, and their server only delivers
+    private static void remote(Player me, UUID to, @Nullable String text) {
+        boolean staff = Access.allows(me, Vanish.SEE);
+        Network.presence().where(to).thenCompose(here -> {
+            if (here == null || here.hidden() && !staff) {
+                notOnline(me);
+                return CompletableFuture.completedFuture(null);
+            }
+            if (Blocks.blocked(me.getUuid(), to)) {
+                refuse(me, "You blocked " + here.name() + ". Use /block remove " + here.name() + " first.");
+                return CompletableFuture.completedFuture(null);
+            }
+            return Blocks.load(to, me.getUuid()).thenCombine(PRIVACY.admits(me, to), (blocked, admits) -> {
+                if (blocked) refuse(me, "That player blocked you!");
+                else if (!admits) refuse(me, here.name() + " isn't accepting messages from you.");
+                else if (text == null) open(me, to, here.name());
+                else whisper(me, to, text, staff);
+                return null;
+            });
+        }).exceptionally(failed -> {
+            LOGGER.warn("a message from {} to {} was not sent", me.getUsername(), to, failed);
+            Msg.fail(me, "That message didn't send. Try again in a moment.");
+            return null;
+        });
+    }
+
+    private static void whisper(Player me, UUID to, String text, boolean staff) {
+        String id = UUID.randomUUID().toString();
+        pending.put(id, new Pending(me, text));
+        Network.bus().publish(Topics.WHISPER, new Topics.Whisper(id, me.getUuid(), me.getUsername(), staff, Network.server(), to, text));
+        MinecraftServer.getSchedulerManager().buildTask(() -> {
+            if (pending.remove(id) != null) notOnline(me);
+        }).delay(TaskSchedule.millis(answerMillis)).schedule();
+    }
+
+    // on the server the message was for
+    private static void heard(Topics.Whisper e) {
+        MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+            Player to = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(e.to());
+            if (to == null) return; // its own server answers, or nobody and the sender times out
+            if (Vanish.vanished(to) && !e.fromStaff()) {
+                Network.bus().publish(Topics.WHISPERED, new Topics.Whispered(e.id(), Network.server(), to.getUsername(), "That player is not online!"));
+                return;
+            }
+            to.sendMessage(line("From ", e.fromName(), e.text()));
+            lastFrom.put(to.getUuid(), new Last(e.from(), clock.getAsLong()));
+            Network.bus().publish(Topics.WHISPERED, new Topics.Whispered(e.id(), Network.server(), to.getUsername(), null));
+        });
+    }
+
+    // back on the sender's
+    private static void answered(Topics.Whispered e) {
+        Pending sent = pending.remove(e.id());
+        if (sent == null) return;
+        MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+            Player me = sent.from();
+            if (!me.isOnline()) return;
+            if (e.refused() != null) {
+                refuse(me, e.refused());
+                return;
+            }
+            me.sendMessage(line("To ", e.toName(), sent.text()));
+            long now = clock.getAsLong();
+            conversations.computeIfPresent(me.getUuid(), (id, open) -> new Conversation(open.with(), now + WINDOW_MILLIS));
+        });
+    }
+
+    private static void open(Player me, UUID to, String name) {
+        conversations.put(me.getUuid(), new Conversation(to, clock.getAsLong() + WINDOW_MILLIS));
+        me.sendMessage(green("Opened a chat conversation with ").append(who(name))
+                .append(green(" for the next 5 minutes. Use ")).append(Component.text("/chat a", NamedTextColor.AQUA))
+                .append(green(" to leave")));
+    }
+
+    private static void refuse(Player me, String why) {
+        conversations.remove(me.getUuid());
+        Msg.fail(me, why);
+    }
+
+    private static void notOnline(Player me) {
+        refuse(me, "That player is not online!");
     }
 
     private static void forget(UUID player) {

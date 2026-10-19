@@ -18,8 +18,27 @@ public one for players' bots. Drafted 2026-10-19; the "Today" table is how it st
   `/v1/key`, `/v1/players/{name|uuid}`, `.../stats`, `.../matches`, `/v1/matches/{id}`,
   `/v1/leaderboards/{mode}/{stat}`.
 - **Replays are watched in game only.** The API says whether a match's replay is still watchable; it serves no bytes.
-- **Not built yet:** the private API and every Redis seam (presence, parties, cross-server messages, a shared rate
-  limit). A revoked key keeps working for up to a minute in a running API process, which caches key lookups.
+- **Replays keep 30 days** (`tennacle.replays.keep-days`). Past that a replay is hidden from players, reported or
+  not. A player's bookmark (right-click in the Replays tab, 25 each) keeps it watchable for that player alone. A staff
+  hold (`ReplayStore.hold`, for reports once they exist) keeps the bytes for staff only. With neither, the bytes go.
+  The blob store is the local folder: this PC now, the VPS next.
+- **Redis seams** (`core` `tennacle.net`, Redis in the `:redis` module, `tennacle.redis.url`):
+  - `Presence`: who is online, on which server, and vanished or not. Each server beats every 30 s, and a dead
+    server's players drop out within 90 s.
+  - `Bus`: typed events (`Topics`).
+    - A ban, mute, kick or role change made anywhere lands on the player's server at once.
+    - `/msg`, `/r` and conversations reach a player on another server. The sender's server runs the block and
+      privacy checks; the target's server only delivers and answers.
+    - A new or revoked API key clears the API's key cache.
+  - `RateLimiter`: the public API's per-key minute, shared by every API process.
+  - Without Redis, each process works alone (`LocalBus`, `LocalPresence`), as before.
+  - Parties and queues stay in memory, a refactor of their own.
+- **Private API** in the API service, on its own port (`tennacle.api.private-*`), with a bearer token per caller.
+  It acts as the console does. Endpoints:
+  - `GET /internal/v1/players/{name|uuid}`: role, grants, owner, where they are online, every punishment
+  - `POST .../ban|mute` (`duration`, `reason`, `by`)
+  - `POST .../unban|unmute|kick`
+  - `GET /internal/v1/servers`
 
 ## Retention, researched
 
@@ -145,6 +164,6 @@ players by Bed Wars final kills; it can't do that through `player_data`. So:
 
 ## Still open
 
-1. **Which bucket:** MinIO on our own box, or R2 or B2 hosted. R2 charges nothing to read data back out.
-2. **Retention:** turn it on with `tennacle.replays.keep-days` once you settle on a number; 30 is the recommendation above.
-3. **Reports:** a reports system would call `ReplayStore.keep` on the reported game.
+1. **Redis on this PC:** Docker or WSL, then `tennacle.redis.url` in tennacle.properties.
+2. **Reports:** a reports system would call `ReplayStore.hold` on the reported game.
+3. **Parties and queues** across servers.

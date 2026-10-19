@@ -6,6 +6,7 @@ description = "The public API: read-only JSON over the database, for players' ow
 
 dependencies {
     implementation(project(":postgres"))
+    implementation(project(":redis"))
     runtimeOnly("org.tinylog:tinylog-api:2.8.0")
     runtimeOnly("org.tinylog:tinylog-impl:2.8.0")
     runtimeOnly("org.tinylog:slf4j-tinylog:2.8.0")

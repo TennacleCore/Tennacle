@@ -66,6 +66,15 @@ public final class PlayerPrefs {
             return vault.get().get(player, key).thenApply(decode);
         }
 
+        /** The stored value read again into an online player's cache: another process changed it. */
+        public @NotNull CompletableFuture<T> refresh(@NotNull UUID player) {
+            return vault.get().get(player, key).thenApply(stored -> {
+                T value = decode.apply(stored);
+                if (MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player) != null) cache.put(player, value);
+                return value;
+            });
+        }
+
         /** Read-modify-write on the stored value, online or not; an online player's cache follows. */
         public @NotNull CompletableFuture<T> update(@NotNull UUID player, @NotNull UnaryOperator<T> fn) {
             return vault.get().update(player, key, stored -> encode.apply(fn.apply(decode.apply(stored))))

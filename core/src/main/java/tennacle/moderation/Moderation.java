@@ -1,5 +1,7 @@
 package tennacle.moderation;
 
+import tennacle.net.Topics;
+import tennacle.net.Network;
 import io.github.term4.polyp.platform.player.PlayerNames;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -64,6 +66,7 @@ public final class Moderation {
         Mutes.install();
         Bans.install();
         Vanish.install();
+        listen();
 
         var who = ArgumentType.Word("player");
         who.setSuggestionCallback(PlayerNames.suggestAll());
@@ -109,21 +112,69 @@ public final class Moderation {
         Commands.register(vanish);
     }
 
+    // here, or wherever presence says they are
     private static void kick(CommandSender sender, String name, String reason) {
-        Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
-        if (target == null || sender instanceof Player me && Vanish.hides(me, target)) {
-            Msg.err(sender, "kick", Msg.v(name), " isn't online.");
-            return;
-        }
-        Seen.find(target.getUsername()).thenCompose(entry -> outranks(sender, entry, "kick")).thenCompose(may -> {
-            if (!may) return CompletableFuture.completedFuture(null);
-            long now = now();
-            return store.add(target.getUuid(), Kind.KICK, reason, id(sender), name(sender), now, now).thenRun(() -> {
-                // the reason alone: Velocity's prefix is configured away
-                target.kick(Component.text(reason.isEmpty() ? "No reason given." : reason, NamedTextColor.RED));
-                Msg.tag(sender, "kick", "Kicked ", Msg.v(target.getUsername()), ".");
+        boolean staff = !(sender instanceof Player me) || Access.allows(me, Vanish.SEE);
+        found(sender, name, "kick", target -> reachable(sender, target.id(), staff).thenCompose(reach -> {
+            if (!reach) {
+                Msg.err(sender, "kick", Msg.v(target.name()), " isn't online.");
+                return CompletableFuture.completedFuture(null);
+            }
+            return outranks(sender, target, "kick").thenCompose(may -> {
+                if (!may) return CompletableFuture.completedFuture(null);
+                long now = now();
+                return store.add(target.id(), Kind.KICK, reason, id(sender), name(sender), now, now).thenRun(() -> {
+                    kickHere(target.id(), reason);
+                    Network.bus().publish(Topics.KICKED, new Topics.Kicked(Network.server(), target.id(), reason));
+                    Msg.tag(sender, "kick", "Kicked ", Msg.v(target.name()), ".");
+                });
             });
-        }).exceptionally(failed -> failed(sender, "kick", name, failed));
+        }));
+    }
+
+    private static CompletableFuture<Boolean> reachable(CommandSender sender, UUID player, boolean staff) {
+        Player here = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player);
+        if (here != null) return CompletableFuture.completedFuture(!(sender instanceof Player me && Vanish.hides(me, here)));
+        return Network.presence().where(player).thenApply(seen -> seen != null && (!seen.hidden() || staff));
+    }
+
+    // the reason alone: Velocity's prefix is configured away
+    private static void kickHere(UUID player, String reason) {
+        Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player);
+        if (online != null) online.kick(Component.text(reason.isEmpty() ? "No reason given." : reason, NamedTextColor.RED));
+    }
+
+    /** What another process decided, applied to the players on this server. */
+    private static void listen() {
+        Network.bus().subscribe(Topics.KICKED, e -> {
+            if (!e.origin().equals(Network.server())) onTick(() -> kickHere(e.player(), e.reason()));
+        });
+        Network.bus().subscribe(Topics.PUNISHED, e -> {
+            if (e.origin().equals(Network.server())) return;
+            Kind kind = Kind.valueOf(e.kind());
+            store.active(e.player(), kind, now()).thenAccept(active -> onTick(() -> {
+                Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(e.player());
+                if (online == null) return;
+                if (kind == Kind.BAN) {
+                    if (active != null) online.kick(Bans.screen(active, now()));
+                    return;
+                }
+                Punishment was = Mutes.of(online);
+                Mutes.held(e.player(), active);
+                if (active != null && (was == null || was.id() != active.id())) {
+                    Msg.fail(online, "You are muted " + Lengths.lasting(active, now()) + "." + Lengths.why(active));
+                } else if (active == null && was != null) {
+                    Msg.ok(online, "You are no longer muted.");
+                }
+            })).exceptionally(failed -> {
+                LOGGER.warn("a {} change for {} was not read", kind, e.player(), failed);
+                return null;
+            });
+        });
+    }
+
+    private static void onTick(Runnable action) {
+        MinecraftServer.getSchedulerManager().scheduleNextTick(action);
     }
 
     private static void punish(CommandSender sender, Kind kind, String name, String typed, String reason) {
@@ -138,6 +189,7 @@ public final class Moderation {
             long now = now();
             long until = length == Punishments.FOREVER ? Punishments.FOREVER : now + length;
             return store.add(target.id(), kind, reason, id(sender), name(sender), now, until).thenAccept(added -> {
+                Network.bus().publish(Topics.PUNISHED, new Topics.Punished(Network.server(), target.id(), kind.name()));
                 String lasting = Lengths.lasting(added, now);
                 Msg.tag(sender, tag, Msg.v(target.name()), " is " + done(kind) + " " + lasting + ".");
                 Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(target.id());
@@ -159,6 +211,7 @@ public final class Moderation {
                 Msg.err(sender, tag, Msg.v(target.name()), " isn't " + done(kind) + ".");
                 return;
             }
+            Network.bus().publish(Topics.PUNISHED, new Topics.Punished(Network.server(), target.id(), kind.name()));
             Msg.tag(sender, tag, Msg.v(target.name()), kind == Kind.MUTE ? " can chat again." : " can join again.");
             Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(target.id());
             if (online != null && kind == Kind.MUTE) {

@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import tennacle.Msg;
 import tennacle.commands.AppCommand;
 import tennacle.commands.Commands;
+import tennacle.net.Network;
+import tennacle.net.Topics;
 
 /** {@code /api new} and {@code /api revoke}: a player's key to the public API. */
 public final class ApiCommand {
@@ -47,6 +49,7 @@ public final class ApiCommand {
                         ? "The API isn't running on this server." : "That didn't work. Try again in a moment.");
                 return;
             }
+            Network.bus().publish(Topics.KEY_REVOKED, new Topics.KeyRevoked(me.getUuid()));
             Msg.tag(me, "api", "Your new key. It's shown this once, and any older key has stopped working:");
             me.sendMessage(Component.text(key, NamedTextColor.YELLOW)
                     .clickEvent(ClickEvent.copyToClipboard(key))
@@ -61,6 +64,7 @@ public final class ApiCommand {
                 LOGGER.warn("{}'s API key was not revoked", me.getUsername(), failed);
                 Msg.err(me, "api", "That didn't work. Try again in a moment.");
             } else if (had) {
+                Network.bus().publish(Topics.KEY_REVOKED, new Topics.KeyRevoked(me.getUuid()));
                 Msg.tag(me, "api", "Your key no longer works.");
             } else {
                 Msg.err(me, "api", "You don't have a key. ", Msg.run("/api new"), " makes one.");

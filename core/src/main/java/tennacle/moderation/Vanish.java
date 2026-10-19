@@ -1,5 +1,6 @@
 package tennacle.moderation;
 
+import tennacle.net.Network;
 import io.github.term4.archipelago.shard.ShardTabList;
 import io.github.term4.polyp.world.WorldPolicy;
 import net.minestom.server.MinecraftServer;
@@ -50,5 +51,6 @@ public final class Vanish {
     private static void refresh(Player player) {
         ShardTabList.resync(player);
         WorldPolicy.refreshSight(player);
+        Network.seen(player);
     }
 }

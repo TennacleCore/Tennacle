@@ -12,10 +12,14 @@ import org.junit.jupiter.api.Test;
 import tennacle.Seen;
 import tennacle.games.Rooms;
 import tennacle.games.TestWiring;
+import tennacle.net.Network;
+import tennacle.net.Presence;
+import tennacle.net.Topics;
 import tennacle.social.Audience;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -41,6 +45,50 @@ class MessagesTest extends HeadlessServerTest {
 
     private static boolean said(List<String> lines, String text) {
         return lines.stream().anyMatch(l -> l.contains(text));
+    }
+
+    // the harness has no ticker: the answers land through scheduled tasks
+    private static void tickUntil(String what, java.util.function.BooleanSupplier done) {
+        long until = System.currentTimeMillis() + 5_000;
+        while (!done.getAsBoolean()) {
+            if (System.currentTimeMillis() > until) throw new AssertionError("never: " + what);
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+        }
+    }
+
+    @Test
+    void aMessageCrossesServers() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(930.5, 65, 930.5), "MsFar");
+        UUID far = UUID.randomUUID();
+        UUID gone = UUID.randomUUID();
+        Seen.directory().seen(far, "Faraway", System.currentTimeMillis()).join();
+        Seen.directory().seen(gone, "Hanging", System.currentTimeMillis()).join();
+        Network.presence().joined(new Presence.Here(far, "Faraway", "server-2", 1, false)).join();
+        Network.presence().joined(new Presence.Here(gone, "Hanging", "server-3", 1, false)).join();
+        List<Topics.Whisper> carried = new CopyOnWriteArrayList<>();
+        Network.bus().subscribe(Topics.WHISPER, w -> { // server-2, answering for its player
+            if (!w.to().equals(far)) return;
+            carried.add(w);
+            Network.bus().publish(Topics.WHISPERED, new Topics.Whispered(w.id(), "server-2", "Faraway", null));
+        });
+        long answer = Messages.answerMillis;
+        try {
+            chat(a, "msg Faraway hello there");
+            tickUntil("the other server's answer", () -> said(plain(a), "To Faraway: hello there"));
+            assertTrue(carried.getFirst().fromName().equals("MsFar") && carried.getFirst().text().equals("hello there"));
+
+            Messages.answerMillis = 50;
+            chat(a, "msg Hanging anyone?");
+            tickUntil("the wait runs out", () -> said(plain(a), "That player is not online!"));
+            assertFalse(said(plain(a), "To Hanging"));
+            assertTrue(said(chat(a, "msg Nobody hi"), "Can't find a player by the name of 'Nobody'"));
+        } finally {
+            Messages.answerMillis = answer;
+            Network.presence().left(far, "server-2").join();
+            Network.presence().left(gone, "server-3").join();
+            a.player.remove();
+        }
     }
 
     @Test

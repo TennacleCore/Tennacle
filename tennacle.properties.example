@@ -27,11 +27,21 @@ tennacle.arena-dir = arenas
 # (a report) keeps the bytes for staff alone; with neither the bytes are deleted. 0 keeps every replay forever
 # tennacle.replays.keep-days = 30
 
+# Redis: who is online where, and the events between servers and the API (bans, mutes, kicks, role changes,
+# /msg). Unset, this server works alone. server-id is this server's name among the others
+# tennacle.redis.url = redis://localhost:6379
+# tennacle.server-id = server-1
+
 # the public API, its own process (gradlew :api:installDist, then api/build/install/TennacleApi/bin/TennacleApi):
-# it reads the postgres settings above. Requests a minute per key
+# it reads the postgres and redis settings above. Requests a minute per key
 # tennacle.api.bind = 127.0.0.1
 # tennacle.api.port = 8090
 # tennacle.api.per-minute = 120
+# the private API, beside it, for our own tools: off until it has tokens, one per caller, comma separated, sent as
+# Authorization: Bearer <token>. Keep its bind on the private network
+# tennacle.api.private-bind = 127.0.0.1
+# tennacle.api.private-port = 8091
+# tennacle.api.private-tokens = <a long random token>
 
 # hands every player the staff tools (/gamemode, /lag, /shard stall and friends), which otherwise need
 # tennacle.staff.<command> or a role holding it. On by default only on a loopback bind

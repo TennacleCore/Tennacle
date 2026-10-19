@@ -1,5 +1,7 @@
 package tennacle.access;
 
+import tennacle.net.Topics;
+import tennacle.net.Network;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +36,11 @@ public final class Access {
 
         /** Online or not; an online player's checks follow at once. */
         @NotNull CompletableFuture<Grants> change(@NotNull UUID player, @NotNull UnaryOperator<Grants> change);
+
+        /** Reads an online player's grants again: another process changed them. */
+        default @NotNull CompletableFuture<Void> reload(@NotNull UUID player) {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     private static volatile Backend backend = new PrefsBackend();
@@ -47,6 +54,14 @@ public final class Access {
     /** Registers the default backend's grants before the first login fetch. */
     public static void install() {
         PrefsBackend.install();
+        Network.bus().subscribe(Topics.REGRANTED, e -> {
+            if (e.origin().equals(Network.server())) return;
+            if (MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(e.player()) == null) return;
+            backend.reload(e.player()).thenRun(() -> MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(e.player());
+                if (online != null) for (Consumer<Player> listener : changed) listener.accept(online);
+            }));
+        });
     }
 
     public static void use(@NotNull Backend source) {
@@ -129,6 +144,7 @@ public final class Access {
 
     private static CompletableFuture<Grants> change(UUID player, UnaryOperator<Grants> change) {
         return backend.change(player, change).thenApply(grants -> {
+            Network.bus().publish(Topics.REGRANTED, new Topics.Regranted(Network.server(), player));
             Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player);
             if (online != null) for (Consumer<Player> listener : changed) listener.accept(online);
             return grants;

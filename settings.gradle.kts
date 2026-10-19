@@ -53,4 +53,4 @@ if (file("../Canvas").exists()) {
     }
 }
 
-include("core", "social", "games", "lobby", "postgres", "server", "api")
+include("core", "social", "games", "lobby", "postgres", "redis", "server", "api")

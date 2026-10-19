@@ -17,6 +17,8 @@ import tennacle.PlayerPrefs;
 import tennacle.access.Access;
 import tennacle.access.Role;
 import tennacle.games.TestWiring;
+import tennacle.net.Network;
+import tennacle.net.Topics;
 
 import java.util.List;
 
@@ -55,6 +57,7 @@ class ModerationTest extends HeadlessServerTest {
         assertTrue(Lengths.parse("perm") == Punishments.FOREVER && Lengths.parse("Permanent") == Punishments.FOREVER);
         assertTrue(Lengths.span(7_200_000L).equals("2 hours") && Lengths.span(5_400_000L).equals("2 hours"));
         assertTrue(Lengths.span(1_000L).equals("1 second") && Lengths.span(0).equals("1 second"));
+        assertTrue(Lengths.span(3_599_900L).equals("1 hour") && Lengths.span(604_799_000L).equals("1 week"), "just under reads the whole unit");
     }
 
     @Test
@@ -139,6 +142,36 @@ class ModerationTest extends HeadlessServerTest {
             Moderation.clock = System::currentTimeMillis;
             mod.player.remove();
             a.player.remove();
+        }
+    }
+
+    @Test
+    void anotherServersMuteLands() {
+        FakePlayer a = FakePlayer.connect(instance, new Pos(960.5, 65, 0.5), "FarMuteA");
+        try {
+            long now = System.currentTimeMillis();
+            Moderation.store().add(a.player.getUuid(), Punishments.Kind.MUTE, "spam", null, "Panel", now, now + 3_600_000).join();
+            a.sent.clear();
+            Network.bus().publish(Topics.PUNISHED, new Topics.Punished("api", a.player.getUuid(), "MUTE"));
+            tickUntil("the mute lands", () -> said(plain(a), "You are muted for 1 hour. Reason: spam"));
+            PlayerChatEvent chat = new PlayerChatEvent(a.player, List.of(a.player), "hi");
+            EventDispatcher.call(chat);
+            assertTrue(chat.isCancelled());
+
+            Moderation.store().lift(a.player.getUuid(), Punishments.Kind.MUTE, null, "Panel", System.currentTimeMillis()).join();
+            Network.bus().publish(Topics.PUNISHED, new Topics.Punished("api", a.player.getUuid(), "MUTE"));
+            tickUntil("the lift lands", () -> said(plain(a), "You are no longer muted."));
+        } finally {
+            a.player.remove();
+        }
+    }
+
+    private static void tickUntil(String what, java.util.function.BooleanSupplier done) {
+        long until = System.currentTimeMillis() + 5_000;
+        while (!done.getAsBoolean()) {
+            if (System.currentTimeMillis() > until) throw new AssertionError("never: " + what);
+            MinecraftServer.getSchedulerManager().processTick();
+            MinecraftServer.getSchedulerManager().processTickEnd();
         }
     }
 
