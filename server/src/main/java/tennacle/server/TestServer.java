@@ -70,8 +70,8 @@ import java.util.stream.Collectors;
  * The games server: the party, games and lobby modules over Grotto + Polyp + Archipelago, installed in that order.
  * Boot only - the pieces live in {@link Mechanics} (systems + bridges), {@link SocialModule}, {@link GamesModule},
  * {@link LobbyModule} and the staff tools ({@link DevCommands} and the rest), always registered behind their
- * permission nodes. {@code tennacle.dev-commands} hands every player those nodes, and lays the test pads: on a loopback
- * bind by default.
+ * permission nodes. {@code tennacle.dev-commands} hands every player those nodes: on a loopback bind by default.
+ * {@code tennacle.test-pads} lays the lobby's test pads, off unless set.
  *
  * <p>Everything the deployment decides comes through {@link Config}: port, bind, directories, forwarding
  * secret, whether every player holds the staff tools. The libraries persist nothing - {@link FileVault} is the server's
@@ -196,7 +196,7 @@ public final class TestServer {
         Access.owners(Arrays.stream(Config.string("tennacle.owners", "").split(",")).map(String::trim)
                 .filter(owner -> !owner.isEmpty()).collect(Collectors.toSet()));
         Access.everyone(devCommands ? Set.of("tennacle.staff.*") : Set.of()); // a dev build hands everyone the staff tools
-        InstanceContainer world = LobbyModule.world(devCommands); // the test pads ride the dev flag
+        InstanceContainer world = LobbyModule.world(Config.flag("tennacle.test-pads", false));
         Commands.install(); // /help reads the registry every command below lands in
         // members build into their shard's overlay, never the map (the bridge already decorated the
         // placement listener - order-independent)

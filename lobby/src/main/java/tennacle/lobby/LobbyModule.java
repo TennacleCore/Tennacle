@@ -20,9 +20,9 @@ public final class LobbyModule {
 
     private LobbyModule() {}
 
-    /** The main lobby, the world a login lands in; the test pads ride {@code devCommands}. */
-    public static @NotNull InstanceContainer world(boolean devCommands) {
-        InstanceContainer world = Playground.createWorld(devCommands);
+    /** The main lobby, the world a login lands in, with the test pads or without. */
+    public static @NotNull InstanceContainer world(boolean testPads) {
+        InstanceContainer world = Playground.createWorld(testPads);
         Playground.installListeners(world);
         return world;
     }

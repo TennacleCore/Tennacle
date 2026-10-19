@@ -20,6 +20,9 @@ tennacle.arena-dir = arenas
 # tennacle.staff.<command> or a role holding it. On by default only on a loopback bind
 # tennacle.dev-commands = false
 
+# the lobby's test pads: a water column, fire, cactus and water-flow lanes for mechanics checks. Off unless set
+# tennacle.test-pads = false
+
 # usernames or uuids that are always admin, comma separated: who hands out /role on a fresh server
 # tennacle.owners = Term4
 
