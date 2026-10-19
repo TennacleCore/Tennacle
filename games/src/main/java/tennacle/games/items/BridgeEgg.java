@@ -10,11 +10,13 @@ import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
+import io.github.term4.polyp.mechanics.projectile.ProjectileConfigResolver.ResolvedFlight;
 import net.kyori.adventure.sound.Sound;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.block.Block;
@@ -40,8 +42,8 @@ public final class BridgeEgg implements GameModule {
     /** Ticks between where the egg was and the wool there. Hypixel's read five or six from its spawn packet, which
      *  already carries the throw tick's step; from that step, four (every other tick five: it lays two ticks at once). */
     public static final StateKey<Integer> DELAY = StateKey.of("bridge-egg.delay", Codec.INT, 4);
-    /** The wool starts at the egg's position this many ticks into its flight. */
-    public static final StateKey<Integer> START = StateKey.of("bridge-egg.start", Codec.INT, 2);
+    /** The wool starts at the egg's position this many ticks past its spawn. */
+    public static final StateKey<Integer> START = StateKey.of("bridge-egg.start", Codec.INT, 1);
 
     static final Sound BLOCK = Sound.sound(SoundEvent.ENTITY_CHICKEN_EGG, Sound.Source.MASTER, 1f, 1f);
 
@@ -71,8 +73,13 @@ public final class BridgeEgg implements GameModule {
                 e.setCancelled(true);
                 return;
             }
-            // captured: no spread, 9 of 9 straight down at exactly 0 across
-            e.setVelocity(thrower.getPosition().direction().mul(e.resolvedFlight().speed()));
+            // captured: no spread, and announced a tick into its flight (9 of 9 straight down: (0, -1.515, 0) from the feet)
+            ResolvedFlight flight = e.resolvedFlight();
+            Vec aim = thrower.getPosition().direction().mul(flight.speed());
+            e.setSpawnPos(e.spawnPos().add(aim));
+            e.setVelocity(new Vec(aim.x() * flight.horizontalDrag(), aim.y() * flight.verticalDrag() - flight.gravity(),
+                    aim.z() * flight.horizontalDrag()));
+            e.projectile().setLaunchTickStep(false);
             trail(thrower, e.projectile(), e.spawnPos());
         });
     }
@@ -95,8 +102,8 @@ public final class BridgeEgg implements GameModule {
         structures.add(() -> {
             if (!egg.isRemoved()) {
                 Pos at = egg.getPosition();
-                // captured 2026-09-28: Hypixel's spawn packet already carries one step of flight and its first wool
-                // sits a step past that; the throw's cell (a 1/32 off on the wire grid) and the first step stay bare
+                // captured 2026-09-28: the first wool sits a step past the spawn, which is itself a step in; the spawn's
+                // cell (a 1/32 off on the wire grid) stays bare
                 if (at.distanceSquared(thrown) < 0.01 || ++flown[0] < start) return true;
                 if (egg.getAliveTicks() > life || !building.space().buildable(thrower, at)) egg.remove();
                 else path.add(at);
@@ -108,9 +115,21 @@ public final class BridgeEgg implements GameModule {
 
     private void lay(Player thrower, Pos at, Block wool) {
         for (BlockVec cell : cells(at)) {
-            if (!building.place(thrower, cell, wool)) continue;
+            if (atFeet(cell) || !building.place(thrower, cell, wool)) continue;
             game.forEachAudience(v -> v.playSound(BLOCK, cell.x(), cell.y(), cell.z()));
         }
+    }
+
+    // the user, 2026-10-19: Hypixel never lays one where a player's feet are, though their head is fair
+    private boolean atFeet(BlockVec cell) {
+        for (Player member : game.members()) {
+            if (game.isGhost(member)) continue;
+            Pos p = member.getPosition();
+            double half = member.getBoundingBox().width() / 2;
+            if (p.blockY() == cell.blockY() && p.x() + half > cell.x() && p.x() - half < cell.x() + 1
+                    && p.z() + half > cell.z() && p.z() - half < cell.z() + 1) return true;
+        }
+        return false;
     }
 
     /** The block under {@code at} and its nearer x and z neighbors. */
