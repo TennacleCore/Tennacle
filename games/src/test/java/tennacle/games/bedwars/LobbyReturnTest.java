@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 
 import java.util.List;
 import java.util.UUID;

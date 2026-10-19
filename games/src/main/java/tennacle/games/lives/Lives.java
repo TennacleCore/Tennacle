@@ -1,7 +1,8 @@
-package tennacle.games.beds;
+package tennacle.games.lives;
 
 import tennacle.games.Match;
 import tennacle.games.Matches;
+import tennacle.games.beds.Banners;
 import tennacle.games.watch.Lineup;
 import tennacle.games.watch.Replays;
 import tennacle.games.watch.Spectators;
@@ -19,6 +20,7 @@ import io.github.term4.grotto.roster.Team;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.config.KeySet;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.api.event.damage.DamageAppliedEvent;
 import io.github.term4.polyp.api.event.damage.FatalDamageEvent;
@@ -26,7 +28,11 @@ import io.github.term4.polyp.api.event.knockback.KnockbackEvent;
 import io.github.term4.polyp.mechanics.damage.DamageSystem;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.text.Component;
+import net.minestom.server.codec.Codec;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import net.minestom.server.inventory.PlayerInventory;
+import net.minestom.server.item.ItemStack;
 import net.minestom.server.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,13 +41,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The one rule a bed mode turns on: a death while the side's bed stands respawns, and once it is gone the next
- * is the last, the side going out with its last seat. Walking out is a death like any other: whoever last hit
+ * A side respawns while its {@link Anchor} stands (a bed, a wither), and once that is gone the next death is the
+ * last, the side going out with its last seat. Walking out is a death like any other: whoever last hit
  * them inside the credit window takes the kill, and the held seat owes a respawn - priced by
  * {@link Respawns#REJOIN_TICKS} on the way back, spent by the bed falling on the empty seat if they never
- * return. A death taken WHILE connected keeps its respawn even if the bed falls mid-wait.
+ * return. A death taken WHILE connected keeps its respawn even if the bed falls mid-wait. {@link #KEEP} items
+ * ride a respawn out, back where they were; {@link #SLOW_ITEMS} and {@link #delay} lengthen one death's wait.
  */
 public final class Lives implements GameModule {
 
@@ -49,9 +61,16 @@ public final class Lives implements GameModule {
     public record Counters(@NotNull StateKey<Integer> kills, @NotNull StateKey<Integer> deaths,
                            @NotNull StateKey<Integer> finalKills, @NotNull StateKey<Integer> finalDeaths) {}
 
-    /** A death as decided: {@code victim} still holds what they carried, a walk-out's included. */
+    /** Item keys a respawning death keeps, each in the slot it was in; {@code only()}, nothing, by default. */
+    public static final StateKey<KeySet> KEEP = StateKey.of("combat.death.keep", KeySet.CODEC, KeySet.only());
+    /** Killing blows from these items add {@link #SLOW_TICKS} to the victim's wait. */
+    public static final StateKey<KeySet> SLOW_ITEMS = StateKey.of("combat.respawn.slow-items", KeySet.CODEC, KeySet.only());
+    public static final StateKey<Long> SLOW_TICKS = StateKey.of("combat.respawn.slow-ticks", Codec.LONG, 0L);
+
+    /** A death as decided: {@code victim} still holds what they carried, a walk-out's included, less what {@link #KEEP}
+     *  set aside. {@code item} is the killing blow's, null for a fall or a walk-out. */
     public record Death(@NotNull Game game, @NotNull Player victim, @NotNull Slot seat, @Nullable Player killer,
-                        boolean last, @Nullable String tool) {}
+                        boolean last, @Nullable String tool, @Nullable ItemStack item, @NotNull Pos where) {}
 
     /** A hit by something of a member's - a creature - answered for: whose, and what it is called. */
     public record Blame(@NotNull Player by, @Nullable String tool) {}
@@ -59,6 +78,9 @@ public final class Lives implements GameModule {
     private final Counters counters;
     private final List<Function<Entity, @Nullable Blame>> blames = new ArrayList<>();
     private final List<Consumer<Death>> onDeath = new ArrayList<>();
+    private final List<ToLongFunction<Death>> delays = new ArrayList<>();
+    private final Map<Integer, Map<Integer, ItemStack>> kept = new ConcurrentHashMap<>();
+    private Anchor anchor;
     private Game game;
     private Respawns respawns;
     private KillCredit credit;
@@ -70,6 +92,12 @@ public final class Lives implements GameModule {
 
     public @NotNull Lives onDeath(@NotNull Consumer<Death> action) {
         onDeath.add(action);
+        return this;
+    }
+
+    /** Ticks a mode adds to one death's wait, beyond the respawn rule; every one added counts. */
+    public @NotNull Lives delay(@NotNull ToLongFunction<Death> extra) {
+        delays.add(extra);
         return this;
     }
 
@@ -91,19 +119,24 @@ public final class Lives implements GameModule {
     }
 
     @Override
+    public @NotNull Set<StateKey<?>> rules() {
+        return Set.of(KEEP, SLOW_ITEMS, SLOW_TICKS);
+    }
+
+    @Override
     public void install(@NotNull Game game) {
         this.game = game;
         respawns = game.module(Respawns.class);
         credit = game.module(KillCredit.class);
         standing = game.module(LastStanding.class);
-        Beds beds = game.module(Beds.class);
-        if (respawns == null || credit == null || standing == null || beds == null) {
-            throw new IllegalStateException("Lives needs Respawns, KillCredit, LastStanding and Beds installed before it");
+        anchor = game.module(Anchor.class);
+        if (respawns == null || credit == null || standing == null || anchor == null) {
+            throw new IllegalStateException("Lives needs Respawns, KillCredit, LastStanding and an Anchor installed before it");
         }
         // a bed lost while nobody is sitting in the seat spends the respawn its holder walked out owing. Read
         // at the fall rather than kept from the leave - a seat owns nobody whether they left mid-round, walked
         // out of the countdown, or never arrived
-        beds.onFall(team -> {
+        anchor.onFall(team -> {
             for (Slot seat : game.roster().seatsOf(team)) {
                 if (game.roster().ownerOf(seat) == null) {
                     if (played(seat)) {
@@ -119,6 +152,7 @@ public final class Lives implements GameModule {
         respawns.onRespawn((player, seat) -> {
             Lineup.unaim(player); // the compass aim of the life they just lost
             kits().refit(player); // the kit comes back whole on every spawn
+            restore(player, seat);
         });
         respawns.onDead((player, seat) -> Spectators.ghostKit(game, player)); // the wait holds a compass, nothing else
         game.on(DamageEvent.class, DamageEvent::target, e -> { // protection is Respawns' own gate
@@ -130,7 +164,7 @@ public final class Lives implements GameModule {
             Player by = e.source() instanceof Player p && p != victim ? p : null;
             Blame blame = by == null ? blame(e.source()) : null;
             if (blame != null && blame.by() != victim) by = blame.by();
-            killed(victim, by, by != null ? "was killed by" : "died", by != null && blame != null ? blame.tool() : null);
+            killed(victim, by, by != null ? "was killed by" : "died", by != null && blame != null ? blame.tool() : null, e.item());
         });
         // a creature's hit is its owner's for the credit, as an arrow's is its shooter's
         game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
@@ -161,8 +195,8 @@ public final class Lives implements GameModule {
         Player by = credit.creditFor(player);
         String verb = by != null ? "was killed by" : "left the game";
         if (by != null) Match.addSeat(game, by, counters.kills());
-        died(new Death(game, player, seat, by, !Beds.stands(game, seat.team()), null));
-        if (!Beds.stands(game, seat.team())) {
+        died(new Death(game, player, seat, by, !anchor.stands(seat.team()), null, null, player.getPosition()));
+        if (!anchor.stands(seat.team())) {
             game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
             if (by != null) Match.addSeat(game, by, counters.finalKills());
             else credit(breakerFor(seat));
@@ -182,7 +216,7 @@ public final class Lives implements GameModule {
     /** Coming back to a bed that went while they were away changes nothing: the seat is still out. */
     @Override
     public void onJoin(@NotNull Game game, @NotNull Player player, @NotNull Slot slot, boolean reclaimed) {
-        if (!reclaimed || Beds.stands(game, slot.team())) return;
+        if (!reclaimed || anchor.stands(slot.team())) return;
         respawns.cancel(player); // the wait the rejoin armed has nothing to land on
         standing.out(slot, LastStanding.Cause.eliminated(null, "left the game"));
     }
@@ -198,19 +232,22 @@ public final class Lives implements GameModule {
     public void fell(@NotNull Player player) {
         if (game.roster().slotOf(player) == null || respawns.isDead(player)) return; // a waiting ghost cannot die again
         Player by = credit.creditFor(player);
-        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null);
+        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null, null);
     }
 
     // a side with a bed respawns, a side without loses the seat
-    private void killed(Player victim, @Nullable Player by, String verb, @Nullable String tool) {
+    private void killed(Player victim, @Nullable Player by, String verb, @Nullable String tool, @Nullable ItemStack item) {
         Slot seat = game.roster().slotOf(victim);
         if (seat == null) return;
         Match.addSeat(game, victim, counters.deaths());
         if (by != null) Match.addSeat(game, by, counters.kills());
-        died(new Death(game, victim, seat, by, !Beds.stands(game, seat.team()), tool));
+        boolean last = !anchor.stands(seat.team());
+        if (!last) keep(victim, seat); // before the killer's share and the spill
+        Death death = new Death(game, victim, seat, by, last, tool, item, victim.getPosition());
+        died(death);
         spill(victim);
         if (victim.getOpenInventory() != null) victim.closeInventory(); // vanilla closes a window at a death
-        if (!Beds.stands(game, seat.team())) {
+        if (last) {
             Match.addSeat(game, victim, counters.finalDeaths());
             if (by != null) Match.addSeat(game, by, counters.finalKills());
             else credit(breakerFor(seat));
@@ -229,13 +266,49 @@ public final class Lives implements GameModule {
         }
         Match.say(game, Matches.lookOf(game).death().render(game, seat, victim.getUsername(), by, verb, tool));
         Deaths.cue(game, victim, by);
-        respawns.queue(victim);
+        long extra = extra(death);
+        if (extra > 0) respawns.queue(victim, game.rules().resolve(seat, Respawns.RESPAWN_TICKS) + extra);
+        else respawns.queue(victim);
+    }
+
+    private long extra(Death death) {
+        long extra = 0;
+        ItemStack item = death.item();
+        if (item != null && !item.isAir() && game.rules().resolve(death.seat(), SLOW_ITEMS).admits(item.material().key())) {
+            extra += game.rules().resolve(death.seat(), SLOW_TICKS);
+        }
+        for (ToLongFunction<Death> delay : delays) extra += Math.max(0, delay.applyAsLong(death));
+        return extra;
+    }
+
+    private void keep(Player victim, Slot seat) {
+        KeySet keep = game.rules().resolve(seat, KEEP);
+        PlayerInventory inv = victim.getInventory();
+        Map<Integer, ItemStack> mine = new LinkedHashMap<>();
+        for (int slot = 0; slot < inv.getSize(); slot++) {
+            ItemStack stack = inv.getItemStack(slot);
+            if (stack.isAir() || !keep.admits(stack.material().key())) continue;
+            inv.setItemStack(slot, ItemStack.AIR);
+            mine.put(slot, stack);
+        }
+        if (!mine.isEmpty()) kept.put(seat.index(), mine);
+    }
+
+    // after the refit: its own slot when the kit left it free, else wherever it fits
+    private void restore(Player player, Slot seat) {
+        Map<Integer, ItemStack> mine = kept.remove(seat.index());
+        if (mine == null) return;
+        PlayerInventory inv = player.getInventory();
+        mine.forEach((slot, stack) -> {
+            if (inv.getItemStack(slot).isAir()) inv.setItemStack(slot, stack);
+            else inv.addItemStack(stack);
+        });
     }
 
     // the user, 2026-10-01: a final death nobody else is owed counts for whoever took the bed, while they play on
     // alive; the line stays the one nobody's credit changes (cap: "evanben fell into the void. FINAL KILL!")
     private @Nullable Player breakerFor(Slot seat) {
-        Player breaker = Beds.breaker(game, seat.team());
+        Player breaker = anchor.breaker(seat.team());
         Slot theirs = breaker != null ? game.roster().slotOf(breaker) : null;
         if (theirs == null || respawns.isDead(breaker) || game.state().get(Scope.slot(theirs.index()), LastStanding.OUT)) return null;
         return breaker;

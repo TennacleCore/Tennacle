@@ -1,7 +1,7 @@
 package tennacle.games.bedfight;
 
 import tennacle.games.beds.Beds;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 import tennacle.games.map.Building;
 
 import io.github.term4.barnacle.marker.RegionMarker;

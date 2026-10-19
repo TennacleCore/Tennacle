@@ -2,7 +2,7 @@ package tennacle.games.bedfight;
 
 import net.minestom.server.potion.PotionEffect;
 import tennacle.games.beds.Beds;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.watch.Spectators;

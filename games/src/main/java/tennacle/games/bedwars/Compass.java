@@ -1,7 +1,7 @@
 package tennacle.games.bedwars;
 
 import tennacle.games.Match;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 import tennacle.games.shop.Price;
 import tennacle.games.watch.Lineup;
 

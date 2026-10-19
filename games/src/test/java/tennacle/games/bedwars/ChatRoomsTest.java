@@ -1,6 +1,6 @@
 package tennacle.games.bedwars;
 
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import java.util.Locale;
 import tennacle.looks.Palette;

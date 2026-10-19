@@ -40,7 +40,7 @@ import tennacle.boot.Mechanics;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 import tennacle.games.TestWiring;
 
 import java.util.List;

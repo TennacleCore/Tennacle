@@ -1,6 +1,6 @@
 package tennacle.games.bedwars;
 
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;

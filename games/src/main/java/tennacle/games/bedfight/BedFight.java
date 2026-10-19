@@ -16,8 +16,8 @@ import tennacle.looks.Presentation;
 import tennacle.games.Presets;
 import tennacle.games.beds.Beds;
 import tennacle.games.beds.Marks;
-import tennacle.games.beds.Lives;
-import tennacle.games.beds.Spoils;
+import tennacle.games.lives.Lives;
+import tennacle.games.lives.Spoils;
 import io.github.term4.bloom.mapmaking.Teams;
 
 import io.github.term4.barnacle.marker.LimitMarker;

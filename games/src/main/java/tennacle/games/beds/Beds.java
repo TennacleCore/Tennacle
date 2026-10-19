@@ -11,7 +11,8 @@ import tennacle.games.Match;
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.RegionMarker;
 import io.github.term4.grotto.Game;
-import io.github.term4.grotto.GameModule;
+import tennacle.games.lives.Anchor;
+import tennacle.games.lives.Lives;
 import io.github.term4.grotto.modules.flow.Phases;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import io.github.term4.grotto.modules.view.Refusals;
@@ -48,7 +49,7 @@ import java.util.UUID;
  * so a match nobody wins still ends. The elimination is {@code LastStanding}'s, which {@link Lives} calls
  * when a bedless seat falls.
  */
-public final class Beds implements GameModule {
+public final class Beds implements Anchor {
 
     /** Whether the team's bed still stands; team-scoped, so a board reads it a side at a time. */
     public static final StateKey<Boolean> STANDS = StateKey.of("ledger.beds.stands", Codec.BOOLEAN, true, true);
@@ -133,6 +134,7 @@ public final class Beds implements GameModule {
     }
 
     /** Told the side whose bed just went, however it went - the clock or an enemy pick. */
+    @Override
     public @NotNull Beds onFall(@NotNull java.util.function.Consumer<String> action) {
         fell.add(action);
         return this;
@@ -274,6 +276,16 @@ public final class Beds implements GameModule {
         Beds beds = game.module(Beds.class);
         UUID id = beds != null ? beds.breakers.get(team) : null;
         return id != null ? MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(id) : null;
+    }
+
+    @Override
+    public boolean stands(@NotNull String team) {
+        return stands(game, team);
+    }
+
+    @Override
+    public @Nullable Player breaker(@NotNull String team) {
+        return breaker(game, team);
     }
 
     /** Whether {@code team} still has a bed to respawn at. */

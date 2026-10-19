@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 import io.github.term4.grotto.modules.outcome.LastStanding;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 import tennacle.games.map.Center;
 import tennacle.looks.Palette;
 

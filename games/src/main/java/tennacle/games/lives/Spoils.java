@@ -1,4 +1,6 @@
-package tennacle.games.beds;
+package tennacle.games.lives;
+
+import tennacle.games.beds.Banners;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;

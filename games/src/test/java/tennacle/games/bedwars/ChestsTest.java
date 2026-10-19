@@ -6,7 +6,7 @@ import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
 import tennacle.games.beds.Beds;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;

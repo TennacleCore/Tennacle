@@ -3,7 +3,7 @@ package tennacle.games.bedwars;
 import tennacle.boot.Mechanics;
 import tennacle.games.Generators;
 import tennacle.games.Match;
-import tennacle.games.beds.Lives;
+import tennacle.games.lives.Lives;
 
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.RegionMarker;

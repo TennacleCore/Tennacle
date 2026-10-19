@@ -1,10 +1,11 @@
 package tennacle.games.bedwars;
 
+import tennacle.boot.Mechanics;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
-import tennacle.games.beds.Lives;
-import tennacle.games.beds.Spoils;
+import tennacle.games.lives.Lives;
+import tennacle.games.lives.Spoils;
 
 import io.github.term4.archipelago.shard.ShardManager;
 import io.github.term4.archipelago.testsupport.FakePlayer;
@@ -21,7 +22,9 @@ import io.github.term4.polyp.Polyp;
 import io.github.term4.polyp.config.KeySet;
 import io.github.term4.polyp.entity.DroppedItemEntity;
 import io.github.term4.polyp.mechanics.containers.Spill;
+import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.DeathConfig;
+import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
@@ -109,6 +112,50 @@ class LootTest extends HeadlessServerTest {
             BedWarsRoundTest.tickUntil(game, "the respawn", () -> !respawns.isDead(b));
             assertEquals(4, Resources.EMERALD.held(b));
         });
+    }
+
+    /** A kept item skips the killer's share and the wipe, back in its slot at the respawn; set for one player here. */
+    @Test
+    void keptItemsRideTheRespawn() {
+        round("LootK", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            Respawns respawns = game.module(Respawns.class);
+            game.state().set(Scope.slot(game.roster().slotOf(a).index()), Lives.KEEP, KeySet.only(Material.ENDER_PEARL.key()));
+            a.getInventory().setItemStack(5, ItemStack.of(Material.ENDER_PEARL, 2));
+            a.getInventory().setItemStack(1, ItemStack.of(Material.IRON_INGOT, 20));
+            game.module(KillCredit.class).record(a, b, game.tick());
+            game.module(Lives.class).fell(a);
+            assertEquals(20, Resources.IRON.held(b), "the rest is still the killer's");
+            assertEquals(0, count(b, Material.ENDER_PEARL));
+            BedWarsRoundTest.tickUntil(game, "the respawn", () -> !respawns.isDead(a));
+            assertEquals(ItemStack.of(Material.ENDER_PEARL, 2), a.getInventory().getItemStack(5), "back where it was");
+            assertEquals(0, count(a, Material.IRON_INGOT));
+        });
+    }
+
+    @Test
+    void aSlowingItemLengthensTheWait() {
+        round("LootS", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            Respawns respawns = game.module(Respawns.class);
+            game.state().set(Scope.GAME, Lives.SLOW_ITEMS, KeySet.only(Material.GOLDEN_SWORD.key()));
+            game.state().set(Scope.GAME, Lives.SLOW_TICKS, 60L);
+            long plain = waited(game, respawns, a, b, Material.IRON_SWORD);
+            long slowed = waited(game, respawns, a, b, Material.GOLDEN_SWORD);
+            assertEquals(60, slowed - plain, 2, plain + " then " + slowed);
+        });
+    }
+
+    private static long waited(Game game, Respawns respawns, Player killer, Player victim, Material weapon) {
+        BedWarsRoundTest.tickUntil(game, "out of spawn protection", () -> !respawns.isProtected(victim));
+        long settled = game.tick() + 20; // past the last hit's immunity
+        BedWarsRoundTest.tickUntil(game, "a second", () -> game.tick() >= settled);
+        Mechanics.polyp.services().damage().apply(DamageSnapshot.of(victim, MeleeDamage.INSTANCE).withSource(killer)
+                .withItem(ItemStack.of(weapon)).withAmount(100f));
+        assertTrue(respawns.isDead(victim), "dead to the " + weapon);
+        long from = game.tick();
+        BedWarsRoundTest.tickUntil(game, "the respawn", () -> !respawns.isDead(victim));
+        return game.tick() - from;
     }
 
     private static void round(String name, Body body) {
