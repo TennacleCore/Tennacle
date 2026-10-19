@@ -5,6 +5,15 @@ edited some maps since those were saved. This lists every difference the capture
 arenas do about each one today, and what to check once the maps are downloaded again from live Hypixel. A fresh
 download fixes all of them at once; until then the arenas work around them as below.
 
+## Downloaded from live Hypixel (2026-10-19)
+
+These arenas are now built from worlds downloaded from live Hypixel through the capture proxy, so their rows below
+are history: Crogorm, Lighthouse, Urban Plaza, Crimson, Invasion, Katsu and Lectus, plus Hollow Hills (rebuilt on
+live), Beldam and Witch's Bog (not in the archive). A download is each chunk as it first loaded, before the game
+started, so no player builds and no island topper. Where its team colors form no ring, the archive's are restored
+(Crogorm); Lectus's live repaint is kept. Ironclad, Orchestra, Paladin and Temple downloaded identical to the archive
+but for grass, so their "smaller differences" below were blocks players had placed.
+
 ## Where Hypixel changed a map
 
 | Map | What live Hypixel has | Evidence | Our arena today |
