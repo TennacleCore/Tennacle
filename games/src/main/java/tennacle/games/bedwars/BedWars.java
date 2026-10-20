@@ -439,6 +439,7 @@ public final class BedWars {
                         TeamChat::new, HiddenNames::new,
                         () -> Rooms.of(ROOMS, "bedwars", LOBBY), // before the seats open: the room is down as they do
                         () -> Staging.during(Match.OPENING).clear(LOBBY).together(Matches::together).order(BedWars::rushOrder)
+                                .balanced(player -> 0) // headcount alone until there are levels to weigh
                                 .seating((g, p) -> g.module(Kits.class).apply(p)),
                         () -> LastStanding.decides().requireSeatedAt(Match.LIVE, 2),
                         Respawns::manual,

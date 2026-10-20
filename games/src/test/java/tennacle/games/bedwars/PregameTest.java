@@ -110,6 +110,33 @@ class PregameTest extends HeadlessServerTest {
     }
 
     @Test
+    void strangersShareASide() {
+        Mode doubles = Matches.mode("bedwars-doubles");
+        Game game = Matches.launch(doubles, Matches.platformFor(null), BedWarsRoundTest.fixture());
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PreFillA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PreFillB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PreFillC");
+        List<FakePlayer> all = List.of(a, b, c);
+        try {
+            for (FakePlayer p : all) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            BedWarsRoundTest.live(game);
+            java.util.Set<String> sides = new java.util.HashSet<>();
+            for (FakePlayer p : all) sides.add(Match.teamOf(game, p.player));
+            assertEquals(2, sides.size(), "three alone in Doubles play two against one: " + sides);
+        } finally {
+            tennacle.games.watch.Replays.discard(game);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
+        }
+    }
+
+    @Test
     void theStartGoesByLine() {
         Game game = Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null), BedWarsRoundTest.fixture());
         game.state().set(Scope.GAME, Countdown.START_AT, 2);
