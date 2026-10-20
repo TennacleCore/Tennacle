@@ -5,12 +5,14 @@ import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.modules.combat.FriendlyFire;
 import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
 import net.minestom.server.MinecraftServer;
+import io.github.term4.polyp.api.event.container.ContainerChangeEvent;
 import io.github.term4.polyp.api.event.container.ContainerOpenEvent;
 import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.ItemEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.inventory.InventoryCloseEvent;
+import net.minestom.server.event.inventory.InventoryPreClickEvent;
 import net.minestom.server.event.item.PickupItemEvent;
 import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
@@ -22,7 +24,6 @@ import tennacle.games.Generators;
 import tennacle.games.lives.Lives;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,15 +33,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * Where a mode's resources came from and went: generators, other players' drops, a kill's hand-over, chests, and what
  * a death or a throw lost to the void. Installed after Spoils, so a death's hand-over has been taken.
  *
- * <p>A chest visit is read off the visitor's own inventory, opened to closed, less what reached or left them some other
- * way meanwhile: a shared chest's contents can't say whose click moved them.
+ * <p>A chest counts by the chest's own slots, each change the visitor's whose click made it that tick: a click fires its
+ * pre-click event and changes the slots in the same tick, on a 1.8 client's path too. A visit ends at its close, the
+ * next chest opened, a death, a leave or the game's end, whichever comes first, and counts net.
  */
-public final class Haul implements GameModule {
+public final class Haul implements GameModule, Tally.Closes {
 
     private static final Tag<UUID> DROPPED_BY = Tag.Transient("tennacle:dropped-by");
     private static final Tag<Boolean> PICKED = Tag.Transient("tennacle:picked");
 
-    private record Visit(Map<String, Integer> held, Map<String, Integer> elsewhere) {}
+    private record Visit(String key, Map<String, Integer> net) {}
 
     /** Whose generator a pickup came from, in the mode's own terms: a base's forge, a side's diamonds. */
     @FunctionalInterface
@@ -56,6 +58,7 @@ public final class Haul implements GameModule {
     private final Map<Material, String> resources;
     private @Nullable Origins origins;
     private final Map<UUID, Visit> visits = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> clicked = new ConcurrentHashMap<>();
     private Game game;
     private @Nullable Generators generators;
 
@@ -78,13 +81,14 @@ public final class Haul implements GameModule {
         this.game = game;
         generators = game.module(Generators.class);
         Lives lives = game.module(Lives.class);
-        if (lives != null) lives.onDeath(death -> lost(death.victim()));
+        if (lives != null) lives.onDeath(death -> {
+            lost(death.victim());
+            leave(death.victim().getUuid());
+        });
         game.on(ItemSpawnEvent.class, ItemSpawnEvent::player, e -> {
             boolean thrown = e.cause() == ItemSpawnEvent.Cause.PLAYER_DROP || e.cause() == ItemSpawnEvent.Cause.DEATH_DROP;
             if (!thrown || e.player() == null) return;
             e.item().setTag(DROPPED_BY, e.player().getUuid());
-            String name = name(e.item().getItemStack());
-            if (name != null) elsewhere(e.player(), name, -e.item().getItemStack().amount());
         });
         // Polyp's pickup runs first and cancels a full inventory: this one landed
         game.on(PickupItemEvent.class, PickupItemEvent::getLivingEntity, e -> {
@@ -95,15 +99,21 @@ public final class Haul implements GameModule {
             item.setTag(PICKED, true);
             UUID dropper = item.getTag(DROPPED_BY);
             int amount = e.getItemStack().amount();
-            elsewhere(picker, name, amount);
             Generators.Generator made = generators != null ? generators.made(item) : null;
             if (made != null) generated(picker, made, name, amount);
             else if (dropper != null && !dropper.equals(picker.getUuid())) add(picker, name + "-from-players", amount);
         });
         game.on(ContainerOpenEvent.class, e -> {
-            if (!e.isCancelled()) visits.put(e.getPlayer().getUuid(), new Visit(held(e.getPlayer()), new ConcurrentHashMap<>()));
+            if (e.isCancelled()) return;
+            UUID id = e.getPlayer().getUuid();
+            Visit open = visits.get(id);
+            if (open != null && open.key().equals(e.key())) return; // a 1.8 right-click opens twice: one visit
+            leave(id);
+            visits.put(id, new Visit(e.key(), new ConcurrentHashMap<>()));
         });
-        game.on(InventoryCloseEvent.class, e -> leave(e.getPlayer()));
+        game.on(InventoryPreClickEvent.class, e -> clicked.put(e.getPlayer().getUuid(), game.tick()));
+        game.onWorld(ContainerChangeEvent.class, ContainerChangeEvent::world, this::changed);
+        game.on(InventoryCloseEvent.class, e -> leave(e.getPlayer().getUuid()));
         // a blast takes items once their health runs out, and says nothing: what it hit and is gone by the tick's end
         game.onWorld(ExplosionEvent.class, ExplosionEvent::world, e -> {
             if (e.isCancelled()) return;
@@ -132,8 +142,13 @@ public final class Haul implements GameModule {
     }
 
     @Override
+    public void close() {
+        List.copyOf(visits.keySet()).forEach(this::leave);
+    }
+
+    @Override
     public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
-        leave(player);
+        leave(player.getUuid());
     }
 
     /** A generator's share, handed straight into a teammate's inventory. */
@@ -142,7 +157,6 @@ public final class Haul implements GameModule {
         Haul haul = game.module(Haul.class);
         String name = haul != null ? haul.name(stack) : null;
         if (name == null) return;
-        haul.elsewhere(player, name, stack.amount());
         haul.generated(player, generator, name, stack.amount());
     }
 
@@ -156,8 +170,6 @@ public final class Haul implements GameModule {
         Haul haul = game.module(Haul.class);
         String name = haul != null ? haul.name(stack) : null;
         if (name == null) return;
-        haul.elsewhere(killer, name, stack.amount());
-        haul.elsewhere(victim, name, -stack.amount());
         haul.add(killer, name + "-stolen", stack.amount());
         haul.add(victim, name + "-lost-to-players", stack.amount());
     }
@@ -183,34 +195,28 @@ public final class Haul implements GameModule {
         if (name != null) add(victim, name + "-lost-to-void", stack.amount());
     }
 
-    private Map<String, Integer> held(Player player) {
-        Map<String, Integer> held = new HashMap<>();
-        PlayerInventory inv = player.getInventory();
-        for (int slot = 0; slot < inv.getSize(); slot++) count(held, inv.getItemStack(slot));
-        count(held, inv.getCursorItem());
-        return held;
-    }
-
-    private void count(Map<String, Integer> held, ItemStack stack) {
-        String name = name(stack);
-        if (name != null) held.merge(name, stack.amount(), Integer::sum);
-    }
-
-    // a change to their inventory during a visit that no chest made
-    private void elsewhere(Player player, String name, int amount) {
-        Visit visit = visits.get(player.getUuid());
-        if (visit != null) visit.elsewhere().merge(name, amount, Integer::sum);
-    }
-
-    private void leave(Player player) {
-        Visit visit = visits.remove(player.getUuid());
-        if (visit == null) return;
-        Map<String, Integer> now = held(player);
-        for (String name : resources.values()) {
-            int net = now.getOrDefault(name, 0) - visit.held().getOrDefault(name, 0) - visit.elsewhere().getOrDefault(name, 0);
-            if (net > 0) add(player, name + "-from-chests", net);
-            else if (net < 0) add(player, name + "-into-chests", -net);
+    // the one visitor of this chest who clicked this tick; two at once can't be told apart
+    private void changed(ContainerChangeEvent e) {
+        UUID by = null;
+        for (Map.Entry<UUID, Visit> visit : visits.entrySet()) {
+            if (!visit.getValue().key().equals(e.key()) || !Long.valueOf(game.tick()).equals(clicked.get(visit.getKey()))) continue;
+            if (by != null) return;
+            by = visit.getKey();
         }
+        if (by == null) return;
+        Map<String, Integer> net = visits.get(by).net();
+        String was = name(e.before()), now = name(e.after());
+        if (was != null) net.merge(was, e.before().amount(), Integer::sum);
+        if (now != null) net.merge(now, -e.after().amount(), Integer::sum);
+    }
+
+    private void leave(UUID player) {
+        Visit visit = visits.remove(player);
+        if (visit == null) return;
+        visit.net().forEach((name, net) -> {
+            if (net > 0) Tally.add(game, player, name + "-from-chests", net);
+            else if (net < 0) Tally.add(game, player, name + "-into-chests", -net);
+        });
     }
 
     private @Nullable String name(ItemStack stack) {

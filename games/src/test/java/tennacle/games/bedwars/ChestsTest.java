@@ -126,6 +126,23 @@ class ChestsTest extends HeadlessServerTest {
     }
 
     @Test
+    void aVisitCountsWhatLeft() {
+        round("ChestT", (game, fa, fb) -> {
+            Player a = fa.player;
+            open(game, a, CHEST);
+            var window = a.getOpenInventory();
+            assertNotNull(window, "open to its own");
+            window.setItemStack(0, ItemStack.of(Material.IRON_INGOT, 10));
+            // a click, and the slot it empties, in one tick
+            EventDispatcher.call(new InventoryPreClickEvent(window, a, new Click.LeftShift(0)));
+            window.setItemStack(0, ItemStack.AIR);
+            a.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 10));
+            a.closeInventory();
+            assertEquals(10, game.module(tennacle.games.stats.Tally.class).get(a.getUuid(), "iron-from-chests"));
+        });
+    }
+
+    @Test
     void aPunchPutsTheStackIn() {
         round("ChestB", (game, fa, fb) -> {
             Player a = fa.player, b = fb.player;

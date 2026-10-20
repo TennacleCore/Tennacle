@@ -6,6 +6,7 @@ import io.github.term4.canvas.theme.Theme;
 import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
@@ -59,7 +60,12 @@ final class StatsScreen {
         Screen open(UUID subject, String name, int mode);
     }
 
-    private static final String[][] RESOURCES = {{"iron", "Iron"}, {"gold", "Gold"}, {"diamond", "Diamonds"}, {"emerald", "Emeralds"}};
+    // each paid in the shop's own price colors
+    private record Resource(String id, NamedTextColor color) {}
+
+    private static final List<Resource> RESOURCES = List.of(new Resource("iron", NamedTextColor.WHITE),
+            new Resource("gold", NamedTextColor.GOLD), new Resource("diamond", NamedTextColor.AQUA),
+            new Resource("emerald", NamedTextColor.DARK_GREEN));
     private static final String[] CAUSES = {"melee", "bow", "void", "fall", "fire", "explosion", "creature", "other"};
 
     private static final List<Category> CATEGORIES = List.of(
@@ -109,7 +115,7 @@ final class StatsScreen {
             new Category(Material.CHEST, "Purchases", (e, s) -> e
                     .fact("Items", count(s.n("items-bought"))).fact("Permanent Items", count(s.n("permanent-items-bought")))
                     .fact("Team Upgrades", count(s.n("upgrades-bought"))).fact("Traps", count(s.n("traps-bought")))
-                    .fact("Spent For The Team", spent(s, "for-team")).action("Click for every item!"), StatsScreen::purchases),
+                    .fact("Spent For The Team", spent(s, "for-team", s.theme().value("0"))).action("Click for every item!"), StatsScreen::purchases),
             new Category(Material.BRICKS, "Building", (e, s) -> e
                     .fact("Blocks Placed", count(s.n("blocks-placed"))).fact("Blocks Broken", count(s.n("blocks-broken")))),
             new Category(Material.COMPASS, "Time Spent", (e, s) -> e
@@ -185,20 +191,23 @@ final class StatsScreen {
         for (int tier = 1; tier <= ware.names().size(); tier++) entry.fact(ware.names().get(tier - 1), bought(s, id + "-" + tier));
     }
 
+    // bought | paid, the price in its resource's color
     private static Component bought(Stats s, String what) {
         Component line = s.theme().value(count(s.n("bought-" + what)));
-        String paid = spent(s, "on-" + what);
-        return paid.equals("0") ? line : line.append(s.theme().dim(" | ")).append(s.theme().value(paid));
+        Component paid = spent(s, "on-" + what, null);
+        return paid == null ? line : line.append(s.theme().dim(" | ")).append(paid);
     }
 
-    // what was paid, in each resource it was paid in: "144 Iron, 8 Gold"
-    private static String spent(Stats s, String suffix) {
-        List<String> parts = new ArrayList<>();
-        for (String[] res : RESOURCES) {
-            long n = s.n(res[0] + "-spent-" + suffix);
-            if (n > 0) parts.add(count(n) + " " + res[1]);
+    // what was paid, a number in each resource's color; {@code none} when nothing was
+    private static Component spent(Stats s, String suffix, Component none) {
+        Component out = null;
+        for (Resource res : RESOURCES) {
+            long n = s.n(res.id() + "-spent-" + suffix);
+            if (n <= 0) continue;
+            Component part = Component.text(count(n), res.color());
+            out = out == null ? part : out.append(s.theme().dim(", ")).append(part);
         }
-        return parts.isEmpty() ? "0" : String.join(", ", parts);
+        return out != null ? out : none;
     }
 
     private static ItemStack category(Player viewer, UUID subject, Category category, Mode mode) {

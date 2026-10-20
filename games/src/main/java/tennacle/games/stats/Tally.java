@@ -46,6 +46,7 @@ public final class Tally implements GameModule {
     private final Map<UUID, Map<String, Long>> sheets = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, Map<String, Long>>> pairs = new ConcurrentHashMap<>();
     private final List<Sampler> samplers = new ArrayList<>();
+    private boolean closing;
     private final Map<UUID, Map<UUID, Long>> hitBy = new ConcurrentHashMap<>();
     private Game game;
 
@@ -70,6 +71,11 @@ public final class Tally implements GameModule {
         matches = store;
     }
 
+    /** A module asked at a decided end, just before the sheet is written, for what it still holds open. */
+    public interface Closes {
+        void close();
+    }
+
     public @NotNull Tally sampler(@NotNull Sampler sampler) {
         samplers.add(sampler);
         return this;
@@ -90,7 +96,7 @@ public final class Tally implements GameModule {
     }
 
     public void add(@NotNull UUID player, @NotNull String stat, long n) {
-        if (n == 0 || game.decided() != null) return;
+        if (n == 0 || game.decided() != null && !closing) return;
         sheets.computeIfAbsent(player, id -> new ConcurrentHashMap<>()).merge(stat, n, Long::sum);
     }
 
@@ -191,6 +197,9 @@ public final class Tally implements GameModule {
     public void onEnd(@NotNull Game game, @NotNull Outcome outcome) {
         String winner = outcome.winner();
         if (winner == null) return;
+        closing = true;
+        for (Closes module : game.modules(Closes.class)) module.close();
+        closing = false;
         Map<UUID, Boolean> won = new LinkedHashMap<>();
         for (Roster.Participant p : game.roster().participants()) {
             won.merge(p.uuid(), p.slot().team().equals(winner), Boolean::logicalOr);

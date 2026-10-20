@@ -23,6 +23,9 @@ import org.jetbrains.annotations.NotNull;
 import io.github.term4.polyp.api.event.container.ContainerOpenEvent;
 import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
 import net.minestom.server.event.inventory.InventoryCloseEvent;
+import net.minestom.server.event.inventory.InventoryPreClickEvent;
+import net.minestom.server.inventory.click.Click;
+import io.github.term4.polyp.api.event.container.ContainerChangeEvent;
 import io.github.term4.polyp.entity.DroppedItemEntity;
 import io.github.term4.polyp.world.MechanicsWorld;
 import net.minestom.server.coordinate.Point;
@@ -204,19 +207,6 @@ class BedWarsStatsTest extends HeadlessServerTest {
             game.module(Lives.class).fell(c.player);
             assertEquals(3, tally.get(idc, "emerald-lost-to-void"), "nobody to hand them to");
 
-            MechanicsWorld world = MechanicsWorld.of(a.player);
-            EventDispatcher.call(new ContainerOpenEvent(world, new BlockVec(0, 65, 0), "test-chest", a.player));
-            a.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 3)); // out of the chest
-            DroppedItemEntity meanwhile = DroppedItemEntity.spawn(MechanicsWorld.of(b.player), b.player.getPosition(), Vec.ZERO,
-                    ItemStack.of(Material.IRON_INGOT, 4), null, 0, ItemSpawnEvent.Cause.PLAYER_DROP, b.player);
-            EventDispatcher.call(new PickupItemEvent(a.player, meanwhile));
-            EventDispatcher.call(new InventoryCloseEvent(a.player.getInventory(), a.player, true));
-            assertEquals(3, tally.get(ida, "iron-from-chests"), "the pickup meanwhile is no chest's");
-            EventDispatcher.call(new ContainerOpenEvent(world, new BlockVec(0, 65, 0), "test-chest", a.player));
-            a.player.getInventory().takeItemStack(ItemStack.of(Material.IRON_INGOT, 2), TransactionOption.ALL);
-            EventDispatcher.call(new InventoryCloseEvent(a.player.getInventory(), a.player, true));
-            assertEquals(2, tally.get(ida, "iron-into-chests"));
-
             a.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 10));
             Shop shop = game.module(Shop.class);
             assertTrue(shop.buy(a.player, new Offer() {
@@ -262,6 +252,22 @@ class BedWarsStatsTest extends HeadlessServerTest {
             if (fireball != null) fireball.remove();
             assertEquals(1, tally.get(ida, "pearls-thrown"));
             assertEquals(1, tally.get(ida, "fireballs-thrown"));
+
+            MechanicsWorld world = MechanicsWorld.of(a.player);
+            EventDispatcher.call(new ContainerOpenEvent(world, new BlockVec(0, 65, 0), "test-chest", a.player));
+            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 0, ItemStack.AIR, ItemStack.of(Material.IRON_INGOT, 9)));
+            click(a); // a click, then the slots it changes, in one tick
+            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 0, ItemStack.of(Material.IRON_INGOT, 9), ItemStack.AIR));
+            click(a);
+            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 1, ItemStack.AIR, ItemStack.of(Material.IRON_INGOT, 6)));
+            EventDispatcher.call(new InventoryCloseEvent(a.player.getInventory(), a.player, true));
+            assertEquals(3, tally.get(ida, "iron-from-chests"), "nine out, six back: three net, the unclicked fill none");
+            EventDispatcher.call(new ContainerOpenEvent(world, new BlockVec(0, 65, 0), "test-chest", a.player));
+            click(a);
+            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 2, ItemStack.AIR, ItemStack.of(Material.IRON_INGOT, 2)));
+            game.end(Outcome.winner(Match.teamOf(game, a.player))); // a visit nothing closed: the end counts it
+            assertEquals(2, tally.get(ida, "iron-into-chests"));
+
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();
@@ -439,6 +445,10 @@ class BedWarsStatsTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    private static void click(FakePlayer by) {
+        EventDispatcher.call(new InventoryPreClickEvent(by.player.getInventory(), by.player, new Click.Left(9)));
     }
 
     private static void hit(FakePlayer victim, FakePlayer by, float amount) {
