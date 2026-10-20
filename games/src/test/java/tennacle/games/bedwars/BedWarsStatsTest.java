@@ -18,7 +18,6 @@ import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
-import io.github.term4.polyp.api.event.container.ContainerChangeEvent;
 import io.github.term4.polyp.api.event.container.ContainerOpenEvent;
 import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
 import net.minestom.server.event.inventory.InventoryCloseEvent;
@@ -34,6 +33,10 @@ import net.minestom.server.item.Material;
 import org.jetbrains.annotations.Nullable;
 import tennacle.games.shop.Offer;
 import tennacle.games.shop.Price;
+import tennacle.games.shop.Rank;
+import io.github.term4.grotto.state.StateKey;
+import net.minestom.server.codec.Codec;
+import net.minestom.server.inventory.TransactionOption;
 import tennacle.games.shop.Refusal;
 import tennacle.games.shop.Sale;
 import tennacle.games.shop.Shop;
@@ -197,10 +200,16 @@ class BedWarsStatsTest extends HeadlessServerTest {
 
             MechanicsWorld world = MechanicsWorld.of(a.player);
             EventDispatcher.call(new ContainerOpenEvent(world, new BlockVec(0, 65, 0), "test-chest", a.player));
-            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 0, ItemStack.of(Material.IRON_INGOT, 5), ItemStack.AIR));
-            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 1, ItemStack.AIR, ItemStack.of(Material.IRON_INGOT, 2)));
+            a.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 3)); // out of the chest
+            DroppedItemEntity meanwhile = DroppedItemEntity.spawn(MechanicsWorld.of(b.player), b.player.getPosition(), Vec.ZERO,
+                    ItemStack.of(Material.IRON_INGOT, 4), null, 0, ItemSpawnEvent.Cause.PLAYER_DROP, b.player);
+            EventDispatcher.call(new PickupItemEvent(a.player, meanwhile));
             EventDispatcher.call(new InventoryCloseEvent(a.player.getInventory(), a.player, true));
-            assertEquals(3, tally.get(ida, "iron-from-chests"), "net of what went back");
+            assertEquals(3, tally.get(ida, "iron-from-chests"), "the pickup meanwhile is no chest's");
+            EventDispatcher.call(new ContainerOpenEvent(world, new BlockVec(0, 65, 0), "test-chest", a.player));
+            a.player.getInventory().takeItemStack(ItemStack.of(Material.IRON_INGOT, 2), TransactionOption.ALL);
+            EventDispatcher.call(new InventoryCloseEvent(a.player.getInventory(), a.player, true));
+            assertEquals(2, tally.get(ida, "iron-into-chests"));
 
             a.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 10));
             Shop shop = game.module(Shop.class);
@@ -227,6 +236,18 @@ class BedWarsStatsTest extends HeadlessServerTest {
             }) instanceof Sale.Sold);
             assertEquals(4, tally.get(ida, "iron-spent"));
             assertEquals(1, tally.get(ida, "items-bought"));
+            assertEquals(1, tally.get(ida, "bought-test-wool"));
+            assertEquals(4, tally.get(ida, "iron-spent-on-test-wool"));
+
+            a.player.getInventory().addItemStack(ItemStack.of(Material.DIAMOND, 6));
+            Rank armor = Rank.next("test-armor", StateKey.of("test.armor", Codec.INT, 0), Rank.Holder.TEAM,
+                    List.of(Price.of(2, Resources.DIAMOND), Price.of(4, Resources.DIAMOND)));
+            assertTrue(shop.buy(a.player, armor) instanceof Sale.Sold);
+            assertTrue(shop.buy(a.player, armor) instanceof Sale.Sold);
+            assertEquals(1, tally.get(ida, "bought-test-armor-1"));
+            assertEquals(1, tally.get(ida, "bought-test-armor-2"), "each level its own");
+            assertEquals(6, tally.get(ida, "diamond-spent-for-team"));
+            assertEquals(2, tally.get(ida, "upgrades-bought"));
 
             ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
             Entity pearl = projectiles.launch(ProjectileSnapshot.of(a.player, Pearl.INSTANCE).withConfig(Vanilla18.projectiles()));

@@ -71,11 +71,24 @@ public final class Shop implements GameModule {
         Price price = offer.price(game, buyer);
         int held = price.currency().held(buyer);
         if (held < price.amount()) return new Sale.Short(offer, price, price.amount() - held);
+        String what = offer.bought(game, buyer); // a ladder's next level, before the grant takes it
         boolean granted = into >= 0 ? offer.grant(game, buyer, into) : offer.grant(game, buyer);
         if (!granted) return new Sale.Refused(offer, Refusal.FULL);
         price.currency().take(buyer, price.amount());
-        Tally.add(game, buyer.getUuid(), price.currency().id() + "-spent", price.amount());
-        Tally.add(game, buyer.getUuid(), offer.kind() + "-bought", 1);
+        tally(buyer, offer.kind(), what, price);
         return new Sale.Sold(offer, price);
+    }
+
+    // what, with what, and what for the team: upgrades and traps are bought for everyone on it
+    private void tally(Player buyer, String kind, String what, Price price) {
+        var id = buyer.getUuid();
+        String currency = price.currency().id();
+        int paid = price.amount();
+        Tally.add(game, id, kind + "-bought", 1);
+        Tally.add(game, id, "bought-" + what, 1);
+        Tally.add(game, id, currency + "-spent", paid);
+        Tally.add(game, id, currency + "-spent-on-" + kind, paid);
+        Tally.add(game, id, currency + "-spent-on-" + what, paid);
+        if (kind.equals("upgrades") || kind.equals("traps")) Tally.add(game, id, currency + "-spent-for-team", paid);
     }
 }

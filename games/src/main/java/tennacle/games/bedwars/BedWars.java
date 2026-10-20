@@ -309,11 +309,28 @@ public final class BedWars {
         mode("bedwars-3s", "bedwars_four_three", "Bed Wars 3v3v3v3", "3v3v3v3", "3v3v3v3", "bedwars-3v3v3v3", 4, 3);
         mode("bedwars-4s", "bedwars_four_four", "Bed Wars 4v4v4v4", "4v4v4v4", "4v4v4v4", "bedwars-4v4v4v4", 4, 4);
         Rooms.warm(ROOMS); // off the boot thread, not off the first game's clock
-        Careers.card("bedwars", new Careers.Card("Bed Wars", List.of(CAREER_WINS, CAREER_LOSSES, CAREER_KILLS,
+        Careers.card("bedwars", Careers.Card.of("Bed Wars", "bedwars")
+                .count("Wins", "wins").count("Losses", "losses").ratio("W/L Ratio", "wins", "losses")
+                .count("Winstreak", "winstreak").count("Best Winstreak", "best-winstreak")
+                .count("Games Played", "games").hours("Time Played", "time-played")
+                .count("Kills", "kills").count("Deaths", "deaths").ratio("K/D Ratio", "kills", "deaths")
+                .count("Final Kills", "final-kills").count("Final Deaths", "final-deaths")
+                .ratio("Final K/D Ratio", "final-kills", "final-deaths").count("Assists", "assists")
+                .count("Beds Broken", "beds-broken").count("Beds Lost", "beds-lost")
+                .sum("Iron Collected", collected("iron")).sum("Gold Collected", collected("gold"))
+                .sum("Diamonds Collected", collected("diamond")).sum("Emeralds Collected", collected("emerald"))
+                .hearts("Damage Dealt", "damage-dealt")
+                .count("Blocks Placed", "blocks-placed").count("Items Purchased", "items-bought")
+                .build(), new Careers.Card("Bed Wars", List.of(CAREER_WINS, CAREER_LOSSES, CAREER_KILLS,
                 CAREER_DEATHS, CAREER_FINAL_KILLS, CAREER_FINAL_DEATHS, CAREER_BEDS), List.of(
                 Careers.Card.count("Wins", 0), Careers.Card.count("Losses", 1), Careers.Card.count("Kills", 2),
                 Careers.Card.count("Deaths", 3), Careers.Card.count("Final Kills", 4),
                 Careers.Card.count("Final Deaths", 5), Careers.Card.count("Beds Broken", 6))));
+    }
+
+    // every way a resource reaches a player but a purchase
+    private static String[] collected(String resource) {
+        return new String[]{resource + "-from-generators", resource + "-from-players", resource + "-stolen", resource + "-from-chests"};
     }
 
     // captured: the timeline's events, the middle's tiers among them

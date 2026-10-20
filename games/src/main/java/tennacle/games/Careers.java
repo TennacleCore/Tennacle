@@ -36,6 +36,71 @@ public final class Careers {
         public static @NotNull Row count(@NotNull String label, int index) {
             return new Row(label, values -> values[index]);
         }
+
+        /** A card read off {@code family}'s stats by name ({@code bedwars} + {@code kills} = {@code bedwars:kills}). */
+        public static @NotNull Builder of(@NotNull String title, @NotNull String family) {
+            return new Builder(title, family);
+        }
+    }
+
+    public static final class Builder {
+        private final String title;
+        private final String family;
+        private final List<String> stats = new java.util.ArrayList<>();
+        private final List<Row> rows = new java.util.ArrayList<>();
+
+        private Builder(String title, String family) {
+            this.title = title;
+            this.family = family;
+        }
+
+        public @NotNull Builder count(@NotNull String label, @NotNull String stat) {
+            int i = index(stat);
+            rows.add(new Row(label, values -> String.format(java.util.Locale.ROOT, "%,d", values[i])));
+            return this;
+        }
+
+        /** Each stat added up: iron collected from every source. */
+        public @NotNull Builder sum(@NotNull String label, @NotNull String... stats) {
+            int[] at = java.util.Arrays.stream(stats).mapToInt(this::index).toArray();
+            rows.add(new Row(label, values -> String.format(java.util.Locale.ROOT, "%,d",
+                    java.util.Arrays.stream(at).mapToLong(i -> values[i]).sum())));
+            return this;
+        }
+
+        /** {@code over / under}, as Hypixel shows K/D: two places, and the top alone while nothing is under it. */
+        public @NotNull Builder ratio(@NotNull String label, @NotNull String over, @NotNull String under) {
+            int a = index(over), b = index(under);
+            rows.add(new Row(label, values -> String.format(java.util.Locale.ROOT, "%.2f",
+                    values[b] == 0 ? (double) values[a] : (double) values[a] / values[b])));
+            return this;
+        }
+
+        public @NotNull Builder hours(@NotNull String label, @NotNull String seconds) {
+            int i = index(seconds);
+            rows.add(new Row(label, values -> (values[i] / 3600) + "h " + (values[i] / 60 % 60) + "m"));
+            return this;
+        }
+
+        /** A stat kept in tenths of a health point, read as hearts. */
+        public @NotNull Builder hearts(@NotNull String label, @NotNull String tenths) {
+            int i = index(tenths);
+            rows.add(new Row(label, values -> String.format(java.util.Locale.ROOT, "%,d hearts", values[i] / 20)));
+            return this;
+        }
+
+        public @NotNull Card build() {
+            List<VaultKey<Integer>> keys = stats.stream()
+                    .map(stat -> VaultKey.of(family + ":" + stat, net.minestom.server.codec.Codec.INT, 0)).toList();
+            return new Card(title, keys, List.copyOf(rows));
+        }
+
+        private int index(String stat) {
+            int i = stats.indexOf(stat);
+            if (i >= 0) return i;
+            stats.add(stat);
+            return stats.size() - 1;
+        }
     }
 
     private static final Map<String, Card> CARDS = new LinkedHashMap<>();
@@ -56,14 +121,20 @@ public final class Careers {
 
     /** Signs {@code mode} up with a card; its {@code /stats} line reads the card. */
     public static synchronized void card(@NotNull String mode, @NotNull Card card) {
+        card(mode, card, card);
+    }
+
+    /** The menu's {@code card}, and a shorter {@code line} for {@code /stats} in chat. */
+    public static synchronized void card(@NotNull String mode, @NotNull Card card, @NotNull Card line) {
         CARDS.put(mode, card);
         card.keys().forEach(StatKeys::register);
-        sheet(mode, (to, uuid, username) -> read(uuid, card).thenAccept(values -> {
-            List<Object> parts = new java.util.ArrayList<>(List.of(Msg.v(username), " " + card.title() + ": "));
-            for (int i = 0; i < card.rows().size(); i++) {
-                Row row = card.rows().get(i);
+        line.keys().forEach(StatKeys::register);
+        sheet(mode, (to, uuid, username) -> read(uuid, line).thenAccept(values -> {
+            List<Object> parts = new java.util.ArrayList<>(List.of(Msg.v(username), " " + line.title() + ": "));
+            for (int i = 0; i < line.rows().size(); i++) {
+                Row row = line.rows().get(i);
                 parts.add(Msg.v(row.value().apply(values)));
-                parts.add(" " + row.label().toLowerCase(java.util.Locale.ROOT) + (i + 1 < card.rows().size() ? ", " : "."));
+                parts.add(" " + row.label().toLowerCase(java.util.Locale.ROOT) + (i + 1 < line.rows().size() ? ", " : "."));
             }
             Msg.say(to, parts.toArray());
         }));

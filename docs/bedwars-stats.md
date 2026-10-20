@@ -48,10 +48,10 @@ Kept for each of iron, gold, diamond and emerald.
 | `<res>-from-generators` | picked up from a forge, diamond or emerald generator (drops carry the generator's tag) |
 | `<res>-from-players` | picked up after another player dropped it |
 | `<res>-stolen` | handed over on a kill: the victim's resources, given to the killer |
-| `<res>-from-chests` | taken out of a chest, net of what they put back during the same visit |
+| `<res>-from-chests`, `<res>-into-chests` | taken out of chests or put in, net per visit: read off the visitor's own inventory from open to close, less what reached or left them some other way meanwhile |
 | `<res>-lost-to-players` | handed to their killer on a death |
 | `<res>-lost-to-void` | carried into the void on a death with no killer, or thrown off the map |
-| `<res>-spent` | paid at the shops |
+| `<res>-spent` | paid at the shops; also `<res>-spent-on-<kind>`, `<res>-spent-on-<purchase>` and `<res>-spent-for-team` (upgrades and traps) |
 
 Only a death that hands resources to a killer counts as lost to players. Every other death loses them to the void.
 
@@ -67,6 +67,7 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 | Stat | Means |
 |---|---|
 | `items-bought`, `permanent-items-bought`, `upgrades-bought`, `traps-bought` | at the shops, each purchase once by its kind: armor, tools and shears are permanent, the team's ladders are upgrades |
+| `bought-<purchase>` | each thing bought, a ladder by its level: `bought-wool`, `bought-reinforced-armor-2`, `bought-its-a-trap`. Per game too, so a match says who bought the team's upgrades |
 | `golden-apples-eaten`, `potions-drunk` (plus `<potion>-potions-drunk`: speed, jump, invisibility) | |
 | `pearls-thrown`, `fireballs-thrown`, `tnt-placed` | |
 | `silverfish-spawned`, `golems-spawned` | bedbugs and dream defenders |
@@ -134,10 +135,12 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
   beds broken and lost. V6 renamed the old `bedwars:career-*` rows to these names (`career-beds` is `beds-broken`)
   and seeded `bedwars:games` from wins and losses; streaks start from zero.
 - **Resources and purchases** (`games.stats.Haul`, `Shop.buy`): every row of the resources table, and the four
-  `-bought` counts. A chest is counted while one player has it open; two at once can't be told apart, so neither is.
+  `-bought` counts.
 - **Combat, items and building** (`games.stats.Feats`, `Building.Breaks`): every row of those three tables. Damage
   between two players is also kept per game as a pair, attacker against victim.
 - **Places** (`bedwars.Places`, a once-a-second sampler on the sheet): every row of the places table. Each arena
   carries its middle (`bedwars:mid`) and generator reach (`bedwars:reach`), stamped from the Zones page's export
   by `gradlew :server:bedwarsZones -Pzones=<zones.json>`; a map not marked done there has neither yet, so it keeps
   no `time-at-mid` and the default 8-block reach. A `bedwarsMaps` rebuild drops them: run `bedwarsZones` after it.
+- **The menu's Bed Wars card** reads the new numbers (results and ratios, finals, assists, beds, resources
+  collected, damage, blocks, purchases); `/stats` in chat keeps its seven.

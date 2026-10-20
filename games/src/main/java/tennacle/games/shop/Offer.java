@@ -18,6 +18,11 @@ public interface Offer {
 
     @NotNull String id();
 
+    /** This purchase in the stats ({@code bought-<this>}), read before the grant. */
+    default @NotNull String bought(@NotNull Game game, @NotNull Player buyer) {
+        return id();
+    }
+
     /** The rules it reads, its price among them. */
     default @NotNull Set<StateKey<?>> rules() {
         return Set.of();

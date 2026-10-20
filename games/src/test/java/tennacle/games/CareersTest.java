@@ -48,4 +48,17 @@ class CareersTest extends HeadlessServerTest {
         return p.sent(SystemChatPacket.class).stream()
                 .<String>map(c -> PlainTextComponentSerializer.plainText().serialize(c.message())).toList();
     }
+
+    @Test
+    void aCardReadsByName() {
+        Careers.Card card = Careers.Card.of("Test", "test").count("Kills", "kills").ratio("K/D", "kills", "deaths")
+                .hours("Time", "time").sum("Iron", "iron-a", "iron-b").hearts("Damage", "damage").build();
+        org.junit.jupiter.api.Assertions.assertEquals(List.of("test:kills", "test:deaths", "test:time", "test:iron-a",
+                "test:iron-b", "test:damage"), card.keys().stream().map(k -> k.id()).toList());
+        int[] values = {1500, 600, 7380, 4, 6, 410};
+        org.junit.jupiter.api.Assertions.assertEquals(List.of("1,500", "2.50", "2h 3m", "10", "20 hearts"),
+                card.rows().stream().map(r -> r.value().apply(values)).toList());
+        org.junit.jupiter.api.Assertions.assertEquals("3.00", card.rows().get(1).value().apply(new int[]{3, 0, 0, 0, 0, 0}),
+                "nothing under it: the top alone");
+    }
 }

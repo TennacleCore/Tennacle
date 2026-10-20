@@ -96,6 +96,12 @@ public final class Rank implements Offer {
         return id;
     }
 
+    /** A ladder's purchase is its level: {@code reinforced-armor-2}. */
+    @Override
+    public @NotNull String bought(@NotNull Game game, @NotNull Player buyer) {
+        return prices != null ? id + "-" + selling(game, buyer) : id;
+    }
+
     @Override
     public @NotNull Set<StateKey<?>> rules() {
         return Set.of(rule());
