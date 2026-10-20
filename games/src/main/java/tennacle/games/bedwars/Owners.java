@@ -2,6 +2,8 @@ package tennacle.games.bedwars;
 
 import io.github.term4.barnacle.marker.PointMarker;
 import io.github.term4.barnacle.marker.PosMarker;
+import io.github.term4.barnacle.marker.RegionMarker;
+import net.minestom.server.instance.block.Block;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.Markers;
 import net.minestom.server.coordinate.Point;
@@ -69,6 +71,18 @@ final class Owners implements Haul.Origins {
         boolean own = owner.teams().contains(Match.teamOf(game, by));
         Tally.add(game, id, resource + (own ? "-destroyed-at-own-generators" : "-destroyed-at-other-generators"), amount);
         if (!own) owner.teams().forEach(team -> Tally.pair(game, id, team, resource + "-destroyed-at-their-generators", amount));
+    }
+
+    // a viewer's own (the ender chest), their base's, or anyone else's
+    @Override
+    public @Nullable Haul.Chest chest(@NotNull Game game, @NotNull Player visitor, @NotNull Point pos) {
+        if (game.shard().getBlock(pos).compare(Block.ENDER_CHEST)) return new Haul.Chest("ender-chest", null);
+        String owner = null;
+        for (RegionMarker base : game.arena().markers(BedWars.BASE)) {
+            if (base.contains(pos)) owner = base.group();
+        }
+        if (owner != null && owner.equals(Match.teamOf(game, visitor))) return new Haul.Chest("team-chest", null);
+        return new Haul.Chest("other-chests", owner);
     }
 
     private static @Nullable Owner owner(Game game, Point at) {

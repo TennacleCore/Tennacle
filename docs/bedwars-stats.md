@@ -52,6 +52,7 @@ Kept for each of iron, gold, diamond and emerald.
 | `<res>-from-players` | picked up after another player dropped it |
 | `<res>-stolen` | handed over on a kill: the victim's resources, given to the killer |
 | `<res>-from-chests`, `<res>-into-chests` | taken out of chests or put in, net per visit. Counted off the chest's slots, each change its visitor's whose click made it that tick; a visit ends at its close, the next chest, a death, a leave or the game's end |
+| `<res>-from-team-chest`, `-ender-chest`, `-other-chests` (and `into-`) | the same split by chest: a chest in their own base, their ender chest, or any other (another side's, kept against that side per game) |
 | `<res>-lost-to-players` | handed to their killer on a death |
 | `<res>-lost-to-void` | carried into the void on a death with no killer, or thrown off the map |
 | `<res>-destroyed`, `<res>-destroyed-at-own-generators`, `<res>-destroyed-at-other-generators` | items lying on the ground that their fireball or TNT blew up; a generator's are told apart by whose it is, and another side's kept against its owners per game |

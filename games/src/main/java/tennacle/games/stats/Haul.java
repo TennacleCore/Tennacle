@@ -8,6 +8,7 @@ import net.minestom.server.MinecraftServer;
 import io.github.term4.polyp.api.event.container.ContainerChangeEvent;
 import io.github.term4.polyp.api.event.container.ContainerOpenEvent;
 import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
+import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.ItemEntity;
 import net.minestom.server.entity.Player;
@@ -42,7 +43,10 @@ public final class Haul implements GameModule, Tally.Closes {
     private static final Tag<UUID> DROPPED_BY = Tag.Transient("tennacle:dropped-by");
     private static final Tag<Boolean> PICKED = Tag.Transient("tennacle:picked");
 
-    private record Visit(String key, Map<String, Integer> net) {}
+    private record Visit(String key, @Nullable Chest chest, Map<String, Integer> net) {}
+
+    /** Which chest a visit was, for the split ({@code iron-from-team-chest}); {@code team} its side when another's. */
+    public record Chest(@NotNull String name, @Nullable String team) {}
 
     /** Whose generator a pickup came from, in the mode's own terms: a base's forge, a side's diamonds. */
     @FunctionalInterface
@@ -53,6 +57,11 @@ public final class Haul implements GameModule, Tally.Closes {
         /** {@code by}'s blast took items lying at {@code generator}. */
         default void destroyed(@NotNull Game game, @NotNull Player by, @NotNull Generators.Generator generator,
                                @NotNull String resource, int amount) {}
+
+        /** The chest {@code visitor} opened at {@code pos}; null leaves it in the totals alone. */
+        default @Nullable Chest chest(@NotNull Game game, @NotNull Player visitor, @NotNull Point pos) {
+            return null;
+        }
     }
 
     private final Map<Material, String> resources;
@@ -109,7 +118,8 @@ public final class Haul implements GameModule, Tally.Closes {
             Visit open = visits.get(id);
             if (open != null && open.key().equals(e.key())) return; // a 1.8 right-click opens twice: one visit
             leave(id);
-            visits.put(id, new Visit(e.key(), new ConcurrentHashMap<>()));
+            Chest chest = origins != null ? origins.chest(game, e.getPlayer(), e.pos()) : null;
+            visits.put(id, new Visit(e.key(), chest, new ConcurrentHashMap<>()));
         });
         game.on(InventoryPreClickEvent.class, e -> clicked.put(e.getPlayer().getUuid(), game.tick()));
         game.onWorld(ContainerChangeEvent.class, ContainerChangeEvent::world, this::changed);
@@ -213,9 +223,15 @@ public final class Haul implements GameModule, Tally.Closes {
     private void leave(UUID player) {
         Visit visit = visits.remove(player);
         if (visit == null) return;
+        Chest chest = visit.chest();
         visit.net().forEach((name, net) -> {
-            if (net > 0) Tally.add(game, player, name + "-from-chests", net);
-            else if (net < 0) Tally.add(game, player, name + "-into-chests", -net);
+            if (net == 0) return;
+            String way = net > 0 ? "-from-" : "-into-";
+            long amount = Math.abs(net);
+            Tally.add(game, player, name + way + "chests", amount);
+            if (chest == null) return;
+            Tally.add(game, player, name + way + chest.name(), amount);
+            if (chest.team() != null) Tally.pair(game, player, chest.team(), name + way + "their-chest", amount);
         });
     }
 

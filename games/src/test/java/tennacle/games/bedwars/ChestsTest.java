@@ -138,7 +138,20 @@ class ChestsTest extends HeadlessServerTest {
             window.setItemStack(0, ItemStack.AIR);
             a.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 10));
             a.closeInventory();
-            assertEquals(10, game.module(tennacle.games.stats.Tally.class).get(a.getUuid(), "iron-from-chests"));
+            var tally = game.module(tennacle.games.stats.Tally.class);
+            assertEquals(10, tally.get(a.getUuid(), "iron-from-chests"));
+            assertEquals(10, tally.get(a.getUuid(), "iron-from-team-chest"), "their base's");
+
+            open(game, a, ENDER);
+            var ender = a.getOpenInventory();
+            assertNotNull(ender, "the ender chest opens");
+            long clicked = game.tick();
+            BedWarsRoundTest.tickUntil(game, "a tick past the last click", () -> game.tick() > clicked);
+            ender.setItemStack(0, ItemStack.of(Material.GOLD_INGOT, 4)); // stocked by nobody's click
+            EventDispatcher.call(new InventoryPreClickEvent(ender, a, new Click.LeftShift(0)));
+            ender.setItemStack(0, ItemStack.AIR);
+            a.closeInventory();
+            assertEquals(4, tally.get(a.getUuid(), "gold-from-ender-chest"));
         });
     }
 

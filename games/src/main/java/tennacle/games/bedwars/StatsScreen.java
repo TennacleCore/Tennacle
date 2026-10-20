@@ -257,7 +257,10 @@ final class StatsScreen {
                         .fact("Own Forge", count(s.n(res + "-from-own-forge")));
             }
             e.fact("Picked Up From Drops", count(s.n(res + "-from-players"))).fact("Taken On Kills", count(s.n(res + "-stolen")))
-                    .fact("Taken From Chests", count(s.n(res + "-from-chests"))).fact("Put In Chests", count(s.n(res + "-into-chests")))
+                    .fact("Chests, Taken | Put", s.pair(res + "-from-chests", res + "-into-chests"))
+                    .fact("Team Chest", s.pair(res + "-from-team-chest", res + "-into-team-chest"))
+                    .fact("Ender Chest", s.pair(res + "-from-ender-chest", res + "-into-ender-chest"))
+                    .fact("Other Chests", s.pair(res + "-from-other-chests", res + "-into-other-chests"))
                     .fact("Spent", count(s.n(res + "-spent"))).fact("Lost To Killers", count(s.n(res + "-lost-to-players")))
                     .fact("Lost To The Void", count(s.n(res + "-lost-to-void")))
                     .fact("Your Drops Blown Up", count(s.n(res + "-lost-to-explosions")))
