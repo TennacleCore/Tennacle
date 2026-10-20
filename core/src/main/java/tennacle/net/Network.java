@@ -13,6 +13,7 @@ import tennacle.moderation.Vanish;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** This process's bus, presence and name among the servers. Set before anything subscribes. */
@@ -24,6 +25,7 @@ public final class Network {
     private static volatile Presence presence = new LocalPresence();
     private static volatile String server = "server-1";
     private static final Map<UUID, Long> joinedAt = new ConcurrentHashMap<>();
+    private static volatile boolean down;
 
     private Network() {}
 
@@ -56,19 +58,19 @@ public final class Network {
         });
         events.addListener(PlayerDisconnectEvent.class, e -> {
             joinedAt.remove(e.getPlayer().getUuid());
-            presence.left(e.getPlayer().getUuid(), server).exceptionally(failed -> failure("leave", failed));
+            settle("leave", presence.left(e.getPlayer().getUuid(), server));
         });
         MinecraftServer.getSchedulerManager().buildTask(() -> {
             List<Presence.Here> online = MinecraftServer.getConnectionManager().getOnlinePlayers().stream()
                     .filter(p -> joinedAt.containsKey(p.getUuid())).map(Network::here).toList();
-            presence.beat(server, online).exceptionally(failed -> failure("beat", failed));
+            settle("beat", presence.beat(server, online));
         }).repeat(TaskSchedule.seconds(30)).schedule();
     }
 
     /** Their entry again: a vanish turned on or off. */
     public static void seen(@NotNull Player player) {
         if (!joinedAt.containsKey(player.getUuid())) return;
-        presence.joined(here(player)).exceptionally(failed -> failure("join", failed));
+        settle("join", presence.joined(here(player)));
     }
 
     private static Presence.Here here(Player player) {
@@ -76,8 +78,16 @@ public final class Network {
                 joinedAt.getOrDefault(player.getUuid(), System.currentTimeMillis()), Vanish.vanished(player));
     }
 
-    private static Void failure(String what, Throwable failed) {
-        LOGGER.warn("presence {} failed", what, failed);
-        return null;
+    // once per outage, not once a beat
+    private static void settle(String what, CompletableFuture<Void> call) {
+        call.whenComplete((ok, failed) -> {
+            if (failed == null) {
+                if (down) LOGGER.info("presence is back");
+                down = false;
+            } else {
+                if (!down) LOGGER.warn("presence {} failed; quiet until it works again", what, failed);
+                down = true;
+            }
+        });
     }
 }
