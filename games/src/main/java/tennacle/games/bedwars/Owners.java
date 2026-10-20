@@ -23,11 +23,14 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Whose generator a pickup came from. A forge is its base's. A diamond generator is its nearest side's, shared with
  * the next nearest while that one is under 1.5 times as far: two sides to a generator on most maps, one where the
- * generators sit in front of the bases (Terminal, Sky Festival). Emeralds are nobody's.
+ * generators sit in front of the bases (Terminal, Sky Festival). On a two-sided map each is its own side's alone,
+ * unless both sides are as near (Gardens). Emeralds are nobody's.
  */
 final class Owners implements Haul.Origins {
 
     private static final double SHARED = 1.5;
+    // two sides this close to even are one generator between them
+    private static final double EVEN = 1.05;
     // a generator this near a marker is that marker's
     private static final double AT = 3;
 
@@ -81,7 +84,8 @@ final class Owners implements Haul.Origins {
         byDistance.sort(Map.Entry.<String, Double>comparingByValue().thenComparing(Map.Entry.comparingByKey()));
         if (byDistance.isEmpty()) return Set.of();
         Map.Entry<String, Double> first = byDistance.getFirst();
-        if (byDistance.size() > 1 && byDistance.get(1).getValue() < first.getValue() * SHARED) {
+        double shared = byDistance.size() <= 2 ? EVEN : SHARED;
+        if (byDistance.size() > 1 && byDistance.get(1).getValue() < first.getValue() * shared) {
             return Set.of(first.getKey(), byDistance.get(1).getKey());
         }
         return Set.of(first.getKey());
