@@ -83,7 +83,7 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 | `bed-defense-broken` | broken blocks that touched the bed of a team still in the game: digging into a bed's defense |
 | `bed-attempts`, `bed-attempts-failed`, `bed-dig-ticks` | digging at another side's standing bed, the bed itself or a block touching it. An attempt runs from the first dig until the bed falls, or until they die or leave with it standing (failed). Dig time is in ticks, a twentieth of a second, since a bed goes in under one |
 | `bed-defense-placed` | blocks placed touching their own standing bed |
-| `bed-saves` | kills of a player who had dug at the killer's bed in the last 5 seconds |
+| `bed-saves`, `bed-saves-by-kill`, `bed-saves-by-block` | killing a player who had dug at the killer's bed in the last 5 seconds, or placing a block between a digger's eyes and what they were digging at your bed (once a dig) |
 | `time-guarding-bed` | seconds within 6 blocks of their own standing bed while a living player of another side was too |
 
 ### Where they spent the game

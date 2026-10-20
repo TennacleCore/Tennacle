@@ -352,7 +352,7 @@ class BedWarsStatsTest extends HeadlessServerTest {
 
             BlockVec bBed = game.arena().marker(BedWars.BED, bTeam).boxes().getFirst().min();
             b.player.teleport(new Pos(8.5, 65, 0.5)).join();
-            a.player.teleport(new Pos(9.5, 65, 1.5)).join();
+            a.player.teleport(new Pos(8.5, 65, 2.5)).join();
             b.player.setItemInMainHand(ItemStack.of(Material.WHITE_WOOL, 8));
             EventDispatcher.call(new PlayerBlockPlaceEvent(b.player, game.instance(), Block.WHITE_WOOL, BlockFace.TOP,
                     bBed.sub(1, 0, 0), new Pos(0.5, 1, 0.5), PlayerHand.MAIN));
@@ -362,12 +362,18 @@ class BedWarsStatsTest extends HeadlessServerTest {
             EventDispatcher.call(new PlayerStartDiggingEvent(a.player, game.instance(), Block.BLUE_BED, bBed, BlockFace.TOP));
             long from = game.tick();
             BedWarsRoundTest.tickUntil(game, "a few ticks of digging", () -> game.tick() >= from + 3);
+            for (int i = 0; i < 2; i++) { // in the way of a's eyes and the bed; twice is still one save
+                EventDispatcher.call(new PlayerBlockPlaceEvent(b.player, game.instance(), Block.WHITE_WOOL, BlockFace.TOP,
+                        new BlockVec(9, 66, 1), new Pos(0.5, 1, 0.5), PlayerHand.MAIN));
+            }
+            assertEquals(1, tally.get(idb, "bed-saves-by-block"));
             EventDispatcher.call(new PlayerCancelDiggingEvent(a.player, game.instance(), Block.BLUE_BED, bBed));
             assertEquals(1, tally.get(ida, "bed-attempts"));
             assertTrue(tally.get(ida, "bed-dig-ticks") >= 3, "ticks at the bed");
             hit(a, b, 2f);
             game.module(Lives.class).fell(a.player);
-            assertEquals(1, tally.get(idb, "bed-saves"), "killed while at b's bed");
+            assertEquals(1, tally.get(idb, "bed-saves-by-kill"), "killed while at b's bed");
+            assertEquals(2, tally.get(idb, "bed-saves"), "both ways");
             assertEquals(1, tally.get(ida, "bed-attempts-failed"), "the bed still stands");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
