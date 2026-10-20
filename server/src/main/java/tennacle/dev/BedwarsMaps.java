@@ -93,7 +93,7 @@ public final class BedwarsMaps {
                 if (only != null && !only.contains(name)) continue;
                 String zipName = (map.has("archive") ? map.get("archive").getAsString() : name) + ".zip";
                 // a map downloaded from live Hypixel names its world; the rest are the archive's
-                Path zip = map.has("world") ? Path.of(map.get("world").getAsString()) : find(archive, zipName);
+                Path zip = map.has("world") ? Path.of(map.get("world").getAsString()) : find(archive, map.has("group") ? map.get("group").getAsString() : null, zipName);
                 if (zip == null) {
                     System.out.println(name + ": no " + zipName + " under " + archive);
                     continue;
@@ -359,9 +359,16 @@ public final class BedwarsMaps {
         return new BlockVec(values.get(0).getAsInt(), values.get(1).getAsInt(), values.get(2).getAsInt());
     }
 
-    private static Path find(Path dir, String fileName) throws IOException {
+    // names repeat across games (Mini Walls has an Orbit and a Paladin): the marker's group picks
+    private static @Nullable Path find(Path dir, @Nullable String group, String fileName) throws IOException {
+        List<Path> hits;
         try (Stream<Path> files = Files.walk(dir)) {
-            return files.filter(f -> f.getFileName().toString().equals(fileName)).findFirst().orElse(null);
+            hits = files.filter(f -> f.getFileName().toString().equals(fileName)).sorted().toList();
         }
+        if (group != null) {
+            Path under = Path.of(group);
+            for (Path hit : hits) if (hit.getParent().endsWith(under)) return hit;
+        }
+        return hits.isEmpty() ? null : hits.getFirst();
     }
 }
