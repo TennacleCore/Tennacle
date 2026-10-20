@@ -39,6 +39,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class Haul implements GameModule, Tally.Closes {
 
+    // temporary: finding why chests count nothing in real play
+    private static final org.slf4j.Logger TRACE = org.slf4j.LoggerFactory.getLogger("chest-trace");
     private static final Tag<UUID> DROPPED_BY = Tag.Transient("tennacle:dropped-by");
     private static final Tag<Boolean> PICKED = Tag.Transient("tennacle:picked");
 
@@ -104,6 +106,7 @@ public final class Haul implements GameModule, Tally.Closes {
             else if (dropper != null && !dropper.equals(picker.getUuid())) add(picker, name + "-from-players", amount);
         });
         game.on(ContainerOpenEvent.class, e -> {
+            TRACE.info("chest-trace open {} key={} cancelled={} tick={}", e.getPlayer().getUsername(), e.key(), e.isCancelled(), game.tick());
             if (e.isCancelled()) return;
             UUID id = e.getPlayer().getUuid();
             Visit open = visits.get(id);
@@ -111,7 +114,16 @@ public final class Haul implements GameModule, Tally.Closes {
             leave(id);
             visits.put(id, new Visit(e.key(), new ConcurrentHashMap<>()));
         });
-        game.on(InventoryPreClickEvent.class, e -> clicked.put(e.getPlayer().getUuid(), game.tick()));
+        game.on(InventoryPreClickEvent.class, e -> {
+            if (visits.containsKey(e.getPlayer().getUuid())) TRACE.info("chest-trace click {} {} in={} tick={}", e.getPlayer().getUsername(),
+                    e.getClick(), e.getInventory().getClass().getSimpleName(), game.tick());
+            clicked.put(e.getPlayer().getUuid(), game.tick());
+        });
+        MinecraftServer.getGlobalEventHandler().addListener(ContainerChangeEvent.class, e -> {
+            if (!visits.isEmpty()) TRACE.info("chest-trace change key={} world={} {} -> {} tick={} ours={}", e.key(),
+                    e.world().getClass().getSimpleName(), e.before().material().key().value(), e.after().material().key().value(),
+                    game.tick(), e.world() instanceof io.github.term4.archipelago.shard.Shard sh && Game.of(sh) == game);
+        });
         game.onWorld(ContainerChangeEvent.class, ContainerChangeEvent::world, this::changed);
         game.on(InventoryCloseEvent.class, e -> leave(e.getPlayer().getUuid()));
         // a blast takes items once their health runs out, and says nothing: what it hit and is gone by the tick's end
@@ -213,6 +225,7 @@ public final class Haul implements GameModule, Tally.Closes {
     private void leave(UUID player) {
         Visit visit = visits.remove(player);
         if (visit == null) return;
+        TRACE.info("chest-trace leave {} key={} net={}", player, visit.key(), visit.net());
         visit.net().forEach((name, net) -> {
             if (net > 0) Tally.add(game, player, name + "-from-chests", net);
             else if (net < 0) Tally.add(game, player, name + "-into-chests", -net);
