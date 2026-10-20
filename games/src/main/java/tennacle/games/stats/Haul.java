@@ -36,7 +36,15 @@ public final class Haul implements GameModule {
 
     private record Visit(Map<String, Integer> held, Map<String, Integer> elsewhere) {}
 
+    /** Whose generator a pickup came from, in the mode's own terms: a base's forge, a side's diamonds. */
+    @FunctionalInterface
+    public interface Origins {
+        void picked(@NotNull Game game, @NotNull Player picker, @NotNull Generators.Generator generator,
+                    @NotNull String resource, int amount);
+    }
+
     private final Map<Material, String> resources;
+    private @Nullable Origins origins;
     private final Map<UUID, Visit> visits = new ConcurrentHashMap<>();
     private Game game;
     private @Nullable Generators generators;
@@ -48,6 +56,11 @@ public final class Haul implements GameModule {
     /** {@code resources}: each counted item and its name in the stats ({@code iron-from-generators}). */
     public static @NotNull Haul of(@NotNull Map<Material, String> resources) {
         return new Haul(resources);
+    }
+
+    public @NotNull Haul origins(@NotNull Origins origins) {
+        this.origins = origins;
+        return this;
     }
 
     @Override
@@ -72,7 +85,8 @@ public final class Haul implements GameModule {
             UUID dropper = item.getTag(DROPPED_BY);
             int amount = e.getItemStack().amount();
             elsewhere(picker, name, amount);
-            if (generators != null && generators.made(item) != null) add(picker, name + "-from-generators", amount);
+            Generators.Generator made = generators != null ? generators.made(item) : null;
+            if (made != null) generated(picker, made, name, amount);
             else if (dropper != null && !dropper.equals(picker.getUuid())) add(picker, name + "-from-players", amount);
         });
         game.on(ContainerOpenEvent.class, e -> {
@@ -87,12 +101,18 @@ public final class Haul implements GameModule {
     }
 
     /** A generator's share, handed straight into a teammate's inventory. */
-    public static void generated(@NotNull Game game, @NotNull Player player, @NotNull ItemStack stack) {
+    public static void generated(@NotNull Game game, @NotNull Player player, @NotNull Generators.Generator generator,
+                                 @NotNull ItemStack stack) {
         Haul haul = game.module(Haul.class);
         String name = haul != null ? haul.name(stack) : null;
         if (name == null) return;
         haul.elsewhere(player, name, stack.amount());
-        haul.add(player, name + "-from-generators", stack.amount());
+        haul.generated(player, generator, name, stack.amount());
+    }
+
+    private void generated(Player player, Generators.Generator generator, String name, int amount) {
+        add(player, name + "-from-generators", amount);
+        if (origins != null) origins.picked(game, player, generator, name, amount);
     }
 
     /** A kill's hand-over: the killer's stolen, the victim's lost to players. */

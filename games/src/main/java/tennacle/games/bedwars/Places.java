@@ -11,6 +11,7 @@ import io.github.term4.grotto.roster.Slot;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,6 +31,8 @@ final class Places implements Tally.Sampler {
     /** How near a generator counts as at it: {@code diamond, emerald}. */
     static final MarkerKey<DataMarker> REACH = MarkerKey.data("bedwars:reach");
     private static final double DEFAULT_REACH = 8;
+    // a few blocks from the bed, for both the guard and the enemy they guard against
+    private static final double GUARD = 6;
 
     private List<RegionMarker> bases;
     private @Nullable CompoundBinaryTag middle;
@@ -56,6 +59,24 @@ final class Places implements Tally.Sampler {
         if (middle != null && inside(middle, at)) tally.add(id, "time-at-mid", 1);
         if (near(diamonds, at, diamondReach)) tally.add(id, "time-at-diamonds", 1);
         if (near(emeralds, at, emeraldReach)) tally.add(id, "time-at-emeralds", 1);
+        if (guarding(game, player, seat, respawns)) tally.add(id, "time-guarding-bed", 1);
+    }
+
+    private static boolean guarding(Game game, Player player, Slot seat, @Nullable Respawns respawns) {
+        if (!Beds.stands(game, seat.team())) return false;
+        RegionMarker bed = game.arena().marker(BedWars.BED, seat.team());
+        if (bed == null) return false;
+        var box = bed.bounds();
+        Point middle = new Vec((box.min().blockX() + box.max().blockX() + 1) / 2.0, box.min().blockY() + 0.5,
+                (box.min().blockZ() + box.max().blockZ() + 1) / 2.0);
+        if (player.getPosition().distanceSquared(middle) > GUARD * GUARD) return false;
+        for (Player other : game.members()) {
+            Slot theirs = game.roster().slotOf(other);
+            if (theirs == null || theirs.team().equals(seat.team()) || game.isGhost(other)) continue;
+            if (respawns != null && respawns.isDead(other)) continue;
+            if (other.getPosition().distanceSquared(middle) <= GUARD * GUARD) return true;
+        }
+        return false;
     }
 
     private void read(Game game) {

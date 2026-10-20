@@ -14,6 +14,8 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.event.player.PlayerCancelDiggingEvent;
+import net.minestom.server.event.player.PlayerStartDiggingEvent;
 import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
@@ -308,6 +310,78 @@ class BedWarsStatsTest extends HeadlessServerTest {
             b.player.remove();
             c.player.remove();
         }
+    }
+
+    @Test
+    void bedsAndGeneratorsHaveOwners() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture(false)));
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwOwnA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwOwnB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwOwnC");
+        try {
+            for (FakePlayer p : List.of(a, b, c)) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("all seated", () -> Game.of(a.player) == game && Game.of(b.player) == game && Game.of(c.player) == game);
+            BedWarsRoundTest.live(game);
+            Tally tally = game.module(Tally.class);
+            UUID ida = a.player.getUuid(), idb = b.player.getUuid(), idc = c.player.getUuid();
+            String bTeam = Match.teamOf(game, b.player);
+
+            // the fixture's diamonds sit between sides 1 and 2, side 3 further off
+            Point diamond = game.arena().markers(BedWars.DIAMOND).getFirst().point();
+            BedWarsRoundTest.tickUntil(game, "a diamond", () -> lying(game, diamond, Material.DIAMOND) != null);
+            EventDispatcher.call(new PickupItemEvent(a.player, lying(game, diamond, Material.DIAMOND)));
+            assertEquals(1, tally.get(ida, "diamond-from-own-diamond-generators"));
+            BedWarsRoundTest.tickUntil(game, "another", () -> lying(game, diamond, Material.DIAMOND) != null);
+            EventDispatcher.call(new PickupItemEvent(c.player, lying(game, diamond, Material.DIAMOND)));
+            assertEquals(1, tally.get(idc, "diamond-from-other-diamond-generators"));
+            assertEquals(1, tally.pairOf(idc, bTeam, "diamond-from-their-diamond-generators"), "both its sides");
+
+            Point forge = game.arena().marker(BedWars.FORGE, bTeam).point();
+            BedWarsRoundTest.tickUntil(game, "b's iron", () -> lying(game, forge, Material.IRON_INGOT) != null);
+            DroppedItemEntity iron = lying(game, forge, Material.IRON_INGOT);
+            int amount = iron.getItemStack().amount();
+            EventDispatcher.call(new PickupItemEvent(a.player, iron));
+            assertEquals(amount, tally.get(ida, "iron-from-other-forges"));
+            assertEquals(amount, tally.pairOf(ida, bTeam, "iron-from-forge"));
+
+            BlockVec bBed = game.arena().marker(BedWars.BED, bTeam).boxes().getFirst().min();
+            b.player.teleport(new Pos(8.5, 65, 0.5)).join();
+            a.player.teleport(new Pos(9.5, 65, 1.5)).join();
+            b.player.setItemInMainHand(ItemStack.of(Material.WHITE_WOOL, 8));
+            EventDispatcher.call(new PlayerBlockPlaceEvent(b.player, game.instance(), Block.WHITE_WOOL, BlockFace.TOP,
+                    bBed.sub(1, 0, 0), new Pos(0.5, 1, 0.5), PlayerHand.MAIN));
+            assertEquals(1, tally.get(idb, "bed-defense-placed"));
+            BedWarsRoundTest.tickUntil(game, "a second on guard", () -> tally.get(idb, "time-guarding-bed") >= 1);
+
+            EventDispatcher.call(new PlayerStartDiggingEvent(a.player, game.instance(), Block.BLUE_BED, bBed, BlockFace.TOP));
+            long from = game.tick();
+            BedWarsRoundTest.tickUntil(game, "a few ticks of digging", () -> game.tick() >= from + 3);
+            EventDispatcher.call(new PlayerCancelDiggingEvent(a.player, game.instance(), Block.BLUE_BED, bBed));
+            assertEquals(1, tally.get(ida, "bed-attempts"));
+            assertTrue(tally.get(ida, "bed-dig-ticks") >= 3, "ticks at the bed");
+            hit(a, b, 2f);
+            game.module(Lives.class).fell(a.player);
+            assertEquals(1, tally.get(idb, "bed-saves"), "killed while at b's bed");
+            assertEquals(1, tally.get(ida, "bed-attempts-failed"), "the bed still stands");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+        }
+    }
+
+    private static @Nullable DroppedItemEntity lying(Game game, Point at, Material material) {
+        for (Entity entity : game.instance().getNearbyEntities(at, 2)) {
+            if (entity instanceof DroppedItemEntity item && !item.isRemoved() && item.getItemStack().material() == material) return item;
+        }
+        return null;
     }
 
     @Test

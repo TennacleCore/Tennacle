@@ -343,6 +343,7 @@ public final class Lives implements GameModule {
     }
 
     private void died(Death death) {
+        anchor.died(death);
         for (Consumer<Death> action : onDeath) action.accept(death);
     }
 

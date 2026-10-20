@@ -46,6 +46,9 @@ Kept for each of iron, gold, diamond and emerald.
 | Stat | Means |
 |---|---|
 | `<res>-from-generators` | picked up from a forge, diamond or emerald generator (drops carry the generator's tag) |
+| `<res>-from-own-forge`, `<res>-from-other-forges` | the forge share of `from-generators`: their base's, or another side's (kept against that side per game) |
+| `<res>-from-own-diamond-generators`, `<res>-from-other-diamond-generators` | a diamond generator is its nearest side's, shared with the next nearest while that one is under 1.5 times as far. That gives every side one on Solo and Doubles maps and two on most Triples and Quads maps; Deposit, Lost Temple, Manor Royale, Nostalgia, Sky Festival, Terminal and Zen Plaza put one in front of each base. Another side's is kept against both its owners per game |
+| `<res>-from-emerald-generators` | |
 | `<res>-from-players` | picked up after another player dropped it |
 | `<res>-stolen` | handed over on a kill: the victim's resources, given to the killer |
 | `<res>-from-chests`, `<res>-into-chests` | taken out of chests or put in, net per visit: read off the visitor's own inventory from open to close, less what reached or left them some other way meanwhile |
@@ -78,6 +81,10 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 |---|---|
 | `blocks-placed`, `blocks-broken` | blocks players placed, and broke. Map blocks can't be broken, so every break is a player's block |
 | `bed-defense-broken` | broken blocks that touched the bed of a team still in the game: digging into a bed's defense |
+| `bed-attempts`, `bed-attempts-failed`, `bed-dig-ticks` | digging at another side's standing bed, the bed itself or a block touching it. An attempt runs from the first dig until the bed falls, or until they die or leave with it standing (failed). Dig time is in ticks, a twentieth of a second, since a bed goes in under one |
+| `bed-defense-placed` | blocks placed touching their own standing bed |
+| `bed-saves` | kills of a player who had dug at the killer's bed in the last 5 seconds |
+| `time-guarding-bed` | seconds within 6 blocks of their own standing bed while a living player of another side was too |
 
 ### Where they spent the game
 Time, in seconds, sampled once a second while they were alive and on the map.

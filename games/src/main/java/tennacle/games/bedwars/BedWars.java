@@ -462,7 +462,7 @@ public final class BedWars {
                         Chests::new,
                         Compass::new,
                         Spoils::new,
-                        () -> Haul.of(Resources.NAMES), // after Spoils: a death's hand-over is taken by then
+                        () -> Haul.of(Resources.NAMES).origins(new Owners()), // after Spoils: a death's hand-over is taken by then
                         MagicMilk::new,
                         Creatures::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {

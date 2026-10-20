@@ -52,7 +52,7 @@ import java.util.UUID;
  * so a match nobody wins still ends. The elimination is {@code LastStanding}'s, which {@link Lives} calls
  * when a bedless seat falls.
  */
-public final class Beds implements Anchor, Building.Breaks {
+public final class Beds implements Anchor, Building.Watcher {
 
     /** Whether the team's bed still stands; team-scoped, so a board reads it a side at a time. */
     public static final StateKey<Boolean> STANDS = StateKey.of("ledger.beds.stands", Codec.BOOLEAN, true, true);
@@ -94,6 +94,7 @@ public final class Beds implements Anchor, Building.Breaks {
     private final Map<BlockVec, String> cells = new HashMap<>();
     private final List<java.util.function.Consumer<String>> fell = new java.util.ArrayList<>();
     private final Map<String, UUID> breakers = new HashMap<>();
+    private BedStats stats;
 
     /** The beds under {@code key}'s regions; a break counts on the breaker's {@code broken}. */
     public Beds(@NotNull MarkerKey<RegionMarker> key, @NotNull StateKey<Integer> broken) {
@@ -150,6 +151,7 @@ public final class Beds implements Anchor, Building.Breaks {
 
     @Override
     public void install(@NotNull Game game) {
+        stats = new BedStats(game, this::standingBedAt);
         this.game = game;
         for (Team team : game.roster().teams()) {
             game.state().set(Scope.team(team.id()), STANDS, true);
@@ -301,18 +303,29 @@ public final class Beds implements Anchor, Building.Breaks {
         return game.roster().teams().stream().map(Team::id).filter(id -> stands(game, id)).toList();
     }
 
-    // a block against another standing side's bed: digging into its defense
+    @Override
+    public void placed(@NotNull Player placer, @NotNull Point pos) {
+        stats.placed(placer, pos);
+    }
+
     @Override
     public void broke(@NotNull Player breaker, @NotNull Point pos) {
-        String mine = Match.teamOf(game, breaker);
-        for (BlockFace face : BlockFace.values()) {
-            Point next = pos.add(face.toDirection().normalX(), face.toDirection().normalY(), face.toDirection().normalZ());
-            String owner = cells.get(new BlockVec(next.blockX(), next.blockY(), next.blockZ()));
-            if (owner != null && !owner.equals(mine) && stands(game, owner)) {
-                Tally.add(game, breaker, "bed-defense-broken");
-                return;
-            }
-        }
+        stats.broke(breaker, pos);
+    }
+
+    @Override
+    public void died(@NotNull Lives.Death death) {
+        stats.died(death);
+    }
+
+    @Override
+    public void onLeave(@NotNull Game game, @NotNull Player player, @NotNull Game.Departure departure) {
+        stats.left(player);
+    }
+
+    private @Nullable String standingBedAt(Point pos) {
+        String team = cells.get(new BlockVec(pos.blockX(), pos.blockY(), pos.blockZ()));
+        return team != null && stands(game, team) ? team : null;
     }
 
     private void erase(String team) {
@@ -321,6 +334,7 @@ public final class Beds implements Anchor, Building.Breaks {
             if (seat != null && seat.team().equals(team)) Tally.add(game, seated, "beds-lost");
         }
         clear(team);
+        stats.fell(team);
         for (java.util.function.Consumer<String> action : fell) action.accept(team);
     }
 

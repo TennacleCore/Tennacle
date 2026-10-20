@@ -17,4 +17,7 @@ public interface Anchor extends GameModule {
 
     /** Whoever brought the side's anchor down, credited a final death nobody else is owed; null for none. */
     @Nullable Player breaker(@NotNull String team);
+
+    /** A death as decided, before the mode's own death actions. */
+    default void died(@NotNull Lives.Death death) {}
 }

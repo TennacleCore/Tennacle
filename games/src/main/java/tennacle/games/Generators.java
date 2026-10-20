@@ -114,6 +114,10 @@ public final class Generators implements GameModule, Building.Reserves {
             return dropped;
         }
 
+        public @NotNull Point at() {
+            return at;
+        }
+
         public long period() {
             return period;
         }
@@ -280,7 +284,7 @@ public final class Generators implements GameModule, Building.Reserves {
                 if (mate.getPosition().distance(item.getPosition()) > shareRadius) continue;
                 if (over(mate, e.getItemStack())) continue;
                 mate.getInventory().addItemStack(e.getItemStack());
-                Haul.generated(game, mate, e.getItemStack());
+                Haul.generated(game, mate, item.getTag(MADE_BY), e.getItemStack());
             }
         });
     }

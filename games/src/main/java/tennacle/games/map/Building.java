@@ -182,9 +182,11 @@ public final class Building {
     }
 
     /** A module that keeps cells clear wherever it is installed, beside the {@link Space}'s own. */
-    /** A module told of every break that landed, whenever it installed. */
-    public interface Breaks {
-        void broke(@NotNull Player breaker, @NotNull Point pos);
+    /** A module told of every placement and break that landed, whenever it installed. */
+    public interface Watcher {
+        default void placed(@NotNull Player placer, @NotNull Point pos) {}
+
+        default void broke(@NotNull Player breaker, @NotNull Point pos) {}
     }
 
     public interface Reserves {
@@ -249,6 +251,7 @@ public final class Building {
             building.placed.add(key(e.getBlockPosition()));
             Match.addSeat(game, player, PLACED_COUNT);
             Tally.add(game, player, "blocks-placed");
+            for (Watcher module : game.modules(Watcher.class)) module.placed(player, e.getBlockPosition());
             touched.accept(player);
         });
         game.on(PlayerBlockBreakEvent.class, e -> {
@@ -279,7 +282,7 @@ public final class Building {
             if (kind.equals(GRASS)) building.bare(pos);
             Match.addSeat(game, player, BROKEN_COUNT);
             Tally.add(game, player, "blocks-broken");
-            for (Breaks module : game.modules(Breaks.class)) module.broke(player, pos);
+            for (Watcher module : game.modules(Watcher.class)) module.broke(player, pos);
             touched.accept(player);
         });
         game.onWorld(ItemSpawnEvent.class, ItemSpawnEvent::world, e -> {
