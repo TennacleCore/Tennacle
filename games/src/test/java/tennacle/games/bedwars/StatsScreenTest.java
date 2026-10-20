@@ -61,8 +61,8 @@ class StatsScreenTest extends HeadlessServerTest {
         try {
             Screens.open(p.player, StatsScreen.open(id, "StatScreen"));
             Screens.repaint(p.player);
-            assertTrue(lore(p, 20).contains("Wins: 5"), "all modes: " + lore(p, 20));
-            assertTrue(lore(p, 31).contains("Own Generators: 7"), "diamonds: " + lore(p, 31));
+            assertTrue(lore(p, 20).contains("Wins | Losses: 5 | 0"), "all modes: " + lore(p, 20));
+            assertTrue(lore(p, 31).contains("Own Generators | Other: 7 | 0"), "diamonds: " + lore(p, 31));
             assertTrue(lore(p, 22).contains("Melee: 0 | 0"), "kills | finals: " + lore(p, 22));
             assertTrue(!lore(p, 42).isEmpty(), "the last category has its slot");
             EventDispatcher.call(new InventoryPreClickEvent(Screens.inventory(p.player), p.player, new Click.Left(39)));
@@ -78,7 +78,7 @@ class StatsScreenTest extends HeadlessServerTest {
         try {
             Screens.open(p.player, StatsScreen.open(p.player.getUuid(), "StatSolo"));
             EventDispatcher.call(new InventoryPreClickEvent(Screens.inventory(p.player), p.player, new Click.Left(3)));
-            assertTrue(lore(p, 20).contains("Wins: 2"), "solo alone: " + lore(p, 20));
+            assertTrue(lore(p, 20).contains("Wins | Losses: 2 | 0"), "solo alone: " + lore(p, 20));
         } finally {
             p.player.remove();
         }

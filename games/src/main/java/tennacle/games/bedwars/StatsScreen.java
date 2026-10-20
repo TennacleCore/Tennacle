@@ -52,7 +52,13 @@ final class StatsScreen {
 
         // the scrims cards' two numbers: kills | final kills
         Component pair(String a, String b) {
-            return theme.value(count(n(a))).append(theme.dim(" | ")).append(theme.value(count(n(b))));
+            return both(count(n(a)), count(n(b)));
+        }
+
+        Component both(String... values) {
+            Component out = theme.value(values[0]);
+            for (int i = 1; i < values.length; i++) out = out.append(theme.dim(" | ")).append(theme.value(values[i]));
+            return out;
         }
     }
 
@@ -74,14 +80,15 @@ final class StatsScreen {
             new Resource("emerald", NamedTextColor.DARK_GREEN));
     private static final String[] CAUSES = {"melee", "bow", "void", "fall", "fire", "explosion", "creature", "other"};
 
+    // short lines, two numbers to a line where they belong together; the API keeps every split
     private static final List<Category> CATEGORIES = List.of(
             new Category(Material.PAPER, "Overview", (e, s) -> e
-                    .fact("Games Played", count(s.n("games"))).fact("Wins", count(s.n("wins"))).fact("Losses", count(s.n("losses")))
-                    .fact("W/L Ratio", ratio(s.n("wins"), s.n("losses"))).fact("Winstreak", count(s.n("winstreak")))
-                    .fact("Best Winstreak", count(s.n("best-winstreak"))).fact("Time Played", hours(s.n("time-played")))),
+                    .fact("Games Played", count(s.n("games"))).fact("Wins | Losses", s.pair("wins", "losses"))
+                    .fact("W/L Ratio", ratio(s.n("wins"), s.n("losses")))
+                    .fact("Winstreak | Best", s.pair("winstreak", "best-winstreak")).fact("Time Played", hours(s.n("time-played")))),
             new Category(Material.IRON_SWORD, "Kills", (e, s) -> e
-                    .fact("Kills", count(s.n("kills"))).fact("Deaths", count(s.n("deaths"))).fact("K/D Ratio", ratio(s.n("kills"), s.n("deaths")))
-                    .fact("Final Kills", count(s.n("final-kills"))).fact("Final Deaths", count(s.n("final-deaths")))
+                    .fact("Kills | Deaths", s.pair("kills", "deaths")).fact("K/D Ratio", ratio(s.n("kills"), s.n("deaths")))
+                    .fact("Final Kills | Deaths", s.pair("final-kills", "final-deaths"))
                     .fact("Final K/D Ratio", ratio(s.n("final-kills"), s.n("final-deaths"))).fact("Assists", count(s.n("assists")))),
             new Category(Material.BOW, "Kills By Method", (e, s) -> {
                 e.text("Kills | Final Kills");
@@ -92,45 +99,42 @@ final class StatsScreen {
                 for (String cause : CAUSES) e.fact(title(cause), s.pair(cause + "-deaths", cause + "-final-deaths"));
             }),
             new Category(Material.RED_BED, "Beds", (e, s) -> e
-                    .fact("Beds Broken", count(s.n("beds-broken"))).fact("Beds Lost", count(s.n("beds-lost")))
-                    .fact("Bed Attempts", count(s.n("bed-attempts"))).fact("Failed Attempts", count(s.n("bed-attempts-failed")))
-                    .fact("Time Digging Beds", seconds(s.n("bed-dig-ticks")))
-                    .fact("Defense Blocks Broken", count(s.n("bed-defense-broken"))).fact("Defense Blocks Placed", count(s.n("bed-defense-placed")))
-                    .fact("Bed Saves", count(s.n("bed-saves"))).fact("Saved By A Kill", count(s.n("bed-saves-by-kill")))
-                    .fact("Saved By A Block", count(s.n("bed-saves-by-block")))
-                    .fact("Time Guarding Bed", hours(s.n("time-guarding-bed")))),
+                    .fact("Broken | Lost", s.pair("beds-broken", "beds-lost"))
+                    .fact("Attempts | Failed", s.pair("bed-attempts", "bed-attempts-failed"))
+                    .fact("Time Digging", seconds(s.n("bed-dig-ticks")))
+                    .fact("Defense Broken | Placed", s.pair("bed-defense-broken", "bed-defense-placed"))
+                    .fact("Bed Saves", count(s.n("bed-saves"))).fact("Time Guarding", hours(s.n("time-guarding-bed")))),
             resource(Material.IRON_INGOT, "Iron", "iron"),
             resource(Material.GOLD_INGOT, "Gold", "gold"),
             resource(Material.DIAMOND, "Diamonds", "diamond"),
             resource(Material.EMERALD, "Emeralds", "emerald"),
             new Category(Material.GOLDEN_SWORD, "Combat", (e, s) -> e
-                    .fact("Damage Dealt", hearts(s.n("damage-dealt"))).fact("Damage Taken", hearts(s.n("damage-taken")))
-                    .fact("Hits", count(s.n("hits"))).fact("Hits Taken", count(s.n("hits-taken")))
-                    .fact("Hits Blocked", count(s.n("hits-blocked"))).fact("Damage Blocked", hearts(s.n("damage-blocked")))
-                    .fact("Arrows Shot", count(s.n("arrows-shot"))).fact("Arrows Hit", count(s.n("arrows-hit")))
+                    .fact("Hearts Dealt | Taken", s.both(hearts(s.n("damage-dealt")), hearts(s.n("damage-taken"))))
+                    .fact("Hits | Taken", s.pair("hits", "hits-taken"))
+                    .fact("Hits Blocked", count(s.n("hits-blocked"))).fact("Hearts Blocked", hearts(s.n("damage-blocked")))
+                    .fact("Arrows Shot | Hit", s.pair("arrows-shot", "arrows-hit"))
                     .fact("Bow Accuracy", percent(s.n("arrows-hit"), s.n("arrows-shot")))),
             new Category(Material.GOLDEN_APPLE, "Items Used", (e, s) -> e
-                    .fact("Golden Apples", count(s.n("golden-apples-eaten"))).fact("Potions", count(s.n("potions-drunk")))
+                    .fact("Golden Apples", count(s.n("golden-apples-eaten")))
+                    .fact("Potions", count(s.n("potions-drunk"))).fact("Speed | Jump | Invisibility",
+                            s.both(count(s.n("speed-potions-drunk")), count(s.n("jump-potions-drunk")), count(s.n("invisibility-potions-drunk"))))
                     .fact("Magic Milk", count(s.n("magic-milk-drunk"))).fact("Water Buckets", count(s.n("water-buckets-used")))
-                    .fact("Speed Potions", count(s.n("speed-potions-drunk"))).fact("Jump Potions", count(s.n("jump-potions-drunk")))
-                    .fact("Invisibility Potions", count(s.n("invisibility-potions-drunk")))
-                    .fact("Ender Pearls", count(s.n("pearls-thrown"))).fact("Fireballs", count(s.n("fireballs-thrown")))
-                    .fact("TNT", count(s.n("tnt-placed"))).fact("Bedbugs", count(s.n("silverfish-spawned")))
-                    .fact("Dream Defenders", count(s.n("golems-spawned"))).fact("Bridge Eggs", count(s.n("bridge-eggs-thrown")))
-                    .fact("Pop-up Towers", count(s.n("popup-towers-placed"))).fact("Sponges", count(s.n("sponges-placed")))),
+                    .fact("Ender Pearls", count(s.n("pearls-thrown"))).fact("Fireballs | TNT", s.pair("fireballs-thrown", "tnt-placed"))
+                    .fact("Bedbugs | Dream Defenders", s.pair("silverfish-spawned", "golems-spawned"))
+                    .fact("Bridge Eggs", count(s.n("bridge-eggs-thrown")))
+                    .fact("Pop-up Towers | Sponges", s.pair("popup-towers-placed", "sponges-placed"))),
             new Category(Material.CHEST, "Purchases", (e, s) -> e
-                    .fact("Items", count(s.n("items-bought"))).fact("Permanent Items", count(s.n("permanent-items-bought")))
-                    .fact("Team Upgrades", count(s.n("upgrades-bought"))).fact("Traps", count(s.n("traps-bought")))
+                    .fact("Items | Permanent", s.pair("items-bought", "permanent-items-bought"))
+                    .fact("Upgrades | Traps", s.pair("upgrades-bought", "traps-bought"))
                     .fact("Spent For The Team", spent(s, "for-team", s.theme().value("0"))).action("Click for every item!"), StatsScreen::purchases),
             new Category(Material.BRICKS, "Building", (e, s) -> e
-                    .fact("Blocks Placed", count(s.n("blocks-placed"))).fact("Blocks Broken", count(s.n("blocks-broken")))),
+                    .fact("Placed | Broken", s.pair("blocks-placed", "blocks-broken"))),
             new Category(Material.COMPASS, "Time Spent", (e, s) -> e
-                    .fact("At Their Base", hours(s.n("time-at-base"))).fact("At Mid", hours(s.n("time-at-mid")))
-                    .fact("At Diamonds", hours(s.n("time-at-diamonds"))).fact("At Emeralds", hours(s.n("time-at-emeralds")))
-                    .fact("At Other Bases", hours(s.n("time-at-other-bases")))
-                    .fact("At Bases With A Bed", hours(s.n("time-at-bases-alive")))
-                    .fact("At Bedless Bases", hours(s.n("time-at-bases-bedless")))
-                    .fact("At Bases Of Teams Out", hours(s.n("time-at-bases-out")))));
+                    .fact("Own Base", hours(s.n("time-at-base"))).fact("Mid", hours(s.n("time-at-mid")))
+                    .fact("Diamonds", hours(s.n("time-at-diamonds"))).fact("Emeralds", hours(s.n("time-at-emeralds")))
+                    // enemy: a side still in the game; neutral: one that is out
+                    .fact("Enemy Bases", hours(s.n("time-at-bases-alive") + s.n("time-at-bases-bedless")))
+                    .fact("Neutral Bases", hours(s.n("time-at-bases-out")))));
 
     // rows of five under the modes, the last four either side of the middle
     private static final int[] SLOTS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33, 38, 39, 41, 42};
@@ -247,27 +251,19 @@ final class StatsScreen {
     private static Category resource(Material icon, String name, String res) {
         return new Category(icon, name, (e, s) -> {
             long collected = s.n(res + "-from-generators") + s.n(res + "-from-players") + s.n(res + "-stolen") + s.n(res + "-from-chests");
-            e.fact("Collected", count(collected)).fact("From Generators", count(s.n(res + "-from-generators")));
+            e.fact("Collected", count(collected));
             switch (res) {
-                case "iron", "gold" -> e.fact("Own Forge", count(s.n(res + "-from-own-forge")))
-                        .fact("Other Forges", count(s.n(res + "-from-other-forges")));
-                case "diamond" -> e.fact("Own Generators", count(s.n(res + "-from-own-diamond-generators")))
-                        .fact("Other Generators", count(s.n(res + "-from-other-diamond-generators")));
-                default -> e.fact("Emerald Generators", count(s.n(res + "-from-emerald-generators")))
-                        .fact("Own Forge", count(s.n(res + "-from-own-forge")));
+                case "iron", "gold" -> e.fact("Own Forge | Other Forges", s.pair(res + "-from-own-forge", res + "-from-other-forges"))
+                        .fact("Split | Not Split", s.pair(res + "-split", res + "-not-split"));
+                case "diamond" -> e.fact("Own Generators | Other", s.pair(res + "-from-own-diamond-generators", res + "-from-other-diamond-generators"));
+                default -> e.fact("Generators | Forge", s.pair(res + "-from-emerald-generators", res + "-from-own-forge"));
             }
-            if (res.equals("iron") || res.equals("gold")) {
-                e.fact("Split | Not Split", s.pair(res + "-split", res + "-not-split"))
-                        .fact("From Teammates' Splits", count(s.n(res + "-from-splits")));
-            }
-            e.fact("Picked Up From Drops", count(s.n(res + "-from-players"))).fact("Taken On Kills", count(s.n(res + "-stolen")))
-                    .fact("Chests, Taken | Put", s.pair(res + "-from-chests", res + "-into-chests"))
+            e.fact("Drops | Kills", s.pair(res + "-from-players", res + "-stolen"))
                     .fact("Team Chest", s.pair(res + "-from-team-chest", res + "-into-team-chest"))
                     .fact("Ender Chest", s.pair(res + "-from-ender-chest", res + "-into-ender-chest"))
                     .fact("Other Chests", s.pair(res + "-from-other-chests", res + "-into-other-chests"))
-                    .fact("Spent", count(s.n(res + "-spent"))).fact("Lost To Killers", count(s.n(res + "-lost-to-players")))
-                    .fact("Lost To The Void", count(s.n(res + "-lost-to-void")))
-                    .fact("Your Drops Blown Up", count(s.n(res + "-lost-to-explosions")))
+                    .fact("Spent", count(s.n(res + "-spent")))
+                    .fact("Lost To Killers | Void", s.pair(res + "-lost-to-players", res + "-lost-to-void"))
                     .fact("Blown Up By You", count(s.n(res + "-destroyed")));
         });
     }
@@ -306,7 +302,7 @@ final class StatsScreen {
     }
 
     private static String hearts(long tenths) {
-        return String.format(Locale.ROOT, "%,.1f hearts", tenths / 20.0);
+        return String.format(Locale.ROOT, "%,.1f", tenths / 20.0);
     }
 
     private static String title(String id) {
