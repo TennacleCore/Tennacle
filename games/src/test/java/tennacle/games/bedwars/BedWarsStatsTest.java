@@ -13,6 +13,8 @@ import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
+import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +39,13 @@ import tennacle.games.shop.Sale;
 import tennacle.games.shop.Shop;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import tennacle.boot.Mechanics;
 import tennacle.games.Match;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.types.Fireball;
+import io.github.term4.polyp.mechanics.projectile.types.Pearl;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
 import tennacle.games.Matches;
 import tennacle.games.TestWiring;
 import tennacle.games.lives.Lives;
@@ -54,6 +62,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.LongUnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BedWarsStatsTest extends HeadlessServerTest {
@@ -82,7 +91,7 @@ class BedWarsStatsTest extends HeadlessServerTest {
     @Test
     void aVoidFinalKillCounts() {
         Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
-                BedWarsRoundTest.fixture()));
+                BedWarsRoundTest.fixture(false)));
         game.state().set(Scope.GAME, Countdown.START_AT, 3);
         game.state().set(Scope.GAME, Countdown.FROM, 1);
         FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwStatA");
@@ -97,6 +106,14 @@ class BedWarsStatsTest extends HeadlessServerTest {
             BedWarsRoundTest.live(game);
             String aTeam = Match.teamOf(game, a.player), bTeam = Match.teamOf(game, b.player);
             BlockVec bBed = game.arena().marker(BedWars.BED, bTeam).boxes().getFirst().min();
+            BlockVec against = bBed.sub(1, 0, 0);
+            a.player.teleport(new Pos(6.5, 65, 0.5)).join();
+            a.player.setItemInMainHand(ItemStack.of(Material.WHITE_WOOL, 8));
+            var wool = new PlayerBlockPlaceEvent(a.player, game.instance(), Block.WHITE_WOOL, BlockFace.TOP, against,
+                    new Pos(0.5, 1, 0.5), PlayerHand.MAIN);
+            EventDispatcher.call(wool);
+            assertFalse(wool.isCancelled(), "placed against the bed");
+            EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), Block.WHITE_WOOL, Block.AIR, against, BlockFace.TOP));
             EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), Block.BLUE_BED, Block.AIR, bBed, BlockFace.TOP));
             hit(b, c, 2f);
             hit(b, a, 6f); // inside the hurt cooldown only a bigger hit lands
@@ -112,6 +129,13 @@ class BedWarsStatsTest extends HeadlessServerTest {
             assertEquals(1, tally.get(idb, "deaths"));
             assertEquals(1, tally.get(idc, "assists"), "the other hitter");
             assertEquals(0, tally.get(ida, "assists"), "the killer is no assist");
+            assertEquals(1, tally.get(ida, "blocks-placed"), "blocks-placed");
+            assertEquals(1, tally.get(ida, "blocks-broken"), "blocks-broken");
+            assertEquals(1, tally.get(ida, "bed-defense-broken"), "bed-defense-broken");
+            assertEquals(1, tally.get(idc, "hits"), "hits");
+            assertEquals(2, tally.get(idb, "hits-taken"));
+            assertTrue(tally.get(idc, "damage-dealt") > 0, "in tenths");
+            assertEquals(tally.get(idc, "damage-dealt"), tally.pairOf(idc, idb.toString(), "damage-dealt"), "and against whom");
 
             game.end(Outcome.winner(aTeam));
             assertEquals(1, STATS.of(ida, "bedwars:final-kills"));
@@ -203,6 +227,14 @@ class BedWarsStatsTest extends HeadlessServerTest {
             }) instanceof Sale.Sold);
             assertEquals(4, tally.get(ida, "iron-spent"));
             assertEquals(1, tally.get(ida, "items-bought"));
+
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            Entity pearl = projectiles.launch(ProjectileSnapshot.of(a.player, Pearl.INSTANCE).withConfig(Vanilla18.projectiles()));
+            Entity fireball = projectiles.launch(ProjectileSnapshot.of(a.player, Fireball.INSTANCE).withConfig(Vanilla18.projectiles()));
+            if (pearl != null) pearl.remove();
+            if (fireball != null) fireball.remove();
+            assertEquals(1, tally.get(ida, "pearls-thrown"));
+            assertEquals(1, tally.get(ida, "fireballs-thrown"));
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();

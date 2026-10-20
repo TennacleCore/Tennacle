@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.commands.RulesCompletions;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
+import tennacle.games.stats.Tally;
 
 import java.util.List;
 import java.util.Set;
@@ -181,6 +182,11 @@ public final class Building {
     }
 
     /** A module that keeps cells clear wherever it is installed, beside the {@link Space}'s own. */
+    /** A module told of every break that landed, whenever it installed. */
+    public interface Breaks {
+        void broke(@NotNull Player breaker, @NotNull Point pos);
+    }
+
     public interface Reserves {
         boolean reserves(@NotNull Point pos);
 
@@ -242,6 +248,7 @@ public final class Building {
             }
             building.placed.add(key(e.getBlockPosition()));
             Match.addSeat(game, player, PLACED_COUNT);
+            Tally.add(game, player, "blocks-placed");
             touched.accept(player);
         });
         game.on(PlayerBlockBreakEvent.class, e -> {
@@ -271,6 +278,8 @@ public final class Building {
             building.placed.remove(key(pos)); // after the refusal: a block that stays is still the one who placed it
             if (kind.equals(GRASS)) building.bare(pos);
             Match.addSeat(game, player, BROKEN_COUNT);
+            Tally.add(game, player, "blocks-broken");
+            for (Breaks module : game.modules(Breaks.class)) module.broke(player, pos);
             touched.accept(player);
         });
         game.onWorld(ItemSpawnEvent.class, ItemSpawnEvent::world, e -> {

@@ -1,5 +1,6 @@
 package tennacle.games.items;
 
+import tennacle.games.stats.Tally;
 import tennacle.games.map.Building;
 import tennacle.games.map.Structures;
 
@@ -61,6 +62,7 @@ public final class Sponge implements GameModule {
         game.on(PlayerBlockPlaceEvent.class, e -> {
             Player player = e.getPlayer();
             if (!e.getBlock().compare(Block.SPONGE) || game.roster().slotOf(player) == null || game.isGhost(player)) return;
+            Tally.add(game, player, "sponges-placed");
             start(player, e.getBlockPosition());
         });
     }

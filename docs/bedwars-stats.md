@@ -135,3 +135,5 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
   and seeded `bedwars:games` from wins and losses; streaks start from zero.
 - **Resources and purchases** (`games.stats.Haul`, `Shop.buy`): every row of the resources table, and the four
   `-bought` counts. A chest is counted while one player has it open; two at once can't be told apart, so neither is.
+- **Combat, items and building** (`games.stats.Feats`, `Building.Breaks`): every row of those three tables. Damage
+  between two players is also kept per game as a pair, attacker against victim.

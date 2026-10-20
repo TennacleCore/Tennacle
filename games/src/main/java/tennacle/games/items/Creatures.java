@@ -1,5 +1,6 @@
 package tennacle.games.items;
 
+import tennacle.games.stats.Tally;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import java.util.function.BiConsumer;
@@ -200,6 +201,7 @@ public final class Creatures implements GameModule {
         name(fish, seat.team(), "Silverfish");
         Hologram tag = Hologram.at(at, Match.scenery(game)).line(BEDBUG_TAG, squares(seat.team(), BEDBUG_SQUARES, BEDBUG_SQUARES));
         creatures.put(fish, new Creature(fish, seat.team(), seat, BEDBUG, game.tick(), life, tag, BEDBUG_TAG));
+        Tally.add(game, owner, "silverfish-spawned");
         owner.sendMessage(ItemLines.of(game).creature(game, life));
         arm();
         return fish;
@@ -213,6 +215,7 @@ public final class Creatures implements GameModule {
         IronGolemEntity golem = new IronGolemEntity(Mechanics.mobs);
         golem.playerCreated(true);
         Mechanics.mobs.spawn(golem, game.shard(), at);
+        Tally.add(game, owner, "golems-spawned");
         golem.sides(sides);
         golem.kind(MobKindConfig.builder()
                 .maxHealth(game.rules().resolve(owner, DEFENDER_HEALTH))

@@ -1,5 +1,6 @@
 package tennacle.games.items;
 
+import tennacle.games.stats.Tally;
 import tennacle.boot.Mechanics;
 import tennacle.games.TeamBlocks;
 import tennacle.games.map.Building;
@@ -68,6 +69,7 @@ public final class PopupTower implements GameModule {
             if (!e.getBlock().compare(Block.TRAPPED_CHEST) || game.roster().slotOf(player) == null || game.isGhost(player)) return;
             e.setCancelled(true);
             spend(player, e.getHand());
+            Tally.add(game, player, "popup-towers-placed");
             build(player, e.getBlockPosition());
         });
     }

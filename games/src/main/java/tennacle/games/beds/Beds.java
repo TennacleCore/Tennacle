@@ -1,5 +1,7 @@
 package tennacle.games.beds;
 
+import net.minestom.server.instance.block.BlockFace;
+import tennacle.games.map.Building;
 import io.github.term4.grotto.Markers;
 import io.github.term4.barnacle.marker.PosMarker;
 import net.minestom.server.coordinate.Vec;
@@ -50,7 +52,7 @@ import java.util.UUID;
  * so a match nobody wins still ends. The elimination is {@code LastStanding}'s, which {@link Lives} calls
  * when a bedless seat falls.
  */
-public final class Beds implements Anchor {
+public final class Beds implements Anchor, Building.Breaks {
 
     /** Whether the team's bed still stands; team-scoped, so a board reads it a side at a time. */
     public static final StateKey<Boolean> STANDS = StateKey.of("ledger.beds.stands", Codec.BOOLEAN, true, true);
@@ -297,6 +299,20 @@ public final class Beds implements Anchor {
     /** The sides whose bed still stands, in roster order. */
     public static @NotNull List<String> standing(@NotNull Game game) {
         return game.roster().teams().stream().map(Team::id).filter(id -> stands(game, id)).toList();
+    }
+
+    // a block against another standing side's bed: digging into its defense
+    @Override
+    public void broke(@NotNull Player breaker, @NotNull Point pos) {
+        String mine = Match.teamOf(game, breaker);
+        for (BlockFace face : BlockFace.values()) {
+            Point next = pos.add(face.toDirection().normalX(), face.toDirection().normalY(), face.toDirection().normalZ());
+            String owner = cells.get(new BlockVec(next.blockX(), next.blockY(), next.blockZ()));
+            if (owner != null && !owner.equals(mine) && stands(game, owner)) {
+                Tally.add(game, breaker, "bed-defense-broken");
+                return;
+            }
+        }
     }
 
     private void erase(String team) {

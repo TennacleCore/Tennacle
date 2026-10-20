@@ -114,6 +114,11 @@ class BedWarsRoundTest extends HeadlessServerTest {
 
     /** Three sides round a wool deck, a glass room in the sky, the limits and a radius of 30. */
     static Arena fixture() {
+        return fixture(true);
+    }
+
+    /** {@code bedsInBases} false: side 2's base box stops short of its bed, so its defense can be built. */
+    static Arena fixture(boolean bedsInBases) {
         Session s = Session.create("bedwars-fixture", new ShardManager(), p -> {});
         try {
             for (int x = -20; x <= 20; x++) {
@@ -129,7 +134,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
             s.addMarker(new PosMarker("grotto:spawn", "2", "", new Pos(7.5, 65, 0.5, 90, 0)));
             s.addMarker(new PosMarker("grotto:spawn", "3", "", new Pos(0.5, 65, 7.5, 180, 0)));
             s.addMarker(new RegionMarker("bedwars:base", "1", "", new BlockVec(-13, 64, -2), new BlockVec(-9, 68, 2)));
-            s.addMarker(new RegionMarker("bedwars:base", "2", "", new BlockVec(9, 64, -2), new BlockVec(13, 68, 2)));
+            s.addMarker(new RegionMarker("bedwars:base", "2", "", new BlockVec(bedsInBases ? 9 : 13, 64, -2), new BlockVec(13, 68, 2)));
             s.addMarker(new RegionMarker("bedwars:base", "3", "", new BlockVec(-2, 64, 9), new BlockVec(2, 68, 13)));
             s.addMarker(new RegionMarker("bedwars:lobby", "", "", new BlockVec(-12, 97, -12), new BlockVec(12, 106, 12)));
             CompoundBinaryTag spawners = CompoundBinaryTag.builder().putInt("solo", 3).putInt("doubles", 3)

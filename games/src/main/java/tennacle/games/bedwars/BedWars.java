@@ -7,6 +7,7 @@ import net.minestom.server.command.CommandSender;
 import io.github.term4.grotto.vault.VaultKey;
 import tennacle.Msg;
 import tennacle.games.Careers;
+import tennacle.games.stats.Feats;
 import tennacle.games.stats.Haul;
 import tennacle.games.stats.Tally;
 import tennacle.boot.Mechanics;
@@ -459,6 +460,7 @@ public final class BedWars {
                         () -> new Loadout().kept(Gear::kept),
                         Idle::new,
                         Rules::new, OffMap::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, TntMark::new, Presentation::new,
+                        Feats::new, // after the throws' own checks: a refused one is cancelled by then
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
                         () -> Tally.of("bedwars", name),
