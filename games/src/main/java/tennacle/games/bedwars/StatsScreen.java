@@ -8,7 +8,9 @@ import io.github.term4.canvas.screen.Screens;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.entity.Player;
+import net.minestom.server.component.DataComponents;
 import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.component.AttributeList;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,6 +61,10 @@ final class StatsScreen {
     private interface More {
         Screen open(UUID subject, String name, int mode);
     }
+
+    // what an enchantment makes the item: the bows and the stick go by it
+    private static final Map<String, String> SHORT = Map.of("stick", "Knockback Stick", "power-bow", "Power Bow",
+            "punch-bow", "Punch Bow");
 
     // each paid in the shop's own price colors
     private record Resource(String id, NamedTextColor color) {}
@@ -145,8 +151,8 @@ final class StatsScreen {
         for (int i = 0; i < MODES.size(); i++) {
             int index = i;
             Mode m = MODES.get(i);
-            screen.press(2 + i, viewer -> Entry.of(m.icon()).name(m.name()).glint(index == mode)
-                    .action(index == mode ? "Showing" : "Click to show").render(viewer), (viewer, click) -> {
+            screen.press(2 + i, viewer -> plainIcon(Entry.of(m.icon()).name(m.name()).glint(index == mode)
+                    .action(index == mode ? "Showing" : "Click to show").render(viewer)), (viewer, click) -> {
                 if (index != mode) Screens.swap(viewer, screen(subject, name, index));
                 return null;
             });
@@ -185,10 +191,16 @@ final class StatsScreen {
     private static void ware(Entry entry, Stats s, Wares.Ware ware) {
         String id = ware.offer().id();
         if (!ware.upgradable()) {
-            entry.fact(ware.names().getFirst(), bought(s, id));
+            entry.fact(SHORT.getOrDefault(id, plain(ware.names().getFirst())), bought(s, id));
             return;
         }
-        for (int tier = 1; tier <= ware.names().size(); tier++) entry.fact(ware.names().get(tier - 1), bought(s, id + "-" + tier));
+        for (int tier = 1; tier <= ware.names().size(); tier++) entry.fact(plain(ware.names().get(tier - 1)), bought(s, id + "-" + tier));
+    }
+
+    // the shop's name less its enchantments: "Iron Pickaxe (Efficiency II)" is an Iron Pickaxe
+    private static String plain(String name) {
+        int open = name.indexOf(" (");
+        return open < 0 ? name : name.substring(0, open);
     }
 
     // bought | paid, the price in its resource's color
@@ -221,10 +233,15 @@ final class StatsScreen {
                     Screens.repaint(viewer);
                 });
             }
-            return entry.text("Loading...").render(viewer);
+            return plainIcon(entry.text("Loading...").render(viewer));
         }
         category.facts().accept(entry, new Stats(all, mode.scope(), Canvas.screenThemeFor(viewer)));
-        return entry.render(viewer);
+        return plainIcon(entry.render(viewer));
+    }
+
+    // hiding the attributes isn't enough on 1.8: a tool with none of its own still draws its default damage
+    private static ItemStack plainIcon(ItemStack icon) {
+        return icon.with(DataComponents.ATTRIBUTE_MODIFIERS, AttributeList.EMPTY);
     }
 
     private static Category resource(Material icon, String name, String res) {
