@@ -53,6 +53,25 @@ public final class PgStats implements StatStore {
     }
 
     @Override
+    public @NotNull CompletableFuture<Void> add(@NotNull UUID player, @NotNull java.util.Map<String, Long> deltas) {
+        return db.transaction(c -> {
+            try (PreparedStatement s = c.prepareStatement("INSERT INTO stats (player, stat, value) VALUES (?, ?, ?) "
+                    + "ON CONFLICT (player, stat) DO UPDATE SET value = stats.value + excluded.value")) {
+                // sorted: two games ending at once lock a player's rows in one order, never deadlocking
+                for (java.util.Map.Entry<String, Long> delta : new java.util.TreeMap<>(deltas).entrySet()) {
+                    if (delta.getValue() == 0) continue;
+                    s.setObject(1, player);
+                    s.setString(2, delta.getKey());
+                    s.setLong(3, delta.getValue());
+                    s.addBatch();
+                }
+                s.executeBatch();
+            }
+            return null;
+        });
+    }
+
+    @Override
     public @NotNull CompletableFuture<List<Standing>> top(@NotNull String stat, int limit) {
         return db.query(c -> {
             try (PreparedStatement s = c.prepareStatement(

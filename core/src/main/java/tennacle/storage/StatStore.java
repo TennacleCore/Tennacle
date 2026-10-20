@@ -2,12 +2,14 @@ package tennacle.storage;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.LongUnaryOperator;
 
-/** Career numbers as rows, so they can be ranked. A stat is named by its vault key's id ({@code bedwars:career-kills}). */
+/** Career numbers as rows, so they can be ranked. A stat is named by its vault key's id ({@code bedwars:kills}). */
 public interface StatStore {
 
     record Standing(@NotNull UUID player, long value) {}
@@ -20,4 +22,13 @@ public interface StatStore {
 
     /** Highest first. */
     @NotNull CompletableFuture<List<Standing>> top(@NotNull String stat, int limit);
+
+    /** Each stat += its delta: a finished game's totals, in one write where the store can. */
+    default @NotNull CompletableFuture<Void> add(@NotNull UUID player, @NotNull Map<String, Long> deltas) {
+        List<CompletableFuture<Long>> writes = new ArrayList<>();
+        deltas.forEach((stat, delta) -> {
+            if (delta != 0) writes.add(update(player, stat, old -> old + delta));
+        });
+        return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
+    }
 }

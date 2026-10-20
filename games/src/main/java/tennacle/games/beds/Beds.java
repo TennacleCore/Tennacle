@@ -7,6 +7,7 @@ import net.minestom.server.coordinate.Pos;
 import io.github.term4.polyp.api.event.mobs.MobBreakBlockEvent;
 import org.jetbrains.annotations.Nullable;
 import tennacle.games.Match;
+import tennacle.games.stats.Tally;
 
 import io.github.term4.barnacle.marker.MarkerKey;
 import io.github.term4.barnacle.marker.RegionMarker;
@@ -299,6 +300,10 @@ public final class Beds implements Anchor {
     }
 
     private void erase(String team) {
+        for (Player seated : game.members()) {
+            var seat = game.roster().slotOf(seated);
+            if (seat != null && seat.team().equals(team)) Tally.add(game, seated, "beds-lost");
+        }
         clear(team);
         for (java.util.function.Consumer<String> action : fell) action.accept(team);
     }
@@ -316,6 +321,7 @@ public final class Beds implements Anchor {
 
     private void broke(String owner, Player breaker, Point bed) {
         Match.addSeat(game, breaker, broken);
+        Tally.add(game, breaker, "beds-broken");
         breakers.put(owner, breaker.getUuid()); // before the fall: its listeners ask who it was
         broke(owner, Component.text(breaker.getUsername(), Match.teamColor(game, breaker)), Match.teamOf(game, breaker), bed);
     }

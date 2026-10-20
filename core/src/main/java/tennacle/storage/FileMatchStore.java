@@ -49,6 +49,43 @@ public final class FileMatchStore implements MatchStore {
     }
 
     @Override
+    public @NotNull CompletableFuture<Void> stats(@NotNull String match, @NotNull List<Line> lines, @NotNull List<Pair> pairs) {
+        String line = statsLine(match, lines, pairs);
+        return CompletableFuture.runAsync(() -> {
+            Path file = dir.resolve(LocalDate.now() + "-stats.jsonl");
+            try {
+                Files.createDirectories(dir);
+                Files.writeString(file, line, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            } catch (IOException e) {
+                LOGGER.error("could not record the stats of match {} in {}", match, file.getFileName(), e);
+                throw new UncheckedIOException(e);
+            }
+        }, io);
+    }
+
+    static String statsLine(String match, List<Line> lines, List<Pair> pairs) {
+        StringBuilder out = new StringBuilder(64 + lines.size() * 48).append('{');
+        field(out, "match", match).append(",\"lines\":[");
+        for (int i = 0; i < lines.size(); i++) {
+            Line line = lines.get(i);
+            if (i > 0) out.append(',');
+            out.append('{');
+            field(out, "player", line.player().toString()).append(',');
+            field(out, "stat", line.stat()).append(",\"value\":").append(line.value()).append('}');
+        }
+        out.append("],\"pairs\":[");
+        for (int i = 0; i < pairs.size(); i++) {
+            Pair pair = pairs.get(i);
+            if (i > 0) out.append(',');
+            out.append('{');
+            field(out, "player", pair.player().toString()).append(',');
+            field(out, "other", pair.other()).append(',');
+            field(out, "stat", pair.stat()).append(",\"value\":").append(pair.value()).append('}');
+        }
+        return out.append("]}\n").toString();
+    }
+
+    @Override
     public boolean flush(long timeout, @NotNull TimeUnit unit) {
         io.shutdown();
         try {

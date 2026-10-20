@@ -169,6 +169,30 @@ class PostgresStoresTest {
     }
 
     @Test
+    void aGameAddsInOneWrite() {
+        PgStats stats = new PgStats(db);
+        UUID a = UUID.randomUUID();
+        stats.update(a, "test:kills", n -> 4).join();
+        CompletableFuture.allOf(stats.add(a, Map.of("test:kills", 2L, "test-solo:kills", 2L, "test:deaths", 0L)),
+                stats.add(a, Map.of("test:kills", 1L, "test-solo:kills", 1L))).join();
+        assertEquals(7, stats.get(a, "test:kills").join());
+        assertEquals(3, stats.get(a, "test-solo:kills").join());
+        assertEquals(Map.of("test:kills", 7L, "test-solo:kills", 3L), stats.of(a).join(), "a zero writes no row");
+
+        PgMatches matches = new PgMatches(db);
+        matches.stats("game-1", List.of(new MatchStore.Line(a, "test:kills", 3)),
+                List.of(new MatchStore.Pair(a, "red", "test:time-at-base", 40))).join();
+        matches.stats("game-1", List.of(new MatchStore.Line(a, "test:kills", 3)), List.of()).join();
+        long rows = db.query(c -> {
+            try (var s = c.createStatement(); var r = s.executeQuery("SELECT count(*) FROM match_stats WHERE match_id = 'game-1'")) {
+                r.next();
+                return r.getLong(1);
+            }
+        }).join();
+        assertEquals(1, rows, "a match's rows land once");
+    }
+
+    @Test
     void replaysKeepHoldAndBookmark(@TempDir Path root) {
         long[] now = {10_500};
         PgReplays replays = new PgReplays(db, new FileReplayBlobs(root), 1_000, () -> now[0]);

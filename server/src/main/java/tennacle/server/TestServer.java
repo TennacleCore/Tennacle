@@ -224,7 +224,7 @@ public final class TestServer {
         ApiCommand.register();
         SocialModule.install();
         GamesModule.install(world, Playground.SPAWN, shards,
-                new GamesModule.Data(stores.vault(), stores.matches(), replays, stores.replays(), gameSecret(data)));
+                new GamesModule.Data(stores.vault(), stores.stats(), stores.matches(), replays, stores.replays(), gameSecret(data)));
         LobbyModule.install(world);
         MainMenu.catalog(stores.catalog());
         MinecraftServer.getGlobalEventHandler().addListener(PlayerDisconnectEvent.class,

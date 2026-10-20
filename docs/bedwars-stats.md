@@ -126,3 +126,10 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
 3. **Diamond and emerald reach:** a radius around each generator: 8 blocks by default, set per map on the same page.
    Emeralds get their own `time-at-emeralds` beside `time-at-diamonds`.
 4. **Public:** every stat shows in the public API.
+
+## Built
+
+- **2026-10-19:** the sheet (`games.stats.Tally`), `match_stats` and `match_pairs` (V6), and the career totals in
+  one write per player. Counted so far: results, streaks, time played, kills and deaths by cause, finals, assists,
+  beds broken and lost. V6 renamed the old `bedwars:career-*` rows to these names (`career-beds` is `beds-broken`)
+  and seeded `bedwars:games` from wins and losses; streaks start from zero.

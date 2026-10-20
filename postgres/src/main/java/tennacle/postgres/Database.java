@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public final class Database implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Database.class);
-    private static final String[] MIGRATIONS = {"V1.sql", "V2.sql", "V3.sql", "V4.sql", "V5.sql"};
+    private static final String[] MIGRATIONS = {"V1.sql", "V2.sql", "V3.sql", "V4.sql", "V5.sql", "V6.sql"};
     private static final long MIGRATION_LOCK = 0x54454E4E; // TENN
 
     @FunctionalInterface

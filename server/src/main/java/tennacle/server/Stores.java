@@ -32,13 +32,15 @@ import tennacle.storage.ReplayCatalog;
 import tennacle.storage.ReplayStore;
 import tennacle.storage.StatKeys;
 import tennacle.storage.StatRouting;
+import tennacle.storage.StatStore;
+import tennacle.storage.VaultStats;
 
 import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /** Where durable data lives: PostgreSQL when {@code tennacle.postgres.url} is set, the files under data/ otherwise. */
-record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull MatchStore matches,
+record Stores(@NotNull Vault vault, @NotNull StatStore stats, @NotNull Directory directory, @NotNull MatchStore matches,
               @NotNull Punishments punishments, @NotNull ReplayStore replays, @NotNull ReplayCatalog catalog,
               @NotNull ApiKeys apiKeys, @NotNull Runnable installed, @NotNull Closer closer) {
 
@@ -68,7 +70,7 @@ record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull Match
             MinecraftServer.getSchedulerManager().buildTask(() -> replays.expire(System.currentTimeMillis()))
                     .repeat(TaskSchedule.hours(1)).schedule();
         };
-        return new Stores(new StatRouting(new PgVault(db), stats), new PgDirectory(db), new PgMatches(db),
+        return new Stores(new StatRouting(new PgVault(db), stats), stats, new PgDirectory(db), new PgMatches(db),
                 new PgPunishments(db), replays, new PgReplayCatalog(db, keep), new PgApiKeys(db), installed, new Closer() {
             @Override
             public void left(@NotNull UUID player) {}
@@ -86,7 +88,7 @@ record Stores(@NotNull Vault vault, @NotNull Directory directory, @NotNull Match
         FileDirectory directory = new FileDirectory(data.resolve("directory.tsv"));
         FileMatchStore matches = new FileMatchStore(data.resolve("matches"));
         LOGGER.info("storage: files under {}", data.toAbsolutePath());
-        return new Stores(vault, directory, matches, new VaultPunishments(() -> vault), new FileReplays(replayDir),
+        return new Stores(vault, new VaultStats(vault), directory, matches, new VaultPunishments(() -> vault), new FileReplays(replayDir),
                 ReplayCatalog.SAMPLES, ApiKeys.NONE, () -> {}, new Closer() {
             @Override
             public void left(@NotNull UUID player) {

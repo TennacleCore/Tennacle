@@ -28,6 +28,36 @@ public final class PgMatches implements MatchStore {
     }
 
     @Override
+    public @NotNull CompletableFuture<Void> stats(@NotNull String match, @NotNull List<Line> lines, @NotNull List<Pair> pairs) {
+        return db.transaction(c -> {
+            try (PreparedStatement s = c.prepareStatement("INSERT INTO match_stats (match_id, player, stat, value) "
+                    + "VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING")) {
+                for (Line line : lines) {
+                    s.setString(1, match);
+                    s.setObject(2, line.player());
+                    s.setString(3, line.stat());
+                    s.setLong(4, line.value());
+                    s.addBatch();
+                }
+                s.executeBatch();
+            }
+            try (PreparedStatement s = c.prepareStatement("INSERT INTO match_pairs (match_id, player, other, stat, value) "
+                    + "VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING")) {
+                for (Pair pair : pairs) {
+                    s.setString(1, match);
+                    s.setObject(2, pair.player());
+                    s.setString(3, pair.other());
+                    s.setString(4, pair.stat());
+                    s.setLong(5, pair.value());
+                    s.addBatch();
+                }
+                s.executeBatch();
+            }
+            return null;
+        });
+    }
+
+    @Override
     public boolean flush(long timeout, @NotNull TimeUnit unit) {
         return db.flush(timeout, unit);
     }

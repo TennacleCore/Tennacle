@@ -5,9 +5,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.UUID;
 import net.minestom.server.command.CommandSender;
 import io.github.term4.grotto.vault.VaultKey;
-import io.github.term4.grotto.modules.outcome.Stats;
 import tennacle.Msg;
 import tennacle.games.Careers;
+import tennacle.games.stats.Tally;
 import tennacle.boot.Mechanics;
 import tennacle.games.Generators;
 import tennacle.games.Idle;
@@ -160,13 +160,13 @@ public final class BedWars {
     static final Lives.Counters COUNTERS = new Lives.Counters(KILLS, DEATHS, FINAL_KILLS, FINAL_DEATHS);
 
     // career truth, in the vault
-    public static final VaultKey<Integer> CAREER_KILLS = VaultKey.of("bedwars:career-kills", Codec.INT, 0);
-    public static final VaultKey<Integer> CAREER_DEATHS = VaultKey.of("bedwars:career-deaths", Codec.INT, 0);
-    public static final VaultKey<Integer> CAREER_FINAL_KILLS = VaultKey.of("bedwars:career-final-kills", Codec.INT, 0);
-    public static final VaultKey<Integer> CAREER_FINAL_DEATHS = VaultKey.of("bedwars:career-final-deaths", Codec.INT, 0);
-    public static final VaultKey<Integer> CAREER_BEDS = VaultKey.of("bedwars:career-beds", Codec.INT, 0);
-    public static final VaultKey<Integer> CAREER_WINS = VaultKey.of("bedwars:career-wins", Codec.INT, 0);
-    public static final VaultKey<Integer> CAREER_LOSSES = VaultKey.of("bedwars:career-losses", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_KILLS = VaultKey.of("bedwars:kills", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_DEATHS = VaultKey.of("bedwars:deaths", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_FINAL_KILLS = VaultKey.of("bedwars:final-kills", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_FINAL_DEATHS = VaultKey.of("bedwars:final-deaths", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_BEDS = VaultKey.of("bedwars:beds-broken", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_WINS = VaultKey.of("bedwars:wins", Codec.INT, 0);
+    public static final VaultKey<Integer> CAREER_LOSSES = VaultKey.of("bedwars:losses", Codec.INT, 0);
 
     private static final ItemStack SWORD = Kit.unbreakable(ItemStack.of(Material.WOODEN_SWORD));
 
@@ -459,9 +459,7 @@ public final class BedWars {
                         Rules::new, OffMap::new, Structures::new, PopupTower::new, BridgeEgg::new, Sponge::new, Fireballs::new, TntMark::new, Presentation::new,
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
-                        () -> Stats.of().counter(KILLS, CAREER_KILLS).counter(DEATHS, CAREER_DEATHS)
-                                .counter(FINAL_KILLS, CAREER_FINAL_KILLS).counter(FINAL_DEATHS, CAREER_FINAL_DEATHS)
-                                .counter(BEDS, CAREER_BEDS).wins(CAREER_WINS).losses(CAREER_LOSSES),
+                        () -> Tally.of("bedwars", name),
                         () -> Boards.hypixel(label))
                 .build();
         Rulesets.check(Mechanics.polyp.profiles().global(), type);

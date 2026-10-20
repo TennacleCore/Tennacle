@@ -21,7 +21,16 @@ public interface MatchStore {
                  @NotNull String map, @NotNull String outcome, @Nullable String winner, long startedAt, long endedAt,
                  long ticks, @NotNull List<Side> sides) {}
 
+    /** One player's number in one match: {@code bedwars:kills}. */
+    record Line(@NotNull UUID player, @NotNull String stat, long value) {}
+
+    /** A number between a player and {@code other}: another player's uuid, or a team id. */
+    record Pair(@NotNull UUID player, @NotNull String other, @NotNull String stat, long value) {}
+
     @NotNull CompletableFuture<Void> add(@NotNull Match match);
+
+    /** A match's per-player numbers, kept with it; separate from {@link #add} so no write waits on the other. */
+    @NotNull CompletableFuture<Void> stats(@NotNull String match, @NotNull List<Line> lines, @NotNull List<Pair> pairs);
 
     /** Waits out pending writes; {@code false} = something was still in flight. */
     default boolean flush(long timeout, @NotNull TimeUnit unit) {

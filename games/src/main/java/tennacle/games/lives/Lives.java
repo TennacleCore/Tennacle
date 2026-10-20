@@ -3,6 +3,8 @@ package tennacle.games.lives;
 import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.beds.Banners;
+import tennacle.games.stats.Cause;
+import tennacle.games.stats.Tally;
 import tennacle.games.watch.Lineup;
 import tennacle.games.watch.Replays;
 import tennacle.games.watch.Spectators;
@@ -45,6 +47,7 @@ import java.util.function.ToLongFunction;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -142,7 +145,9 @@ public final class Lives implements GameModule {
                     if (played(seat)) {
                         Scope scope = Scope.slot(seat.index());
                         game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
-                        credit(breakerFor(seat));
+                        UUID held = heldBy(seat);
+                        if (held != null) Tally.finalDeath(game, held, Cause.OTHER);
+                        credit(breakerFor(seat), Cause.OTHER);
                     }
                     standing.out(seat, LastStanding.Cause.eliminated(null, "left the game"));
                     game.roster().release(seat); // nothing to come back to
@@ -164,7 +169,8 @@ public final class Lives implements GameModule {
             Player by = e.source() instanceof Player p && p != victim ? p : null;
             Blame blame = by == null ? blame(e.source()) : null;
             if (blame != null && blame.by() != victim) by = blame.by();
-            killed(victim, by, by != null ? "was killed by" : "died", by != null && blame != null ? blame.tool() : null, e.item());
+            killed(victim, by, by != null ? "was killed by" : "died", by != null && blame != null ? blame.tool() : null, e.item(),
+                    Cause.of(e.type(), e.source()));
         });
         // a creature's hit is its owner's for the credit, as an arrow's is its shooter's
         game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
@@ -172,6 +178,7 @@ public final class Lives implements GameModule {
             Blame blame = blame(e.source());
             if (blame != null && blame.by() != victim && game.roster().slotOf(blame.by()) != null) {
                 credit.record(victim, blame.by(), game.state().tick());
+                Tally.hit(game, victim.getUuid(), blame.by().getUuid());
             }
         });
         game.on(KnockbackEvent.class, KnockbackEvent::target, e -> {
@@ -196,10 +203,11 @@ public final class Lives implements GameModule {
         String verb = by != null ? "was killed by" : "left the game";
         if (by != null) Match.addSeat(game, by, counters.kills());
         died(new Death(game, player, seat, by, !anchor.stands(seat.team()), null, null, player.getPosition()));
+        Tally.died(game, player.getUuid(), by != null ? by.getUuid() : null, !anchor.stands(seat.team()), Cause.OTHER);
         if (!anchor.stands(seat.team())) {
             game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
             if (by != null) Match.addSeat(game, by, counters.finalKills());
-            else credit(breakerFor(seat));
+            else credit(breakerFor(seat), Cause.OTHER);
             mark(player, seat, by, verb);
             // a kill within the credit window says so; a plain leave was announced as the departure it is
             standing.out(seat, by != null ? LastStanding.Cause.eliminated(by, verb, Banners.finalNote(game))
@@ -232,16 +240,18 @@ public final class Lives implements GameModule {
     public void fell(@NotNull Player player) {
         if (game.roster().slotOf(player) == null || respawns.isDead(player)) return; // a waiting ghost cannot die again
         Player by = credit.creditFor(player);
-        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null, null);
+        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null, null, Cause.VOID);
     }
 
     // a side with a bed respawns, a side without loses the seat
-    private void killed(Player victim, @Nullable Player by, String verb, @Nullable String tool, @Nullable ItemStack item) {
+    private void killed(Player victim, @Nullable Player by, String verb, @Nullable String tool, @Nullable ItemStack item,
+                        Cause cause) {
         Slot seat = game.roster().slotOf(victim);
         if (seat == null) return;
         Match.addSeat(game, victim, counters.deaths());
         if (by != null) Match.addSeat(game, by, counters.kills());
         boolean last = !anchor.stands(seat.team());
+        Tally.died(game, victim.getUuid(), by != null ? by.getUuid() : null, last, cause);
         if (!last) keep(victim, seat); // before the killer's share and the spill
         Death death = new Death(game, victim, seat, by, last, tool, item, victim.getPosition());
         died(death);
@@ -250,7 +260,7 @@ public final class Lives implements GameModule {
         if (last) {
             Match.addSeat(game, victim, counters.finalDeaths());
             if (by != null) Match.addSeat(game, by, counters.finalKills());
-            else credit(breakerFor(seat));
+            else credit(breakerFor(seat), cause);
             mark(victim, seat, by, verb);
             // the user, 2026-09-29: the eliminated wait where a death waits, with the wait's compass, and never respawn
             respawns.park(victim);
@@ -314,10 +324,17 @@ public final class Lives implements GameModule {
         return breaker;
     }
 
-    private void credit(@Nullable Player breaker) {
+    private void credit(@Nullable Player breaker, Cause cause) {
         if (breaker == null) return;
         Match.addSeat(game, breaker, counters.kills());
         Match.addSeat(game, breaker, counters.finalKills());
+        Tally.kill(game, breaker.getUuid(), true, cause);
+    }
+
+    private @Nullable UUID heldBy(Slot seat) {
+        UUID held = null;
+        for (var p : game.roster().participants()) if (p.slot().equals(seat)) held = p.uuid();
+        return held;
     }
 
     // a seat somebody sat in, not one nobody ever took
