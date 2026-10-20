@@ -53,6 +53,7 @@ public final class GamesModule {
         Matches.grotto().vault(data.vault());
         MatchLog.install(data.matches());
         Tally.install(data.stats(), data.matches());
+        Careers.install(data.stats());
         MatchLog.teamNames(Palette::titled);
         Matches.grotto().onGameEnd(MatchLog::ended);
         Replays.install(data.replays(), data.replayStore(), shards); // every game, spooled as it runs

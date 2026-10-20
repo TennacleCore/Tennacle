@@ -94,7 +94,11 @@ public final class MainMenu {
         for (int i = 0; i < modes.size(); i++) {
             String mode = modes.get(i);
             Careers.Card card = cards.get(mode);
-            screen.item(slots[i], v -> card(v, subject, mode, card));
+            if (card.detail() == null) screen.item(slots[i], v -> card(v, subject, mode, card));
+            else screen.press(slots[i], v -> card(v, subject, mode, card), (v, click) -> {
+                Screens.push(v, card.detail().open(subject, name));
+                return null;
+            });
         }
         return screen.build();
     }
@@ -113,6 +117,7 @@ public final class MainMenu {
             }
         } else {
             for (Careers.Row row : card.rows()) entry.fact(row.label(), row.value().apply(values));
+            if (card.detail() != null) entry.action("Click for all stats!");
         }
         return entry.render(viewer);
     }

@@ -151,5 +151,6 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
   carries its middle (`bedwars:mid`) and generator reach (`bedwars:reach`), stamped from the Zones page's export
   by `gradlew :server:bedwarsZones -Pzones=<zones.json>`; a map not marked done there has neither yet, so it keeps
   no `time-at-mid` and the default 8-block reach. A `bedwarsMaps` rebuild drops them: run `bedwarsZones` after it.
-- **The menu's Bed Wars card** reads the new numbers (results and ratios, finals, assists, beds, resources
-  collected, damage, blocks, purchases); `/stats` in chat keeps its seven.
+- **The menu's Bed Wars card** shows six numbers and opens the stats screen (`bedwars.StatsScreen`): a mode
+  picker (all modes, Solo, Doubles, 3v3v3v3, 4v4v4v4) over fifteen categories, read in one query
+  (`StatStore.all`). `/stats` in chat keeps its seven.

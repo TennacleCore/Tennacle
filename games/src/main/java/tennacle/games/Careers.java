@@ -1,6 +1,9 @@
 package tennacle.games;
 
 import tennacle.storage.StatKeys;
+import tennacle.storage.StatStore;
+import io.github.term4.canvas.screen.Screen;
+import org.jetbrains.annotations.Nullable;
 
 import io.github.term4.grotto.vault.Vault;
 import io.github.term4.grotto.vault.VaultKey;
@@ -29,8 +32,19 @@ public final class Careers {
     /** One number on a card: its label, and how it reads off the card's values. */
     public record Row(@NotNull String label, @NotNull java.util.function.Function<int[], Object> value) {}
 
-    /** A mode's career numbers: the keys read, then the rows made of them. */
-    public record Card(@NotNull String title, @NotNull List<VaultKey<Integer>> keys, @NotNull List<Row> rows) {
+    /** A mode's own stats screen, opened from its card. */
+    @FunctionalInterface
+    public interface Detail {
+        @NotNull Screen open(@NotNull UUID subject, @NotNull String name);
+    }
+
+    /** A mode's career numbers: the keys read, then the rows made of them, and where a click on it leads. */
+    public record Card(@NotNull String title, @NotNull List<VaultKey<Integer>> keys, @NotNull List<Row> rows,
+                       @Nullable Detail detail) {
+
+        public Card(@NotNull String title, @NotNull List<VaultKey<Integer>> keys, @NotNull List<Row> rows) {
+            this(title, keys, rows, null);
+        }
 
         /** A row showing key {@code index} as it is. */
         public static @NotNull Row count(@NotNull String label, int index) {
@@ -48,6 +62,7 @@ public final class Careers {
         private final String family;
         private final List<String> stats = new java.util.ArrayList<>();
         private final List<Row> rows = new java.util.ArrayList<>();
+        private @Nullable Detail detail;
 
         private Builder(String title, String family) {
             this.title = title;
@@ -89,10 +104,15 @@ public final class Careers {
             return this;
         }
 
+        public @NotNull Builder detail(@NotNull Detail detail) {
+            this.detail = detail;
+            return this;
+        }
+
         public @NotNull Card build() {
             List<VaultKey<Integer>> keys = stats.stream()
                     .map(stat -> VaultKey.of(family + ":" + stat, net.minestom.server.codec.Codec.INT, 0)).toList();
-            return new Card(title, keys, List.copyOf(rows));
+            return new Card(title, keys, List.copyOf(rows), detail);
         }
 
         private int index(String stat) {
@@ -104,6 +124,18 @@ public final class Careers {
     }
 
     private static final Map<String, Card> CARDS = new LinkedHashMap<>();
+    private static volatile StatStore stats;
+
+    /** Where a detail screen reads every stat of a player at once. */
+    public static void install(@NotNull StatStore store) {
+        stats = store;
+    }
+
+    /** Every stat {@code player} has; none before {@link #install}. */
+    public static @NotNull CompletableFuture<Map<String, Long>> all(@NotNull UUID player) {
+        StatStore store = stats;
+        return store == null ? CompletableFuture.completedFuture(Map.of()) : store.all(player);
+    }
 
     /** One mode's line for a player, said to {@code to}. */
     @FunctionalInterface

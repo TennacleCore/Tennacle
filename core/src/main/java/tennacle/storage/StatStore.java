@@ -23,6 +23,11 @@ public interface StatStore {
     /** Highest first. */
     @NotNull CompletableFuture<List<Standing>> top(@NotNull String stat, int limit);
 
+    /** Every stat {@code player} has, by name; a store that can't list them answers none. */
+    default @NotNull CompletableFuture<Map<String, Long>> all(@NotNull UUID player) {
+        return CompletableFuture.completedFuture(Map.of());
+    }
+
     /** Each stat += its delta: a finished game's totals, in one write where the store can. */
     default @NotNull CompletableFuture<Void> add(@NotNull UUID player, @NotNull Map<String, Long> deltas) {
         List<CompletableFuture<Long>> writes = new ArrayList<>();

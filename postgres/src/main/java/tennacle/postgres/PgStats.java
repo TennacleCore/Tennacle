@@ -87,6 +87,11 @@ public final class PgStats implements StatStore {
         });
     }
 
+    @Override
+    public @NotNull CompletableFuture<java.util.Map<String, Long>> all(@NotNull UUID player) {
+        return of(player);
+    }
+
     /** Every stat {@code player} has, by name. */
     public @NotNull CompletableFuture<java.util.Map<String, Long>> of(@NotNull UUID player) {
         return db.query(c -> {
