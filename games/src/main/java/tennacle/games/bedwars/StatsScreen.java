@@ -256,6 +256,10 @@ final class StatsScreen {
                 default -> e.fact("Emerald Generators", count(s.n(res + "-from-emerald-generators")))
                         .fact("Own Forge", count(s.n(res + "-from-own-forge")));
             }
+            if (res.equals("iron") || res.equals("gold")) {
+                e.fact("Split | Not Split", s.pair(res + "-split", res + "-not-split"))
+                        .fact("From Teammates' Splits", count(s.n(res + "-from-splits")));
+            }
             e.fact("Picked Up From Drops", count(s.n(res + "-from-players"))).fact("Taken On Kills", count(s.n(res + "-stolen")))
                     .fact("Chests, Taken | Put", s.pair(res + "-from-chests", res + "-into-chests"))
                     .fact("Team Chest", s.pair(res + "-from-team-chest", res + "-into-team-chest"))

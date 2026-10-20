@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import io.github.term4.grotto.modules.outcome.LastStanding;
 import tennacle.games.stats.Haul;
 import io.github.term4.grotto.Game;
 import net.minestom.server.codec.Codec;
@@ -260,6 +261,16 @@ public final class Generators implements GameModule, Building.Reserves {
         return game != null && !game.rules().resolve(Scope.GAME, RESERVE_FLOW) && reserves(pos);
     }
 
+    // a split takes a teammate still in the game: none in Solo, none once the last of a side stands alone
+    private boolean teammates(Player picker, String team) {
+        for (var seat : game.roster().seatsOf(team)) {
+            String owner = game.roster().ownerOf(seat);
+            if (owner == null || owner.equals(picker.getUsername())) continue;
+            if (!game.state().get(Scope.slot(seat.index()), LastStanding.OUT)) return true;
+        }
+        return false;
+    }
+
     @Override
     public void install(@NotNull Game game) {
         this.game = game;
@@ -279,13 +290,17 @@ public final class Generators implements GameModule, Building.Reserves {
             if (item.getTag(MADE_BY) == null || !shared.test(e.getItemStack())) return;
             String team = Match.teamOf(game, picker);
             if (team.isEmpty()) return;
+            boolean split = false;
             for (Player mate : game.members()) {
                 if (mate == picker || !team.equals(Match.teamOf(game, mate))) continue;
                 if (mate.getPosition().distance(item.getPosition()) > shareRadius) continue;
                 if (over(mate, e.getItemStack())) continue;
                 mate.getInventory().addItemStack(e.getItemStack());
                 Haul.generated(game, mate, item.getTag(MADE_BY), e.getItemStack());
+                Haul.splitFrom(game, mate, e.getItemStack());
+                split = true;
             }
+            if (split || teammates(picker, team)) Haul.split(game, picker, e.getItemStack(), split);
         });
     }
 }

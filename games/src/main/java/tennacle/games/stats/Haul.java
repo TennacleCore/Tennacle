@@ -175,6 +175,20 @@ public final class Haul implements GameModule, Tally.Closes {
         if (origins != null) origins.picked(game, player, generator, name, amount);
     }
 
+    /** A forge pickup a split was possible for: {@code split} when a teammate got a copy. */
+    public static void split(@NotNull Game game, @NotNull Player picker, @NotNull ItemStack stack, boolean split) {
+        Haul haul = game.module(Haul.class);
+        String name = haul != null ? haul.name(stack) : null;
+        if (name != null) haul.add(picker, name + (split ? "-split" : "-not-split"), stack.amount());
+    }
+
+    /** A teammate's split, received. */
+    public static void splitFrom(@NotNull Game game, @NotNull Player mate, @NotNull ItemStack stack) {
+        Haul haul = game.module(Haul.class);
+        String name = haul != null ? haul.name(stack) : null;
+        if (name != null) haul.add(mate, name + "-from-splits", stack.amount());
+    }
+
     /** A kill's hand-over: the killer's stolen, the victim's lost to players. */
     public static void handed(@NotNull Game game, @NotNull Player victim, @NotNull Player killer, @NotNull ItemStack stack) {
         Haul haul = game.module(Haul.class);

@@ -421,6 +421,49 @@ class BedWarsStatsTest extends HeadlessServerTest {
     }
 
     @Test
+    void forgeSplitsWithATeammate() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-doubles"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwSplitA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwSplitB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwSplitC");
+        try {
+            for (FakePlayer p : List.of(a, b, c)) p.player.setInstance(game.instance(), ROOM).join();
+            assertTrue(Matches.enter(game, List.of(a.player, b.player)), "a party lands together");
+            assertTrue(Matches.enter(game, List.of(c.player)));
+            await("all seated", () -> Game.of(a.player) == game && Game.of(b.player) == game && Game.of(c.player) == game);
+            BedWarsRoundTest.live(game);
+            String team = Match.teamOf(game, a.player);
+            assertEquals(team, Match.teamOf(game, b.player), "a and b share a side");
+            Tally tally = game.module(Tally.class);
+            Point forge = game.arena().marker(BedWars.FORGE, team).point();
+            a.player.teleport(Pos.fromPoint(forge)).join();
+            b.player.teleport(Pos.fromPoint(forge)).join();
+            BedWarsRoundTest.tickUntil(game, "forge iron", () -> lying(game, forge, Material.IRON_INGOT) != null);
+            DroppedItemEntity first = lying(game, forge, Material.IRON_INGOT);
+            int amount = first.getItemStack().amount();
+            assertTrue(pickUp(a, first));
+            assertEquals(amount, tally.get(a.player.getUuid(), "iron-split"));
+            assertEquals(amount, tally.get(b.player.getUuid(), "iron-from-splits"));
+
+            b.player.teleport(new Pos(0.5, 65, 0.5)).join();
+            BedWarsRoundTest.tickUntil(game, "more iron", () -> lying(game, forge, Material.IRON_INGOT) != null);
+            DroppedItemEntity second = lying(game, forge, Material.IRON_INGOT);
+            int more = second.getItemStack().amount();
+            assertTrue(pickUp(a, second));
+            assertEquals(more, tally.get(a.player.getUuid(), "iron-not-split"), "b too far to take a copy");
+            assertEquals(0, tally.get(c.player.getUuid(), "iron-not-split"), "c's side is c alone");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+        }
+    }
+
+    @Test
     void anAbortCountsNothing() {
         Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
                 BedWarsRoundTest.fixture()));

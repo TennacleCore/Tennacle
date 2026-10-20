@@ -49,6 +49,7 @@ Kept for each of iron, gold, diamond and emerald.
 | `<res>-from-own-forge`, `<res>-from-other-forges` | the forge share of `from-generators`: their base's, or another side's (kept against that side per game) |
 | `<res>-from-own-diamond-generators`, `<res>-from-other-diamond-generators` | a diamond generator is its nearest side's, shared with the next nearest while that one is under 1.5 times as far. That gives every side one on Solo and Doubles maps and two on most Triples and Quads maps; Deposit, Lost Temple, Manor Royale, Nostalgia, Sky Festival, Terminal and Zen Plaza put one in front of each base. On 4v4 maps each is its nearer side's alone; Gardens' sit exactly between the bases and stay shared. Another side's is kept against both its owners per game |
 | `<res>-from-emerald-generators` | |
+| `<res>-split`, `<res>-not-split`, `<res>-from-splits` | forge iron and gold: picked up with a teammate close enough to take a copy, or picked up with none who did while a split was possible (another of the side still in the game: never in Solo, never for a side's last player); and the copies received |
 | `<res>-from-players` | picked up after another player dropped it |
 | `<res>-stolen` | handed over on a kill: the victim's resources, given to the killer |
 | `<res>-from-chests`, `<res>-into-chests` | taken out of chests or put in, net per visit. Counted off the chest's slots, each change its visitor's whose click made it that tick; a visit ends at its close, the next chest, a death, a leave or the game's end |
