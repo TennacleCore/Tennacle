@@ -251,6 +251,45 @@ class BedWarsStatsTest extends HeadlessServerTest {
     }
 
     @Test
+    void placesCountBySecond() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPlaceA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPlaceB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwPlaceC");
+        try {
+            for (FakePlayer p : List.of(a, b, c)) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("all seated", () -> Game.of(a.player) == game && Game.of(b.player) == game && Game.of(c.player) == game);
+            BedWarsRoundTest.live(game);
+            Tally tally = game.module(Tally.class);
+            String aTeam = Match.teamOf(game, a.player);
+            a.player.teleport(new Pos(-11.5, 65, 1.5)).join(); // their own base box
+            b.player.teleport(new Pos(-10.5, 65, -1.5)).join(); // a's, its bed standing
+            c.player.teleport(new Pos(0.5, 65, -12.5)).join(); // by the diamonds
+            BedWarsRoundTest.tickUntil(game, "a sampled second", () -> tally.get(c.player.getUuid(), "time-at-diamonds") >= 1);
+            assertTrue(tally.get(a.player.getUuid(), "time-at-base") >= 1);
+            assertTrue(tally.get(b.player.getUuid(), "time-at-bases-alive") >= 1);
+            assertTrue(tally.get(b.player.getUuid(), "time-at-other-bases") >= 1);
+            assertTrue(tally.pairOf(b.player.getUuid(), aTeam, "time-at-base") >= 1, "kept against the side");
+            assertEquals(0, tally.get(c.player.getUuid(), "time-at-mid"));
+
+            c.player.teleport(new Pos(1.5, 65, 1.5)).join();
+            BedWarsRoundTest.tickUntil(game, "a second at the middle", () -> tally.get(c.player.getUuid(), "time-at-mid") >= 1);
+            assertTrue(tally.get(c.player.getUuid(), "time-played") >= 2);
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+        }
+    }
+
+    @Test
     void anAbortCountsNothing() {
         Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
                 BedWarsRoundTest.fixture()));

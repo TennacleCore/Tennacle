@@ -137,3 +137,7 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
   `-bought` counts. A chest is counted while one player has it open; two at once can't be told apart, so neither is.
 - **Combat, items and building** (`games.stats.Feats`, `Building.Breaks`): every row of those three tables. Damage
   between two players is also kept per game as a pair, attacker against victim.
+- **Places** (`bedwars.Places`, a once-a-second sampler on the sheet): every row of the places table. Each arena
+  carries its middle (`bedwars:mid`) and generator reach (`bedwars:reach`), stamped from the Zones page's export
+  by `gradlew :server:bedwarsZones -Pzones=<zones.json>`; a map not marked done there has neither yet, so it keeps
+  no `time-at-mid` and the default 8-block reach. A `bedwarsMaps` rebuild drops them: run `bedwarsZones` after it.

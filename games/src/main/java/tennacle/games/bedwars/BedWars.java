@@ -463,7 +463,7 @@ public final class BedWars {
                         Feats::new, // after the throws' own checks: a refused one is cancelled by then
                         () -> Refusals.of(Lines::refusal),
                         Abandonment.endWhenDeserted(Outcome::aborted),
-                        () -> Tally.of("bedwars", name),
+                        () -> Tally.of("bedwars", name).sampler(new Places()),
                         () -> Boards.hypixel(label))
                 .build();
         Rulesets.check(Mechanics.polyp.profiles().global(), type);

@@ -68,6 +68,11 @@ public final class BedwarsMaps {
             System.out.println(reface(Path.of(args[1])) + " arenas re-aimed in " + Path.of(args[1]).toAbsolutePath());
             System.exit(0);
         }
+        if (args.length == 3 && args[0].equals("--zones")) {
+            MinecraftServer.init();
+            System.out.println(zones(Path.of(args[1]), Path.of(args[2])) + " arenas zoned in " + Path.of(args[2]).toAbsolutePath());
+            System.exit(0);
+        }
         if (args.length < 3) {
             System.err.println("usage: BedwarsMaps <archive dir> <marker dir> <out dir> [map,map,...]");
             System.exit(2);
@@ -237,6 +242,53 @@ public final class BedwarsMaps {
             }
         }
         return changed;
+    }
+
+    /**
+     * Each done map's middle and generator reach (the Bed Wars Zones page's export) into its arena, worlds untouched.
+     * A map not done yet keeps what it had; the reach is the page's default where a map sets none.
+     */
+    static int zones(Path file, Path dir) throws IOException {
+        JsonObject all;
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            all = new Gson().fromJson(reader, JsonObject.class);
+        }
+        JsonObject reach = all.getAsJsonObject("reach");
+        int changed = 0;
+        for (JsonElement element : all.getAsJsonArray("maps")) {
+            JsonObject map = element.getAsJsonObject();
+            if (!map.get("done").getAsBoolean()) continue;
+            String name = map.get("map").getAsString();
+            Path arena = dir.resolve("bedwars-" + name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-") + ".bncl");
+            if (!Files.exists(arena)) continue;
+            byte[] before = Files.readAllBytes(arena);
+            Map<String, byte[]> entries = new java.util.LinkedHashMap<>(ArenaContainer.unpack(before));
+            ArenaManifest manifest = ArenaManifest.fromBytes(entries.get(ArenaContainer.MANIFEST));
+            List<Marker> markers = new ArrayList<>();
+            for (Marker marker : manifest.markers()) {
+                if (!marker.key().equals("bedwars:mid") && !marker.key().equals("bedwars:reach")) markers.add(marker);
+            }
+            markers.add(new DataMarker("bedwars:reach", "", "", CompoundBinaryTag.builder()
+                    .putDouble("diamond", reach(map, reach, "diamond")).putDouble("emerald", reach(map, reach, "emerald")).build(), 1));
+            JsonObject middle = object(map, "middle");
+            if (middle != null) {
+                markers.add(new DataMarker("bedwars:mid", "", "", CompoundBinaryTag.builder()
+                        .putDouble("cx", middle.get("cx").getAsDouble()).putDouble("cz", middle.get("cz").getAsDouble())
+                        .putDouble("rx", middle.get("rx").getAsDouble()).putDouble("rz", middle.get("rz").getAsDouble()).build(), 1));
+            }
+            entries.put(ArenaContainer.MANIFEST, new ArenaManifest(manifest.meta(), manifest.bounds(), markers,
+                    manifest.layers(), manifest.variants()).toBytes());
+            byte[] after = ArenaContainer.pack(entries);
+            if (java.util.Arrays.equals(before, after)) continue;
+            Files.write(arena, after);
+            changed++;
+        }
+        return changed;
+    }
+
+    private static double reach(JsonObject map, JsonObject defaults, String kind) {
+        JsonElement own = map.get(kind + " reach");
+        return own != null && !own.isJsonNull() ? own.getAsDouble() : defaults.get(kind).getAsDouble();
     }
 
     private static List<Marker> markers(JsonObject map) {

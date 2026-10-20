@@ -157,6 +157,8 @@ class BedWarsRoundTest extends HeadlessServerTest {
             s.addMarker(new LimitMarker("bedwars:floor", "", "", null, 60.0, null));
             s.addMarker(new LimitMarker("bedwars:void", "", "", null, 50.0, null));
             s.addMarker(new DataMarker("bedwars:radius", "", "", CompoundBinaryTag.builder().putDouble("radius", 30.0).build(), 1));
+            s.addMarker(new DataMarker("bedwars:mid", "", "", CompoundBinaryTag.builder().putDouble("cx", 0.5).putDouble("cz", 0.5)
+                    .putDouble("rx", 4).putDouble("rz", 4).build(), 1));
             s.spawn(ROOM);
             return Arena.read(s.save());
         } finally {
