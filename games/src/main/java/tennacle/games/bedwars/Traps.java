@@ -250,11 +250,16 @@ final class Traps implements GameModule {
     }
 
     /** A trap bought into the buyer's team's queue. */
-    record TrapOffer(@NotNull Kind kind) implements Offer {
+    record TrapOffer(@NotNull Kind trap) implements Offer {
+
+        @Override
+        public @NotNull String kind() {
+            return "traps";
+        }
 
         @Override
         public @NotNull String id() {
-            return kind.id;
+            return trap.id;
         }
 
         @Override
@@ -280,7 +285,7 @@ final class Traps implements GameModule {
         public boolean grant(@NotNull Game game, @NotNull Player buyer) {
             String team = Match.teamOf(game, buyer);
             List<Queued> queue = new ArrayList<>(queue(game, team));
-            queue.add(new Queued(kind, buyer.getUsername()));
+            queue.add(new Queued(trap, buyer.getUsername()));
             store(game, team, queue);
             Traps traps = game.module(Traps.class);
             if (traps != null) traps.again(team); // bought with an intruder inside: it goes off at once (captured)

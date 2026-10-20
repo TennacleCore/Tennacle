@@ -1,6 +1,7 @@
 package tennacle.games.lives;
 
 import tennacle.games.beds.Banners;
+import tennacle.games.stats.Haul;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
@@ -67,7 +68,10 @@ public final class Spoils implements GameModule {
         List<ItemStack> due = waiting ? owed.computeIfAbsent(seat.index(), index -> new ArrayList<>()) : null;
         for (List<ItemStack> stacks : kinds.values()) {
             int amount = 0;
-            for (ItemStack stack : stacks) amount += stack.amount();
+            for (ItemStack stack : stacks) {
+                amount += stack.amount();
+                Haul.handed(game, death.victim(), killer, stack);
+            }
             if (due != null) due.addAll(stacks);
             else give(killer, stacks);
             killer.sendMessage(Banners.spoil(stacks.getFirst(), amount));

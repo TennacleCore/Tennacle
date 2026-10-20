@@ -18,5 +18,9 @@ final class Resources {
     static final ItemCurrency EMERALD = Currency.register(
             new ItemCurrency("emerald", Material.EMERALD, "Emerald", "Emeralds", NamedTextColor.DARK_GREEN));
 
+    /** Each one's item, by its name in the stats. */
+    static final java.util.Map<Material, String> NAMES = java.util.Map.of(IRON.material(), IRON.id(), GOLD.material(), GOLD.id(),
+            DIAMOND.material(), DIAMOND.id(), EMERALD.material(), EMERALD.id());
+
     private Resources() {}
 }

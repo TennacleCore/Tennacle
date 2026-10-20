@@ -7,6 +7,7 @@ import net.minestom.server.command.CommandSender;
 import io.github.term4.grotto.vault.VaultKey;
 import tennacle.Msg;
 import tennacle.games.Careers;
+import tennacle.games.stats.Haul;
 import tennacle.games.stats.Tally;
 import tennacle.boot.Mechanics;
 import tennacle.games.Generators;
@@ -443,6 +444,7 @@ public final class BedWars {
                         Chests::new,
                         Compass::new,
                         Spoils::new,
+                        () -> Haul.of(Resources.NAMES), // after Spoils: a death's hand-over is taken by then
                         MagicMilk::new,
                         Creatures::new,
                         () -> Limits.of().below(VOID, (p, plane) -> Matches.fell(p, (g, who) -> {

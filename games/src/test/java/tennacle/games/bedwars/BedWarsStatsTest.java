@@ -16,6 +16,25 @@ import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
+import io.github.term4.polyp.api.event.container.ContainerChangeEvent;
+import io.github.term4.polyp.api.event.container.ContainerOpenEvent;
+import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
+import net.minestom.server.event.inventory.InventoryCloseEvent;
+import io.github.term4.polyp.entity.DroppedItemEntity;
+import io.github.term4.polyp.world.MechanicsWorld;
+import net.minestom.server.coordinate.Point;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.Player;
+import net.minestom.server.event.item.PickupItemEvent;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
+import org.jetbrains.annotations.Nullable;
+import tennacle.games.shop.Offer;
+import tennacle.games.shop.Price;
+import tennacle.games.shop.Refusal;
+import tennacle.games.shop.Sale;
+import tennacle.games.shop.Shop;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import tennacle.games.Match;
@@ -110,6 +129,93 @@ class BedWarsStatsTest extends HeadlessServerTest {
             b.player.remove();
             c.player.remove();
         }
+    }
+
+    @Test
+    void resourcesKnowTheirSource() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 3);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwResA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwResB");
+        FakePlayer c = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwResC");
+        try {
+            for (FakePlayer p : List.of(a, b, c)) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("all seated", () -> Game.of(a.player) == game && Game.of(b.player) == game && Game.of(c.player) == game);
+            BedWarsRoundTest.live(game);
+            Tally tally = game.module(Tally.class);
+            UUID ida = a.player.getUuid(), idb = b.player.getUuid(), idc = c.player.getUuid();
+
+            Point diamond = game.arena().markers(BedWars.DIAMOND).getFirst().point();
+            BedWarsRoundTest.tickUntil(game, "the first diamond", () -> lyingAt(game, diamond) != null);
+            EventDispatcher.call(new PickupItemEvent(a.player, lyingAt(game, diamond)));
+            assertEquals(1, tally.get(ida, "diamond-from-generators"));
+
+            DroppedItemEntity thrown = DroppedItemEntity.spawn(MechanicsWorld.of(b.player), b.player.getPosition(), Vec.ZERO,
+                    ItemStack.of(Material.GOLD_INGOT, 2), null, 0, ItemSpawnEvent.Cause.PLAYER_DROP, b.player);
+            EventDispatcher.call(new PickupItemEvent(a.player, thrown));
+            assertEquals(2, tally.get(ida, "gold-from-players"));
+
+            b.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 5));
+            hit(b, a, 2f);
+            game.module(Lives.class).fell(b.player);
+            assertEquals(5, tally.get(ida, "iron-stolen"));
+            assertEquals(5, tally.get(idb, "iron-lost-to-players"));
+            assertEquals(0, tally.get(idb, "iron-lost-to-void"), "handed over, not lost");
+
+            c.player.getInventory().addItemStack(ItemStack.of(Material.EMERALD, 3));
+            game.module(Lives.class).fell(c.player);
+            assertEquals(3, tally.get(idc, "emerald-lost-to-void"), "nobody to hand them to");
+
+            MechanicsWorld world = MechanicsWorld.of(a.player);
+            EventDispatcher.call(new ContainerOpenEvent(world, new BlockVec(0, 65, 0), "test-chest", a.player));
+            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 0, ItemStack.of(Material.IRON_INGOT, 5), ItemStack.AIR));
+            EventDispatcher.call(new ContainerChangeEvent(world, "test-chest", 1, ItemStack.AIR, ItemStack.of(Material.IRON_INGOT, 2)));
+            EventDispatcher.call(new InventoryCloseEvent(a.player.getInventory(), a.player, true));
+            assertEquals(3, tally.get(ida, "iron-from-chests"), "net of what went back");
+
+            a.player.getInventory().addItemStack(ItemStack.of(Material.IRON_INGOT, 10));
+            Shop shop = game.module(Shop.class);
+            assertTrue(shop.buy(a.player, new Offer() {
+                @Override
+                public @NotNull String id() {
+                    return "test-wool";
+                }
+
+                @Override
+                public @NotNull Price price(@NotNull Game g, @NotNull Player buyer) {
+                    return Price.of(4, Resources.IRON);
+                }
+
+                @Override
+                public @Nullable Refusal refusal(@NotNull Game g, @NotNull Player buyer) {
+                    return null;
+                }
+
+                @Override
+                public boolean grant(@NotNull Game g, @NotNull Player buyer) {
+                    return true;
+                }
+            }) instanceof Sale.Sold);
+            assertEquals(4, tally.get(ida, "iron-spent"));
+            assertEquals(1, tally.get(ida, "items-bought"));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+            c.player.remove();
+        }
+    }
+
+    private static @Nullable DroppedItemEntity lyingAt(Game game, Point at) {
+        for (Entity entity : game.instance().getNearbyEntities(at, 2)) {
+            if (entity instanceof DroppedItemEntity item && item.getItemStack().material() == Material.DIAMOND) return item;
+        }
+        return null;
     }
 
     @Test

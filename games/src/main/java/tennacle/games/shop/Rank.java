@@ -37,6 +37,11 @@ public final class Rank implements Offer {
         this.prices = prices;
     }
 
+    @Override
+    public @NotNull String kind() {
+        return holder == Holder.TEAM ? "upgrades" : "permanent-items";
+    }
+
     /** Exactly {@code level}, bought over any lower one: refused at it, or above it. */
     public static @NotNull Rank at(@NotNull String id, @NotNull StateKey<Integer> ladder, @NotNull Holder holder,
                                    int level, @NotNull Price price) {

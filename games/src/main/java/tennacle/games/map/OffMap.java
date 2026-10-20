@@ -1,5 +1,6 @@
 package tennacle.games.map;
 
+import tennacle.games.stats.Haul;
 import io.github.term4.archipelago.shard.Shard;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
@@ -54,7 +55,10 @@ public final class OffMap implements GameModule {
         for (Entity entity : shard.entities()) {
             if (!(entity instanceof PolypEntity) || entity instanceof LivingEntity || entity.isRemoved()) continue;
             Pos at = entity.getPosition();
-            if (!shard.isChunkLoaded(at) || beyond(limits, at, margin)) entity.remove();
+            if (!shard.isChunkLoaded(at) || beyond(limits, at, margin)) {
+                Haul.offMap(game, entity);
+                entity.remove();
+            }
         }
     }
 

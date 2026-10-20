@@ -11,6 +11,11 @@ import java.util.Set;
 /** One thing a {@link Shop} sells. */
 public interface Offer {
 
+    /** What the stats count a purchase as: {@code items-bought}, {@code upgrades-bought}. */
+    default @NotNull String kind() {
+        return "items";
+    }
+
     @NotNull String id();
 
     /** The rules it reads, its price among them. */

@@ -66,7 +66,7 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 ### Items and actions
 | Stat | Means |
 |---|---|
-| `items-bought`, `permanent-items-bought`, `upgrades-bought`, `traps-bought` | at the shops |
+| `items-bought`, `permanent-items-bought`, `upgrades-bought`, `traps-bought` | at the shops, each purchase once by its kind: armor, tools and shears are permanent, the team's ladders are upgrades |
 | `golden-apples-eaten`, `potions-drunk` (plus `<potion>-potions-drunk`: speed, jump, invisibility) | |
 | `pearls-thrown`, `fireballs-thrown`, `tnt-placed` | |
 | `silverfish-spawned`, `golems-spawned` | bedbugs and dream defenders |
@@ -133,3 +133,5 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
   one write per player. Counted so far: results, streaks, time played, kills and deaths by cause, finals, assists,
   beds broken and lost. V6 renamed the old `bedwars:career-*` rows to these names (`career-beds` is `beds-broken`)
   and seeded `bedwars:games` from wins and losses; streaks start from zero.
+- **Resources and purchases** (`games.stats.Haul`, `Shop.buy`): every row of the resources table, and the four
+  `-bought` counts. A chest is counted while one player has it open; two at once can't be told apart, so neither is.

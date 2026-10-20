@@ -1,5 +1,6 @@
 package tennacle.games;
 
+import tennacle.games.stats.Haul;
 import io.github.term4.grotto.Game;
 import net.minestom.server.codec.Codec;
 import io.github.term4.grotto.state.StateKey;
@@ -279,6 +280,7 @@ public final class Generators implements GameModule, Building.Reserves {
                 if (mate.getPosition().distance(item.getPosition()) > shareRadius) continue;
                 if (over(mate, e.getItemStack())) continue;
                 mate.getInventory().addItemStack(e.getItemStack());
+                Haul.generated(game, mate, e.getItemStack());
             }
         });
     }

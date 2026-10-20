@@ -1,5 +1,6 @@
 package tennacle.games.shop;
 
+import tennacle.games.stats.Tally;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.state.StateKey;
@@ -73,6 +74,8 @@ public final class Shop implements GameModule {
         boolean granted = into >= 0 ? offer.grant(game, buyer, into) : offer.grant(game, buyer);
         if (!granted) return new Sale.Refused(offer, Refusal.FULL);
         price.currency().take(buyer, price.amount());
+        Tally.add(game, buyer.getUuid(), price.currency().id() + "-spent", price.amount());
+        Tally.add(game, buyer.getUuid(), offer.kind() + "-bought", 1);
         return new Sale.Sold(offer, price);
     }
 }
