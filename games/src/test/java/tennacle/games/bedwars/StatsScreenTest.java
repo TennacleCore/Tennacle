@@ -30,12 +30,6 @@ class StatsScreenTest extends HeadlessServerTest {
     @BeforeAll
     static void wire() {
         TestWiring.ensure(instance);
-    }
-
-    @Test
-    void modesSwapTheNumbers() {
-        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "StatScreen");
-        UUID id = p.player.getUuid();
         Careers.install(new StatStore() {
             @Override
             public @NotNull CompletableFuture<Long> get(@NotNull UUID player, @NotNull String stat) {
@@ -58,13 +52,31 @@ class StatsScreenTest extends HeadlessServerTest {
                         "bedwars:diamond-from-own-diamond-generators", 7L, "bedwars:bought-reinforced-armor-2", 3L));
             }
         });
+    }
+
+    @Test
+    void categoriesReadTheStats() {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "StatScreen");
+        UUID id = p.player.getUuid();
         try {
             Screens.open(p.player, StatsScreen.open(id, "StatScreen"));
             Screens.repaint(p.player);
             assertTrue(lore(p, 20).contains("Wins: 5"), "all modes: " + lore(p, 20));
             assertTrue(lore(p, 31).contains("Own Generators: 7"), "diamonds: " + lore(p, 31));
-            assertTrue(lore(p, 40).stream().anyMatch(l -> l.endsWith(": 3")), "an upgrade tier by name: " + lore(p, 40));
+            assertTrue(lore(p, 22).contains("Melee: 0 | 0"), "kills | finals: " + lore(p, 22));
             assertTrue(!lore(p, 42).isEmpty(), "the last category has its slot");
+            EventDispatcher.call(new InventoryPreClickEvent(Screens.inventory(p.player), p.player, new Click.Left(39)));
+            assertTrue(lore(p, 21).stream().anyMatch(l -> l.endsWith(": 3")), "purchases, an upgrade tier by name: " + lore(p, 21));
+        } finally {
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void soloShowsItsOwn() {
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "StatSolo");
+        try {
+            Screens.open(p.player, StatsScreen.open(p.player.getUuid(), "StatSolo"));
             EventDispatcher.call(new InventoryPreClickEvent(Screens.inventory(p.player), p.player, new Click.Left(3)));
             assertTrue(lore(p, 20).contains("Wins: 2"), "solo alone: " + lore(p, 20));
         } finally {

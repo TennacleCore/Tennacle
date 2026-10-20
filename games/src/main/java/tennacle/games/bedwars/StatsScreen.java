@@ -1,6 +1,8 @@
 package tennacle.games.bedwars;
 
+import io.github.term4.canvas.Canvas;
 import io.github.term4.canvas.screen.Entry;
+import io.github.term4.canvas.theme.Theme;
 import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import net.kyori.adventure.text.Component;
@@ -8,8 +10,10 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import tennacle.games.Careers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -31,14 +35,31 @@ final class StatsScreen {
             new Mode("bedwars-4s", "4v4v4v4", Material.DIAMOND_SWORD));
 
     /** What a category item shows, off the stats of one mode. */
-    private record Category(Material icon, String name, BiConsumer<Entry, Stats> facts) {}
+    private record Category(Material icon, String name, BiConsumer<Entry, Stats> facts, @Nullable More more) {
 
-    private record Stats(Map<String, Long> all, String scope) {
-        long n(String stat) {
-            return all.getOrDefault(scope + ":" + stat, 0L);
+        Category(Material icon, String name, BiConsumer<Entry, Stats> facts) {
+            this(icon, name, facts, null);
         }
     }
 
+    private record Stats(Map<String, Long> all, String scope, Theme theme) {
+        long n(String stat) {
+            return all.getOrDefault(scope + ":" + stat, 0L);
+        }
+
+        // the scrims cards' two numbers: kills | final kills
+        Component pair(String a, String b) {
+            return theme.value(count(n(a))).append(theme.dim(" | ")).append(theme.value(count(n(b))));
+        }
+    }
+
+    /** A category a click takes further, to its own screen. */
+    @FunctionalInterface
+    private interface More {
+        Screen open(UUID subject, String name, int mode);
+    }
+
+    private static final String[][] RESOURCES = {{"iron", "Iron"}, {"gold", "Gold"}, {"diamond", "Diamonds"}, {"emerald", "Emeralds"}};
     private static final String[] CAUSES = {"melee", "bow", "void", "fall", "fire", "explosion", "creature", "other"};
 
     private static final List<Category> CATEGORIES = List.of(
@@ -51,22 +72,20 @@ final class StatsScreen {
                     .fact("Final Kills", count(s.n("final-kills"))).fact("Final Deaths", count(s.n("final-deaths")))
                     .fact("Final K/D Ratio", ratio(s.n("final-kills"), s.n("final-deaths"))).fact("Assists", count(s.n("assists")))),
             new Category(Material.BOW, "Kills By Method", (e, s) -> {
-                for (String cause : CAUSES) {
-                    e.fact(title(cause), count(s.n(cause + "-kills")) + " (" + count(s.n(cause + "-final-kills")) + " final)");
-                }
+                e.text("Kills | Final Kills");
+                for (String cause : CAUSES) e.fact(title(cause), s.pair(cause + "-kills", cause + "-final-kills"));
             }),
             new Category(Material.SKELETON_SKULL, "Deaths By Method", (e, s) -> {
-                for (String cause : CAUSES) {
-                    e.fact(title(cause), count(s.n(cause + "-deaths")) + " (" + count(s.n(cause + "-final-deaths")) + " final)");
-                }
+                e.text("Deaths | Final Deaths");
+                for (String cause : CAUSES) e.fact(title(cause), s.pair(cause + "-deaths", cause + "-final-deaths"));
             }),
             new Category(Material.RED_BED, "Beds", (e, s) -> e
                     .fact("Beds Broken", count(s.n("beds-broken"))).fact("Beds Lost", count(s.n("beds-lost")))
                     .fact("Bed Attempts", count(s.n("bed-attempts"))).fact("Failed Attempts", count(s.n("bed-attempts-failed")))
                     .fact("Time Digging Beds", seconds(s.n("bed-dig-ticks")))
                     .fact("Defense Blocks Broken", count(s.n("bed-defense-broken"))).fact("Defense Blocks Placed", count(s.n("bed-defense-placed")))
-                    .fact("Bed Saves", count(s.n("bed-saves")) + " (" + count(s.n("bed-saves-by-kill")) + " by kill, "
-                            + count(s.n("bed-saves-by-block")) + " by block)")
+                    .fact("Bed Saves", count(s.n("bed-saves"))).fact("Saved By A Kill", count(s.n("bed-saves-by-kill")))
+                    .fact("Saved By A Block", count(s.n("bed-saves-by-block")))
                     .fact("Time Guarding Bed", hours(s.n("time-guarding-bed")))),
             resource(Material.IRON_INGOT, "Iron", "iron"),
             resource(Material.GOLD_INGOT, "Gold", "gold"),
@@ -80,6 +99,7 @@ final class StatsScreen {
                     .fact("Bow Accuracy", percent(s.n("arrows-hit"), s.n("arrows-shot")))),
             new Category(Material.GOLDEN_APPLE, "Items Used", (e, s) -> e
                     .fact("Golden Apples", count(s.n("golden-apples-eaten"))).fact("Potions", count(s.n("potions-drunk")))
+                    .fact("Magic Milk", count(s.n("magic-milk-drunk"))).fact("Water Buckets", count(s.n("water-buckets-used")))
                     .fact("Speed Potions", count(s.n("speed-potions-drunk"))).fact("Jump Potions", count(s.n("jump-potions-drunk")))
                     .fact("Invisibility Potions", count(s.n("invisibility-potions-drunk")))
                     .fact("Ender Pearls", count(s.n("pearls-thrown"))).fact("Fireballs", count(s.n("fireballs-thrown")))
@@ -88,20 +108,20 @@ final class StatsScreen {
                     .fact("Pop-up Towers", count(s.n("popup-towers-placed"))).fact("Sponges", count(s.n("sponges-placed")))),
             new Category(Material.CHEST, "Purchases", (e, s) -> e
                     .fact("Items", count(s.n("items-bought"))).fact("Permanent Items", count(s.n("permanent-items-bought")))
-                    .fact("Upgrades", count(s.n("upgrades-bought"))).fact("Traps", count(s.n("traps-bought")))
-                    .fact("Diamonds Spent For The Team", count(s.n("diamond-spent-for-team")))),
-            new Category(Material.DIAMOND_CHESTPLATE, "Team Upgrades", StatsScreen::upgrades),
+                    .fact("Team Upgrades", count(s.n("upgrades-bought"))).fact("Traps", count(s.n("traps-bought")))
+                    .fact("Spent For The Team", spent(s, "for-team")).action("Click for every item!"), StatsScreen::purchases),
             new Category(Material.BRICKS, "Building", (e, s) -> e
                     .fact("Blocks Placed", count(s.n("blocks-placed"))).fact("Blocks Broken", count(s.n("blocks-broken")))),
             new Category(Material.COMPASS, "Time Spent", (e, s) -> e
                     .fact("At Their Base", hours(s.n("time-at-base"))).fact("At Mid", hours(s.n("time-at-mid")))
                     .fact("At Diamonds", hours(s.n("time-at-diamonds"))).fact("At Emeralds", hours(s.n("time-at-emeralds")))
                     .fact("At Other Bases", hours(s.n("time-at-other-bases")))
-                    .fact("Bed Standing", hours(s.n("time-at-bases-alive"))).fact("Bed Gone", hours(s.n("time-at-bases-bedless")))
-                    .fact("Team Out", hours(s.n("time-at-bases-out")))));
+                    .fact("At Bases With A Bed", hours(s.n("time-at-bases-alive")))
+                    .fact("At Bedless Bases", hours(s.n("time-at-bases-bedless")))
+                    .fact("At Bases Of Teams Out", hours(s.n("time-at-bases-out")))));
 
-    // three rows of five under the modes
-    private static final int[] SLOTS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33, 38, 39, 40, 41, 42};
+    // rows of five under the modes, the last four either side of the middle
+    private static final int[] SLOTS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33, 38, 39, 41, 42};
 
     private static final Map<UUID, Map<String, Long>> READ = new ConcurrentHashMap<>();
     private static final Set<UUID> READING = ConcurrentHashMap.newKeySet();
@@ -127,9 +147,58 @@ final class StatsScreen {
         }
         for (int i = 0; i < CATEGORIES.size() && i < SLOTS.length; i++) {
             Category category = CATEGORIES.get(i);
-            screen.item(SLOTS[i], viewer -> category(viewer, subject, category, MODES.get(mode)));
+            if (category.more() == null) screen.item(SLOTS[i], viewer -> category(viewer, subject, category, MODES.get(mode)));
+            else screen.press(SLOTS[i], viewer -> category(viewer, subject, category, MODES.get(mode)), (viewer, click) -> {
+                Screens.push(viewer, category.more().open(subject, name, mode));
+                return null;
+            });
         }
         return screen.build();
+    }
+
+    // a category a shop tab, then the team's upgrades and traps; each item with what it cost
+    private static Screen purchases(UUID subject, String name, int mode) {
+        Screen.Builder screen = Screen.rows(5).title(Component.text("Bed Wars Purchases")).back(39).close(40);
+        List<Category> shown = new ArrayList<>();
+        for (Wares.Tab tab : Wares.Tab.values()) {
+            if (tab == Wares.Tab.QUICK_BUY || Wares.in(tab).isEmpty()) continue;
+            shown.add(new Category(tab.icon, tab.title, (e, s) -> {
+                for (Wares.Ware ware : Wares.in(tab)) ware(e, s, ware);
+            }));
+        }
+        shown.add(new Category(Material.DIAMOND_CHESTPLATE, "Team Upgrades", StatsScreen::upgrades));
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 21, 22, 23};
+        for (int i = 0; i < shown.size() && i < slots.length; i++) {
+            Category category = shown.get(i);
+            screen.item(slots[i], viewer -> category(viewer, subject, category, MODES.get(mode)));
+        }
+        return screen.build();
+    }
+
+    // bought | spent, a tier at a time where the shop sells them so
+    private static void ware(Entry entry, Stats s, Wares.Ware ware) {
+        String id = ware.offer().id();
+        if (!ware.upgradable()) {
+            entry.fact(ware.names().getFirst(), bought(s, id));
+            return;
+        }
+        for (int tier = 1; tier <= ware.names().size(); tier++) entry.fact(ware.names().get(tier - 1), bought(s, id + "-" + tier));
+    }
+
+    private static Component bought(Stats s, String what) {
+        Component line = s.theme().value(count(s.n("bought-" + what)));
+        String paid = spent(s, "on-" + what);
+        return paid.equals("0") ? line : line.append(s.theme().dim(" | ")).append(s.theme().value(paid));
+    }
+
+    // what was paid, in each resource it was paid in: "144 Iron, 8 Gold"
+    private static String spent(Stats s, String suffix) {
+        List<String> parts = new ArrayList<>();
+        for (String[] res : RESOURCES) {
+            long n = s.n(res[0] + "-spent-" + suffix);
+            if (n > 0) parts.add(count(n) + " " + res[1]);
+        }
+        return parts.isEmpty() ? "0" : String.join(", ", parts);
     }
 
     private static ItemStack category(Player viewer, UUID subject, Category category, Mode mode) {
@@ -145,7 +214,7 @@ final class StatsScreen {
             }
             return entry.text("Loading...").render(viewer);
         }
-        category.facts().accept(entry, new Stats(all, mode.scope()));
+        category.facts().accept(entry, new Stats(all, mode.scope(), Canvas.screenThemeFor(viewer)));
         return entry.render(viewer);
     }
 
@@ -161,12 +230,12 @@ final class StatsScreen {
                 default -> e.fact("Emerald Generators", count(s.n(res + "-from-emerald-generators")))
                         .fact("Own Forge", count(s.n(res + "-from-own-forge")));
             }
-            e.fact("From Players", count(s.n(res + "-from-players"))).fact("Stolen", count(s.n(res + "-stolen")))
-                    .fact("From Chests", count(s.n(res + "-from-chests"))).fact("Into Chests", count(s.n(res + "-into-chests")))
-                    .fact("Spent", count(s.n(res + "-spent"))).fact("Lost To Players", count(s.n(res + "-lost-to-players")))
+            e.fact("Picked Up From Drops", count(s.n(res + "-from-players"))).fact("Taken On Kills", count(s.n(res + "-stolen")))
+                    .fact("Taken From Chests", count(s.n(res + "-from-chests"))).fact("Put In Chests", count(s.n(res + "-into-chests")))
+                    .fact("Spent", count(s.n(res + "-spent"))).fact("Lost To Killers", count(s.n(res + "-lost-to-players")))
                     .fact("Lost To The Void", count(s.n(res + "-lost-to-void")))
-                    .fact("Lost To Explosions", count(s.n(res + "-lost-to-explosions")))
-                    .fact("Blown Up", count(s.n(res + "-destroyed")));
+                    .fact("Your Drops Blown Up", count(s.n(res + "-lost-to-explosions")))
+                    .fact("Blown Up By You", count(s.n(res + "-destroyed")));
         });
     }
 
@@ -175,14 +244,12 @@ final class StatsScreen {
         for (Upgrades.Upgrade upgrade : Upgrades.ALL) {
             String id = upgrade.offer().id();
             if (upgrade.names().size() <= 1) {
-                entry.fact(upgrade.names().isEmpty() ? title(id) : upgrade.names().getFirst(), count(s.n("bought-" + id)));
+                entry.fact(upgrade.names().isEmpty() ? title(id) : upgrade.names().getFirst(), bought(s, id));
                 continue;
             }
-            for (int tier = 1; tier <= upgrade.names().size(); tier++) {
-                entry.fact(upgrade.names().get(tier - 1), count(s.n("bought-" + id + "-" + tier)));
-            }
+            for (int tier = 1; tier <= upgrade.names().size(); tier++) entry.fact(upgrade.names().get(tier - 1), bought(s, id + "-" + tier));
         }
-        for (Traps.Kind trap : Traps.Kind.values()) entry.fact(trap.title, count(s.n("bought-" + trap.id)));
+        for (Traps.Kind trap : Traps.Kind.values()) entry.fact(trap.title, bought(s, trap.id));
     }
 
     private static String count(long n) {

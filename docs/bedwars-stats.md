@@ -73,7 +73,8 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 |---|---|
 | `items-bought`, `permanent-items-bought`, `upgrades-bought`, `traps-bought` | at the shops, each purchase once by its kind: armor, tools and shears are permanent, the team's ladders are upgrades |
 | `bought-<purchase>` | each thing bought, a ladder by its level: `bought-wool`, `bought-reinforced-armor-2`, `bought-its-a-trap`. Per game too, so a match says who bought the team's upgrades |
-| `golden-apples-eaten`, `potions-drunk` (plus `<potion>-potions-drunk`: speed, jump, invisibility) | |
+| `golden-apples-eaten`, `potions-drunk` (plus `<potion>-potions-drunk`: speed, jump, invisibility), `magic-milk-drunk` | |
+| `water-buckets-used` | water poured; a bucket isn't a block placed |
 | `pearls-thrown`, `fireballs-thrown`, `tnt-placed` | |
 | `silverfish-spawned`, `golems-spawned` | bedbugs and dream defenders |
 | `bridge-eggs-thrown`, `popup-towers-placed`, `sponges-placed` | |
@@ -81,7 +82,7 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 ### Building
 | Stat | Means |
 |---|---|
-| `blocks-placed`, `blocks-broken` | blocks players placed, and broke. Map blocks can't be broken, so every break is a player's block |
+| `blocks-placed`, `blocks-broken` | blocks players placed, and broke. Map blocks can't be broken, so every break is a player's block; poured water is not a block |
 | `bed-defense-broken` | broken blocks that touched the bed of a team still in the game: digging into a bed's defense |
 | `bed-attempts`, `bed-attempts-failed`, `bed-dig-ticks` | digging at another side's standing bed, the bed itself or a block touching it. An attempt runs from the first dig until the bed falls, or until they die or leave with it standing (failed). Dig time is in ticks, a twentieth of a second, since a bed goes in under one |
 | `bed-defense-placed` | blocks placed touching their own standing bed |

@@ -1,5 +1,6 @@
 package tennacle.games.bedwars;
 
+import tennacle.games.stats.Tally;
 import tennacle.games.lives.Lives;
 
 import io.github.term4.grotto.Game;
@@ -61,6 +62,7 @@ final class MagicMilk implements GameModule {
     void drank(Player player) {
         Slot seat = game.roster().slotOf(player);
         if (seat == null) return;
+        Tally.add(game, player, "magic-milk-drunk");
         for (PotionEffect effect : Traps.INFLICTS) player.removeEffect(effect);
         long until = game.tick() + game.rules().resolve(player, DURATION);
         game.state().set(Scope.slot(seat.index()), Traps.IMMUNE, until);

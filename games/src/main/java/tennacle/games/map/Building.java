@@ -250,7 +250,9 @@ public final class Building {
             }
             building.placed.add(key(e.getBlockPosition()));
             Match.addSeat(game, player, PLACED_COUNT);
-            Tally.add(game, player, "blocks-placed");
+            // a bucket pours through the place event: its own count, not a block
+            Block placed = e.getBlock();
+            Tally.add(game, player, placed.compare(Block.WATER) ? "water-buckets-used" : placed.compare(Block.LAVA) ? "lava-buckets-used" : "blocks-placed");
             for (Watcher module : game.modules(Watcher.class)) module.placed(player, e.getBlockPosition());
             touched.accept(player);
         });
