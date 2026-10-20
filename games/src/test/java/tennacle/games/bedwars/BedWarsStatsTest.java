@@ -30,6 +30,7 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.PickupItemEvent;
+import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.Nullable;
@@ -45,6 +46,9 @@ import tennacle.games.shop.Shop;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import tennacle.boot.Mechanics;
+import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
+import java.util.ArrayList;
+import net.minestom.server.MinecraftServer;
 import tennacle.games.Match;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
 import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
@@ -335,18 +339,28 @@ class BedWarsStatsTest extends HeadlessServerTest {
             // the fixture's diamonds sit between sides 1 and 2, side 3 further off
             Point diamond = game.arena().markers(BedWars.DIAMOND).getFirst().point();
             BedWarsRoundTest.tickUntil(game, "a diamond", () -> lying(game, diamond, Material.DIAMOND) != null);
-            EventDispatcher.call(new PickupItemEvent(a.player, lying(game, diamond, Material.DIAMOND)));
+            pickUp(a, lying(game, diamond, Material.DIAMOND));
             assertEquals(1, tally.get(ida, "diamond-from-own-diamond-generators"));
             BedWarsRoundTest.tickUntil(game, "another", () -> lying(game, diamond, Material.DIAMOND) != null);
-            EventDispatcher.call(new PickupItemEvent(c.player, lying(game, diamond, Material.DIAMOND)));
+            assertTrue(pickUp(c, lying(game, diamond, Material.DIAMOND)));
             assertEquals(1, tally.get(idc, "diamond-from-other-diamond-generators"));
             assertEquals(1, tally.pairOf(idc, bTeam, "diamond-from-their-diamond-generators"), "both its sides");
+
+            BedWarsRoundTest.tickUntil(game, "a diamond to blow up", () -> lying(game, diamond, Material.DIAMOND) != null);
+            // the event Polyp's blast fires, then what its item damage does to a stack out of health
+            DroppedItemEntity blown = lying(game, diamond, Material.DIAMOND);
+            EventDispatcher.call(new ExplosionEvent(MechanicsWorld.of(c.player), diamond, 3f, c.player, false,
+                    new ArrayList<>(List.of(new ExplosionEvent.Target(blown, 1, 1, null, 4f))), new ArrayList<>()));
+            blown.remove();
+            MinecraftServer.getSchedulerManager().processTickEnd();
+            assertEquals(1, tally.get(idc, "diamond-destroyed"), "c's blast took it");
+            assertEquals(1, tally.get(idc, "diamond-destroyed-at-other-generators"));
 
             Point forge = game.arena().marker(BedWars.FORGE, bTeam).point();
             BedWarsRoundTest.tickUntil(game, "b's iron", () -> lying(game, forge, Material.IRON_INGOT) != null);
             DroppedItemEntity iron = lying(game, forge, Material.IRON_INGOT);
             int amount = iron.getItemStack().amount();
-            EventDispatcher.call(new PickupItemEvent(a.player, iron));
+            assertTrue(pickUp(a, iron));
             assertEquals(amount, tally.get(ida, "iron-from-other-forges"));
             assertEquals(amount, tally.pairOf(ida, bTeam, "iron-from-forge"));
 
@@ -381,6 +395,16 @@ class BedWarsStatsTest extends HeadlessServerTest {
             b.player.remove();
             c.player.remove();
         }
+    }
+
+    // the event alone leaves the item lying; the pickup itself takes it
+    private static boolean pickUp(FakePlayer by, DroppedItemEntity item) {
+        // standing still stops pickups (Idle): a step first
+        EventDispatcher.call(new PlayerMoveEvent(by.player, by.player.getPosition().add(0.5, 0, 0), true));
+        PickupItemEvent event = new PickupItemEvent(by.player, item);
+        EventDispatcher.call(event);
+        item.remove();
+        return !event.isCancelled();
     }
 
     private static @Nullable DroppedItemEntity lying(Game game, Point at, Material material) {

@@ -2,6 +2,9 @@ package tennacle.games.stats;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.modules.combat.FriendlyFire;
+import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
+import net.minestom.server.MinecraftServer;
 import io.github.term4.polyp.api.event.container.ContainerOpenEvent;
 import io.github.term4.polyp.api.event.item.ItemSpawnEvent;
 import net.minestom.server.entity.Entity;
@@ -18,7 +21,9 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.games.Generators;
 import tennacle.games.lives.Lives;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class Haul implements GameModule {
 
     private static final Tag<UUID> DROPPED_BY = Tag.Transient("tennacle:dropped-by");
+    private static final Tag<Boolean> PICKED = Tag.Transient("tennacle:picked");
 
     private record Visit(Map<String, Integer> held, Map<String, Integer> elsewhere) {}
 
@@ -41,6 +47,10 @@ public final class Haul implements GameModule {
     public interface Origins {
         void picked(@NotNull Game game, @NotNull Player picker, @NotNull Generators.Generator generator,
                     @NotNull String resource, int amount);
+
+        /** {@code by}'s blast took items lying at {@code generator}. */
+        default void destroyed(@NotNull Game game, @NotNull Player by, @NotNull Generators.Generator generator,
+                               @NotNull String resource, int amount) {}
     }
 
     private final Map<Material, String> resources;
@@ -82,6 +92,7 @@ public final class Haul implements GameModule {
             String name = name(e.getItemStack());
             if (name == null) return;
             ItemEntity item = e.getItemEntity();
+            item.setTag(PICKED, true);
             UUID dropper = item.getTag(DROPPED_BY);
             int amount = e.getItemStack().amount();
             elsewhere(picker, name, amount);
@@ -93,6 +104,31 @@ public final class Haul implements GameModule {
             if (!e.isCancelled()) visits.put(e.getPlayer().getUuid(), new Visit(held(e.getPlayer()), new ConcurrentHashMap<>()));
         });
         game.on(InventoryCloseEvent.class, e -> leave(e.getPlayer()));
+        // a blast takes items once their health runs out, and says nothing: what it hit and is gone by the tick's end
+        game.onWorld(ExplosionEvent.class, ExplosionEvent::world, e -> {
+            if (e.isCancelled()) return;
+            Player by = e.source() instanceof Player p ? p : FriendlyFire.attributed(e.source());
+            List<ItemEntity> hit = new ArrayList<>();
+            for (ExplosionEvent.Target target : e.targets()) {
+                if (target.entity() instanceof ItemEntity item && name(item.getItemStack()) != null) hit.add(item);
+            }
+            if (!hit.isEmpty()) MinecraftServer.getSchedulerManager().scheduleEndOfTick(() -> {
+                for (ItemEntity item : hit) {
+                    if (item.isRemoved() && !Boolean.TRUE.equals(item.getTag(PICKED))) destroyed(by, item);
+                }
+            });
+        });
+    }
+
+    private void destroyed(@Nullable Player by, ItemEntity item) {
+        String name = name(item.getItemStack());
+        int amount = item.getItemStack().amount();
+        UUID dropper = item.getTag(DROPPED_BY);
+        if (dropper != null) Tally.add(game, dropper, name + "-lost-to-explosions", amount);
+        if (by == null || game.roster().slotOf(by) == null) return;
+        add(by, name + "-destroyed", amount);
+        Generators.Generator made = generators != null ? generators.made(item) : null;
+        if (made != null && origins != null) origins.destroyed(game, by, made, name, amount);
     }
 
     @Override

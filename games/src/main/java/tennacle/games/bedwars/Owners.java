@@ -60,6 +60,17 @@ final class Owners implements Haul.Origins {
         }
     }
 
+    @Override
+    public void destroyed(@NotNull Game game, @NotNull Player by, @NotNull Generators.Generator generator,
+                          @NotNull String resource, int amount) {
+        Owner owner = owners.computeIfAbsent(generator, g -> owner(game, g.at()));
+        if (owner == null || owner.kind() == Kind.EMERALD) return;
+        var id = by.getUuid();
+        boolean own = owner.teams().contains(Match.teamOf(game, by));
+        Tally.add(game, id, resource + (own ? "-destroyed-at-own-generators" : "-destroyed-at-other-generators"), amount);
+        if (!own) owner.teams().forEach(team -> Tally.pair(game, id, team, resource + "-destroyed-at-their-generators", amount));
+    }
+
     private static @Nullable Owner owner(Game game, Point at) {
         for (var key : List.of(BedWars.FORGE, BedWars.FORGE_IRON)) {
             for (PointMarker forge : game.arena().markers(key)) {

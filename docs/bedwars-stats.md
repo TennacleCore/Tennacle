@@ -54,6 +54,8 @@ Kept for each of iron, gold, diamond and emerald.
 | `<res>-from-chests`, `<res>-into-chests` | taken out of chests or put in, net per visit: read off the visitor's own inventory from open to close, less what reached or left them some other way meanwhile |
 | `<res>-lost-to-players` | handed to their killer on a death |
 | `<res>-lost-to-void` | carried into the void on a death with no killer, or thrown off the map |
+| `<res>-destroyed`, `<res>-destroyed-at-own-generators`, `<res>-destroyed-at-other-generators` | items lying on the ground that their fireball or TNT blew up; a generator's are told apart by whose it is, and another side's kept against its owners per game |
+| `<res>-lost-to-explosions` | their own drop, blown up by anyone's blast |
 | `<res>-spent` | paid at the shops; also `<res>-spent-on-<kind>`, `<res>-spent-on-<purchase>` and `<res>-spent-for-team` (upgrades and traps) |
 
 Only a death that hands resources to a killer counts as lost to players. Every other death loses them to the void.
