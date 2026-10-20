@@ -199,6 +199,7 @@ public final class Tally implements GameModule {
         if (winner == null) return;
         closing = true;
         for (Closes module : game.modules(Closes.class)) module.close();
+        for (Sampler sampler : samplers) if (sampler instanceof Closes closes) closes.close();
         closing = false;
         Map<UUID, Boolean> won = new LinkedHashMap<>();
         for (Roster.Participant p : game.roster().participants()) {

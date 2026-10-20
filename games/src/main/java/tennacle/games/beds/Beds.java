@@ -352,6 +352,7 @@ public final class Beds implements Anchor, Building.Watcher {
     private void broke(String owner, Player breaker, Point bed) {
         Match.addSeat(game, breaker, broken);
         Tally.add(game, breaker, "beds-broken");
+        Tally.pair(game, breaker.getUuid(), owner, "beds-broken", 1);
         breakers.put(owner, breaker.getUuid()); // before the fall: its listeners ask who it was
         broke(owner, Component.text(breaker.getUsername(), Match.teamColor(game, breaker)), Match.teamOf(game, breaker), bed);
     }

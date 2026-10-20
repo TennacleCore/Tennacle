@@ -104,6 +104,7 @@ Time, in seconds, sampled once a second while they were alive and on the map.
 | | `time-at-bases-alive` (it still has its bed) |
 | | `time-at-bases-bedless` (bed gone, players left) |
 | | `time-at-bases-out` (eliminated, or never filled) |
+| `time-at-enemy-bases`, `time-at-friendly-bases` | the time at bases of sides still in the game, decided at the end: friendly when that side and theirs never fought (no damage between their players either way, neither bed taken by the other), a cross-team's partner; enemy otherwise |
 
 **Teams aren't sorted into friends and enemies.** Two teams may cross-team their first rush and play 2 against 2,
 and a team that never filled or was knocked out is no threat. So the split is by the other team's state, not by

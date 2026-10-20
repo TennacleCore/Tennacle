@@ -314,6 +314,15 @@ class BedWarsStatsTest extends HeadlessServerTest {
             c.player.teleport(new Pos(1.5, 65, 1.5)).join();
             BedWarsRoundTest.tickUntil(game, "a second at the middle", () -> tally.get(c.player.getUuid(), "time-at-mid") >= 1);
             assertTrue(tally.get(c.player.getUuid(), "time-played") >= 2);
+
+            c.player.teleport(new Pos(-11.5, 65, -0.5)).join(); // a's base too, and they fight
+            long since = tally.get(c.player.getUuid(), "time-at-other-bases");
+            BedWarsRoundTest.tickUntil(game, "c a second in a's base", () -> tally.get(c.player.getUuid(), "time-at-other-bases") > since);
+            hit(a, c, 2f);
+            game.end(Outcome.winner(Match.teamOf(game, a.player)));
+            assertTrue(tally.get(b.player.getUuid(), "time-at-friendly-bases") >= 1, "b never fought a's side");
+            assertEquals(0, tally.get(b.player.getUuid(), "time-at-enemy-bases"));
+            assertTrue(tally.get(c.player.getUuid(), "time-at-enemy-bases") >= 1, "c hit a");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             a.player.remove();

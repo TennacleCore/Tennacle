@@ -18,13 +18,20 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.games.beds.Beds;
 import tennacle.games.stats.Tally;
 
+import io.github.term4.grotto.roster.Roster;
+import io.github.term4.grotto.roster.Team;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Where a live player spends the game, a second at a time: their base, the middle, by the generators, and another
- * side's base, split by that side's state rather than friend or foe (a cross-team rush visits a base it won't fight).
+ * side's base, by that side's state. Friend or foe waits for the end: a side still in the game that never fought
+ * theirs (no damage either way, no bed taken) is friendly, a cross-team rush's partner; any other is an enemy.
  */
-final class Places implements Tally.Sampler {
+final class Places implements Tally.Sampler, Tally.Closes {
 
     /** The map's middle, drawn on the Bed Wars Zones page: {@code cx, cz, rx, rz}. */
     static final MarkerKey<DataMarker> MID = MarkerKey.data("bedwars:mid");
@@ -35,6 +42,8 @@ final class Places implements Tally.Sampler {
     private static final double GUARD = 6;
 
     private List<RegionMarker> bases;
+    private Game game;
+    private Tally tally;
     private @Nullable CompoundBinaryTag middle;
     private List<Point> diamonds, emeralds;
     private double diamondReach, emeraldReach;
@@ -44,6 +53,8 @@ final class Places implements Tally.Sampler {
         Respawns respawns = game.module(Respawns.class);
         if (game.isGhost(player) || respawns != null && respawns.isDead(player)) return;
         if (bases == null) read(game);
+        this.game = game;
+        this.tally = tally;
         Pos at = player.getPosition();
         var id = player.getUuid();
         for (RegionMarker base : bases) {
@@ -53,7 +64,9 @@ final class Places implements Tally.Sampler {
             if (team.equals(seat.team())) tally.add(id, "time-at-base", 1);
             else {
                 tally.add(id, "time-at-other-bases", 1);
-                tally.add(id, "time-at-bases-" + state(game, team), 1);
+                String state = state(game, team);
+                tally.add(id, "time-at-bases-" + state, 1);
+                if (!state.equals("out")) tally.pair(id, team, "time-at-base-in-game", 1);
             }
         }
         if (middle != null && inside(middle, at)) tally.add(id, "time-at-mid", 1);
@@ -89,6 +102,33 @@ final class Places implements Tally.Sampler {
         CompoundBinaryTag set = reach.isEmpty() ? CompoundBinaryTag.empty() : reach.getFirst().payload();
         diamondReach = set.keySet().contains("diamond") ? set.getDouble("diamond") : DEFAULT_REACH;
         emeraldReach = set.keySet().contains("emerald") ? set.getDouble("emerald") : DEFAULT_REACH;
+    }
+
+    @Override
+    public void close() {
+        if (tally == null) return;
+        Map<UUID, String> sides = new HashMap<>();
+        for (Roster.Participant p : game.roster().participants()) sides.put(p.uuid(), p.slot().team());
+        sides.forEach((player, mine) -> {
+            for (Team team : game.roster().teams()) {
+                long seconds = tally.pairOf(player, team.id(), "time-at-base-in-game");
+                if (seconds == 0 || team.id().equals(mine)) continue;
+                tally.add(player, fought(sides, mine, team.id()) ? "time-at-enemy-bases" : "time-at-friendly-bases", seconds);
+            }
+        });
+    }
+
+    // any damage between the two sides' players, either way, or either side's bed taken by the other
+    private boolean fought(Map<UUID, String> sides, String a, String b) {
+        for (Map.Entry<UUID, String> x : sides.entrySet()) {
+            if (!x.getValue().equals(a) && !x.getValue().equals(b)) continue;
+            String other = x.getValue().equals(a) ? b : a;
+            if (tally.pairOf(x.getKey(), other, "beds-broken") > 0) return true;
+            for (Map.Entry<UUID, String> y : sides.entrySet()) {
+                if (y.getValue().equals(other) && tally.pairOf(x.getKey(), y.getKey().toString(), "damage-dealt") > 0) return true;
+            }
+        }
+        return false;
     }
 
     // alive: its bed stands; bedless: players left without one; out: eliminated, or nobody ever sat there

@@ -132,8 +132,8 @@ final class StatsScreen {
             new Category(Material.COMPASS, "Time Spent", (e, s) -> e
                     .fact("Own Base", hours(s.n("time-at-base"))).fact("Mid", hours(s.n("time-at-mid")))
                     .fact("Diamonds", hours(s.n("time-at-diamonds"))).fact("Emeralds", hours(s.n("time-at-emeralds")))
-                    // enemy: a side still in the game; neutral: one that is out
-                    .fact("Enemy Bases", hours(s.n("time-at-bases-alive") + s.n("time-at-bases-bedless")))
+                    // friendly: a side still in that never fought theirs; neutral: one that is out
+                    .fact("Enemy Bases", hours(s.n("time-at-enemy-bases"))).fact("Friendly Bases", hours(s.n("time-at-friendly-bases")))
                     .fact("Neutral Bases", hours(s.n("time-at-bases-out")))));
 
     // rows of five under the modes, the last four either side of the middle
