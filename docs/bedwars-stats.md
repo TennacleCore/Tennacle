@@ -69,6 +69,7 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 | `hits`, `hits-taken` | melee hits landed on players and taken from them |
 | `hits-blocked`, `damage-blocked` | hits taken while blocking with a sword (1.8 blocking), and how much it saved |
 | `arrows-shot`, `arrows-hit` | |
+| `jump-resets`, `jump-reset-chances` | a chance: a melee knockback that reached them on the ground (their first rise after it left the ground). A reset: that rise was the jump's 0.42 (Jump Boost adds 0.1 a level) and the next move went on with the jump's arc. A jump in the air does nothing to a 1.8 client's motion (MCP-919: `jump()` needs `onGround`), so a knockback in the air is no chance |
 
 ### Items and actions
 | Stat | Means |

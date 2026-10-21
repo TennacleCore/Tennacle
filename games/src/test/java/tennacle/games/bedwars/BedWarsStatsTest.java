@@ -9,6 +9,8 @@ import io.github.term4.grotto.state.Scope;
 import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
 import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.api.event.knockback.KnockbackAppliedEvent;
+import io.github.term4.polyp.mechanics.knockback.KnockbackSnapshot;
 import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.EventDispatcher;
@@ -501,6 +503,76 @@ class BedWarsStatsTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    @Test
+    void jumpResetsReadOffTheMoves() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwJumpA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwJumpB");
+        try {
+            for (FakePlayer p : List.of(a, b)) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            BedWarsRoundTest.live(game);
+            Tally tally = game.module(Tally.class);
+            UUID id = b.player.getUuid();
+            double hit = 0.3608;
+
+            ground(b);
+            knock(b, a, hit);
+            move(b, 0, true); // sent before the knockback reached them
+            move(b, 0.42, false);
+            move(b, 0.3332, false);
+            assertEquals(1, tally.get(id, "jump-resets"), "the jump's rise, then its arc");
+            assertEquals(1, tally.get(id, "jump-reset-chances"));
+
+            ground(b);
+            knock(b, a, hit);
+            move(b, hit, false);
+            assertEquals(1, tally.get(id, "jump-resets"));
+            assertEquals(2, tally.get(id, "jump-reset-chances"), "rose with the knockback: a chance missed");
+
+            ground(b);
+            knock(b, a, hit);
+            move(b, 0.42, false); // jumped before the knockback arrived
+            move(b, hit, false); // then it took over in the air
+            assertEquals(1, tally.get(id, "jump-resets"), "no reset");
+            assertEquals(2, tally.get(id, "jump-reset-chances"), "and no chance: it reached them in the air");
+
+            ground(b);
+            move(b, 0.42, false); // airborne already
+            knock(b, a, hit);
+            move(b, hit, false);
+            assertEquals(2, tally.get(id, "jump-reset-chances"), "a knockback in the air is no chance");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    private static void ground(FakePlayer p) {
+        p.player.teleport(new Pos(0.5, 65, 0.5)).join();
+        p.player.refreshOnGround(true);
+    }
+
+    private static void knock(FakePlayer victim, FakePlayer by, double rise) {
+        EventDispatcher.call(new KnockbackAppliedEvent(new KnockbackSnapshot(victim.player, true, by.player, null, null, null),
+                new Vec(0, rise * 20, -8), Polyp.getInstance().services()));
+    }
+
+    // a move as the server reads it: the event against where they stood, then where they are
+    private static void move(FakePlayer p, double dy, boolean onGround) {
+        Pos to = p.player.getPosition().add(0, dy, 0);
+        EventDispatcher.call(new PlayerMoveEvent(p.player, to, onGround));
+        p.player.teleport(to).join();
+        p.player.refreshOnGround(onGround);
     }
 
     @Test

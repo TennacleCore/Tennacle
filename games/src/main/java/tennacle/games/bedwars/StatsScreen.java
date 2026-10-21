@@ -112,6 +112,7 @@ final class StatsScreen {
                     .fact("Hearts Dealt | Taken", s.both(hearts(s.n("damage-dealt")), hearts(s.n("damage-taken"))))
                     .fact("Hits | Taken", s.pair("hits", "hits-taken"))
                     .fact("Hits Blocked", count(s.n("hits-blocked"))).fact("Hearts Blocked", hearts(s.n("damage-blocked")))
+                    .fact("Jump Resets | Chances", s.pair("jump-resets", "jump-reset-chances"))
                     .fact("Arrows Shot | Hit", s.pair("arrows-shot", "arrows-hit"))
                     .fact("Bow Accuracy", percent(s.n("arrows-hit"), s.n("arrows-shot")))),
             new Category(Material.GOLDEN_APPLE, "Items Used", (e, s) -> e

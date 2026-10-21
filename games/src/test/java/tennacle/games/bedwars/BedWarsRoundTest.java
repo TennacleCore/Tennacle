@@ -1070,12 +1070,7 @@ class BedWarsRoundTest extends HeadlessServerTest {
         while (!done.get() && System.currentTimeMillis() < deadline) {
             MinecraftServer.getSchedulerManager().processTick();
             MinecraftServer.getSchedulerManager().processTickEnd();
-            try {
-                Thread.sleep(2);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
+            Thread.onSpinWait(); // a 2 ms sleep rounds to 15.6 ms on Windows' default timer: too few ticks by the deadline
         }
         assertTrue(done.get(), what);
     }
