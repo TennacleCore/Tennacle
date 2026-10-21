@@ -4,6 +4,7 @@ import io.github.term4.canvas.npc.PlayerBody;
 import io.github.term4.polyp.mechanics.mobs.MobEntity;
 import io.github.term4.polyp.mechanics.mobs.MobsSystem;
 import io.github.term4.polyp.tracking.motion.TrackedVelocity;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
@@ -18,11 +19,19 @@ import java.util.function.LongSupplier;
 /**
  * A player-shaped sparring partner on 1.8 player movement: W toward its target at the attribute speed (sprint
  * included), 0.026 air steering while sprinting. Its knockback reaches it over {@link Lag}, as a client's velocity
- * packet would.
+ * packet would; its position goes out as a 1.8 tracker relays a player's, every other tick.
+ *
+ * <p>The velocity a hit on it reads is what a 1.8 server tracks for a player, not its motion: the server moves a
+ * player with no input and restores the pre-hit velocity after melee knockback, so only the takeoff counts. The first
+ * rising move off the ground calls {@code jump()} server-side (NetHandlerPlayServer.processPlayer): 0.42 up, and the
+ * sprint push if sprinting, then gravity and friction, with no re-seed until it lands.
  */
 final class Bot extends MobEntity implements TrackedVelocity {
 
     static final String NAME = "Bot";
+
+    // EntityTracker.trackEntity: a player relays every 2 ticks
+    private static final int RELAY_TICKS = 2;
 
     interface Brain {
         void think(Bot bot);
@@ -37,8 +46,9 @@ final class Bot extends MobEntity implements TrackedVelocity {
     private final Lag lag;
     private final LongSupplier clock;
     private final ArrayDeque<Late> late = new ArrayDeque<>();
-    // the melee knockback in the motion, which a server never tracks for a player (vanilla restores the pre-hit velocity)
-    private Vec kick = Vec.ZERO;
+    private boolean launched, impulse;
+    private double trackedY;
+    private Vec trackedH = Vec.ZERO;
 
     Bot(MobsSystem mobs, Brain brain, Lag lag, LongSupplier clock) {
         super(mobs, EntityType.PLAYER);
@@ -72,40 +82,43 @@ final class Bot extends MobEntity implements TrackedVelocity {
 
     // EntityLivingBase.jump: the rise, and the sprint push the way it faces
     void jumpNow() {
-        double up = 0.42;
-        int boost = getEffectLevel(PotionEffect.JUMP_BOOST);
-        if (boost >= 0) up += (boost + 1) * 0.1;
-        Vec m = motion().withY(up);
-        if (isSprinting()) {
-            double yaw = Math.toRadians(yaw());
-            m = m.add(-Math.sin(yaw) * 0.2, 0, Math.cos(yaw) * 0.2);
-        }
+        Vec m = motion().withY(rise());
+        if (isSprinting()) m = m.add(push());
         motion(m);
-        kick = kick.withY(0);
     }
 
     // EntityPlayer.attackTargetEntityWithCurrentItem: a sprint or Knockback click on a player cuts the clicker's motion
     void cut() {
         motion(motion().mul(0.6, 1, 0.6));
-        kick = kick.mul(0.6, 1, 0.6);
     }
 
     void stop() {
         late.clear();
-        kick = Vec.ZERO;
+        launched = false;
+        trackedH = Vec.ZERO;
         motion(Vec.ZERO);
     }
 
     @Override
     protected void travel(float strafe, float forward) {
-        float friction = isOnGround() ? frictionBelow() * 0.91f : 0.91f;
+        boolean ground = isOnGround();
+        double from = getPosition().y();
+        float friction = ground ? frictionBelow() * 0.91f : 0.91f;
         super.travel(strafe, forward);
-        kick = new Vec(kick.x() * friction, collidedVertically ? 0 : kick.y() * 0.98, kick.z() * friction);
+        double dy = getPosition().y() - from;
+        trackedH = new Vec(small(trackedH.x() * friction), 0, small(trackedH.z() * friction));
+        if (launched) trackedY = collidedVertically ? 0 : (trackedY - 0.08) * 0.98;
+        if (isOnGround()) launched = false;
+        else if (!launched && dy > 0) {
+            launched = true;
+            trackedY = rise();
+            if (isSprinting()) trackedH = trackedH.add(push());
+        }
     }
 
     @Override
     public @NotNull Vec trackedVelocity() {
-        return motion().sub(kick);
+        return new Vec(trackedH.x(), launched ? trackedY : motion().y(), trackedH.z());
     }
 
     @Override
@@ -116,10 +129,31 @@ final class Bot extends MobEntity implements TrackedVelocity {
     }
 
     private void land(Vec velocity) {
-        Vec before = motion();
         super.setVelocity(velocity);
-        kick = motion().sub(before);
+        impulse = true;
         brain.knocked(this);
+    }
+
+    // off the beat for a knockback, as EntityLiving's isAirBorne makes the tracker look
+    @Override
+    public void refreshPosition(@NotNull Pos newPosition, boolean ignoreView, boolean sendPackets) {
+        boolean send = sendPackets && (impulse || getAliveTicks() % RELAY_TICKS == 0);
+        if (send) impulse = false;
+        super.refreshPosition(newPosition, ignoreView, send);
+    }
+
+    private double rise() {
+        int boost = getEffectLevel(PotionEffect.JUMP_BOOST);
+        return 0.42 + (boost >= 0 ? (boost + 1) * 0.1 : 0);
+    }
+
+    private Vec push() {
+        double yaw = Math.toRadians(yaw());
+        return new Vec(-Math.sin(yaw) * 0.2, 0, Math.cos(yaw) * 0.2);
+    }
+
+    private static double small(double v) {
+        return Math.abs(v) < 0.005 ? 0 : v;
     }
 
     @Override

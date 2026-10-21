@@ -10,9 +10,11 @@ import io.github.term4.polyp.api.event.damage.DamageAppliedEvent;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.mechanics.attack.AttackSnapshot;
 import io.github.term4.polyp.mechanics.attack.AttackSystem;
+import io.github.term4.polyp.platform.player.PolypPlayer;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerHand;
@@ -44,10 +46,13 @@ import java.util.TreeSet;
 /**
  * One player and their bot: the hotbar tools, the bot's fight, and a line after each of its hits.
  *
- * <p>The bot plays as a client over {@link Lag}: it sees the player as they were a one-way trip ago, its clicks
- * reach the server a one-way trip later and face the server's reach gate there, and its own knockback reaches it
- * late. Each click is a 1.8 attack: on a player, while sprinting or with a Knockback item, it cuts the bot's own
- * motion to 0.6 whether or not it lands.
+ * <p>The bot plays as a 1.8 client over {@link Lag}. It traces at the start of its tick from its own eyes
+ * (Minecraft.runTick: getMouseOver(1.0F)) to the player as its client draws them: what viewers were last sent, a
+ * one-way trip late, glided a third of the remaining way each tick (EntityOtherPlayerMP, three increments). A target
+ * flying away is drawn closer, so a chasing bot reaches further, as a player does. Its clicks reach the server a
+ * one-way trip later and face the server's reach gate there, and its own knockback reaches it late. Each click is a
+ * 1.8 attack: on a player, while sprinting or with a Knockback item, it cuts the bot's own motion to 0.6 whether or
+ * not it lands.
  */
 final class Trainer implements GameModule {
 
@@ -65,6 +70,10 @@ final class Trainer implements GameModule {
     // blocks a tick away from the bot: the victim is already flying, so a walking hit keeps the combo close
     private static final double FLYING_AWAY = 0.15;
     private static final int SEEN = 64;
+    // EntityOtherPlayerMP.setPositionAndRotation2: a relayed move is glided over three ticks
+    private static final int GLIDE = 3;
+    // past this a client takes the move as a teleport
+    private static final double SNAP = 8;
 
     private record Send(long at, boolean sprint, boolean approach, String kind) {}
 
@@ -73,6 +82,8 @@ final class Trainer implements GameModule {
     private final long[] seenAt = new long[SEEN];
     private final Pos[] seen = new Pos[SEEN];
     private final ArrayDeque<Send> sends = new ArrayDeque<>();
+    private @Nullable Pos received, view;
+    private int increments;
     private Game game;
     private Pos home = Pos.ZERO, middle = Pos.ZERO;
     private @Nullable Player player;
@@ -183,6 +194,8 @@ final class Trainer implements GameModule {
         approaching = false;
         sends.clear();
         lag.clear();
+        received = null;
+        view = null;
         knockedAt = -1;
         knocked = false;
         if (bot == null) return;
@@ -229,7 +242,8 @@ final class Trainer implements GameModule {
         arrive(self, target, drill, now);
 
         int behind = lag.expectedUp();
-        Pos view = seen(now - behind, target);
+        receive(seen(now - behind, target));
+        Pos view = this.view;
         aim(self, view, target);
         double distance = reachTo(self, view, target.getBoundingBox());
         boolean clicked = false;
@@ -281,6 +295,21 @@ final class Trainer implements GameModule {
         }
         self.setSprinting(forward && sprint);
         self.walk(forward);
+        glide();
+    }
+
+    private void receive(Pos arriving) {
+        if (received != null && arriving.samePoint(received)) return;
+        if (view == null || arriving.distance(view) > SNAP) view = arriving;
+        received = arriving;
+        increments = GLIDE;
+    }
+
+    // after the trace: the client's other players move in its entity update
+    private void glide() {
+        if (increments <= 0 || view == null || received == null) return;
+        Vec step = received.sub(view).asVec().div(increments--);
+        view = view.add(step);
     }
 
     // a click: the client-side cut now, the attack at the server a one-way trip later
@@ -361,10 +390,11 @@ final class Trainer implements GameModule {
             case RANDOM -> random.nextInt(100) < drill.get(Knob.SPRINT_CHANCE);
             case SPACING -> {
                 int behind = lag.expectedUp();
-                Pos was = seen(now - behind - 1, target), is = seen(now - behind, target);
+                // relayed every other tick: the step over two
+                Pos was = seen(now - behind - 2, target), is = seen(now - behind, target);
                 double dx = is.x() - self.getPosition().x(), dz = is.z() - self.getPosition().z();
                 double len = Math.hypot(dx, dz);
-                double away = len == 0 ? 0 : ((is.x() - was.x()) * dx + (is.z() - was.z()) * dz) / len;
+                double away = len == 0 ? 0 : ((is.x() - was.x()) * dx + (is.z() - was.z()) * dz) / len / 2;
                 yield away < FLYING_AWAY;
             }
         };
@@ -377,15 +407,20 @@ final class Trainer implements GameModule {
         return patience != Drill.NEVER && now - inReachSince >= patience;
     }
 
+    // what viewers were sent this tick
     private void remember(Player target, long now) {
         int i = (int) Math.floorMod(now, (long) SEEN);
         seenAt[i] = now;
-        seen[i] = target.getPosition();
+        seen[i] = relayed(target);
     }
 
     private Pos seen(long tick, Player target) {
         int i = (int) Math.floorMod(tick, (long) SEEN);
-        return seenAt[i] == tick && seen[i] != null ? seen[i] : target.getPosition();
+        return seenAt[i] == tick && seen[i] != null ? seen[i] : relayed(target);
+    }
+
+    private static Pos relayed(Player target) {
+        return target instanceof PolypPlayer relayed ? relayed.relayedPosition() : target.getPosition();
     }
 
     private void equip(Bot self, Drill drill) {

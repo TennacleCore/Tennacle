@@ -107,7 +107,9 @@ class PracticeTest extends HeadlessServerTest {
             assertTrue(!bot.isOnGround(), "still in the air");
             attacks.apply(new AttackSnapshot(p.player, bot, null));
             assertEquals(2, rises.size(), "two knockbacks");
-            assertTrue(rises.get(1) < rises.get(0) - 0.2, "the server never saw the first rise: " + rises);
+            // the server tracks a jump arc from the takeoff, not the knockback's rise, and not a fall from rest
+            assertTrue(rises.get(1) < rises.get(0) - 0.05, "lower than the first: " + rises);
+            assertTrue(rises.get(1) > 0.2, "not driven down: " + rises);
         } finally {
             MinecraftServer.getGlobalEventHandler().removeListener(listener);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
