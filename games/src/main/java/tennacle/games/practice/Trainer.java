@@ -379,8 +379,9 @@ final class Trainer implements GameModule {
         counterTick = drill.on(Knob.COUNTER) ? drill.ticks(Knob.COUNTER_MIN, Knob.COUNTER_MAX, Knob.COUNTER_LEAN, random) : -1;
         lastPlanned = Math.max(lastPlanned, counterTick);
         jumpPlanned = random.nextInt(100) < drill.get(Knob.JUMP_RESET);
-        if (player != null) LOGGER.info("practice {}: bot knocked, clicks {}, counter {}, jump {}", player.getUsername(),
-                clicks, counterTick, jumpPlanned);
+        if (player != null && bot != null) LOGGER.info("practice {}: bot knocked, {} up off a tracked {}, clicks {}, counter {}, jump {}",
+                player.getUsername(), String.format(java.util.Locale.ROOT, "%.4f", bot.sentY()),
+                String.format(java.util.Locale.ROOT, "%.4f", bot.heldY()), clicks, counterTick, jumpPlanned);
     }
 
     private boolean sprintHit(Drill drill, Bot self, Player target, long now) {

@@ -26,7 +26,8 @@ import java.util.function.LongSupplier;
  * player with no input and restores the pre-hit velocity after melee knockback, so only the takeoff counts. The first
  * rising move off the ground calls {@code jump()} server-side (NetHandlerPlayServer.processPlayer): 0.42 up, and the
  * sprint push if sprinting, then gravity and friction, with no re-seed until it lands; the server's own floor probe
- * lands that arc first when it would collide ({@link MotionTracker#bodyMotY}).
+ * lands that arc first when it would collide ({@link MotionTracker#bodyMotY}). All of it reads the bot's moves as the
+ * server would hear them, a one-way trip late.
  */
 final class Bot extends MobEntity implements TrackedVelocity {
 
@@ -44,12 +45,17 @@ final class Bot extends MobEntity implements TrackedVelocity {
 
     private record Late(long at, Vec velocity) {}
 
+    private record Move(long at, Pos pos, boolean ground) {}
+
+    private static final int MOVES = 32;
+
     private final Brain brain;
     private final Lag lag;
     private final LongSupplier clock;
     private final ArrayDeque<Late> late = new ArrayDeque<>();
     private boolean launched, impulse;
-    private double trackedY;
+    private double trackedY, heldY, sentY;
+    private final Move[] moves = new Move[MOVES];
     private Vec trackedH = Vec.ZERO;
 
     Bot(MobsSystem mobs, Brain brain, Lag lag, LongSupplier clock) {
@@ -104,19 +110,34 @@ final class Bot extends MobEntity implements TrackedVelocity {
 
     @Override
     protected void travel(float strafe, float forward) {
-        boolean ground = isOnGround();
-        double from = getPosition().y();
-        float friction = ground ? frictionBelow() * 0.91f : 0.91f;
         super.travel(strafe, forward);
-        double dy = getPosition().y() - from;
+        long now = clock.getAsLong();
+        moves[(int) Math.floorMod(now, (long) MOVES)] = new Move(now, getPosition(), isOnGround());
+        int up = lag.expectedUp();
+        Move heard = heard(now - up), before = heard(now - up - 1);
+        float friction = heard.ground() ? frictionBelow() * 0.91f : 0.91f;
         trackedH = new Vec(small(trackedH.x() * friction), 0, small(trackedH.z() * friction));
-        trackedY = MotionTracker.bodyMotY(this, trackedY, isOnGround());
-        if (isOnGround()) launched = false;
-        else if (!launched && dy > 0) {
+        trackedY = MotionTracker.bodyMotY(this, heard.pos(), trackedY, heard.ground());
+        if (heard.ground()) launched = false;
+        else if (!launched && heard.pos().y() > before.pos().y()) {
             launched = true;
             trackedY = rise();
             if (isSprinting()) trackedH = trackedH.add(push());
         }
+    }
+
+    private Move heard(long at) {
+        Move m = moves[(int) Math.floorMod(at, (long) MOVES)];
+        return m != null && m.at() == at ? m : new Move(at, getPosition(), isOnGround());
+    }
+
+    /** The server's tracked vertical when the last knockback was computed, and that knockback's rise. */
+    double heldY() {
+        return heldY;
+    }
+
+    double sentY() {
+        return sentY;
     }
 
     @Override
@@ -126,6 +147,8 @@ final class Bot extends MobEntity implements TrackedVelocity {
 
     @Override
     public void setVelocity(@NotNull Vec velocity) {
+        heldY = trackedY;
+        sentY = velocity.y() / 20;
         long at = lag.down(clock.getAsLong());
         if (at <= clock.getAsLong() && late.isEmpty()) land(velocity);
         else late.add(new Late(at, velocity));

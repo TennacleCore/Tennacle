@@ -86,8 +86,17 @@ class PracticeTest extends HeadlessServerTest {
 
     @Test
     void anAirChainBringsItDown() {
+        chain("PracB", 0);
+    }
+
+    @Test
+    void aLaggyChainStaysAirborne() {
+        chain("PracE", 200);
+    }
+
+    private void chain(String name, int ping) {
         Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
-        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PracB");
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), name);
         List<Double> rises = new ArrayList<>();
         var listener = EventListener.of(KnockbackAppliedEvent.class, e -> {
             if (e.target() instanceof Bot) rises.add(e.velocity().y() / 20);
@@ -96,6 +105,7 @@ class PracticeTest extends HeadlessServerTest {
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
+            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.PING_MIN, ping).with(Drill.Knob.PING_MAX, ping));
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
             bot.teleport(new Pos(-5.5, 65, 0.5)).join();
