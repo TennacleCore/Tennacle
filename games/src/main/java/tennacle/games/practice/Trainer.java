@@ -104,7 +104,9 @@ final class Trainer implements GameModule {
     private final TreeSet<Integer> clicks = new TreeSet<>();
     private int counterTick = -1, lastPlanned;
     private boolean jumpPlanned, untilLanded, leftGround, flying, reducedThisKnock;
-    private int chain, planMiss, planRate;
+    private int chain, planMiss, planRate, cuts;
+    private Pos pushFrom = Pos.ZERO;
+    private double pushFar, pushSize, pushX, pushZ;
     private long lastReduceAt = Long.MIN_VALUE / 2;
     private long flightFrom;
 
@@ -266,7 +268,15 @@ final class Trainer implements GameModule {
         }
         boolean reducing = knockedAt >= 0;
         boolean tickZero = reducing && now == knockedAt;
-        if (flying && (self.isOnGround() && now > flightFrom || now - flightFrom > UNTIL_LANDED)) flying = false;
+        if (flying) {
+            Pos body = self.body();
+            pushFar = Math.max(pushFar, (body.x() - pushFrom.x()) * pushX + (body.z() - pushFrom.z()) * pushZ);
+            if (self.isOnGround() && now > flightFrom || now - flightFrom > UNTIL_LANDED) {
+                flying = false;
+                LOGGER.info("practice {}: bot pushed {} blocks off a {} knockback, {} cuts", target.getUsername(),
+                        String.format(java.util.Locale.ROOT, "%.2f", pushFar), String.format(java.util.Locale.ROOT, "%.3f", pushSize), cuts);
+            }
+        }
         if (reducing) {
             int rel = (int) (now - knockedAt);
             boolean counter = rel == counterTick;
@@ -335,6 +345,7 @@ final class Trainer implements GameModule {
         if (distance > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return false;
         boolean sprinting = self.isSprinting();
         if (sprinting || drill.get(Knob.KNOCKBACK) > 0) {
+            if (flying) cuts++;
             self.cut();
             self.setSprinting(false);
         }
@@ -381,6 +392,14 @@ final class Trainer implements GameModule {
         knockedAt = now;
         flying = true;
         flightFrom = now;
+        if (bot != null) {
+            pushFrom = bot.body();
+            pushSize = Math.hypot(bot.motion().x(), bot.motion().z());
+            pushX = pushSize > 0 ? bot.motion().x() / pushSize : 0;
+            pushZ = pushSize > 0 ? bot.motion().z() / pushSize : 0;
+        }
+        pushFar = 0;
+        cuts = 0;
         clicks.clear();
         leftGround = false;
         untilLanded = drill.on(Knob.REDUCE) && drill.get(Knob.REDUCE_FOR) == 0;
