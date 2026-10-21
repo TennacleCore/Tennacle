@@ -148,6 +148,14 @@ final class Trainer implements GameModule {
                 public void knocked(Bot self) {
                     knocked = true;
                 }
+
+                @Override
+                public void arrive(Bot self) {
+                    Player target = player;
+                    if (target != null && target.getInstance() == self.getInstance()) {
+                        Trainer.this.arrive(self, target, Drill.of(target), game.tick());
+                    }
+                }
             }, lag, game::tick), game.shard(), facing(middle, home));
         }
         changed(joined);
@@ -203,8 +211,7 @@ final class Trainer implements GameModule {
         knocked = false;
         flying = false;
         if (bot == null) return;
-        bot.stop();
-        bot.teleport(facing(middle, player != null ? player.getPosition() : home));
+        bot.place(facing(middle, player != null ? player.getPosition() : home));
     }
 
     // effects follow the settings at once; the rest is read each tick
@@ -243,7 +250,6 @@ final class Trainer implements GameModule {
         lag.tick(drill);
         remember(target, now);
         equip(self, drill);
-        arrive(self, target, drill, now);
 
         int behind = lag.expectedUp();
         receive(seen(now - behind, target));

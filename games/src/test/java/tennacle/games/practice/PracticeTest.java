@@ -108,7 +108,7 @@ class PracticeTest extends HeadlessServerTest {
             Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.PING_MIN, ping).with(Drill.Knob.PING_MAX, ping));
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
-            bot.teleport(new Pos(-5.5, 65, 0.5)).join();
+            bot.place(new Pos(-5.5, 65, 0.5));
             ticks(game, bot::isOnGround, "it stands");
             p.player.setSprinting(true);
             attacks.apply(new AttackSnapshot(p.player, bot, null));
@@ -152,7 +152,7 @@ class PracticeTest extends HeadlessServerTest {
             Drill.set(p.player, drill);
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
-            bot.teleport(new Pos(-5.5, 65, 0.5)).join();
+            bot.place(new Pos(-5.5, 65, 0.5));
             ticks(game, bot::isOnGround, "it stands");
             if (fighting) {
                 p.player.setHeldItemSlot((byte) 2);
@@ -168,6 +168,28 @@ class PracticeTest extends HeadlessServerTest {
                 return game.tick() >= until;
             }, "it lands");
             return far[0];
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void theServerBodyTrails() {
+        Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PracH");
+        try {
+            p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
+            assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
+            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.PING_MIN, 200).with(Drill.Knob.PING_MAX, 200));
+            ticks(game, () -> bot(game) != null, "the bot is up");
+            Bot bot = bot(game);
+            p.player.setHeldItemSlot((byte) 2);
+            EventDispatcher.call(new PlayerUseItemEvent(p.player, PlayerHand.MAIN, p.player.getItemInMainHand(), 0));
+            long until = game.tick() + 10;
+            ticks(game, () -> game.tick() >= until, "it runs");
+            double behind = bot.getPosition().x() - bot.body().x();
+            assertTrue(behind > 0.2, "the server hears it two ticks late, " + behind + " blocks back");
         } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             p.player.remove();

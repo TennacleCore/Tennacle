@@ -13,14 +13,20 @@ import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.entity.metadata.avatar.AvatarMeta;
 import net.minestom.server.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.function.LongSupplier;
 
 /**
  * A player-shaped sparring partner on 1.8 player movement: W toward its target at the attribute speed (sprint
  * included), 0.026 air steering while sprinting. Its knockback reaches it over {@link Lag}, as a client's velocity
- * packet would; its position goes out as a 1.8 tracker relays a player's, every other tick.
+ * packet would.
+ *
+ * <p>Two bodies, as a laggy player has: the client's, which moves and decides, and the server's, this entity as every
+ * check and viewer sees it, where the client's was a one-way trip ago. The server's goes out as a 1.8 tracker relays a
+ * player's, every other tick.
  *
  * <p>The velocity a hit on it reads is what a 1.8 server tracks for a player, not its motion: the server moves a
  * player with no input and restores the pre-hit velocity after melee knockback, so only the takeoff counts. The first
@@ -41,6 +47,9 @@ final class Bot extends MobEntity implements TrackedVelocity {
 
         /** The bot's client just took a knockback: its next tick is tick 0. */
         void knocked(Bot bot);
+
+        /** Before the client's tick, at the server body: what the client sent has arrived. */
+        void arrive(Bot bot);
     }
 
     private record Late(long at, Vec velocity) {}
@@ -53,7 +62,8 @@ final class Bot extends MobEntity implements TrackedVelocity {
     private final Lag lag;
     private final LongSupplier clock;
     private final ArrayDeque<Late> late = new ArrayDeque<>();
-    private boolean launched, impulse;
+    private boolean launched, impulse, client;
+    private @Nullable Pos body;
     private double trackedY, heldY, sentY;
     private final Move[] moves = new Move[MOVES];
     private Vec trackedH = Vec.ZERO;
@@ -73,7 +83,29 @@ final class Bot extends MobEntity implements TrackedVelocity {
     protected void livingTick() {
         long now = clock.getAsLong();
         while (!late.isEmpty() && late.peek().at() <= now) land(late.poll().velocity());
-        super.livingTick();
+        brain.arrive(this);
+        client = true;
+        try {
+            if (body != null) refreshPosition(body, false, false);
+            super.livingTick();
+            body = getPosition();
+        } finally {
+            client = false;
+        }
+        refreshPosition(heard(now - lag.expectedUp()).pos(), false, true);
+    }
+
+    /** Both bodies to {@code at}, still. */
+    void place(@NotNull Pos at) {
+        stop();
+        Arrays.fill(moves, null);
+        body = at;
+        teleport(at);
+    }
+
+    /** Where the bot's client is; the entity is where the server last heard it. */
+    @NotNull Pos body() {
+        return body != null ? body : getPosition();
     }
 
     @Override
@@ -160,9 +192,14 @@ final class Bot extends MobEntity implements TrackedVelocity {
         brain.knocked(this);
     }
 
-    // off the beat for a knockback, as EntityLiving's isAirBorne makes the tracker look
+    // the client body moves unseen; the server body goes out off the beat for a knockback, as EntityLiving's
+    // isAirBorne makes the tracker look
     @Override
     public void refreshPosition(@NotNull Pos newPosition, boolean ignoreView, boolean sendPackets) {
+        if (client) {
+            super.refreshPosition(newPosition, ignoreView, false);
+            return;
+        }
         boolean send = sendPackets && (impulse || getAliveTicks() % RELAY_TICKS == 0);
         if (send) impulse = false;
         super.refreshPosition(newPosition, ignoreView, send);
