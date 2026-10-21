@@ -129,23 +129,35 @@ class PracticeTest extends HeadlessServerTest {
 
     @Test
     void itsReducesCutItsKnockback() {
-        double plain = pushed(false, "PracC");
-        double reduced = pushed(true, "PracD");
+        double plain = pushed(Drill.DEFAULT, false, "PracC");
+        double reduced = pushed(Drill.DEFAULT.with(Drill.Knob.REDUCE, 1), false, "PracD");
         assertTrue(reduced < plain * 0.6, "reduced " + reduced + " against " + plain);
     }
 
-    // how far one sprint hit sends a standing bot
-    private double pushed(boolean reduce, String name) {
+    @Test
+    void lagKeepsItsKnockback() {
+        Drill fighting = Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1);
+        double prompt = pushed(fighting, true, "PracF");
+        double laggy = pushed(fighting.with(Drill.Knob.PING_MIN, 150).with(Drill.Knob.PING_MAX, 150), true, "PracG");
+        assertTrue(laggy > prompt * 0.7, "laggy " + laggy + " against " + prompt);
+    }
+
+    // how far one sprint hit sends the bot, standing or fighting
+    private double pushed(Drill drill, boolean fighting, String name) {
         Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
         FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), name);
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
-            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.REDUCE, reduce ? 1 : 0));
+            Drill.set(p.player, drill);
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
             bot.teleport(new Pos(-5.5, 65, 0.5)).join();
             ticks(game, bot::isOnGround, "it stands");
+            if (fighting) {
+                p.player.setHeldItemSlot((byte) 2);
+                EventDispatcher.call(new PlayerUseItemEvent(p.player, PlayerHand.MAIN, p.player.getItemInMainHand(), 0));
+            }
             double from = bot.getPosition().x();
             p.player.setSprinting(true);
             attacks.apply(new AttackSnapshot(p.player, bot, null));

@@ -67,6 +67,8 @@ final class Trainer implements GameModule {
     private static final double CLIENT_REACH = 3.0;
     // the most "until it lands" waits on the bot's own fall
     private static final int UNTIL_LANDED = 30;
+    // a missed swing, tried again at about 10 CPS
+    private static final int RETRY_TICKS = 2;
     // blocks a tick away from the bot: the victim is already flying, so a walking hit keeps the combo close
     private static final double FLYING_AWAY = 0.15;
     private static final int SEEN = 64;
@@ -101,7 +103,8 @@ final class Trainer implements GameModule {
     private long knockedAt = -1;
     private final TreeSet<Integer> clicks = new TreeSet<>();
     private int counterTick = -1, lastPlanned;
-    private boolean jumpPlanned, untilLanded, leftGround;
+    private boolean jumpPlanned, untilLanded, leftGround, flying;
+    private long flightFrom;
 
     @Override
     public void install(@NotNull Game game) {
@@ -198,6 +201,7 @@ final class Trainer implements GameModule {
         view = null;
         knockedAt = -1;
         knocked = false;
+        flying = false;
         if (bot == null) return;
         bot.stop();
         bot.teleport(facing(middle, player != null ? player.getPosition() : home));
@@ -253,6 +257,8 @@ final class Trainer implements GameModule {
             plan(drill, now);
         }
         boolean reducing = knockedAt >= 0;
+        boolean tickZero = reducing && now == knockedAt;
+        if (flying && (self.isOnGround() && now > flightFrom || now - flightFrom > UNTIL_LANDED)) flying = false;
         if (reducing) {
             int rel = (int) (now - knockedAt);
             boolean counter = rel == counterTick;
@@ -271,7 +277,8 @@ final class Trainer implements GameModule {
 
         boolean sprint = true;
         boolean forward = running || reducing;
-        if (running && !clicked) {
+        // in its own knockback only Reduce and Counter click: any other click would cut it uninvited
+        if (running && !clicked && !flying) {
             boolean selfFirst = playerHitAt >= exchangeFrom;
             boolean waiting = drill.on(Knob.HIT_SELECT) && !selfFirst && !patienceOut(drill, distance, now);
             boolean ready = now >= readyAt + behind && !approaching;
@@ -286,7 +293,7 @@ final class Trainer implements GameModule {
                 forward = false;
             }
         }
-        if (jumpPlanned && now == knockedAt) {
+        if (jumpPlanned && tickZero) {
             jumpPlanned = false;
             if (self.isOnGround()) {
                 self.setSprinting(true);
@@ -337,7 +344,7 @@ final class Trainer implements GameModule {
             attacks.apply(new AttackSnapshot(self, target, null));
             self.setSprinting(client);
             if (!swingLanded) {
-                if (send.approach()) readyAt = now;
+                if (send.approach()) readyAt = now + RETRY_TICKS;
                 continue;
             }
             landed++;
@@ -353,6 +360,8 @@ final class Trainer implements GameModule {
     // the bot's client just took a knockback: which of its next ticks it clicks on, and whether it jumps
     private void plan(Drill drill, long now) {
         knockedAt = now;
+        flying = true;
+        flightFrom = now;
         clicks.clear();
         leftGround = false;
         untilLanded = drill.on(Knob.REDUCE) && drill.get(Knob.REDUCE_FOR) == 0;
