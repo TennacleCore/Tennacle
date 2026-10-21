@@ -104,7 +104,8 @@ final class Trainer implements GameModule {
     private final TreeSet<Integer> clicks = new TreeSet<>();
     private int counterTick = -1, lastPlanned;
     private boolean jumpPlanned, untilLanded, leftGround, flying, reducedThisKnock;
-    private int chain, planMiss, planRate, cuts;
+    private int chain, planMiss, planRate, cuts, combo;
+    private long lastLandedAt = Long.MIN_VALUE / 2;
     private Pos pushFrom = Pos.ZERO;
     private double pushFar, pushSize, pushX, pushZ;
     private long lastReduceAt = Long.MIN_VALUE / 2;
@@ -283,7 +284,7 @@ final class Trainer implements GameModule {
             if (clicks.contains(rel) || counter) {
                 clicked = true;
                 if (counter || random.nextInt(100) >= planMiss) {
-                    boolean found = click(self, distance, drill, counter ? "counter" : "reduce", false, now);
+                    boolean found = click(self, distance, drill, counter ? "counter" : "reduce", false, true, now);
                     if (found && !counter) reduced(now);
                 } else {
                     self.swingMainHand();
@@ -305,7 +306,11 @@ final class Trainer implements GameModule {
                 boolean sprintHit = sprintHit(drill, self, target, now);
                 if (!sprintHit) self.setSprinting(false);
                 sprint = sprintHit;
-                click(self, distance, drill, sprintHit ? "sprint hit" : "walking hit", true, now);
+                // still sprinting, but a missed w-tap: the server never heard it start again
+                int step = now - lastLandedAt <= drill.get(Knob.COMBO_GAP) ? combo : 0;
+                boolean rearmed = !sprintHit || random.nextInt(100) >= step * drill.get(Knob.COMBO_SPRINT);
+                click(self, distance, drill, !sprintHit ? "walking hit" : rearmed ? "sprint hit" : "sprint hit, not re-armed",
+                        true, rearmed, now);
             } else if (waiting && distance <= reach) {
                 forward = false;
             } else if (drill.hitType() == Drill.HitType.SPACING && !ready && distance < reach + 0.5) {
@@ -340,7 +345,7 @@ final class Trainer implements GameModule {
 
     // a click: the client-side cut now, the attack at the server a one-way trip later
     // whether the client found the player under its crosshair
-    private boolean click(Bot self, double distance, Drill drill, String kind, boolean approach, long now) {
+    private boolean click(Bot self, double distance, Drill drill, String kind, boolean approach, boolean rearmed, long now) {
         self.swingMainHand();
         if (distance > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return false;
         boolean sprinting = self.isSprinting();
@@ -350,7 +355,7 @@ final class Trainer implements GameModule {
             self.setSprinting(false);
         }
         if (approach) approaching = true;
-        sends.add(new Send(lag.up(now), sprinting, approach, kind));
+        sends.add(new Send(lag.up(now), sprinting && rearmed, approach, kind));
         return true;
     }
 
@@ -378,6 +383,8 @@ final class Trainer implements GameModule {
                 continue;
             }
             landed++;
+            combo = now - lastLandedAt <= drill.get(Knob.COMBO_GAP) ? combo + 1 : 1;
+            lastLandedAt = now;
             readyAt = now + HURT_TICKS + drill.ticks(Knob.WAIT_MIN, Knob.WAIT_MAX, Knob.WAIT_LEAN, random);
             reach = drill.reach(random);
             inReachSince = -1;

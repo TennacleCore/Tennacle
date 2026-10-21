@@ -21,6 +21,8 @@ public final class Drill {
     public enum Knob {
         HIT_TYPE("type", 0, 0, 3, 1),
         SPRINT_CHANCE("sprintpct", 50, 0, 100, 10),
+        COMBO_GAP("combo", 15, 1, 40, 1),
+        COMBO_SPRINT("cosprint", 20, 0, 100, 5),
         KNOCKBACK("kb", 0, 0, 5, 1),
         REACH_MIN("rmin", 8, 4, 16, 1),
         REACH_MAX("rmax", 8, 4, 16, 1),

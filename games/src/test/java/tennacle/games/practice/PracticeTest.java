@@ -175,6 +175,32 @@ class PracticeTest extends HeadlessServerTest {
     }
 
     @Test
+    void aComboLosesItsSprint() {
+        Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PracI");
+        List<Double> outs = new ArrayList<>();
+        var listener = EventListener.of(KnockbackAppliedEvent.class, e -> {
+            if (e.target() == p.player && e.snapshot().source() instanceof Bot) outs.add(Math.hypot(e.velocity().x(), e.velocity().z()) / 20);
+        });
+        MinecraftServer.getGlobalEventHandler().addListener(listener);
+        try {
+            p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
+            assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
+            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.COMBO_SPRINT, 100));
+            ticks(game, () -> bot(game) != null, "the bot is up");
+            p.player.setHeldItemSlot((byte) 2);
+            EventDispatcher.call(new PlayerUseItemEvent(p.player, PlayerHand.MAIN, p.player.getItemInMainHand(), 0));
+            ticks(game, () -> outs.size() >= 2, "two hits");
+            assertTrue(outs.get(1) < outs.get(0) - 0.3, "the second lands without the sprint bonus: " + outs);
+            assertTrue(bot(game).isSprinting(), "and it still sprints");
+        } finally {
+            MinecraftServer.getGlobalEventHandler().removeListener(listener);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            p.player.remove();
+        }
+    }
+
+    @Test
     void theServerBodyTrails() {
         Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
         FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PracH");

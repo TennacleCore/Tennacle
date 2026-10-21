@@ -48,7 +48,7 @@ final class DrillMenu {
 
     private static void hitting(Player viewer, Consumer<Player> changed) {
         page(viewer, "Hitting", 4, changed,
-                new int[]{10, 11, 12, 14, 15, 16},
+                new int[]{10, 11, 12, 14, 15, 16, 28, 29},
                 new Spec(Knob.HIT_TYPE, Material.IRON_SWORD, "Hit Type",
                         "Sprint and Normal always; Random by its chance; Spacing walks a hit when you're already flying away "
                                 + "and holds back while you can't be hit yet.",
@@ -67,7 +67,13 @@ final class DrillMenu {
                 new Spec(Knob.REACH_MAX, Material.BOW, "Farthest Reach", "Each hit comes from between its closest and farthest reach.",
                         DrillMenu::quarters),
                 new Spec(Knob.REACH_LEAN, Material.COMPASS, "Reach Lean", "Where in that range its hits tend to fall.",
-                        v -> lean(v, "close", "far")));
+                        v -> lean(v, "close", "far")),
+                new Spec(Knob.COMBO_GAP, Material.CLOCK, "Combo Resets After",
+                        "A hit this soon after its last landed hit carries on the combo; later, it starts fresh.", DrillMenu::ticks),
+                new Spec(Knob.COMBO_SPRINT, Material.LEATHER_BOOTS, "Combo Sprint Loss",
+                        "For each hit already landed in the combo, this much less chance the next counts as a sprint hit. "
+                                + "It keeps sprinting; the server just never hears its sprint start again, as a missed w-tap.",
+                        v -> "-" + v + "%"));
     }
 
     private static void timing(Player viewer, Consumer<Player> changed) {
