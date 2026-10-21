@@ -19,6 +19,7 @@ public final class Icons {
             case "bridge" -> Material.BLUE_TERRACOTTA;
             case "sumo" -> Material.SLIME_BALL;
             case "boxing" -> Material.DIAMOND_SWORD;
+            case "practice" -> Material.ARMOR_STAND;
             case "bedfight" -> Material.WHITE_BED;
             default -> Material.PAPER;
         };

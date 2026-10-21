@@ -7,6 +7,8 @@ import tennacle.commands.Completions;
 import tennacle.games.LobbyCommands;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
+import tennacle.games.Options;
+import tennacle.games.Ruleset;
 import tennacle.games.Platform;
 
 import io.github.term4.grotto.Game;
@@ -97,7 +99,8 @@ public final class Play {
             return;
         }
         String again = "Type it again";
-        String refused = Matches.joinable(mode) ? enter(me, mode, id, platformName, mapWord, again)
+        String refused = mode.solo() ? alone(me, mode, platformName, mapWord, again)
+                : Matches.joinable(mode) ? enter(me, mode, id, platformName, mapWord, again)
                 : Queues.enqueue(me, id, platformName, mapWord, again);
         if (refused != null) Msg.fail(me, refused);
     }
@@ -112,7 +115,31 @@ public final class Play {
         Mode mode = Matches.played(id);
         if (mode == null) return "No game named " + id + ".";
         String again = "Click again";
+        if (mode.solo()) return alone(me, mode, null, map, again);
         return Matches.joinable(mode) ? enter(me, mode, id, null, map, again) : Queues.enqueue(me, id, null, map, again);
+    }
+
+    private static @Nullable String alone(Player me, Mode mode, @Nullable String platformName, @Nullable String mapWord,
+                                          String again) {
+        if (platformName != null && Matches.platform(platformName) == null) {
+            return "No platform named " + platformName + ". Platforms: " + String.join(", ", Matches.platforms()) + ".";
+        }
+        String map = mapWord != null ? Matches.mapNamed(mode, mapWord) : null;
+        if (mapWord != null && map == null) {
+            return "No map named " + mapWord + " for " + mode.title() + ". Maps: " + String.join(", ", Matches.mapNames(mode)) + ".";
+        }
+        String unfit = Queues.unfit(me, Matches.teamSize(mode), mode.title(), "play " + mode.name(), again);
+        if (unfit != null) return unfit;
+        List<Player> side = Parties.of(me);
+        Queues.leave(me);
+        for (Player p : PartyExit.leaveTogether(side)) Matches.toLobby(p);
+        Options options = new Options(map, platformName, Ruleset.named("flags"), List.of(), List.of());
+        Matches.begin(mode, Matches.platformFor(platformName), List.of(side), options).whenComplete((game, failure) -> {
+            if (failure == null) return;
+            LOGGER.warn("a {} game failed to start", mode.name(), failure);
+            for (Player p : side) Msg.fail(p, "That game couldn't start. Try again in a moment.");
+        });
+        return null;
     }
 
     private static @Nullable String enter(Player me, Mode mode, String id, @Nullable String platformName,

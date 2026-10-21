@@ -195,7 +195,7 @@ public final class Matches {
 
     /** The modes /duel starts and /play queues: a game launched with every seat taken, never one that fills a waiting room. */
     public static @NotNull List<String> launchedFull() {
-        return modes.values().stream().filter(mode -> !joinable(mode)).map(Mode::name).sorted().toList();
+        return modes.values().stream().filter(mode -> !joinable(mode) && !mode.solo()).map(Mode::name).sorted().toList();
     }
 
     public static @Nullable Platform platform(@NotNull String name) {

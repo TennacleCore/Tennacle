@@ -80,6 +80,7 @@ public final class GamesModule {
         Careers.register(); // /stats: every mode's career line
         Sumo.install(); // ring-out over a void plane; the platform picks the knockback
         Boxing.install(); // speed 2, first to 10 hits
+        tennacle.games.practice.Practice.install();
         Bridge.install(); // blue vs red, first to five goals
         BedFight.install(); // break the bed, then eliminate
         BedWars.install(); // Hypixel's, on its maps: /play bedwars_eight_one

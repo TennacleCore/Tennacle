@@ -59,6 +59,7 @@ public final class TestWiring {
         tennacle.GameIds.install(Matches.grotto(), "tennacle-dev-secret");
         Sumo.install();
         tennacle.games.boxing.Boxing.install();
+        tennacle.games.practice.Practice.install();
         tennacle.games.bridge.Bridge.install();
         tennacle.games.bedfight.BedFight.install();
         tennacle.games.bedwars.BedWars.install();

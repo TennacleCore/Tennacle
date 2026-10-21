@@ -35,6 +35,7 @@ import java.util.function.Supplier;
  * @param title      the name as copy reads it ({@code Bridge}, {@code Bed Wars Solo})
  * @param banner     the headline of the start banner ({@code Bed Wars} over every Bed Wars mode); unset = the title
  * @param plays      its {@code /play} ids, Hypixel's, each to the seats a side it plays with
+ * @param solo       launched for one side alone, at once: no queue, no waiting room, no /duel
  */
 public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps arena,
                    @NotNull Supplier<MechanicsProfile.Builder> profile,
@@ -43,7 +44,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                    @Nullable StateKey<Integer> teamScore,
                    @NotNull List<SeatStat> tabStats, @Nullable Marks marks, @Nullable String look,
                    @NotNull Family family, @NotNull String title, @NotNull String banner,
-                   @NotNull Map<String, String> mechanics, @NotNull Map<String, Integer> plays) {
+                   @NotNull Map<String, String> mechanics, @NotNull Map<String, Integer> plays, boolean solo) {
 
     /** Hypixel's two presentations: a duel's card names two players; a game's block names the winning side. */
     public enum Family { DUEL, GAME }
@@ -56,7 +57,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
                 @Nullable StateKey<Integer> teamScore,
                 @NotNull List<SeatStat> tabStats, @Nullable Marks marks) {
         this(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore, tabStats, marks, null,
-                Family.DUEL, titled(name), titled(name), Map.of(), Map.of());
+                Family.DUEL, titled(name), titled(name), Map.of(), Map.of(), false);
     }
 
     /**
@@ -94,6 +95,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         private @Nullable String banner;
         private final Map<String, String> mechanics = new java.util.LinkedHashMap<>();
         private final Map<String, Integer> plays = new java.util.LinkedHashMap<>();
+        private boolean solo;
 
         /** The network preset {@code asked} runs as the Polyp preset {@code flavor} in this mode (bedwars: hypixel as hypixel_bedwars). */
         public @NotNull Builder mechanics(@NotNull String asked, @NotNull String flavor) {
@@ -171,6 +173,12 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
             return this;
         }
 
+        /** Launched for one side alone, at once. */
+        public @NotNull Builder solo() {
+            this.solo = true;
+            return this;
+        }
+
         /** The start banner's headline; unset is the title. */
         public @NotNull Builder banner(@NotNull String banner) {
             this.banner = banner;
@@ -180,7 +188,7 @@ public record Mode(@NotNull String name, @NotNull GameType type, @NotNull Maps a
         public @NotNull Mode build() {
             return new Mode(name, type, arena, profile, base, variants, intro, ghostLoser, sided, teamScore,
                     tabStats, marks, look, family, title != null ? title : titled(name),
-                    banner != null ? banner : title != null ? title : titled(name), mechanics, plays);
+                    banner != null ? banner : title != null ? title : titled(name), mechanics, plays, solo);
         }
     }
 

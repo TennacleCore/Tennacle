@@ -109,7 +109,8 @@ public final class LobbyCommands {
     }
 
     // every way out ends where the lobbies route home, so a named lobby is one trip, never a stop at home first
-    private static void leave(Player p) {
+    /** Back to the lobby, as {@code /lobby} goes. */
+    public static void leave(@NotNull Player p) {
         Queues.leave(p);
         if (!Sessions.depart(p)) Matches.toLobby(p);
     }
