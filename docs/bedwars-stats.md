@@ -70,6 +70,8 @@ Only a death that hands resources to a killer counts as lost to players. Every o
 | `hits-blocked`, `damage-blocked` | hits taken while blocking with a sword (1.8 blocking), and how much it saved |
 | `arrows-shot`, `arrows-hit` | |
 | `jump-resets`, `jump-reset-chances` | a chance: a melee knockback that reached them on the ground (their first rise after it left the ground). A reset: that rise was the jump's 0.42 (Jump Boost adds 0.1 a level) and the next move went on with the jump's arc. A jump in the air does nothing to a 1.8 client's motion (MCP-919: `jump()` needs `onGround`), so a knockback in the air is no chance |
+| `reduce-clicks`, `reduces`, `reduce-chances` | a chance: a melee knockback seen in their moves (the first rise matches it, or a jump on the ground). Until they land, each click on a player that cuts their own motion to 0.6 counts: one a tick while their client sprints (the click ends it until the tick's update), every click with a Knockback item. The client cuts it whether or not the server lands the click. `reduces`: knockbacks with at least one |
+| `w-taps`, `w-tap-chances` | a chance: a landed melee hit within 2 seconds of their last landed sprint hit. A w-tap: it was a sprint hit again, which needs the client to stop and restart sprinting in between (a held sprint key alone never does) |
 
 ### Items and actions
 | Stat | Means |
@@ -150,7 +152,7 @@ whether it is an "enemy". Each game also keeps the time at each team's base in `
   and seeded `bedwars:games` from wins and losses; streaks start from zero.
 - **Resources and purchases** (`games.stats.Haul`, `Shop.buy`): every row of the resources table, and the four
   `-bought` counts.
-- **Combat, items and building** (`games.stats.Feats`, `Building.Breaks`): every row of those three tables. Damage
+- **Combat, items and building** (`games.stats.Feats`, `games.stats.Footwork`, `Building.Breaks`): every row of those three tables. Damage
   between two players is also kept per game as a pair, attacker against victim.
 - **Places** (`bedwars.Places`, a once-a-second sampler on the sheet): every row of the places table. Each arena
   carries its middle (`bedwars:mid`) and generator reach (`bedwars:reach`), stamped from the Zones page's export

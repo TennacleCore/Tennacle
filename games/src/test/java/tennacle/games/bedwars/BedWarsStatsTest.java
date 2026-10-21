@@ -36,6 +36,8 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.PickupItemEvent;
 import net.minestom.server.event.player.PlayerMoveEvent;
+import net.minestom.server.event.entity.EntityAttackEvent;
+import net.minestom.server.network.packet.client.play.ClientEntityActionPacket;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.Nullable;
@@ -555,6 +557,74 @@ class BedWarsStatsTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    @Test
+    void reducesAndWTapsCount() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        List<FakePlayer> all = new ArrayList<>();
+        for (String name : List.of("BwTapA", "BwTapB", "BwTapC")) all.add(FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), name));
+        FakePlayer a = all.get(0), b = all.get(1);
+        try {
+            for (FakePlayer p : all) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("all seated", () -> all.stream().allMatch(p -> Game.of(p.player) == game));
+            BedWarsRoundTest.live(game);
+            Tally tally = game.module(Tally.class);
+            UUID id = b.player.getUuid();
+            double hit = 0.3608;
+
+            ground(b);
+            sprint(b, ClientEntityActionPacket.Action.START_SPRINTING);
+            knock(b, a, hit);
+            attack(b, a);
+            move(b, 0, true); // before the knockback reached them
+            attack(b, a);
+            attack(b, a); // the first ended the sprint
+            move(b, hit, false);
+            assertEquals(1, tally.get(id, "reduce-clicks"));
+            attack(b, a);
+            move(b, 0.27, false);
+            sprint(b, ClientEntityActionPacket.Action.STOP_SPRINTING);
+            attack(b, a);
+            move(b, 0.1, false);
+            assertEquals(2, tally.get(id, "reduce-clicks"), "no sprint, no reduce");
+            sprint(b, ClientEntityActionPacket.Action.START_SPRINTING);
+            attack(b, a);
+            move(b, -0.2, true);
+            attack(b, a);
+            move(b, 0, true);
+            assertEquals(3, tally.get(id, "reduce-clicks"), "until they land");
+            assertEquals(1, tally.get(id, "reduces"));
+            assertEquals(1, tally.get(id, "reduce-chances"));
+
+            UUID by = a.player.getUuid();
+            a.player.setSprinting(true);
+            hit(all.get(1), a, 1);
+            a.player.setSprinting(true);
+            hit(all.get(2), a, 1);
+            a.player.setSprinting(false);
+            hit(all.get(1), a, 5); // over the first, inside its window
+            assertEquals(1, tally.get(by, "w-taps"), "the second hit had its sprint again");
+            assertEquals(2, tally.get(by, "w-tap-chances"));
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            for (FakePlayer p : all) p.player.remove();
+        }
+    }
+
+    private static void sprint(FakePlayer p, ClientEntityActionPacket.Action action) {
+        p.player.addPacketToQueue(new ClientEntityActionPacket(p.player.getEntityId(), action, 0));
+        p.player.interpretPacketQueue();
+    }
+
+    private static void attack(FakePlayer by, FakePlayer target) {
+        EventDispatcher.call(new EntityAttackEvent(by.player, target.player));
     }
 
     private static void ground(FakePlayer p) {
