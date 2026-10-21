@@ -83,7 +83,7 @@ final class StatsScreen {
     // short lines, two numbers to a line where they belong together; the API keeps every split
     private static final List<Category> CATEGORIES = List.of(
             new Category(Material.PAPER, "Overview", (e, s) -> e
-                    .fact("Games Played", count(s.n("games"))).fact("Wins | Losses", s.pair("wins", "losses"))
+                    .fact("Games Played", count(s.n("games"))).fact("Wins | Losses | Draws", s.both(count(s.n("wins")), count(s.n("losses")), count(s.n("draws"))))
                     .fact("W/L Ratio", ratio(s.n("wins"), s.n("losses")))
                     .fact("Winstreak | Best", s.pair("winstreak", "best-winstreak")).fact("Time Played", hours(s.n("time-played")))),
             new Category(Material.IRON_SWORD, "Kills", (e, s) -> e

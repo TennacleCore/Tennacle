@@ -29,8 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A game's numbers per player, not per seat, written once at a decided end: as the match's own rows, and onto each
- * player's career under the family and under the mode ({@code bedwars:kills}, {@code bedwars-solo:kills}). A draw or
- * an abort writes nothing. Pairs (a player against another player, or a team) stay with the match only.
+ * player's career under the family and under the mode ({@code bedwars:kills}, {@code bedwars-solo:kills}). An abort
+ * writes nothing; a draw is a game with neither a win nor a loss, and leaves the win streaks standing. Pairs (a player against another player, or a team) stay with the match only.
  */
 public final class Tally implements GameModule {
 
@@ -196,21 +196,22 @@ public final class Tally implements GameModule {
     @Override
     public void onEnd(@NotNull Game game, @NotNull Outcome outcome) {
         String winner = outcome.winner();
-        if (winner == null) return;
+        boolean draw = "draw".equals(outcome.kind());
+        if (winner == null && !draw) return;
         closing = true;
         for (Closes module : game.modules(Closes.class)) module.close();
         for (Sampler sampler : samplers) if (sampler instanceof Closes closes) closes.close();
         closing = false;
         Map<UUID, Boolean> won = new LinkedHashMap<>();
         for (Roster.Participant p : game.roster().participants()) {
-            won.merge(p.uuid(), p.slot().team().equals(winner), Boolean::logicalOr);
+            won.merge(p.uuid(), !draw && p.slot().team().equals(winner), Boolean::logicalOr);
         }
         List<MatchStore.Line> lines = new ArrayList<>();
         List<MatchStore.Pair> pairLines = new ArrayList<>();
         won.forEach((player, win) -> {
             Map<String, Long> sheet = new HashMap<>(sheets.getOrDefault(player, Map.of()));
             sheet.put("games", 1L);
-            sheet.put(win ? "wins" : "losses", 1L);
+            sheet.put(draw ? "draws" : win ? "wins" : "losses", 1L);
             Map<String, Long> deltas = new HashMap<>();
             sheet.forEach((stat, value) -> {
                 lines.add(new MatchStore.Line(player, family + ":" + stat, value));
@@ -219,7 +220,7 @@ public final class Tally implements GameModule {
             });
             pairs.getOrDefault(player, Map.of()).forEach((other, stats) -> stats.forEach((stat, value) ->
                     pairLines.add(new MatchStore.Pair(player, other, family + ":" + stat, value))));
-            write(player, deltas, win);
+            write(player, deltas, draw ? null : win);
         });
         MatchStore store = matches;
         if (store != null) store.stats(game.id(), lines, pairLines).exceptionally(failed -> {
@@ -228,13 +229,15 @@ public final class Tally implements GameModule {
         });
     }
 
-    private void write(UUID player, Map<String, Long> deltas, boolean win) {
+    // a draw leaves the streaks where they were
+    private void write(UUID player, Map<String, Long> deltas, @Nullable Boolean win) {
         StatStore stats = careers;
         if (stats == null) return;
         stats.add(player, deltas).exceptionally(failed -> {
             LOGGER.error("career numbers for {} were not added", player, failed);
             return null;
         });
+        if (win == null) return;
         for (String scope : family.equals(mode) ? List.of(family) : List.of(family, mode)) streak(stats, player, scope, win);
     }
 

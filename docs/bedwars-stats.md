@@ -13,7 +13,7 @@ these numbers.
 - **Pairs** (who damaged or killed whom) are kept per game only, in `match_pairs`, and never as career totals.
   Career totals per opponent would grow with every pair of players who ever met.
 - **Units:** counts are whole numbers; damage is in tenths of a health point (a heart is 20); time is in seconds.
-- **Games that count:** a win or a loss. A draw or an aborted game counts nothing, as today. Leaving a live game
+- **Games that count:** a win, a loss or a draw (user, 2026-10-21). An aborted game counts nothing. Leaving a live game
   counts as a death, and as a final death once the bed is gone, as today.
 
 ## The catalog
@@ -21,9 +21,9 @@ these numbers.
 ### Results
 | Stat | Means |
 |---|---|
-| `games` | games finished as a win or a loss |
-| `wins`, `losses` | as now |
-| `winstreak`, `best-winstreak` | wins in a row, overall and per mode; a loss sets it to 0 |
+| `games` | games finished as a win, a loss or a draw |
+| `wins`, `losses`, `draws` | a draw: the clock ran out on sides tied on standing players, final kills, beds and kills |
+| `winstreak`, `best-winstreak` | wins in a row, overall and per mode; a loss sets it to 0, a draw leaves it |
 | `time-played` | seconds from the start until they were eliminated, left, or the game ended |
 
 ### Kills and deaths

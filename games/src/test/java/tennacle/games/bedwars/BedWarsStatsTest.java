@@ -473,6 +473,37 @@ class BedWarsStatsTest extends HeadlessServerTest {
     }
 
     @Test
+    void aDrawKeepsTheStreak() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture()));
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwDrawA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "BwDrawB");
+        try {
+            for (FakePlayer p : List.of(a, b)) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            BedWarsRoundTest.live(game);
+            UUID ida = a.player.getUuid();
+            STATS.update(ida, "bedwars:winstreak", n -> 3).join();
+            hit(b, a, 2f);
+            game.end(Outcome.draw());
+            assertEquals(1, STATS.of(ida, "bedwars:draws"));
+            assertEquals(1, STATS.of(ida, "bedwars:games"), "a game played");
+            assertEquals(0, STATS.of(ida, "bedwars:wins") + STATS.of(ida, "bedwars:losses"), "neither a win nor a loss");
+            assertEquals(3, STATS.of(ida, "bedwars:winstreak"), "the streak stands");
+            assertTrue(STATS.of(ida, "bedwars:damage-dealt") > 0, "and the game's numbers count");
+        } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    @Test
     void anAbortCountsNothing() {
         Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
                 BedWarsRoundTest.fixture()));
