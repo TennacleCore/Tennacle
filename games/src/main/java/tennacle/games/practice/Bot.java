@@ -3,6 +3,7 @@ package tennacle.games.practice;
 import io.github.term4.canvas.npc.PlayerBody;
 import io.github.term4.polyp.mechanics.mobs.MobEntity;
 import io.github.term4.polyp.mechanics.mobs.MobsSystem;
+import io.github.term4.polyp.tracking.motion.MotionTracker;
 import io.github.term4.polyp.tracking.motion.TrackedVelocity;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -24,7 +25,8 @@ import java.util.function.LongSupplier;
  * <p>The velocity a hit on it reads is what a 1.8 server tracks for a player, not its motion: the server moves a
  * player with no input and restores the pre-hit velocity after melee knockback, so only the takeoff counts. The first
  * rising move off the ground calls {@code jump()} server-side (NetHandlerPlayServer.processPlayer): 0.42 up, and the
- * sprint push if sprinting, then gravity and friction, with no re-seed until it lands.
+ * sprint push if sprinting, then gravity and friction, with no re-seed until it lands; the server's own floor probe
+ * lands that arc first when it would collide ({@link MotionTracker#bodyMotY}).
  */
 final class Bot extends MobEntity implements TrackedVelocity {
 
@@ -95,6 +97,7 @@ final class Bot extends MobEntity implements TrackedVelocity {
     void stop() {
         late.clear();
         launched = false;
+        trackedY = 0;
         trackedH = Vec.ZERO;
         motion(Vec.ZERO);
     }
@@ -107,7 +110,7 @@ final class Bot extends MobEntity implements TrackedVelocity {
         super.travel(strafe, forward);
         double dy = getPosition().y() - from;
         trackedH = new Vec(small(trackedH.x() * friction), 0, small(trackedH.z() * friction));
-        if (launched) trackedY = collidedVertically ? 0 : (trackedY - 0.08) * 0.98;
+        trackedY = MotionTracker.bodyMotY(this, trackedY, isOnGround());
         if (isOnGround()) launched = false;
         else if (!launched && dy > 0) {
             launched = true;
@@ -118,7 +121,7 @@ final class Bot extends MobEntity implements TrackedVelocity {
 
     @Override
     public @NotNull Vec trackedVelocity() {
-        return new Vec(trackedH.x(), launched ? trackedY : motion().y(), trackedH.z());
+        return new Vec(trackedH.x(), trackedY, trackedH.z());
     }
 
     @Override
