@@ -6,24 +6,109 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import tennacle.PlayerPrefs;
 
+import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.random.RandomGenerator;
 
 /**
- * What the bot does, a player's own and kept. Reach is measured eyes to hitbox, as a client's; delays and latency
- * are ticks. {@code hits} 0 fights on until stopped.
+ * What the bot does, a player's own and kept: one int per {@link Knob}. Reach is in quarter blocks, eyes to hitbox;
+ * waits and reduce ticks are ticks; latency is the round trip in milliseconds.
  */
-public record Drill(boolean sprint, int knockback, double reachMin, double reachMax, int botSpeed, int speed,
-                    int slowness, int hits, int delayMin, int delayMax, int latency) {
+public final class Drill {
 
-    public static final Drill DEFAULT = new Drill(true, 0, 2.0, 2.0, 0, 0, 0, 1, 0, 0, 0);
+    public enum Knob {
+        HIT_TYPE("type", 0, 0, 3, 1),
+        SPRINT_CHANCE("sprintpct", 50, 0, 100, 10),
+        KNOCKBACK("kb", 0, 0, 5, 1),
+        REACH_MIN("rmin", 8, 4, 16, 1),
+        REACH_MAX("rmax", 8, 4, 16, 1),
+        REACH_LEAN("rlean", 0, 0, 3, 1),
+        CONTINUOUS("cont", 0, 0, 1, 1),
+        HITS("hits", 1, 1, 10, 1),
+        WAIT_MIN("wmin", 0, 0, 20, 1),
+        WAIT_MAX("wmax", 0, 0, 20, 1),
+        WAIT_LEAN("wlean", 0, 0, 3, 1),
+        HIT_SELECT("select", 0, 0, 1, 1),
+        PATIENCE("patience", 40, 5, 100, 5),
+        COUNTER("counter", 0, 0, 1, 1),
+        COUNTER_MIN("cmin", 0, 0, 10, 1),
+        COUNTER_MAX("cmax", 0, 0, 10, 1),
+        COUNTER_LEAN("clean", 0, 0, 3, 1),
+        REDUCE("reduce", 0, 0, 1, 1),
+        REDUCE_START_MIN("rsmin", 0, 0, 10, 1),
+        REDUCE_START_MAX("rsmax", 0, 0, 10, 1),
+        REDUCE_START_LEAN("rslean", 0, 0, 3, 1),
+        REDUCE_PATTERN("rpattern", 0, 0, 2, 1),
+        REDUCE_CPS("rcps", 10, 1, 20, 1),
+        REDUCE_TICKS("rticks", 0b11, 0, (1 << Drill.PATTERN_TICKS) - 1, 1),
+        REDUCE_FOR("rfor", 0, 0, 20, 1),
+        REDUCE_MISS("rmiss", 0, 0, 100, 5),
+        JUMP_RESET("jump", 0, 0, 100, 10),
+        PING_MIN("pmin", 0, 0, 500, 10),
+        PING_MAX("pmax", 0, 0, 500, 10),
+        SPIKE_CHANCE("spike", 0, 0, 100, 5),
+        SPIKE_MIN("smin", 100, 0, 1000, 25),
+        SPIKE_MAX("smax", 100, 0, 1000, 25),
+        SPIKE_TICKS("sticks", 10, 1, 40, 1),
+        BOT_SPEED("bspeed", 0, 0, 3, 1),
+        SPEED("speed", 0, 0, 3, 1),
+        SLOWNESS("slow", 0, 0, 3, 1);
 
-    static final double REACH_LOW = 1.0, REACH_HIGH = 4.0, REACH_STEP = 0.25;
-    static final int MAX_KNOCKBACK = 5, MAX_LEVEL = 3, MAX_HITS = 10, MAX_DELAY = 20, MAX_LATENCY = 10;
+        final String id;
+        final int def, min, max, step;
+
+        Knob(String id, int def, int min, int max, int step) {
+            this.id = id;
+            this.def = def;
+            this.min = min;
+            this.max = max;
+            this.step = step;
+        }
+    }
+
+    public enum HitType { SPRINT, NORMAL, RANDOM, SPACING }
+
+    public enum Pattern { EVERY_TICK, PER_SECOND, CUSTOM }
+
+    /** How a random pick between a low and a high falls. */
+    public enum Lean {
+        EVEN, LOW, HIGH, MIDDLE;
+
+        double sample(RandomGenerator random) {
+            double u = random.nextDouble();
+            return switch (this) {
+                case EVEN -> u;
+                case LOW -> u * u;
+                case HIGH -> 1 - (1 - u) * (1 - u);
+                case MIDDLE -> (u + random.nextDouble()) / 2;
+            };
+        }
+    }
+
+    static final int PATTERN_TICKS = 12;
+    static final int NEVER = Knob.PATIENCE.max;
+
+    // a range's ends: moving one past the other drags it along
+    private static final Map<Knob, Knob> LOW_OF = Map.of(Knob.REACH_MAX, Knob.REACH_MIN, Knob.WAIT_MAX, Knob.WAIT_MIN,
+            Knob.COUNTER_MAX, Knob.COUNTER_MIN, Knob.REDUCE_START_MAX, Knob.REDUCE_START_MIN, Knob.PING_MAX, Knob.PING_MIN,
+            Knob.SPIKE_MAX, Knob.SPIKE_MIN);
+    private static final Map<Knob, Knob> HIGH_OF = new HashMap<>();
+
+    static {
+        LOW_OF.forEach((high, low) -> HIGH_OF.put(low, high));
+    }
+
+    public static final Drill DEFAULT = new Drill(new EnumMap<>(Knob.class));
 
     private static PlayerPrefs.Entry<String, Drill> store;
+
+    private final EnumMap<Knob, Integer> values;
+
+    private Drill(EnumMap<Knob, Integer> values) {
+        this.values = values;
+    }
 
     // before the first login
     static void register() {
@@ -31,74 +116,80 @@ public record Drill(boolean sprint, int knockback, double reachMin, double reach
     }
 
     public static @NotNull Drill of(@NotNull Player player) {
-        Drill drill = store.of(player.getUuid());
+        Drill drill = store != null ? store.of(player.getUuid()) : null;
         return drill != null ? drill : DEFAULT;
     }
 
     static void set(@NotNull Player player, @NotNull Drill drill) {
-        store.set(player, drill);
+        if (store != null) store.set(player, drill);
     }
 
-    boolean endless() {
-        return hits == 0;
+    public int get(@NotNull Knob knob) {
+        return values.getOrDefault(knob, knob.def);
+    }
+
+    boolean on(Knob knob) {
+        return get(knob) != 0;
+    }
+
+    Drill with(Knob knob, int value) {
+        EnumMap<Knob, Integer> next = new EnumMap<>(values);
+        int v = Math.max(knob.min, Math.min(knob.max, value));
+        next.put(knob, v);
+        Knob low = LOW_OF.get(knob), high = HIGH_OF.get(knob);
+        if (low != null && get(low) > v) next.put(low, v);
+        if (high != null && get(high) < v) next.put(high, v);
+        return new Drill(next);
+    }
+
+    Drill step(Knob knob, boolean up) {
+        return with(knob, get(knob) + (up ? knob.step : -knob.step));
+    }
+
+    HitType hitType() {
+        return HitType.values()[get(Knob.HIT_TYPE)];
+    }
+
+    Pattern pattern() {
+        return Pattern.values()[get(Knob.REDUCE_PATTERN)];
+    }
+
+    Lean lean(Knob knob) {
+        return Lean.values()[get(knob)];
     }
 
     double reach(RandomGenerator random) {
-        return reachMin + random.nextDouble() * (reachMax - reachMin);
+        return pick(Knob.REACH_MIN, Knob.REACH_MAX, Knob.REACH_LEAN, random) / 4.0;
     }
 
-    int delay(RandomGenerator random) {
-        return delayMin + random.nextInt(delayMax - delayMin + 1);
+    int ticks(Knob low, Knob high, Knob lean, RandomGenerator random) {
+        return (int) Math.round(pick(low, high, lean, random));
     }
 
-    Drill withSprint(boolean v) { return new Drill(v, knockback, reachMin, reachMax, botSpeed, speed, slowness, hits, delayMin, delayMax, latency); }
-    Drill withKnockback(int v) { return new Drill(sprint, v, reachMin, reachMax, botSpeed, speed, slowness, hits, delayMin, delayMax, latency); }
-    Drill withBotSpeed(int v) { return new Drill(sprint, knockback, reachMin, reachMax, v, speed, slowness, hits, delayMin, delayMax, latency); }
-    Drill withSpeed(int v) { return new Drill(sprint, knockback, reachMin, reachMax, botSpeed, v, slowness, hits, delayMin, delayMax, latency); }
-    Drill withSlowness(int v) { return new Drill(sprint, knockback, reachMin, reachMax, botSpeed, speed, v, hits, delayMin, delayMax, latency); }
-    Drill withHits(int v) { return new Drill(sprint, knockback, reachMin, reachMax, botSpeed, speed, slowness, v, delayMin, delayMax, latency); }
-    Drill withLatency(int v) { return new Drill(sprint, knockback, reachMin, reachMax, botSpeed, speed, slowness, hits, delayMin, delayMax, v); }
-
-    // the other end follows, so the range never inverts
-    Drill withReachMin(double v) { return new Drill(sprint, knockback, v, Math.max(v, reachMax), botSpeed, speed, slowness, hits, delayMin, delayMax, latency); }
-    Drill withReachMax(double v) { return new Drill(sprint, knockback, Math.min(v, reachMin), v, botSpeed, speed, slowness, hits, delayMin, delayMax, latency); }
-    Drill withDelayMin(int v) { return new Drill(sprint, knockback, reachMin, reachMax, botSpeed, speed, slowness, hits, v, Math.max(v, delayMax), latency); }
-    Drill withDelayMax(int v) { return new Drill(sprint, knockback, reachMin, reachMax, botSpeed, speed, slowness, hits, Math.min(v, delayMin), v, latency); }
+    private double pick(Knob low, Knob high, Knob lean, RandomGenerator random) {
+        return get(low) + lean(lean).sample(random) * (get(high) - get(low));
+    }
 
     static String encode(Drill d) {
-        return String.format(Locale.ROOT, "sprint=%b;kb=%d;rmin=%.2f;rmax=%.2f;bspeed=%d;speed=%d;slow=%d;hits=%d;dmin=%d;dmax=%d;lat=%d",
-                d.sprint, d.knockback, d.reachMin, d.reachMax, d.botSpeed, d.speed, d.slowness, d.hits, d.delayMin, d.delayMax, d.latency);
+        StringJoiner out = new StringJoiner(";");
+        d.values.forEach((k, v) -> out.add(k.id + "=" + v));
+        return out.toString();
     }
 
-    // a missing or bad field keeps its default
+    // an unknown or bad field keeps its default
     static Drill decode(String text) {
-        Map<String, String> f = new HashMap<>();
+        Map<String, Knob> byId = new HashMap<>();
+        for (Knob k : Knob.values()) byId.put(k.id, k);
+        EnumMap<Knob, Integer> values = new EnumMap<>(Knob.class);
         for (String part : text.split(";")) {
             int eq = part.indexOf('=');
-            if (eq > 0) f.put(part.substring(0, eq), part.substring(eq + 1));
+            Knob k = eq > 0 ? byId.get(part.substring(0, eq)) : null;
+            if (k == null) continue;
+            try {
+                values.put(k, Math.max(k.min, Math.min(k.max, Integer.parseInt(part.substring(eq + 1)))));
+            } catch (NumberFormatException ignored) {
+            }
         }
-        Drill d = DEFAULT;
-        try {
-            double rmin = clamp(num(f, "rmin", d.reachMin), REACH_LOW, REACH_HIGH);
-            double rmax = clamp(num(f, "rmax", d.reachMax), rmin, REACH_HIGH);
-            int dmin = (int) clamp(num(f, "dmin", d.delayMin), 0, MAX_DELAY);
-            int dmax = (int) clamp(num(f, "dmax", d.delayMax), dmin, MAX_DELAY);
-            return new Drill(Boolean.parseBoolean(f.getOrDefault("sprint", String.valueOf(d.sprint))),
-                    (int) clamp(num(f, "kb", d.knockback), 0, MAX_KNOCKBACK), rmin, rmax,
-                    (int) clamp(num(f, "bspeed", d.botSpeed), 0, MAX_LEVEL), (int) clamp(num(f, "speed", d.speed), 0, MAX_LEVEL),
-                    (int) clamp(num(f, "slow", d.slowness), 0, MAX_LEVEL), (int) clamp(num(f, "hits", d.hits), 0, MAX_HITS),
-                    dmin, dmax, (int) clamp(num(f, "lat", d.latency), 0, MAX_LATENCY));
-        } catch (NumberFormatException e) {
-            return DEFAULT;
-        }
-    }
-
-    private static double num(Map<String, String> f, String key, double def) {
-        String v = f.get(key);
-        return v == null ? def : Double.parseDouble(v);
-    }
-
-    private static double clamp(double v, double low, double high) {
-        return Math.max(low, Math.min(high, v));
+        return new Drill(values);
     }
 }

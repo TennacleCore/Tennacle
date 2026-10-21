@@ -3,6 +3,7 @@ package tennacle.games.practice;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
@@ -37,7 +38,8 @@ final class Lines {
                 "how you reduced, jump reset and hit back. Tick 0 is the first tick you could react.");
     }
 
-    static void hit(Player player, int number, KnockReader.Knock knock, boolean hitFirst) {
+    /** Says the line to {@code player}; returns it plain, for the log. */
+    static String hit(Player player, int number, KnockReader.Knock knock, boolean hitFirst) {
         List<Object> parts = new ArrayList<>();
         parts.add("Hit " + number + ": ");
         int reduce = knock.firstReduce();
@@ -60,6 +62,9 @@ final class Lines {
         parts.add(Msg.v(String.format(Locale.ROOT, "%.2f", Math.max(0, knock.pushed()))));
         parts.add(" blocks.");
         Msg.say(player, parts.toArray());
+        StringBuilder plain = new StringBuilder();
+        for (Object part : parts) plain.append(part instanceof Component c ? PlainTextComponentSerializer.plainText().serialize(c) : part);
+        return plain.toString();
     }
 
     private static @Nullable Object jump(KnockReader.Jump jump) {

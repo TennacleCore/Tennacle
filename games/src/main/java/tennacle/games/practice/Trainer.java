@@ -1,17 +1,19 @@
 package tennacle.games.practice;
 
+import io.github.term4.barnacle.marker.PosMarker;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
 import io.github.term4.grotto.Markers;
+import io.github.term4.grotto.Outcome;
 import io.github.term4.grotto.roster.Slot;
 import io.github.term4.polyp.api.event.damage.DamageAppliedEvent;
 import io.github.term4.polyp.api.event.damage.DamageEvent;
 import io.github.term4.polyp.mechanics.attack.AttackSnapshot;
 import io.github.term4.polyp.mechanics.attack.AttackSystem;
-import io.github.term4.barnacle.marker.PosMarker;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.player.PlayerBlockInteractEvent;
@@ -25,36 +27,70 @@ import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tennacle.Press;
 import tennacle.boot.Mechanics;
 import tennacle.games.LobbyCommands;
+import tennacle.games.practice.Drill.Knob;
 import tennacle.games.stats.KnockReader;
 
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeSet;
 
-/** One player and their bot: the hotbar tools, the bot's fight, and a line after each of its hits. */
+/**
+ * One player and their bot: the hotbar tools, the bot's fight, and a line after each of its hits.
+ *
+ * <p>The bot plays as a client over {@link Lag}: it sees the player as they were a one-way trip ago, its clicks
+ * reach the server a one-way trip later and face the server's reach gate there, and its own knockback reaches it
+ * late. Each click is a 1.8 attack: on a player, while sprinting or with a Knockback item, it cuts the bot's own
+ * motion to 0.6 whether or not it lands.
+ */
 final class Trainer implements GameModule {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Trainer.class);
 
     // 1.8: a hit lands again once the victim's hurt time halves
     private static final int HURT_TICKS = 10;
     private static final double FLOOR_DROP = 10;
     // EntityLivingBase.getCollisionBorderSize, the client's hitbox grown for a click
     private static final double BORDER = 0.1;
+    // a 1.8 client's own reach for a click to find an entity
+    private static final double CLIENT_REACH = 3.0;
+    // the most "until it lands" waits on the bot's own fall
+    private static final int UNTIL_LANDED = 30;
+    // blocks a tick away from the bot: the victim is already flying, so a walking hit keeps the combo close
+    private static final double FLYING_AWAY = 0.15;
+    private static final int SEEN = 64;
+
+    private record Send(long at, boolean sprint, boolean approach, String kind) {}
 
     private final Random random = new Random();
+    private final Lag lag = new Lag(random);
+    private final long[] seenAt = new long[SEEN];
+    private final Pos[] seen = new Pos[SEEN];
+    private final ArrayDeque<Send> sends = new ArrayDeque<>();
     private Game game;
     private Pos home = Pos.ZERO, middle = Pos.ZERO;
     private @Nullable Player player;
     private @Nullable Bot bot;
     private int equipped = -1;
-    private boolean running;
+
+    private boolean running, approaching;
     private int landed, reported;
-    private long readyAt, swingAt = -1;
+    private long readyAt, inReachSince = -1;
     private double reach;
     private boolean swingLanded;
     private long exchangeFrom, playerHitAt = -1;
+
+    private boolean knocked;
+    private long knockedAt = -1;
+    private final TreeSet<Integer> clicks = new TreeSet<>();
+    private int counterTick = -1, lastPlanned;
+    private boolean jumpPlanned, untilLanded, leftGround;
 
     @Override
     public void install(@NotNull Game game) {
@@ -78,7 +114,8 @@ final class Trainer implements GameModule {
                 if (knock.source() == null || knock.source() != bot) return;
                 boolean first = playerHitAt >= exchangeFrom && playerHitAt < knock.sentAt();
                 exchangeFrom = game.tick();
-                Lines.hit(knock.victim(), ++reported, knock, first);
+                String line = Lines.hit(knock.victim(), ++reported, knock, first);
+                LOGGER.info("practice {}: {}", knock.victim().getUsername(), line);
             }
         });
     }
@@ -87,7 +124,17 @@ final class Trainer implements GameModule {
     public void onJoin(@NotNull Game game, @NotNull Player joined, @NotNull Slot slot, boolean reclaimed) {
         player = joined;
         if (bot == null) {
-            bot = Mechanics.mobs.spawn(new Bot(Mechanics.mobs, this::think), game.shard(), facing(middle, home));
+            bot = Mechanics.mobs.spawn(new Bot(Mechanics.mobs, new Bot.Brain() {
+                @Override
+                public void think(Bot self) {
+                    Trainer.this.think(self);
+                }
+
+                @Override
+                public void knocked(Bot self) {
+                    knocked = true;
+                }
+            }, lag, game::tick), game.shard(), facing(middle, home));
         }
         changed(joined);
         Lines.intro(joined);
@@ -99,7 +146,7 @@ final class Trainer implements GameModule {
     }
 
     @Override
-    public void onEnd(@NotNull Game game, @NotNull io.github.term4.grotto.Outcome outcome) {
+    public void onEnd(@NotNull Game game, @NotNull Outcome outcome) {
         if (bot != null) bot.remove();
         bot = null;
     }
@@ -120,18 +167,24 @@ final class Trainer implements GameModule {
     private void start(Player who) {
         Drill drill = Drill.of(who);
         running = true;
+        approaching = false;
         landed = 0;
         reported = 0;
         readyAt = game.tick();
-        swingAt = -1;
+        inReachSince = -1;
         reach = drill.reach(random);
         exchangeFrom = game.tick();
         playerHitAt = -1;
+        LOGGER.info("practice {}: start, {}", who.getUsername(), Drill.encode(drill));
     }
 
     private void reset() {
         running = false;
-        swingAt = -1;
+        approaching = false;
+        sends.clear();
+        lag.clear();
+        knockedAt = -1;
+        knocked = false;
         if (bot == null) return;
         bot.stop();
         bot.teleport(facing(middle, player != null ? player.getPosition() : home));
@@ -140,12 +193,12 @@ final class Trainer implements GameModule {
     // effects follow the settings at once; the rest is read each tick
     private void changed(Player who) {
         Drill drill = Drill.of(who);
-        effect(who, PotionEffect.SPEED, drill.speed());
-        effect(who, PotionEffect.SLOWNESS, drill.slowness());
-        if (bot != null) effect(bot, PotionEffect.SPEED, drill.botSpeed());
+        effect(who, PotionEffect.SPEED, drill.get(Knob.SPEED));
+        effect(who, PotionEffect.SLOWNESS, drill.get(Knob.SLOWNESS));
+        if (bot != null) effect(bot, PotionEffect.SPEED, drill.get(Knob.BOT_SPEED));
     }
 
-    private static void effect(net.minestom.server.entity.LivingEntity entity, PotionEffect effect, int level) {
+    private static void effect(LivingEntity entity, PotionEffect effect, int level) {
         entity.removeEffect(effect);
         if (level > 0) entity.addEffect(new Potion(effect, level - 1, Potion.INFINITE_DURATION));
     }
@@ -156,7 +209,7 @@ final class Trainer implements GameModule {
         else if (e.source() == player && e.target() == bot) playerHitAt = game.tick();
     }
 
-    // the bot's one tick of input, before it moves: aim, swing, W
+    // the bot's one tick: what reached the server, then its client's input before it moves
     private void think(Bot self) {
         Player target = player;
         if (target == null || target.getInstance() != self.getInstance()) {
@@ -168,58 +221,184 @@ final class Trainer implements GameModule {
             reset();
             return;
         }
-        Drill drill = Drill.of(target);
-        self.latency = drill.latency();
-        equip(self, drill);
-        aim(self, target);
         long now = game.tick();
-        if (running && swingAt < 0 && now >= readyAt - drill.latency() && reachTo(self, target) <= reach) {
-            swingAt = now + drill.latency();
+        Drill drill = Drill.of(target);
+        lag.tick(drill);
+        remember(target, now);
+        equip(self, drill);
+        arrive(self, target, drill, now);
+
+        int behind = lag.expectedUp();
+        Pos view = seen(now - behind, target);
+        aim(self, view, target);
+        double distance = reachTo(self, view, target.getBoundingBox());
+        boolean clicked = false;
+
+        if (knocked) {
+            knocked = false;
+            plan(drill, now);
         }
-        if (swingAt >= 0 && now >= swingAt) {
-            swingAt = -1;
-            swing(self, target, drill);
+        boolean reducing = knockedAt >= 0;
+        if (reducing) {
+            int rel = (int) (now - knockedAt);
+            boolean counter = rel == counterTick;
+            if (clicks.contains(rel) || counter) {
+                clicked = true;
+                if (counter || random.nextInt(100) >= drill.get(Knob.REDUCE_MISS)) {
+                    click(self, distance, drill, counter ? "counter" : "reduce", false, now);
+                } else {
+                    self.swingMainHand();
+                }
+            }
+            if (!self.isOnGround()) leftGround = true;
+            boolean done = rel >= lastPlanned && (!untilLanded || leftGround && self.isOnGround() || rel >= UNTIL_LANDED);
+            if (done) knockedAt = -1;
         }
-        if (!running) {
-            self.setSprinting(false);
-            self.walk(false);
-            return;
+
+        boolean sprint = true;
+        boolean forward = running || reducing;
+        if (running && !clicked) {
+            boolean selfFirst = playerHitAt >= exchangeFrom;
+            boolean waiting = drill.on(Knob.HIT_SELECT) && !selfFirst && !patienceOut(drill, distance, now);
+            boolean ready = now >= readyAt + behind && !approaching;
+            if (ready && distance <= reach && !waiting) {
+                boolean sprintHit = sprintHit(drill, self, target, now);
+                if (!sprintHit) self.setSprinting(false);
+                sprint = sprintHit;
+                click(self, distance, drill, sprintHit ? "sprint hit" : "walking hit", true, now);
+            } else if (waiting && distance <= reach) {
+                forward = false;
+            } else if (drill.hitType() == Drill.HitType.SPACING && !ready && distance < reach + 0.5) {
+                forward = false;
+            }
         }
-        self.setSprinting(drill.sprint());
-        self.walk(true);
+        if (jumpPlanned && now == knockedAt) {
+            jumpPlanned = false;
+            if (self.isOnGround()) {
+                self.setSprinting(true);
+                self.jumpNow();
+            }
+        }
+        self.setSprinting(forward && sprint);
+        self.walk(forward);
     }
 
-    private void swing(Bot self, Player target, Drill drill) {
-        boolean cuts = self.isSprinting() || drill.knockback() > 0;
-        swingLanded = false;
+    // a click: the client-side cut now, the attack at the server a one-way trip later
+    private void click(Bot self, double distance, Drill drill, String kind, boolean approach, long now) {
         self.swingMainHand();
-        AttackSystem attacks = Mechanics.polyp.module(AttackSystem.class);
-        if (attacks != null) attacks.apply(new AttackSnapshot(self, target, null));
-        long now = game.tick();
-        if (!swingLanded) {
-            readyAt = now + 1;
-            return;
+        if (distance > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return;
+        boolean sprinting = self.isSprinting();
+        if (sprinting || drill.get(Knob.KNOCKBACK) > 0) {
+            self.cut();
+            self.setSprinting(false);
         }
-        // EntityPlayer.attackTargetEntityWithCurrentItem: the attacker's own motion on a sprint or Knockback hit
-        if (cuts) self.motion(self.motion().mul(0.6, 1, 0.6));
-        landed++;
-        readyAt = now + HURT_TICKS + drill.delay(random);
-        reach = drill.reach(random);
-        if (!drill.endless() && landed >= drill.hits()) running = false;
+        if (approach) approaching = true;
+        sends.add(new Send(lag.up(now), sprinting, approach, kind));
+    }
+
+    private void arrive(Bot self, Player target, Drill drill, long now) {
+        AttackSystem attacks = Mechanics.polyp.module(AttackSystem.class);
+        while (!sends.isEmpty() && sends.peek().at() <= now) {
+            Send send = sends.poll();
+            if (send.approach()) approaching = false;
+            if (attacks == null) continue;
+            boolean client = self.isSprinting();
+            self.setSprinting(send.sprint()); // the server reads the sprint the packet carried
+            swingLanded = false;
+            attacks.apply(new AttackSnapshot(self, target, null));
+            self.setSprinting(client);
+            if (!swingLanded) {
+                if (send.approach()) readyAt = now;
+                continue;
+            }
+            landed++;
+            readyAt = now + HURT_TICKS + drill.ticks(Knob.WAIT_MIN, Knob.WAIT_MAX, Knob.WAIT_LEAN, random);
+            reach = drill.reach(random);
+            inReachSince = -1;
+            LOGGER.info("practice {}: bot {} landed, {} blocks, ping {} ms", target.getUsername(), send.kind(),
+                    String.format(java.util.Locale.ROOT, "%.2f", reachTo(self, target.getPosition(), target.getBoundingBox())), lag.ping());
+            if (!drill.on(Knob.CONTINUOUS) && landed >= drill.get(Knob.HITS)) running = false;
+        }
+    }
+
+    // the bot's client just took a knockback: which of its next ticks it clicks on, and whether it jumps
+    private void plan(Drill drill, long now) {
+        knockedAt = now;
+        clicks.clear();
+        leftGround = false;
+        untilLanded = drill.on(Knob.REDUCE) && drill.get(Knob.REDUCE_FOR) == 0;
+        lastPlanned = 0;
+        if (drill.on(Knob.REDUCE)) {
+            int start = drill.ticks(Knob.REDUCE_START_MIN, Knob.REDUCE_START_MAX, Knob.REDUCE_START_LEAN, random);
+            int length = untilLanded ? UNTIL_LANDED : drill.get(Knob.REDUCE_FOR);
+            switch (drill.pattern()) {
+                case EVERY_TICK -> {
+                    for (int t = start; t < start + length; t++) clicks.add(t);
+                }
+                case PER_SECOND -> {
+                    for (int t = start; t < start + length; t++) {
+                        if (random.nextInt(20) < drill.get(Knob.REDUCE_CPS)) clicks.add(t);
+                    }
+                }
+                case CUSTOM -> {
+                    int ticks = drill.get(Knob.REDUCE_TICKS);
+                    for (int b = 0; b < Drill.PATTERN_TICKS; b++) if ((ticks & 1 << b) != 0) clicks.add(start + b);
+                }
+            }
+            if (!clicks.isEmpty()) lastPlanned = clicks.last();
+        }
+        counterTick = drill.on(Knob.COUNTER) ? drill.ticks(Knob.COUNTER_MIN, Knob.COUNTER_MAX, Knob.COUNTER_LEAN, random) : -1;
+        lastPlanned = Math.max(lastPlanned, counterTick);
+        jumpPlanned = random.nextInt(100) < drill.get(Knob.JUMP_RESET);
+        if (player != null) LOGGER.info("practice {}: bot knocked, clicks {}, counter {}, jump {}", player.getUsername(),
+                clicks, counterTick, jumpPlanned);
+    }
+
+    private boolean sprintHit(Drill drill, Bot self, Player target, long now) {
+        return switch (drill.hitType()) {
+            case SPRINT -> true;
+            case NORMAL -> false;
+            case RANDOM -> random.nextInt(100) < drill.get(Knob.SPRINT_CHANCE);
+            case SPACING -> {
+                int behind = lag.expectedUp();
+                Pos was = seen(now - behind - 1, target), is = seen(now - behind, target);
+                double dx = is.x() - self.getPosition().x(), dz = is.z() - self.getPosition().z();
+                double len = Math.hypot(dx, dz);
+                double away = len == 0 ? 0 : ((is.x() - was.x()) * dx + (is.z() - was.z()) * dz) / len;
+                yield away < FLYING_AWAY;
+            }
+        };
+    }
+
+    private boolean patienceOut(Drill drill, double distance, long now) {
+        if (distance > reach) return false;
+        if (inReachSince < 0) inReachSince = now;
+        int patience = drill.get(Knob.PATIENCE);
+        return patience != Drill.NEVER && now - inReachSince >= patience;
+    }
+
+    private void remember(Player target, long now) {
+        int i = (int) Math.floorMod(now, (long) SEEN);
+        seenAt[i] = now;
+        seen[i] = target.getPosition();
+    }
+
+    private Pos seen(long tick, Player target) {
+        int i = (int) Math.floorMod(tick, (long) SEEN);
+        return seenAt[i] == tick && seen[i] != null ? seen[i] : target.getPosition();
     }
 
     private void equip(Bot self, Drill drill) {
-        if (equipped == drill.knockback()) return;
-        equipped = drill.knockback();
-        self.setItemInMainHand(drill.knockback() == 0 ? ItemStack.of(Material.IRON_SWORD)
-                : ItemStack.of(Material.STICK).with(DataComponents.ENCHANTMENTS,
-                        new EnchantmentList(Map.of(Enchantment.KNOCKBACK, drill.knockback()))));
+        int kb = drill.get(Knob.KNOCKBACK);
+        if (equipped == kb) return;
+        equipped = kb;
+        self.setItemInMainHand(kb == 0 ? ItemStack.of(Material.IRON_SWORD)
+                : ItemStack.of(Material.STICK).with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.KNOCKBACK, kb))));
     }
 
-    private static void aim(Bot self, Player target) {
+    private static void aim(Bot self, Pos view, Player target) {
         Pos eye = self.getPosition().add(0, self.getEyeHeight(), 0);
-        Pos at = target.getPosition().add(0, target.getEyeHeight(), 0);
-        double dx = at.x() - eye.x(), dy = at.y() - eye.y(), dz = at.z() - eye.z();
+        double dx = view.x() - eye.x(), dy = view.y() + target.getEyeHeight() - eye.y(), dz = view.z() - eye.z();
         float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
         self.yaw(yaw);
@@ -229,10 +408,8 @@ final class Trainer implements GameModule {
     }
 
     // eyes to the nearest point of the grown hitbox
-    static double reachTo(Bot self, Player target) {
+    static double reachTo(Bot self, Pos at, BoundingBox box) {
         Pos eye = self.getPosition().add(0, self.getEyeHeight(), 0);
-        Pos at = target.getPosition();
-        BoundingBox box = target.getBoundingBox();
         double x = clamp(eye.x(), at.x() + box.minX() - BORDER, at.x() + box.maxX() + BORDER);
         double y = clamp(eye.y(), at.y() + box.minY() - BORDER, at.y() + box.maxY() + BORDER);
         double z = clamp(eye.z(), at.z() + box.minZ() - BORDER, at.z() + box.maxZ() + BORDER);
