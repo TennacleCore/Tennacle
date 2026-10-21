@@ -103,7 +103,9 @@ final class Trainer implements GameModule {
     private long knockedAt = -1;
     private final TreeSet<Integer> clicks = new TreeSet<>();
     private int counterTick = -1, lastPlanned;
-    private boolean jumpPlanned, untilLanded, leftGround, flying;
+    private boolean jumpPlanned, untilLanded, leftGround, flying, reducedThisKnock;
+    private int chain, planMiss, planRate;
+    private long lastReduceAt = Long.MIN_VALUE / 2;
     private long flightFrom;
 
     @Override
@@ -270,8 +272,9 @@ final class Trainer implements GameModule {
             boolean counter = rel == counterTick;
             if (clicks.contains(rel) || counter) {
                 clicked = true;
-                if (counter || random.nextInt(100) >= drill.get(Knob.REDUCE_MISS)) {
-                    click(self, distance, drill, counter ? "counter" : "reduce", false, now);
+                if (counter || random.nextInt(100) >= planMiss) {
+                    boolean found = click(self, distance, drill, counter ? "counter" : "reduce", false, now);
+                    if (found && !counter) reduced(now);
                 } else {
                     self.swingMainHand();
                 }
@@ -326,9 +329,10 @@ final class Trainer implements GameModule {
     }
 
     // a click: the client-side cut now, the attack at the server a one-way trip later
-    private void click(Bot self, double distance, Drill drill, String kind, boolean approach, long now) {
+    // whether the client found the player under its crosshair
+    private boolean click(Bot self, double distance, Drill drill, String kind, boolean approach, long now) {
         self.swingMainHand();
-        if (distance > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return;
+        if (distance > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return false;
         boolean sprinting = self.isSprinting();
         if (sprinting || drill.get(Knob.KNOCKBACK) > 0) {
             self.cut();
@@ -336,6 +340,15 @@ final class Trainer implements GameModule {
         }
         if (approach) approaching = true;
         sends.add(new Send(lag.up(now), sprinting, approach, kind));
+        return true;
+    }
+
+    // one reduced knockback is one step of the chain, however many clicks it took
+    private void reduced(long now) {
+        lastReduceAt = now;
+        if (reducedThisKnock) return;
+        reducedThisKnock = true;
+        chain++;
     }
 
     private void arrive(Bot self, Player target, Drill drill, long now) {
@@ -372,31 +385,33 @@ final class Trainer implements GameModule {
         leftGround = false;
         untilLanded = drill.on(Knob.REDUCE) && drill.get(Knob.REDUCE_FOR) == 0;
         lastPlanned = 0;
+        reducedThisKnock = false;
+        if (now - lastReduceAt > drill.get(Knob.CHAIN_GAP)) chain = 0;
+        int step = chain;
+        planMiss = clamp(drill.get(Knob.REDUCE_MISS) + step * drill.get(Knob.CHAIN_MISS) + swing(drill.get(Knob.MISS_SWING)), 0, 100);
+        // every tick and picked ticks are 20 a second; the chain and the swing take theirs off that
+        int base = drill.pattern() == Drill.Pattern.PER_SECOND ? drill.get(Knob.REDUCE_CPS) : 20;
+        planRate = clamp(base - step * drill.get(Knob.CHAIN_CPS) + swing(drill.get(Knob.CPS_SWING)), 0, 20);
         if (drill.on(Knob.REDUCE)) {
-            int start = drill.ticks(Knob.REDUCE_START_MIN, Knob.REDUCE_START_MAX, Knob.REDUCE_START_LEAN, random);
+            int start = drill.ticks(Knob.REDUCE_START_MIN, Knob.REDUCE_START_MAX, Knob.REDUCE_START_LEAN, random)
+                    + step * drill.get(Knob.CHAIN_DELAY);
             int length = untilLanded ? UNTIL_LANDED : drill.get(Knob.REDUCE_FOR);
-            switch (drill.pattern()) {
-                case EVERY_TICK -> {
-                    for (int t = start; t < start + length; t++) clicks.add(t);
+            if (drill.pattern() == Drill.Pattern.CUSTOM) {
+                int ticks = drill.get(Knob.REDUCE_TICKS);
+                for (int b = 0; b < Drill.PATTERN_TICKS; b++) {
+                    if ((ticks & 1 << b) != 0 && random.nextInt(20) < planRate) clicks.add(start + b);
                 }
-                case PER_SECOND -> {
-                    for (int t = start; t < start + length; t++) {
-                        if (random.nextInt(20) < drill.get(Knob.REDUCE_CPS)) clicks.add(t);
-                    }
-                }
-                case CUSTOM -> {
-                    int ticks = drill.get(Knob.REDUCE_TICKS);
-                    for (int b = 0; b < Drill.PATTERN_TICKS; b++) if ((ticks & 1 << b) != 0) clicks.add(start + b);
-                }
+            } else {
+                for (int t = start; t < start + length; t++) if (random.nextInt(20) < planRate) clicks.add(t);
             }
             if (!clicks.isEmpty()) lastPlanned = clicks.last();
         }
         counterTick = drill.on(Knob.COUNTER) ? drill.ticks(Knob.COUNTER_MIN, Knob.COUNTER_MAX, Knob.COUNTER_LEAN, random) : -1;
         lastPlanned = Math.max(lastPlanned, counterTick);
         jumpPlanned = random.nextInt(100) < drill.get(Knob.JUMP_RESET);
-        if (player != null && bot != null) LOGGER.info("practice {}: bot knocked, {} up off a tracked {}, clicks {}, counter {}, jump {}",
+        if (player != null && bot != null) LOGGER.info("practice {}: bot knocked, {} up off a tracked {}, chain {}, miss {}%, {} CPS, clicks {}, counter {}, jump {}",
                 player.getUsername(), String.format(java.util.Locale.ROOT, "%.4f", bot.sentY()),
-                String.format(java.util.Locale.ROOT, "%.4f", bot.heldY()), clicks, counterTick, jumpPlanned);
+                String.format(java.util.Locale.ROOT, "%.4f", bot.heldY()), step, planMiss, planRate, clicks, counterTick, jumpPlanned);
     }
 
     private boolean sprintHit(Drill drill, Bot self, Player target, long now) {
@@ -465,6 +480,14 @@ final class Trainer implements GameModule {
         double y = clamp(eye.y(), at.y() + box.minY() - BORDER, at.y() + box.maxY() + BORDER);
         double z = clamp(eye.z(), at.z() + box.minZ() - BORDER, at.z() + box.maxZ() + BORDER);
         return Math.sqrt((eye.x() - x) * (eye.x() - x) + (eye.y() - y) * (eye.y() - y) + (eye.z() - z) * (eye.z() - z));
+    }
+
+    private int swing(int amount) {
+        return amount == 0 ? 0 : random.nextInt(2 * amount + 1) - amount;
+    }
+
+    private static int clamp(int v, int low, int high) {
+        return Math.max(low, Math.min(high, v));
     }
 
     private static double clamp(double v, double low, double high) {

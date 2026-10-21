@@ -128,6 +128,8 @@ final class DrillMenu {
         };
         int[] slots = {10, 11, 12, 13, 14, 15, 16, 20, 24};
         for (int i = 0; i < specs.length; i++) knob(screen, slots[i], specs[i], changed);
+        topic(screen, 22, Material.IRON_BARS, "Chains and Swings",
+                "How it reduces worse through a combo, and how much each knockback varies.", v -> chains(v, changed));
         for (int b = 0; b < Drill.PATTERN_TICKS; b++) {
             int bit = b;
             screen.press(TICK_SLOTS[b], v -> {
@@ -145,6 +147,24 @@ final class DrillMenu {
         }
         back(screen, 49);
         Screens.push(viewer, screen.build());
+    }
+
+    private static void chains(Player viewer, Consumer<Player> changed) {
+        page(viewer, "Chains and Swings", 3, changed,
+                new int[]{10, 11, 12, 13, 15, 16},
+                new Spec(Knob.CHAIN_GAP, Material.CLOCK, "Chain Resets After",
+                        "A knockback this soon after its last reduce click carries on the chain; later, it starts fresh.",
+                        DrillMenu::ticks),
+                new Spec(Knob.CHAIN_MISS, Material.SPIDER_EYE, "Chained Misses",
+                        "Added to its miss chance for each knockback it already reduced in the chain.", v -> "+" + v + "%"),
+                new Spec(Knob.CHAIN_CPS, Material.LEVER, "Chained Slowdown",
+                        "Taken off its clicks a second for each knockback it already reduced in the chain.", v -> "-" + v + " CPS"),
+                new Spec(Knob.CHAIN_DELAY, Material.REPEATER, "Chained Delay",
+                        "Added to its first reduce tick for each knockback it already reduced in the chain.", v -> "+" + ticks(v)),
+                new Spec(Knob.MISS_SWING, Material.COMPASS, "Miss Swing",
+                        "Each knockback, its miss chance moves up or down by up to this much.", v -> "up to " + v + "%"),
+                new Spec(Knob.CPS_SWING, Material.COMPASS, "Clicks Swing",
+                        "Each knockback, its clicks a second move up or down by up to this much.", v -> "up to " + v + " CPS"));
     }
 
     private static void latency(Player viewer, Consumer<Player> changed) {
