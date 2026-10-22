@@ -193,7 +193,7 @@ final class DrillMenu {
 
     private static void movement(Player viewer, Consumer<Player> changed) {
         page(viewer, "Movement and Aim", 4, changed,
-                new int[]{10, 11, 12, 14, 15, 16, 20, 21},
+                new int[]{10, 11, 12, 14, 15, 16, 20, 21, 23, 24},
                 new Spec(Knob.STRAFE, Material.FEATHER, "Strafing", "How much of the fight it spends holding A or D.", v -> v + "%"),
                 new Spec(Knob.STRAFE_MIN, Material.CLOCK, "Shortest Strafe", "How long it holds a side before picking again, at the least.",
                         DrillMenu::ticks),
@@ -210,7 +210,11 @@ final class DrillMenu {
                 new Spec(Knob.TURN, Material.COMPASS, "Turn Speed", "The most it turns a tick, like a mouse. Too slow and it misses.",
                         v -> v >= 180 ? "Instant" : v + " degrees a tick"),
                 new Spec(Knob.JITTER, Material.SPIDER_EYE, "Aim Jitter", "How far its aim drifts off you. A click only counts when its "
-                        + "crosshair is on you.", v -> v == 0 ? "None" : "up to " + v + " degrees"));
+                        + "crosshair is on you.", v -> v == 0 ? "None" : "up to " + v + " degrees"),
+                new Spec(Knob.THROUGH, Material.ENDER_PEARL, "Walk Through",
+                        "After each of its hits, the chance it runs straight into and through you, turning to keep you in sight.",
+                        v -> v + "%"),
+                new Spec(Knob.THROUGH_TICKS, Material.CLOCK, "Walk Through For", "How long each run lasts.", DrillMenu::ticks));
     }
 
     private static void effects(Player viewer, Consumer<Player> changed) {

@@ -206,12 +206,17 @@ class PracticeTest extends HeadlessServerTest {
 
     @Test
     void spacingKeepsItsDistance() {
-        assertTrue(closest(1, "PracJ") > 1.4, "it waits at its distance");
-        assertTrue(closest(0, "PracK") < 1.0, "without spacing it walks into you");
+        assertTrue(closest(1, 0, "PracJ") > 1.4, "it waits at its distance");
+        assertTrue(closest(0, 0, "PracK") < 1.0, "without spacing it walks into you");
+    }
+
+    @Test
+    void itRunsThroughYou() {
+        assertTrue(closest(1, 100, "PracO") < 0.5, "a run through ignores its spacing");
     }
 
     // the nearest the bot gets while the player can't be hit after its first hit
-    private double closest(int spacing, String name) {
+    private double closest(int spacing, int through, String name) {
         Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
         FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), name);
         AtomicInteger hits = new AtomicInteger();
@@ -223,7 +228,8 @@ class PracticeTest extends HeadlessServerTest {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
             Drill.set(p.player, plain().with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.STRAFE, 0)
-                    .with(Drill.Knob.SPACING, spacing).with(Drill.Knob.WAIT_MIN, 20).with(Drill.Knob.WAIT_MAX, 20));
+                    .with(Drill.Knob.SPACING, spacing).with(Drill.Knob.WAIT_MIN, 20).with(Drill.Knob.WAIT_MAX, 20)
+                    .with(Drill.Knob.THROUGH, through));
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
             p.player.setHeldItemSlot((byte) 2);

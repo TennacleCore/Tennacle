@@ -65,6 +65,8 @@ public final class Drill {
         STRAFE_MAX("stmax", 20, 2, 40, 1),
         SPACING("space", 1, 0, 1, 1),
         TRADE("trade", 20, 5, 60, 5),
+        THROUGH("through", 0, 0, 100, 10),
+        THROUGH_TICKS("thticks", 20, 5, 60, 5),
         KEEP("keep", 11, 4, 16, 1),
         TURN("turn", 90, 10, 180, 10),
         JITTER("jitter", 2, 0, 10, 1),

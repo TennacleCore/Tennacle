@@ -110,6 +110,7 @@ final class Trainer implements GameModule {
     private int chain, planMiss, planRate, cuts, combo, strafeDir;
     private long strafeUntil, unsprintAt = Long.MIN_VALUE / 2;
     private float driftYaw, driftPitch;
+    private long throughUntil;
     private long lastLandedAt = Long.MIN_VALUE / 2;
     private Pos pushFrom = Pos.ZERO;
     private double pushFar, pushSize, pushX, pushZ;
@@ -217,7 +218,13 @@ final class Trainer implements GameModule {
         reach = drill.reach(random);
         exchangeFrom = game.tick();
         playerHitAt = -1;
+        throughUntil = 0;
+        maybeRunThrough(drill, game.tick());
         LOGGER.info("practice {}: start, {}", who.getUsername(), Drill.encode(drill));
+    }
+
+    private void maybeRunThrough(Drill drill, long now) {
+        if (random.nextInt(100) < drill.get(Knob.THROUGH)) throughUntil = now + drill.get(Knob.THROUGH_TICKS);
     }
 
     private void reset() {
@@ -316,7 +323,9 @@ final class Trainer implements GameModule {
         boolean ready = now >= readyAt + behind && !approaching;
         // both landed a hit lately: a trade, where W's momentum beats strafing and spacing
         boolean trade = now - playerHitAt <= drill.get(Knob.TRADE) && now - lastLandedAt <= drill.get(Knob.TRADE);
-        float strafe = running && !flying && !trade ? strafe(drill, now) : 0;
+        // a run straight into the player, aim and all, to make them track it
+        boolean through = now < throughUntil;
+        float strafe = running && !flying && !trade && !through ? strafe(drill, now) : 0;
         float back = 0;
         // in its own knockback only Reduce and Counter click: any other click would cut it uninvited
         if (running && !clicked && !flying) {
@@ -334,6 +343,8 @@ final class Trainer implements GameModule {
                         true, rearmed, now);
             } else if (waiting && distance <= reach) {
                 forward = false;
+            } else if (through) {
+                forward = true;
             } else if (drill.hitType() == Drill.HitType.SPACING && !ready && distance < reach + 0.5) {
                 forward = false;
             } else if (drill.on(Knob.SPACING) && !ready && !trade) {
@@ -428,6 +439,7 @@ final class Trainer implements GameModule {
             }
             landed++;
             combo = now - lastLandedAt <= drill.get(Knob.COMBO_GAP) ? combo + 1 : 1;
+            maybeRunThrough(drill, now);
             lastLandedAt = now;
             readyAt = now + HURT_TICKS + drill.ticks(Knob.WAIT_MIN, Knob.WAIT_MAX, Knob.WAIT_LEAN, random);
             reach = drill.reach(random);
