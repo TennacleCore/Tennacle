@@ -130,7 +130,7 @@ class KitsTabTest extends HeadlessServerTest {
             assertEquals("wool", pins.get(1));
             press(p, new Click.LeftShift(20));
             assertEquals("", tennacle.games.shop.Favorites.of(p.player, "bedwars:items").get(1), "shift click takes it off");
-            press(p, new Click.Left(49));
+            press(p, new Click.Left(18)); // Go Back, beside the grid: the bottom row holds the presets
             assertEquals("Hotbar Manager", title(p), "Go Back leads where it opened from");
         } finally {
             p.player.remove();
