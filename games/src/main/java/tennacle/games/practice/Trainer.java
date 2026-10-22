@@ -134,6 +134,16 @@ final class Trainer implements GameModule {
         });
         KnockReader.install(game, p -> p == player, new KnockReader.Listener() {
             @Override
+            public void arrived(@NotNull Player victim, @NotNull KnockReader.Jump jump) {
+                if (jump == KnockReader.Jump.RESET) Lines.jumpReset(victim);
+            }
+
+            @Override
+            public void reduced(@NotNull Player victim, int tick, int clicks, boolean first) {
+                Lines.reduced(victim, tick);
+            }
+
+            @Override
             public void ended(@NotNull KnockReader.Knock knock) {
                 if (knock.source() == null || knock.source() != bot) return;
                 boolean first = playerHitAt >= exchangeFrom && playerHitAt < knock.sentAt();
@@ -293,7 +303,7 @@ final class Trainer implements GameModule {
                     boolean found = click(self, crosshair, drill, counter ? "counter" : "reduce", false, true, now);
                     if (found && !counter) reduced(now);
                 } else {
-                    self.swingMainHand();
+                    self.swing();
                 }
             }
             if (!self.isOnGround()) leftGround = true;
@@ -380,7 +390,7 @@ final class Trainer implements GameModule {
     // a click: the client-side cut now, the attack at the server a one-way trip later
     // whether the client found the player under its crosshair
     private boolean click(Bot self, double crosshair, Drill drill, String kind, boolean approach, boolean rearmed, long now) {
-        self.swingMainHand();
+        self.swing();
         if (crosshair > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return false;
         boolean sprinting = self.isSprinting();
         if (sprinting || drill.get(Knob.KNOCKBACK) > 0) {

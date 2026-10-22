@@ -19,6 +19,7 @@ import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.instance.block.Block;
+import net.minestom.server.network.packet.server.play.EntityAnimationPacket;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -258,6 +259,38 @@ class PracticeTest extends HeadlessServerTest {
             bot.yaw(-90f);
             assertTrue(Double.isInfinite(Trainer.crosshair(bot, p.player.getPosition(), p.player.getBoundingBox())), "facing away");
         } finally {
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void itsSwingComesWithItsHit() {
+        Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PracN");
+        long[] hitAt = {-1};
+        var listener = EventListener.of(KnockbackAppliedEvent.class, e -> {
+            if (e.target() == p.player && e.snapshot().source() instanceof Bot && hitAt[0] < 0) hitAt[0] = game.tick();
+        });
+        MinecraftServer.getGlobalEventHandler().addListener(listener);
+        try {
+            p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
+            assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
+            Drill.set(p.player, plain().with(Drill.Knob.PING_MAX, 200).with(Drill.Knob.PING_MIN, 200).with(Drill.Knob.STRAFE, 0));
+            ticks(game, () -> bot(game) != null, "the bot is up");
+            Bot bot = bot(game);
+            p.player.setHeldItemSlot((byte) 2);
+            EventDispatcher.call(new PlayerUseItemEvent(p.player, PlayerHand.MAIN, p.player.getItemInMainHand(), 0));
+            long[] swungAt = {-1};
+            ticks(game, () -> {
+                if (swungAt[0] < 0 && p.sent(EntityAnimationPacket.class).stream().anyMatch(a -> a.entityId() == bot.getEntityId())) {
+                    swungAt[0] = game.tick();
+                }
+                return hitAt[0] >= 0 && swungAt[0] >= 0;
+            }, "a swing and a hit");
+            assertTrue(Math.abs(swungAt[0] - hitAt[0]) <= 1, "swung at " + swungAt[0] + ", hit at " + hitAt[0]);
+        } finally {
+            MinecraftServer.getGlobalEventHandler().removeListener(listener);
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             p.player.remove();
         }

@@ -1,5 +1,6 @@
 package tennacle.games.practice;
 
+import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -8,6 +9,7 @@ import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.Nullable;
 import tennacle.Msg;
@@ -31,7 +33,21 @@ final class Lines {
     static final ItemStack LEAVE = tool(Material.RED_DYE, "Leave Practice", NamedTextColor.RED, "leave",
             "Right-click to go back to the lobby.");
 
+    // tick 0 the highest; past tick 2 nothing
+    private static final float[] REDUCE_PITCH = {2.0f, 1.6f, 1.25f};
+    private static final Sound JUMP_RESET = Sound.sound(SoundEvent.BLOCK_NOTE_BLOCK_PLING, Sound.Source.MASTER, 1f, 2f);
+
     private Lines() {}
+
+    /** A rising tone for a reduce on an early tick. */
+    static void reduced(Player player, int tick) {
+        if (tick < 0 || tick >= REDUCE_PITCH.length) return;
+        player.playSound(Sound.sound(SoundEvent.ENTITY_EXPERIENCE_ORB_PICKUP, Sound.Source.MASTER, 0.6f, REDUCE_PITCH[tick]));
+    }
+
+    static void jumpReset(Player player) {
+        player.playSound(JUMP_RESET);
+    }
 
     static void intro(Player player) {
         Msg.say(player, "Right-click the ", Msg.good("Start"), " dye and the bot comes at you. After each of its hits you'll see ",

@@ -62,6 +62,7 @@ final class Bot extends MobEntity implements TrackedVelocity {
     private final Lag lag;
     private final LongSupplier clock;
     private final ArrayDeque<Late> late = new ArrayDeque<>();
+    private final ArrayDeque<Long> swings = new ArrayDeque<>();
     private boolean launched, impulse, client;
     private @Nullable Pos body;
     private double trackedY, heldY, sentY;
@@ -83,6 +84,10 @@ final class Bot extends MobEntity implements TrackedVelocity {
     protected void livingTick() {
         long now = clock.getAsLong();
         while (!late.isEmpty() && late.peek().at() <= now) land(late.poll().velocity());
+        while (!swings.isEmpty() && swings.peek() <= now) {
+            swings.poll();
+            swingMainHand();
+        }
         brain.arrive(this);
         client = true;
         try {
@@ -92,7 +97,22 @@ final class Bot extends MobEntity implements TrackedVelocity {
         } finally {
             client = false;
         }
-        refreshPosition(heard(now - lag.expectedUp()).pos(), false, true);
+        Pos heard = heard(now - lag.expectedUp()).pos();
+        refreshPosition(heard, false, true);
+        // the head the server last heard, not the client's
+        headYaw(heard.yaw());
+        bodyYaw(heard.yaw());
+        sync();
+    }
+
+    /** A click's arm swing, seen when the server hears it, with the attack. */
+    void swing() {
+        swings.add(lag.up(clock.getAsLong()));
+    }
+
+    @Override
+    protected void sync() {
+        if (!client) super.sync();
     }
 
     /** Both bodies to {@code at}, still. */
