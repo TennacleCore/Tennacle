@@ -66,6 +66,7 @@ class PracticeTest extends HeadlessServerTest {
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
+            Drill.set(p.player, plain());
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
             assertNotNull(bot);
@@ -105,7 +106,7 @@ class PracticeTest extends HeadlessServerTest {
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
-            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.PING_MIN, ping).with(Drill.Knob.PING_MAX, ping));
+            Drill.set(p.player, plain().with(Drill.Knob.PING_MIN, ping).with(Drill.Knob.PING_MAX, ping));
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
             bot.place(new Pos(-5.5, 65, 0.5));
@@ -129,14 +130,15 @@ class PracticeTest extends HeadlessServerTest {
 
     @Test
     void itsReducesCutItsKnockback() {
-        double plain = pushed(Drill.DEFAULT, false, "PracC");
-        double reduced = pushed(Drill.DEFAULT.with(Drill.Knob.REDUCE, 1), false, "PracD");
+        double plain = pushed(plain(), false, "PracC");
+        double reduced = pushed(plain().with(Drill.Knob.REDUCE, 1).with(Drill.Knob.REDUCE_PATTERN, 0).with(Drill.Knob.REDUCE_START_MAX, 0)
+                .with(Drill.Knob.REDUCE_FOR, 0).with(Drill.Knob.MISS_SWING, 0).with(Drill.Knob.CPS_SWING, 0), false, "PracD");
         assertTrue(reduced < plain * 0.6, "reduced " + reduced + " against " + plain);
     }
 
     @Test
     void lagKeepsItsKnockback() {
-        Drill fighting = Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1);
+        Drill fighting = plain().with(Drill.Knob.CONTINUOUS, 1);
         double prompt = pushed(fighting, true, "PracF");
         double laggy = pushed(fighting.with(Drill.Knob.PING_MIN, 150).with(Drill.Knob.PING_MAX, 150), true, "PracG");
         assertTrue(laggy > prompt * 0.7, "laggy " + laggy + " against " + prompt);
@@ -186,7 +188,7 @@ class PracticeTest extends HeadlessServerTest {
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
-            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.COMBO_SPRINT, 100)
+            Drill.set(p.player, plain().with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.COMBO_SPRINT, 100)
                     .with(Drill.Knob.SPACING, 0).with(Drill.Knob.STRAFE, 0));
             ticks(game, () -> bot(game) != null, "the bot is up");
             p.player.setHeldItemSlot((byte) 2);
@@ -219,7 +221,7 @@ class PracticeTest extends HeadlessServerTest {
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
-            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.STRAFE, 0)
+            Drill.set(p.player, plain().with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.STRAFE, 0)
                     .with(Drill.Knob.SPACING, spacing).with(Drill.Knob.WAIT_MIN, 20).with(Drill.Knob.WAIT_MAX, 20));
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
@@ -268,7 +270,7 @@ class PracticeTest extends HeadlessServerTest {
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
-            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.PING_MIN, 200).with(Drill.Knob.PING_MAX, 200));
+            Drill.set(p.player, plain().with(Drill.Knob.PING_MIN, 200).with(Drill.Knob.PING_MAX, 200));
             ticks(game, () -> bot(game) != null, "the bot is up");
             Bot bot = bot(game);
             p.player.setHeldItemSlot((byte) 2);
@@ -281,6 +283,12 @@ class PracticeTest extends HeadlessServerTest {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             p.player.remove();
         }
+    }
+
+    // the drill these tests were written against, whatever the shipped defaults are
+    private static Drill plain() {
+        return Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 0).with(Drill.Knob.PING_MAX, 0).with(Drill.Knob.SPIKE_CHANCE, 0)
+                .with(Drill.Knob.REDUCE, 0).with(Drill.Knob.REACH_MIN, 8).with(Drill.Knob.REACH_MAX, 8).with(Drill.Knob.WAIT_MAX, 0);
     }
 
     private static Bot bot(Game game) {

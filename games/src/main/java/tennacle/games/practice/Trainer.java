@@ -71,6 +71,7 @@ final class Trainer implements GameModule {
     private static final int RETRY_TICKS = 2;
     // closer than its keep distance by this, it backs off with S
     private static final double BACK_OFF = 0.75;
+    private static final double AIR_FRICTION = 0.91;
     // blocks a tick away from the bot: the victim is already flying, so a walking hit keeps the combo close
     private static final double FLYING_AWAY = 0.15;
     private static final int SEEN = 64;
@@ -303,7 +304,9 @@ final class Trainer implements GameModule {
         boolean sprint = true;
         boolean forward = running || reducing;
         boolean ready = now >= readyAt + behind && !approaching;
-        float strafe = running && !flying ? strafe(drill, now) : 0;
+        // both landed a hit lately: a trade, where W's momentum beats strafing and spacing
+        boolean trade = now - playerHitAt <= drill.get(Knob.TRADE) && now - lastLandedAt <= drill.get(Knob.TRADE);
+        float strafe = running && !flying && !trade ? strafe(drill, now) : 0;
         float back = 0;
         // in its own knockback only Reduce and Counter click: any other click would cut it uninvited
         if (running && !clicked && !flying) {
@@ -323,12 +326,16 @@ final class Trainer implements GameModule {
                 forward = false;
             } else if (drill.hitType() == Drill.HitType.SPACING && !ready && distance < reach + 0.5) {
                 forward = false;
-            } else if (drill.on(Knob.SPACING) && !ready) {
+            } else if (drill.on(Knob.SPACING) && !ready && !trade) {
+                // where the knockback they're already riding will carry them by the time they can be hit
+                double away = away(self, target, now);
+                long left = Math.max(0, readyAt + behind - now);
+                double coast = away > 0 ? away * (1 - Math.pow(AIR_FRICTION, left)) / (1 - AIR_FRICTION) : 0;
                 double keep = drill.get(Knob.KEEP) / 4.0;
-                if (distance < keep - BACK_OFF) {
+                if (distance + coast < keep - BACK_OFF && away < FLYING_AWAY) {
                     forward = false;
                     back = -1;
-                } else if (distance < keep) {
+                } else if (distance + coast < keep) {
                     forward = false;
                 }
             }
@@ -472,16 +479,17 @@ final class Trainer implements GameModule {
             case SPRINT -> true;
             case NORMAL -> false;
             case RANDOM -> random.nextInt(100) < drill.get(Knob.SPRINT_CHANCE);
-            case SPACING -> {
-                int behind = lag.expectedUp();
-                // relayed every other tick: the step over two
-                Pos was = seen(now - behind - 2, target), is = seen(now - behind, target);
-                double dx = is.x() - self.getPosition().x(), dz = is.z() - self.getPosition().z();
-                double len = Math.hypot(dx, dz);
-                double away = len == 0 ? 0 : ((is.x() - was.x()) * dx + (is.z() - was.z()) * dz) / len / 2;
-                yield away < FLYING_AWAY;
-            }
+            case SPACING -> away(self, target, now) < FLYING_AWAY;
         };
+    }
+
+    // blocks a tick the player moves away from the bot, as its client sees them; relayed every other tick, so over two
+    private double away(Bot self, Player target, long now) {
+        int behind = lag.expectedUp();
+        Pos was = seen(now - behind - 2, target), is = seen(now - behind, target);
+        double dx = is.x() - self.getPosition().x(), dz = is.z() - self.getPosition().z();
+        double len = Math.hypot(dx, dz);
+        return len == 0 ? 0 : ((is.x() - was.x()) * dx + (is.z() - was.z()) * dz) / len / 2;
     }
 
     private boolean patienceOut(Drill drill, double distance, long now) {

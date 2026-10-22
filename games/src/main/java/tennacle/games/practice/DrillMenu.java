@@ -193,7 +193,7 @@ final class DrillMenu {
 
     private static void movement(Player viewer, Consumer<Player> changed) {
         page(viewer, "Movement and Aim", 4, changed,
-                new int[]{10, 11, 12, 14, 15, 20, 21},
+                new int[]{10, 11, 12, 14, 15, 16, 20, 21},
                 new Spec(Knob.STRAFE, Material.FEATHER, "Strafing", "How much of the fight it spends holding A or D.", v -> v + "%"),
                 new Spec(Knob.STRAFE_MIN, Material.CLOCK, "Shortest Strafe", "How long it holds a side before picking again, at the least.",
                         DrillMenu::ticks),
@@ -202,7 +202,11 @@ final class DrillMenu {
                 new Spec(Knob.SPACING, Material.LEATHER_BOOTS, "Spacing",
                         "While you can't be hit yet, it stops at its keep distance and backs off with S if you get too close. "
                                 + "Letting go of W re-arms its sprint, as a w-tap.", DrillMenu::onOff),
-                new Spec(Knob.KEEP, Material.ARROW, "Keep Distance", "How far it stays while it waits.", DrillMenu::quarters),
+                new Spec(Knob.KEEP, Material.ARROW, "Keep Distance",
+                        "How far it stays while it waits, counting how far your knockback will still carry you.", DrillMenu::quarters),
+                new Spec(Knob.TRADE, Material.IRON_SWORD, "Trade Window",
+                        "When you and the bot have both landed a hit this recently, it's a trade: it holds W, no strafing or spacing.",
+                        DrillMenu::ticks),
                 new Spec(Knob.TURN, Material.COMPASS, "Turn Speed", "The most it turns a tick, like a mouse. Too slow and it misses.",
                         v -> v >= 180 ? "Instant" : v + " degrees a tick"),
                 new Spec(Knob.JITTER, Material.SPIDER_EYE, "Aim Jitter", "How far its aim drifts off you. A click only counts when its "
