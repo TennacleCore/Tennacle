@@ -280,7 +280,7 @@ public final class BedWars {
     }
 
     private static void shop(Game game, Player player, PointMarker at) {
-        if (open(game, player)) ItemShop.open(game, player, Wares.Tab.QUICK_BUY);
+        if (open(game, player)) ItemShop.enter(game, player);
     }
 
     private static void upgrades(Game game, Player player, PointMarker at) {

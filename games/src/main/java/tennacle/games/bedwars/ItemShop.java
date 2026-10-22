@@ -14,6 +14,9 @@ import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;
+import net.minestom.server.tag.Tag;
+import tennacle.games.Match;
+import tennacle.games.beds.Beds;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.entity.Player;
@@ -34,6 +37,10 @@ import java.util.List;
 final class ItemShop {
 
     static final String FRONT = "bedwars:items";
+    /** A second Quick Buy for once the player's bed is gone; unset or empty is off. */
+    static final String AFTER_FRONT = "bedwars:items:after";
+    // which of the two the open screen shows and edits
+    private static final Tag<Boolean> AFTER = Tag.Transient("bedwars:quick-buy-after");
     static final int[] GRID = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
 
     private ItemShop() {}
@@ -42,8 +49,16 @@ final class ItemShop {
         Screens.open(viewer, page(game, tab));
     }
 
+    /** From the keeper: the Quick Buy in play, the after-bed one once the bed is gone. */
+    static void enter(Game game, Player viewer) {
+        String team = Match.teamOf(game, viewer);
+        viewer.setTag(AFTER, splits(viewer) && team != null && !Beds.stands(game, team));
+        open(game, viewer, Tab.QUICK_BUY);
+    }
+
     /** Quick Buy to arrange outside a game, pushed over the current screen. */
     static void editor(Player viewer) {
+        viewer.removeTag(AFTER);
         Screens.push(viewer, page(null, Tab.QUICK_BUY));
     }
 
@@ -63,6 +78,22 @@ final class ItemShop {
         for (int i = 0; i < GRID.length; i++) {
             int index = i;
             page.button(GRID[i], viewer -> icon(game, viewer, open, index), (viewer, click) -> press(game, viewer, open, index, click));
+        }
+        if (open == Tab.QUICK_BUY) {
+            page.button(47, viewer -> layout(viewer, false), (viewer, click) -> {
+                viewer.removeTag(AFTER);
+                Screens.repaint(viewer);
+            });
+            page.button(51, viewer -> layout(viewer, true), (viewer, click) -> {
+                if (click instanceof Click.Right) {
+                    Favorites.set(viewer, AFTER_FRONT, List.of());
+                    viewer.removeTag(AFTER);
+                } else {
+                    if (!splits(viewer)) Favorites.set(viewer, AFTER_FRONT, mainPins(viewer));
+                    viewer.setTag(AFTER, true);
+                }
+                Screens.repaint(viewer);
+            });
         }
         if (game == null) {
             page.button(49, Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)), List.of()),
@@ -97,7 +128,43 @@ final class ItemShop {
                 .append(Component.text("Items", NamedTextColor.GRAY))));
     }
 
+    // the bed on the one the player plays with, the black bed on the one that takes over when it breaks
+    private static ItemStack layout(Player viewer, boolean after) {
+        boolean open = after == editingAfter(viewer);
+        List<Component> lore = new ArrayList<>();
+        if (!after) {
+            lore.add(Items.gray("The Quick Buy you play with."));
+        } else if (splits(viewer)) {
+            lore.add(Items.gray("Takes over the moment your bed breaks."));
+            lore.add(Component.empty());
+            lore.add(Component.text("Right Click to turn it off!", NamedTextColor.YELLOW));
+        } else {
+            lore.add(Items.gray("Off: one Quick Buy for the whole game."));
+            lore.add(Component.empty());
+            lore.add(Component.text("Click to give it its own!", NamedTextColor.YELLOW));
+        }
+        if (open) lore.add(Component.text("Showing", NamedTextColor.AQUA));
+        else if (!after || splits(viewer)) lore.add(Component.text("Click to show!", NamedTextColor.YELLOW));
+        ItemStack item = Items.named(after ? Material.BLACK_BED : Material.RED_BED,
+                Component.text(after ? "After Your Bed Breaks" : "With Your Bed", NamedTextColor.GREEN));
+        return Items.bare(Items.lore(open ? item.withGlowing(true) : item, lore));
+    }
+
+    static boolean splits(Player viewer) {
+        List<String> after = Favorites.of(viewer, AFTER_FRONT);
+        return after != null && after.size() == GRID.length;
+    }
+
+    private static boolean editingAfter(Player viewer) {
+        return Boolean.TRUE.equals(viewer.getTag(AFTER)) && splits(viewer);
+    }
+
+    /** The Quick Buy on screen: the after-bed one while it's the one showing. */
     static List<String> pins(Player viewer) {
+        return editingAfter(viewer) ? Favorites.of(viewer, AFTER_FRONT) : mainPins(viewer);
+    }
+
+    private static List<String> mainPins(Player viewer) {
         List<String> mine = Favorites.of(viewer, FRONT);
         if (mine == null || mine.size() != GRID.length) return Wares.QUICK_BUY;
         return mine;
@@ -106,7 +173,7 @@ final class ItemShop {
     static void pin(Player viewer, int index, String id) {
         List<String> next = new ArrayList<>(pins(viewer));
         next.set(index, id);
-        Favorites.set(viewer, FRONT, next);
+        Favorites.set(viewer, editingAfter(viewer) ? AFTER_FRONT : FRONT, next);
     }
 
     private static @Nullable Ware at(Player viewer, Tab tab, int index) {

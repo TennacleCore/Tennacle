@@ -194,6 +194,29 @@ class ShopTest extends HeadlessServerTest {
     }
 
     @Test
+    void quickBuyAfterTheBed() {
+        round("ShopQ", (game, a) -> {
+            ItemShop.enter(game, a);
+            Material before = Screens.inventory(a).getItemStack(43).material();
+            click(a, 51, new Click.Left(51)); // After Your Bed Breaks: a copy to edit
+            ItemShop.open(game, a, Wares.Tab.BLOCKS);
+            click(a, 20, new Click.LeftShift(20)); // Hardened Clay
+            click(a, 43, new Click.Left(43));
+            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material(), "into the after-bed one");
+
+            ItemShop.enter(game, a);
+            assertEquals(before, Screens.inventory(a).getItemStack(43).material(), "with the bed standing, the main one");
+            game.state().set(Scope.team(Match.teamOf(game, a)), tennacle.games.beds.Beds.STANDS, false);
+            ItemShop.enter(game, a);
+            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material(), "with it gone, the after-bed one");
+
+            click(a, 51, new Click.Right(51)); // off
+            ItemShop.enter(game, a);
+            assertEquals(before, Screens.inventory(a).getItemStack(43).material(), "off: one Quick Buy all game");
+        });
+    }
+
+    @Test
     void quickBuyPinsAndHotbarSlots() {
         round("ShopE", (game, a) -> {
             ItemShop.open(game, a, Wares.Tab.BLOCKS);
