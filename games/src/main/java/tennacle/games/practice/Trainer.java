@@ -69,6 +69,8 @@ final class Trainer implements GameModule {
     private static final int UNTIL_LANDED = 30;
     // a missed swing, tried again at about 10 CPS
     private static final int RETRY_TICKS = 2;
+    // closer than its keep distance by this, it backs off with S
+    private static final double BACK_OFF = 0.75;
     // blocks a tick away from the bot: the victim is already flying, so a walking hit keeps the combo close
     private static final double FLYING_AWAY = 0.15;
     private static final int SEEN = 64;
@@ -104,7 +106,9 @@ final class Trainer implements GameModule {
     private final TreeSet<Integer> clicks = new TreeSet<>();
     private int counterTick = -1, lastPlanned;
     private boolean jumpPlanned, untilLanded, leftGround, flying, reducedThisKnock;
-    private int chain, planMiss, planRate, cuts, combo;
+    private int chain, planMiss, planRate, cuts, combo, strafeDir;
+    private long strafeUntil, unsprintAt = Long.MIN_VALUE / 2;
+    private float driftYaw, driftPitch;
     private long lastLandedAt = Long.MIN_VALUE / 2;
     private Pos pushFrom = Pos.ZERO;
     private double pushFar, pushSize, pushX, pushZ;
@@ -243,7 +247,7 @@ final class Trainer implements GameModule {
         Player target = player;
         if (target == null || target.getInstance() != self.getInstance()) {
             self.setSprinting(false);
-            self.walk(false);
+            self.walk(0, 0);
             return;
         }
         if (self.getPosition().y() < middle.y() - FLOOR_DROP) {
@@ -259,8 +263,9 @@ final class Trainer implements GameModule {
         int behind = lag.expectedUp();
         receive(seen(now - behind, target));
         Pos view = this.view;
-        aim(self, view, target);
+        aim(self, view, target, drill);
         double distance = reachTo(self, view, target.getBoundingBox());
+        double crosshair = crosshair(self, view, target.getBoundingBox());
         boolean clicked = false;
 
         if (knocked) {
@@ -284,7 +289,7 @@ final class Trainer implements GameModule {
             if (clicks.contains(rel) || counter) {
                 clicked = true;
                 if (counter || random.nextInt(100) >= planMiss) {
-                    boolean found = click(self, distance, drill, counter ? "counter" : "reduce", false, true, now);
+                    boolean found = click(self, crosshair, drill, counter ? "counter" : "reduce", false, true, now);
                     if (found && !counter) reduced(now);
                 } else {
                     self.swingMainHand();
@@ -297,24 +302,35 @@ final class Trainer implements GameModule {
 
         boolean sprint = true;
         boolean forward = running || reducing;
+        boolean ready = now >= readyAt + behind && !approaching;
+        float strafe = running && !flying ? strafe(drill, now) : 0;
+        float back = 0;
         // in its own knockback only Reduce and Counter click: any other click would cut it uninvited
         if (running && !clicked && !flying) {
             boolean selfFirst = playerHitAt >= exchangeFrom;
             boolean waiting = drill.on(Knob.HIT_SELECT) && !selfFirst && !patienceOut(drill, distance, now);
-            boolean ready = now >= readyAt + behind && !approaching;
             if (ready && distance <= reach && !waiting) {
                 boolean sprintHit = sprintHit(drill, self, target, now);
                 if (!sprintHit) self.setSprinting(false);
                 sprint = sprintHit;
-                // still sprinting, but a missed w-tap: the server never heard it start again
+                // still sprinting, but a missed w-tap: the server never heard it start again. A real stop re-arms it
                 int step = now - lastLandedAt <= drill.get(Knob.COMBO_GAP) ? combo : 0;
-                boolean rearmed = !sprintHit || random.nextInt(100) >= step * drill.get(Knob.COMBO_SPRINT);
-                click(self, distance, drill, !sprintHit ? "walking hit" : rearmed ? "sprint hit" : "sprint hit, not re-armed",
+                boolean rearmed = !sprintHit || unsprintAt > lastLandedAt
+                        || random.nextInt(100) >= step * drill.get(Knob.COMBO_SPRINT);
+                click(self, crosshair, drill, !sprintHit ? "walking hit" : rearmed ? "sprint hit" : "sprint hit, not re-armed",
                         true, rearmed, now);
             } else if (waiting && distance <= reach) {
                 forward = false;
             } else if (drill.hitType() == Drill.HitType.SPACING && !ready && distance < reach + 0.5) {
                 forward = false;
+            } else if (drill.on(Knob.SPACING) && !ready) {
+                double keep = drill.get(Knob.KEEP) / 4.0;
+                if (distance < keep - BACK_OFF) {
+                    forward = false;
+                    back = -1;
+                } else if (distance < keep) {
+                    forward = false;
+                }
             }
         }
         if (jumpPlanned && tickZero) {
@@ -324,9 +340,20 @@ final class Trainer implements GameModule {
                 self.jumpNow();
             }
         }
+        if (running && !forward) unsprintAt = now;
         self.setSprinting(forward && sprint);
-        self.walk(forward);
+        self.walk(forward ? 1 : back, strafe);
         glide();
+    }
+
+    // A or D for a stretch, then a new pick: left, right, or straight on
+    private float strafe(Drill drill, long now) {
+        if (now >= strafeUntil) {
+            strafeDir = random.nextInt(100) < drill.get(Knob.STRAFE) ? (random.nextBoolean() ? 1 : -1) : 0;
+            int low = drill.get(Knob.STRAFE_MIN), high = drill.get(Knob.STRAFE_MAX);
+            strafeUntil = now + low + random.nextInt(high - low + 1);
+        }
+        return strafeDir;
     }
 
     private void receive(Pos arriving) {
@@ -345,9 +372,9 @@ final class Trainer implements GameModule {
 
     // a click: the client-side cut now, the attack at the server a one-way trip later
     // whether the client found the player under its crosshair
-    private boolean click(Bot self, double distance, Drill drill, String kind, boolean approach, boolean rearmed, long now) {
+    private boolean click(Bot self, double crosshair, Drill drill, String kind, boolean approach, boolean rearmed, long now) {
         self.swingMainHand();
-        if (distance > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return false;
+        if (crosshair > Math.max(CLIENT_REACH, drill.get(Knob.REACH_MAX) / 4.0)) return false;
         boolean sprinting = self.isSprinting();
         if (sprinting || drill.get(Knob.KNOCKBACK) > 0) {
             if (flying) cuts++;
@@ -488,15 +515,54 @@ final class Trainer implements GameModule {
                 : ItemStack.of(Material.STICK).with(DataComponents.ENCHANTMENTS, new EnchantmentList(Map.of(Enchantment.KNOCKBACK, kb))));
     }
 
-    private static void aim(Bot self, Pos view, Player target) {
+    // a mouse: at most its turn a tick toward where it wants to look, which drifts by its jitter
+    private void aim(Bot self, Pos view, Player target, Drill drill) {
         Pos eye = self.getPosition().add(0, self.getEyeHeight(), 0);
         double dx = view.x() - eye.x(), dy = view.y() + target.getEyeHeight() - eye.y(), dz = view.z() - eye.z();
-        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-        float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
+        int jitter = drill.get(Knob.JITTER);
+        driftYaw = drift(driftYaw, jitter);
+        driftPitch = drift(driftPitch, jitter);
+        float wantYaw = (float) Math.toDegrees(Math.atan2(-dx, dz)) + driftYaw;
+        float wantPitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz))) + driftPitch;
+        float turn = drill.get(Knob.TURN);
+        float yaw = self.yaw() + Math.clamp(wrap(wantYaw - self.yaw()), -turn, turn);
+        float pitch = Math.clamp(self.pitch() + Math.clamp(wantPitch - self.pitch(), -turn, turn), -90f, 90f);
         self.yaw(yaw);
         self.headYaw(yaw);
         self.bodyYaw(yaw);
         self.pitch(pitch);
+    }
+
+    private float drift(float now, int jitter) {
+        if (jitter == 0) return 0;
+        return Math.clamp(now + (random.nextFloat() - 0.5f) * jitter, -jitter, jitter);
+    }
+
+    private static float wrap(float degrees) {
+        float d = degrees % 360f;
+        return d > 180f ? d - 360f : d < -180f ? d + 360f : d;
+    }
+
+    // how far along its look the bot's crosshair meets the grown hitbox, or infinity: the client's entity trace
+    static double crosshair(Bot self, Pos at, BoundingBox box) {
+        Pos eye = self.getPosition().add(0, self.getEyeHeight(), 0);
+        double yaw = Math.toRadians(self.yaw()), pitch = Math.toRadians(self.pitch());
+        double lx = -Math.sin(yaw) * Math.cos(pitch), ly = -Math.sin(pitch), lz = Math.cos(yaw) * Math.cos(pitch);
+        double near = 0, far = Double.POSITIVE_INFINITY;
+        double[] o = {eye.x(), eye.y(), eye.z()}, d = {lx, ly, lz};
+        double[] lo = {at.x() + box.minX() - BORDER, at.y() + box.minY() - BORDER, at.z() + box.minZ() - BORDER};
+        double[] hi = {at.x() + box.maxX() + BORDER, at.y() + box.maxY() + BORDER, at.z() + box.maxZ() + BORDER};
+        for (int i = 0; i < 3; i++) {
+            if (Math.abs(d[i]) < 1e-9) {
+                if (o[i] < lo[i] || o[i] > hi[i]) return Double.POSITIVE_INFINITY;
+                continue;
+            }
+            double a = (lo[i] - o[i]) / d[i], b = (hi[i] - o[i]) / d[i];
+            near = Math.max(near, Math.min(a, b));
+            far = Math.min(far, Math.max(a, b));
+            if (near > far) return Double.POSITIVE_INFINITY;
+        }
+        return near;
     }
 
     // eyes to the nearest point of the grown hitbox

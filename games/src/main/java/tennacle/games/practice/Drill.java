@@ -60,6 +60,13 @@ public final class Drill {
         SPIKE_MIN("smin", 100, 0, 1000, 25),
         SPIKE_MAX("smax", 100, 0, 1000, 25),
         SPIKE_TICKS("sticks", 10, 1, 40, 1),
+        STRAFE("strafe", 50, 0, 100, 10),
+        STRAFE_MIN("stmin", 8, 2, 40, 1),
+        STRAFE_MAX("stmax", 20, 2, 40, 1),
+        SPACING("space", 1, 0, 1, 1),
+        KEEP("keep", 10, 4, 16, 1),
+        TURN("turn", 90, 10, 180, 10),
+        JITTER("jitter", 2, 0, 10, 1),
         BOT_SPEED("bspeed", 0, 0, 3, 1),
         SPEED("speed", 0, 0, 3, 1),
         SLOWNESS("slow", 0, 0, 3, 1);
@@ -101,7 +108,7 @@ public final class Drill {
     // a range's ends: moving one past the other drags it along
     private static final Map<Knob, Knob> LOW_OF = Map.of(Knob.REACH_MAX, Knob.REACH_MIN, Knob.WAIT_MAX, Knob.WAIT_MIN,
             Knob.COUNTER_MAX, Knob.COUNTER_MIN, Knob.REDUCE_START_MAX, Knob.REDUCE_START_MIN, Knob.PING_MAX, Knob.PING_MIN,
-            Knob.SPIKE_MAX, Knob.SPIKE_MIN);
+            Knob.SPIKE_MAX, Knob.SPIKE_MIN, Knob.STRAFE_MAX, Knob.STRAFE_MIN);
     private static final Map<Knob, Knob> HIGH_OF = new HashMap<>();
 
     static {

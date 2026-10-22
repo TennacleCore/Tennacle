@@ -186,7 +186,8 @@ class PracticeTest extends HeadlessServerTest {
         try {
             p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
             assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
-            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.COMBO_SPRINT, 100));
+            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.COMBO_SPRINT, 100)
+                    .with(Drill.Knob.SPACING, 0).with(Drill.Knob.STRAFE, 0));
             ticks(game, () -> bot(game) != null, "the bot is up");
             p.player.setHeldItemSlot((byte) 2);
             EventDispatcher.call(new PlayerUseItemEvent(p.player, PlayerHand.MAIN, p.player.getItemInMainHand(), 0));
@@ -195,6 +196,66 @@ class PracticeTest extends HeadlessServerTest {
             assertTrue(bot(game).isSprinting(), "and it still sprints");
         } finally {
             MinecraftServer.getGlobalEventHandler().removeListener(listener);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void spacingKeepsItsDistance() {
+        assertTrue(closest(1, "PracJ") > 1.4, "it waits at its distance");
+        assertTrue(closest(0, "PracK") < 1.0, "without spacing it walks into you");
+    }
+
+    // the nearest the bot gets while the player can't be hit after its first hit
+    private double closest(int spacing, String name) {
+        Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), name);
+        AtomicInteger hits = new AtomicInteger();
+        var listener = EventListener.of(KnockbackAppliedEvent.class, e -> {
+            if (e.target() == p.player && e.snapshot().source() instanceof Bot) hits.incrementAndGet();
+        });
+        MinecraftServer.getGlobalEventHandler().addListener(listener);
+        try {
+            p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
+            assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
+            Drill.set(p.player, Drill.DEFAULT.with(Drill.Knob.CONTINUOUS, 1).with(Drill.Knob.STRAFE, 0)
+                    .with(Drill.Knob.SPACING, spacing).with(Drill.Knob.WAIT_MIN, 20).with(Drill.Knob.WAIT_MAX, 20));
+            ticks(game, () -> bot(game) != null, "the bot is up");
+            Bot bot = bot(game);
+            p.player.setHeldItemSlot((byte) 2);
+            EventDispatcher.call(new PlayerUseItemEvent(p.player, PlayerHand.MAIN, p.player.getItemInMainHand(), 0));
+            ticks(game, () -> hits.get() >= 1, "its first hit");
+            double[] near = {Double.MAX_VALUE};
+            long until = game.tick() + 25;
+            ticks(game, () -> {
+                near[0] = Math.min(near[0], Trainer.reachTo(bot, p.player.getPosition(), p.player.getBoundingBox()));
+                return game.tick() >= until;
+            }, "a wait");
+            return near[0];
+        } finally {
+            MinecraftServer.getGlobalEventHandler().removeListener(listener);
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            p.player.remove();
+        }
+    }
+
+    @Test
+    void aimMustFindYou() {
+        Game game = Matches.launch(Matches.mode("practice"), Matches.platformFor(null), arena());
+        FakePlayer p = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "PracL");
+        try {
+            p.player.setInstance(game.instance(), new Pos(-7.5, 65, 0.5)).join();
+            assertTrue(game.join(p.player, game.roster().teams().getFirst().id()));
+            ticks(game, () -> bot(game) != null, "the bot is up");
+            Bot bot = bot(game);
+            bot.place(new Pos(-5.5, 65, 0.5));
+            bot.yaw(90f);
+            bot.pitch(0f);
+            assertTrue(Trainer.crosshair(bot, p.player.getPosition(), p.player.getBoundingBox()) < 3, "facing you");
+            bot.yaw(-90f);
+            assertTrue(Double.isInfinite(Trainer.crosshair(bot, p.player.getPosition(), p.player.getBoundingBox())), "facing away");
+        } finally {
             if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
             p.player.remove();
         }

@@ -113,10 +113,11 @@ final class Bot extends MobEntity implements TrackedVelocity {
         brain.think(this);
     }
 
-    /** One tick of held W, or none. */
-    void walk(boolean forward) {
-        aiMoveSpeed(forward ? (float) getAttributeValue(Attribute.MOVEMENT_SPEED) : 0f);
-        moveForward(forward ? 1.0f : 0.0f);
+    /** One tick of held keys: {@code forward} W 1, S -1; {@code strafe} A 1, D -1. */
+    void walk(float forward, float strafe) {
+        aiMoveSpeed(forward != 0 || strafe != 0 ? (float) getAttributeValue(Attribute.MOVEMENT_SPEED) : 0f);
+        moveForward(forward);
+        moveStrafing(strafe);
         jumpMovementFactor = isSprinting() ? 0.026f : 0.02f;
     }
 

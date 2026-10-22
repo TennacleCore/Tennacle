@@ -23,7 +23,7 @@ final class DrillMenu {
     private DrillMenu() {}
 
     static void open(Player viewer, Consumer<Player> changed) {
-        Screen.Builder screen = Screen.rows(3).title(Component.text("Bot Settings")).close(22);
+        Screen.Builder screen = Screen.rows(4).title(Component.text("Bot Settings")).close(31);
         topic(screen, 10, Material.IRON_SWORD, "Hitting", "How the bot hits: sprint or not, its stick, its reach.",
                 v -> hitting(v, changed));
         topic(screen, 11, Material.CLOCK, "Timing", "How many hits, and how long it waits between them.",
@@ -36,7 +36,9 @@ final class DrillMenu {
                 v -> latency(v, changed));
         topic(screen, 15, Material.POTION, "Effects", "Speed and Slowness, the bot's and yours.",
                 v -> effects(v, changed));
-        screen.press(16, v -> Entry.of(Material.BARRIER).name("Back to Defaults").text("Puts every setting back.")
+        topic(screen, 16, Material.LEATHER_BOOTS, "Movement and Aim", "Strafing, the distance it keeps, and how it aims.",
+                v -> movement(v, changed));
+        screen.press(22, v -> Entry.of(Material.BARRIER).name("Back to Defaults").text("Puts every setting back.")
                 .action("Click to reset!").danger().render(v), (v, click) -> {
             Drill.set(v, Drill.DEFAULT);
             changed.accept(v);
@@ -187,6 +189,24 @@ final class DrillMenu {
                 new Spec(Knob.SPIKE_MAX, Material.COMPARATOR, "Spike High", "A spike holds a ping between its low and high, above or below the usual.",
                         v -> v + " ms"),
                 new Spec(Knob.SPIKE_TICKS, Material.CLOCK, "Spike Length", "How long a spike lasts.", DrillMenu::ticks));
+    }
+
+    private static void movement(Player viewer, Consumer<Player> changed) {
+        page(viewer, "Movement and Aim", 4, changed,
+                new int[]{10, 11, 12, 14, 15, 20, 21},
+                new Spec(Knob.STRAFE, Material.FEATHER, "Strafing", "How much of the fight it spends holding A or D.", v -> v + "%"),
+                new Spec(Knob.STRAFE_MIN, Material.CLOCK, "Shortest Strafe", "How long it holds a side before picking again, at the least.",
+                        DrillMenu::ticks),
+                new Spec(Knob.STRAFE_MAX, Material.CLOCK, "Longest Strafe", "How long it holds a side before picking again, at the most.",
+                        DrillMenu::ticks),
+                new Spec(Knob.SPACING, Material.LEATHER_BOOTS, "Spacing",
+                        "While you can't be hit yet, it stops at its keep distance and backs off with S if you get too close. "
+                                + "Letting go of W re-arms its sprint, as a w-tap.", DrillMenu::onOff),
+                new Spec(Knob.KEEP, Material.ARROW, "Keep Distance", "How far it stays while it waits.", DrillMenu::quarters),
+                new Spec(Knob.TURN, Material.COMPASS, "Turn Speed", "The most it turns a tick, like a mouse. Too slow and it misses.",
+                        v -> v >= 180 ? "Instant" : v + " degrees a tick"),
+                new Spec(Knob.JITTER, Material.SPIDER_EYE, "Aim Jitter", "How far its aim drifts off you. A click only counts when its "
+                        + "crosshair is on you.", v -> v == 0 ? "None" : "up to " + v + " degrees"));
     }
 
     private static void effects(Player viewer, Consumer<Player> changed) {
