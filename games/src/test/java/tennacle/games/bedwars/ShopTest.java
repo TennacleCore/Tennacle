@@ -194,25 +194,30 @@ class ShopTest extends HeadlessServerTest {
     }
 
     @Test
-    void quickBuyAfterTheBed() {
+    void quickBuyPresets() {
         round("ShopQ", (game, a) -> {
             ItemShop.enter(game, a);
             Material before = Screens.inventory(a).getItemStack(43).material();
-            click(a, 51, new Click.Left(51)); // After Your Bed Breaks: a copy to edit
+            click(a, 46, new Click.Left(46)); // preset 2: a copy, now in use
             ItemShop.open(game, a, Wares.Tab.BLOCKS);
             click(a, 20, new Click.LeftShift(20)); // Hardened Clay
             click(a, 43, new Click.Left(43));
-            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material(), "into the after-bed one");
-
+            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material(), "into preset 2");
             ItemShop.enter(game, a);
-            assertEquals(before, Screens.inventory(a).getItemStack(43).material(), "with the bed standing, the main one");
+            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material(), "the keeper opens the one in use");
+
+            click(a, 45, new Click.Left(45)); // back to preset 1
+            assertEquals(before, Screens.inventory(a).getItemStack(43).material(), "preset 1 untouched");
+            click(a, 46, new Click.Right(46)); // preset 2 after the bed
+            ItemShop.enter(game, a);
+            assertEquals(before, Screens.inventory(a).getItemStack(43).material(), "with the bed standing, preset 1");
             game.state().set(Scope.team(Match.teamOf(game, a)), tennacle.games.beds.Beds.STANDS, false);
             ItemShop.enter(game, a);
-            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material(), "with it gone, the after-bed one");
+            assertEquals(Material.TERRACOTTA, Screens.inventory(a).getItemStack(43).material(), "with it gone, preset 2");
 
-            click(a, 51, new Click.Right(51)); // off
+            click(a, 46, new Click.Right(46)); // not after the bed any more
             ItemShop.enter(game, a);
-            assertEquals(before, Screens.inventory(a).getItemStack(43).material(), "off: one Quick Buy all game");
+            assertEquals(before, Screens.inventory(a).getItemStack(43).material(), "one preset all game");
         });
     }
 

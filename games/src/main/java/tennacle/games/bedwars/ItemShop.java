@@ -14,7 +14,10 @@ import io.github.term4.canvas.screen.Screen;
 import io.github.term4.canvas.screen.Screens;
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.roster.Slot;
+import io.github.term4.grotto.vault.VaultKey;
+import net.minestom.server.codec.Codec;
 import net.minestom.server.tag.Tag;
+import tennacle.PlayerPrefs;
 import tennacle.games.Match;
 import tennacle.games.beds.Beds;
 import net.kyori.adventure.text.Component;
@@ -27,20 +30,26 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The item shop as Hypixel draws it (captured 2026-09-24 and 27): a six-row chest a tab, the tabs across the top
  * over a row of panes, the wares in the middle three rows. A tab opens a new window, a purchase repaints the
- * open one. A number key over a ware buys it into that hotbar slot. Quick Buy is each player's own 21 pins.
+ * open one. A number key over a ware buys it into that hotbar slot. Quick Buy is each player's own 21 pins, in nine
+ * presets along the bottom: one in use, and optionally one that takes over once their bed is gone.
  * With no game ({@link #editor}) nothing is for sale: a click pins, the way a shift click does in a game.
  */
 final class ItemShop {
 
+    /** Preset 1's storefront; preset n is {@code FRONT:n}. */
     static final String FRONT = "bedwars:items";
-    /** A second Quick Buy for once the player's bed is gone; unset or empty is off. */
-    static final String AFTER_FRONT = "bedwars:items:after";
-    // which of the two the open screen shows and edits
-    private static final Tag<Boolean> AFTER = Tag.Transient("bedwars:quick-buy-after");
+    static final int PRESETS = 9;
+    private static final int PRESET_ROW = 45;
+    // the preset the open screen shows and edits
+    private static final Tag<Integer> SHOWING = Tag.Transient("bedwars:quick-buy-showing");
+    // "in use,after the bed" by preset number; 0 after the bed = none
+    private static volatile PlayerPrefs.Entry<String, String> choice;
     static final int[] GRID = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
 
     private ItemShop() {}
@@ -49,16 +58,22 @@ final class ItemShop {
         Screens.open(viewer, page(game, tab));
     }
 
-    /** From the keeper: the Quick Buy in play, the after-bed one once the bed is gone. */
+    /** Registers the preset choice; at boot, before anyone logs in. */
+    static synchronized void install() {
+        if (choice == null) choice = PlayerPrefs.register(VaultKey.of("bedwars:quick-buy-presets", Codec.STRING, "1,0"));
+    }
+
+    /** From the keeper: the preset in play, the after-bed one once the bed is gone. */
     static void enter(Game game, Player viewer) {
         String team = Match.teamOf(game, viewer);
-        viewer.setTag(AFTER, splits(viewer) && team != null && !Beds.stands(game, team));
+        int after = afterBed(viewer);
+        viewer.setTag(SHOWING, after > 0 && team != null && !Beds.stands(game, team) ? after : inUse(viewer));
         open(game, viewer, Tab.QUICK_BUY);
     }
 
     /** Quick Buy to arrange outside a game, pushed over the current screen. */
     static void editor(Player viewer) {
-        viewer.removeTag(AFTER);
+        viewer.removeTag(SHOWING);
         Screens.push(viewer, page(null, Tab.QUICK_BUY));
     }
 
@@ -80,28 +95,19 @@ final class ItemShop {
             page.button(GRID[i], viewer -> icon(game, viewer, open, index), (viewer, click) -> press(game, viewer, open, index, click));
         }
         if (open == Tab.QUICK_BUY) {
-            page.button(47, viewer -> layout(viewer, false), (viewer, click) -> {
-                viewer.removeTag(AFTER);
-                Screens.repaint(viewer);
-            });
-            page.button(51, viewer -> layout(viewer, true), (viewer, click) -> {
-                if (click instanceof Click.Right) {
-                    Favorites.set(viewer, AFTER_FRONT, List.of());
-                    viewer.removeTag(AFTER);
-                } else {
-                    if (!splits(viewer)) Favorites.set(viewer, AFTER_FRONT, mainPins(viewer));
-                    viewer.setTag(AFTER, true);
-                }
-                Screens.repaint(viewer);
-            });
+            for (int p = 1; p <= PRESETS; p++) {
+                int preset = p;
+                page.button(PRESET_ROW + p - 1, viewer -> preset(viewer, preset), (viewer, click) -> choose(viewer, preset, click));
+            }
         }
+        // the bottom row holds the presets on Quick Buy, so these sit beside the grid
         if (game == null) {
-            page.button(49, Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)), List.of()),
+            page.button(18, Items.lore(Items.named(Material.ARROW, Component.text("Go Back", NamedTextColor.GREEN)), List.of()),
                     (viewer, click) -> Screens.back(viewer));
         } else if (open == Tab.QUICK_BUY) {
-            page.button(45, Items.bare(Items.lore(Items.named(Material.COMPASS, Component.text("Tracker Shop", NamedTextColor.GREEN)),
+            page.button(18, Items.bare(Items.lore(Items.named(Material.COMPASS, Component.text("Tracker Shop", NamedTextColor.GREEN)),
                     Compass.trackerLore())), (viewer, click) -> TrackerShop.open(game, viewer, false));
-            page.button(53, Items.lore(Items.named(Material.BLAZE_POWDER, Component.text("Hotbar Manager", NamedTextColor.GREEN)),
+            page.button(26, Items.lore(Items.named(Material.BLAZE_POWDER, Component.text("Hotbar Manager", NamedTextColor.GREEN)),
                     List.of(Items.gray("Edit preferred slots for your items"), Items.gray("per category."), Component.empty(),
                             Component.text("Click to edit!", NamedTextColor.YELLOW))),
                     (viewer, click) -> HotbarManager.open(game, viewer));
@@ -128,44 +134,97 @@ final class ItemShop {
                 .append(Component.text("Items", NamedTextColor.GRAY))));
     }
 
-    // the bed on the one the player plays with, the black bed on the one that takes over when it breaks
-    private static ItemStack layout(Player viewer, boolean after) {
-        boolean open = after == editingAfter(viewer);
+    // paper once saved, a dye while empty; the count is its number
+    private static ItemStack preset(Player viewer, int preset) {
+        boolean saved = saved(viewer, preset), showing = showing(viewer) == preset;
         List<Component> lore = new ArrayList<>();
-        if (!after) {
-            lore.add(Items.gray("The Quick Buy you play with."));
-        } else if (splits(viewer)) {
-            lore.add(Items.gray("Takes over the moment your bed breaks."));
-            lore.add(Component.empty());
-            lore.add(Component.text("Right Click to turn it off!", NamedTextColor.YELLOW));
+        if (!saved) {
+            lore.add(Items.gray("Empty. Click to start it as a copy"));
+            lore.add(Items.gray("of the one showing."));
         } else {
-            lore.add(Items.gray("Off: one Quick Buy for the whole game."));
+            if (inUse(viewer) == preset) lore.add(Component.text("In use", NamedTextColor.GREEN));
+            if (afterBed(viewer) == preset) lore.add(Component.text("Takes over when your bed breaks", NamedTextColor.RED));
+            if (showing) lore.add(Component.text("Showing", NamedTextColor.AQUA));
             lore.add(Component.empty());
-            lore.add(Component.text("Click to give it its own!", NamedTextColor.YELLOW));
+            if (inUse(viewer) != preset) lore.add(Component.text("Click to use!", NamedTextColor.YELLOW));
+            lore.add(Component.text(afterBed(viewer) == preset ? "Right Click to stop using it after your bed breaks!"
+                    : "Right Click to use it after your bed breaks!", NamedTextColor.YELLOW));
         }
-        if (open) lore.add(Component.text("Showing", NamedTextColor.AQUA));
-        else if (!after || splits(viewer)) lore.add(Component.text("Click to show!", NamedTextColor.YELLOW));
-        ItemStack item = Items.named(after ? Material.BLACK_BED : Material.RED_BED,
-                Component.text(after ? "After Your Bed Breaks" : "With Your Bed", NamedTextColor.GREEN));
-        return Items.bare(Items.lore(open ? item.withGlowing(true) : item, lore));
+        ItemStack item = Items.named(saved ? Material.PAPER : Material.GRAY_DYE,
+                Component.text("Quick Buy " + preset, saved ? NamedTextColor.GREEN : NamedTextColor.GRAY)).withAmount(preset);
+        return Items.bare(Items.lore(showing ? item.withGlowing(true) : item, lore));
     }
 
-    static boolean splits(Player viewer) {
-        List<String> after = Favorites.of(viewer, AFTER_FRONT);
-        return after != null && after.size() == GRID.length;
+    private static void choose(Player viewer, int preset, Click click) {
+        if (!saved(viewer, preset)) Favorites.set(viewer, front(preset), pins(viewer));
+        if (click instanceof Click.Right) {
+            int after = afterBed(viewer) == preset ? 0 : preset;
+            setChoice(viewer, inUse(viewer), after);
+            if (after > 0) viewer.setTag(SHOWING, preset);
+        } else {
+            setChoice(viewer, preset, afterBed(viewer));
+            viewer.setTag(SHOWING, preset);
+        }
+        Screens.repaint(viewer);
     }
 
-    private static boolean editingAfter(Player viewer) {
-        return Boolean.TRUE.equals(viewer.getTag(AFTER)) && splits(viewer);
+    static String front(int preset) {
+        return preset == 1 ? FRONT : FRONT + ":" + preset;
     }
 
-    /** The Quick Buy on screen: the after-bed one while it's the one showing. */
+    private static boolean saved(Player viewer, int preset) {
+        List<String> pins = Favorites.of(viewer, front(preset));
+        return preset == 1 || pins != null && pins.size() == GRID.length;
+    }
+
+    /** The preset the player plays with. */
+    static int inUse(Player viewer) {
+        return part(viewer, 0, 1);
+    }
+
+    /** The preset that takes over once the bed is gone; 0 for none. */
+    static int afterBed(Player viewer) {
+        return part(viewer, 1, 0);
+    }
+
+    /** Anyone's in-use preset pins, online or not; null while it was never saved. */
+    static CompletableFuture<@Nullable List<String>> loadInUse(UUID owner) {
+        if (choice == null) return Favorites.load(owner, FRONT);
+        return choice.load(owner).thenCompose(held -> Favorites.load(owner, front(part(held, 0, 1))));
+    }
+
+    private static int part(Player viewer, int at, int fallback) {
+        return part(choice != null ? choice.of(viewer.getUuid()) : null, at, fallback);
+    }
+
+    private static int part(@Nullable String held, int at, int fallback) {
+        if (held == null) return fallback;
+        String[] parts = held.split(",");
+        try {
+            int n = at < parts.length ? Integer.parseInt(parts[at].trim()) : fallback;
+            return n >= (at == 0 ? 1 : 0) && n <= PRESETS ? n : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private static void setChoice(Player viewer, int inUse, int afterBed) {
+        if (choice != null) choice.set(viewer, inUse + "," + afterBed);
+    }
+
+    private static int showing(Player viewer) {
+        Integer shown = viewer.getTag(SHOWING);
+        return shown != null && saved(viewer, shown) ? shown : inUse(viewer);
+    }
+
+    /** The Quick Buy on screen. */
     static List<String> pins(Player viewer) {
-        return editingAfter(viewer) ? Favorites.of(viewer, AFTER_FRONT) : mainPins(viewer);
+        return pinsOf(viewer, showing(viewer));
     }
 
-    private static List<String> mainPins(Player viewer) {
-        List<String> mine = Favorites.of(viewer, FRONT);
+    /** {@code preset}'s pins; one never saved is Hypixel's own. */
+    static List<String> pinsOf(Player viewer, int preset) {
+        List<String> mine = Favorites.of(viewer, front(preset));
         if (mine == null || mine.size() != GRID.length) return Wares.QUICK_BUY;
         return mine;
     }
@@ -173,7 +232,7 @@ final class ItemShop {
     static void pin(Player viewer, int index, String id) {
         List<String> next = new ArrayList<>(pins(viewer));
         next.set(index, id);
-        Favorites.set(viewer, editingAfter(viewer) ? AFTER_FRONT : FRONT, next);
+        Favorites.set(viewer, front(showing(viewer)), next);
     }
 
     private static @Nullable Ware at(Player viewer, Tab tab, int index) {

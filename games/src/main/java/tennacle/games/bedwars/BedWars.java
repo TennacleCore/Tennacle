@@ -304,6 +304,7 @@ public final class BedWars {
         KitLayouts.editable("Bed Wars", KIT, HotbarManager::lobby); // its layout is the Hotbar Manager's, from the lobby too
         BedWarsLayouts.install();
         Favorites.install();
+        ItemShop.install();
         Skins.install();
         mode("bedwars-solo", "bedwars_eight_one", "Bed Wars Solo", "Solo", "solo", "bedwars-solo", 8, 1);
         mode("bedwars-doubles", "bedwars_eight_two", "Bed Wars Doubles", "Doubles", "doubles", "bedwars-doubles", 8, 2);

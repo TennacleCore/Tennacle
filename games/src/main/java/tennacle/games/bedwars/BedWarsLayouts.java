@@ -29,12 +29,12 @@ final class BedWarsLayouts {
 
     static void install() {
         KitImports.part(new LayoutPart(MODE, TITLE, "quickbuy", "Quick Buy", Material.NETHER_STAR,
-                owner -> Favorites.load(owner, ItemShop.FRONT).thenApply(pins -> pins != null ? strings(pins) : null),
+                owner -> ItemShop.loadInUse(owner).thenApply(pins -> pins != null ? strings(pins) : null),
                 (player, value) -> {
                     List<String> pins = new ArrayList<>();
                     value.getAsJsonArray().forEach(id -> pins.add(id.getAsString()));
                     while (pins.size() < ItemShop.GRID.length) pins.add("");
-                    Favorites.set(player, ItemShop.FRONT, pins.subList(0, ItemShop.GRID.length));
+                    Favorites.set(player, ItemShop.front(ItemShop.inUse(player)), pins.subList(0, ItemShop.GRID.length));
                 }));
         KitImports.part(new LayoutPart(MODE, TITLE, "hotbar", "Hotbar", Material.BLAZE_POWDER,
                 owner -> HotbarOrders.load(owner).thenApply(held -> {
