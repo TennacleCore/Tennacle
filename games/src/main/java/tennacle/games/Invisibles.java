@@ -23,6 +23,8 @@ import net.kyori.adventure.text.Component;
 import net.minestom.server.codec.Codec;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.Player;
+import net.minestom.server.instance.block.Block;
+import io.github.term4.polyp.world.MechanicsWorld;
 import net.minestom.server.event.entity.EntityPotionAddEvent;
 import net.minestom.server.event.entity.EntityPotionRemoveEvent;
 import net.minestom.server.item.ItemStack;
@@ -95,7 +97,7 @@ public final class Invisibles implements GameModule {
         game.on(FxEvent.class, e -> e.context().source(), e -> {
             if (!Fx.STEP.equals(e.key()) || !(e.context().source() instanceof Player walker)) return;
             if (!Boolean.TRUE.equals(walker.getTag(UNSEEN)) || game.roster().slotOf(walker) == null) return;
-            if (!game.rules().resolve(walker, FOOTPRINTS)) return;
+            if (!game.rules().resolve(walker, FOOTPRINTS) || !resting(walker, e.context().position())) return;
             footprint(walker, e.context().position());
         });
         // damage dealt, not a swing: a hit in the hurt window or one armor eats whole leaves the effect (the user)
@@ -134,6 +136,15 @@ public final class Invisibles implements GameModule {
         p.sendPacketToViewers(new EntityEquipmentPacket(p.getEntityId(), worn));
         Nametags tags = game.module(Nametags.class);
         if (tags != null && game.rules().resolve(p, HIDES_NAME)) tags.veil(p, invisible);
+    }
+
+    // the step's y-0.2 probe still finds a slab on the jump off it: a print only where the feet sit on a block's top
+    static boolean resting(Player walker, Point at) {
+        Point under = at.withY(at.y() - 1e-3);
+        Block block = MechanicsWorld.viewed(walker).getBlock(under);
+        if (block.air()) return false;
+        double top = Math.floor(under.y()) + block.registry().collisionShape().relativeEnd().y();
+        return Math.abs(at.y() - top) < 1e-3;
     }
 
     private static void footprint(Player walker, Point at) {

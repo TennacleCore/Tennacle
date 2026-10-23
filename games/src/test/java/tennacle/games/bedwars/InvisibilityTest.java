@@ -35,6 +35,13 @@ import io.github.term4.polyp.mechanics.consumable.ConsumableSystem;
 import io.github.term4.polyp.mechanics.hunger.HungerSystem;
 import io.github.term4.polyp.presets.vanilla18.Consumables;
 import tennacle.games.Invisibles;
+import io.github.term4.polyp.api.event.fx.FxEvent;
+import io.github.term4.polyp.fx.Fx;
+import io.github.term4.polyp.fx.FxContext;
+import io.github.term4.polyp.fx.FxHandler;
+import io.github.term4.polyp.world.MechanicsWorld;
+import net.minestom.server.instance.block.Block;
+import net.minestom.server.network.packet.server.play.ParticlePacket;
 import org.junit.jupiter.api.Test;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
@@ -153,6 +160,30 @@ class InvisibilityTest extends HeadlessServerTest {
             assertFalse(worn.isEmpty(), "the enemy is sent the armor again");
             assertFalse(worn.getLast().equipments().get(EquipmentSlot.HELMET).isAir(), "and sees the helmet");
         });
+    }
+
+    @Test
+    void footprintsOnlyWhereFeetRest() {
+        round("InvF", (game, fa, fb) -> {
+            Player a = fa.player;
+            game.shard().setBlock(new Pos(10, 110, 10), Block.STONE);
+            game.shard().setBlock(new Pos(12, 110, 10), Block.STONE_SLAB);
+            a.addEffect(new Potion(PotionEffect.INVISIBILITY, 1, 600, Potion.ICON_FLAG));
+            assertTrue(printed(fa, new Pos(10.5, 111, 10.5)), "on a block");
+            assertTrue(printed(fa, new Pos(12.5, 110.5, 10.5)), "on a slab");
+            assertFalse(printed(fa, new Pos(12.5, 110.92, 10.5)), "the jump off a slab: its y-0.2 probe still finds it");
+            assertFalse(printed(fa, new Pos(10.5, 111.42, 10.5)), "in the air");
+            assertFalse(printed(fa, new Pos(11.2, 111, 10.5)), "on the edge: the center hangs over air");
+            a.removeEffect(PotionEffect.INVISIBILITY);
+            assertFalse(printed(fa, new Pos(10.5, 111, 10.5)), "seen walkers leave none");
+        });
+    }
+
+    private static boolean printed(FakePlayer walker, Pos at) {
+        walker.sent.clear();
+        EventDispatcher.call(new FxEvent(Fx.STEP, FxContext.at(MechanicsWorld.of(walker.player), at, walker.player),
+                FxHandler.NONE, Mechanics.polyp.services()));
+        return !walker.sent(ParticlePacket.class).isEmpty();
     }
 
     private static void round(String name, Body body) {
