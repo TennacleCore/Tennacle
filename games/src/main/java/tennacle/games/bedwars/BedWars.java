@@ -406,6 +406,9 @@ public final class BedWars {
                 .rule(KillCredit.TICKS, 200L) // captured: the 10 s credit window
                 .rule(Spoils.TO_KILLER, KeySet.only(Resources.IRON.material().key(), Resources.GOLD.material().key(),
                         Resources.DIAMOND.material().key(), Resources.EMERALD.material().key())) // captured, in this order
+                // the user, 2026-10-23: a fireball's death and a final walk-out leave the resources where they stood
+                .rule(Spoils.DROPS_FROM, KeySet.only(EntityType.FIREBALL.key()))
+                .rule(Spoils.LEAVE_DROPS, true)
                 .rule(Beds.DESTROY, 30L * 60 * 20) // Bed Gone
                 .rule(Beds.SOUND_LISTENER, true) // captured: both bed sounds at the listener's own block
                 .rule(Building.FLOOR_DROPS, false) // nothing drops below the build floor; the inventory stays usable (the user, 2026-09-29)

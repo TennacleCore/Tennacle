@@ -71,9 +71,10 @@ public final class Lives implements GameModule {
     public static final StateKey<Long> SLOW_TICKS = StateKey.of("combat.respawn.slow-ticks", Codec.LONG, 0L);
 
     /** A death as decided: {@code victim} still holds what they carried, a walk-out's included, less what {@link #KEEP}
-     *  set aside. {@code item} is the killing blow's, null for a fall or a walk-out. */
+     *  set aside. {@code item} and {@code source} are the killing blow's, null for a fall, the void or a walk-out. */
     public record Death(@NotNull Game game, @NotNull Player victim, @NotNull Slot seat, @Nullable Player killer,
-                        boolean last, @Nullable String tool, @Nullable ItemStack item, @NotNull Pos where) {}
+                        boolean last, @Nullable String tool, @Nullable ItemStack item, @Nullable Entity source,
+                        boolean left, @NotNull Pos where) {}
 
     /** A hit by something of a member's - a creature - answered for: whose, and what it is called. */
     public record Blame(@NotNull Player by, @Nullable String tool) {}
@@ -170,7 +171,7 @@ public final class Lives implements GameModule {
             Blame blame = by == null ? blame(e.source()) : null;
             if (blame != null && blame.by() != victim) by = blame.by();
             killed(victim, by, by != null ? "was killed by" : "died", by != null && blame != null ? blame.tool() : null, e.item(),
-                    Cause.of(e.type(), e.source()));
+                    e.source(), Cause.of(e.type(), e.source()));
         });
         // a creature's hit is its owner's for the credit, as an arrow's is its shooter's
         game.on(DamageAppliedEvent.class, DamageAppliedEvent::target, e -> {
@@ -202,7 +203,7 @@ public final class Lives implements GameModule {
         Player by = credit.creditFor(player);
         String verb = by != null ? "was killed by" : "left the game";
         if (by != null) Match.addSeat(game, by, counters.kills());
-        died(new Death(game, player, seat, by, !anchor.stands(seat.team()), null, null, player.getPosition()));
+        died(new Death(game, player, seat, by, !anchor.stands(seat.team()), null, null, null, true, player.getPosition()));
         Tally.died(game, player.getUuid(), by != null ? by.getUuid() : null, !anchor.stands(seat.team()), Cause.OTHER);
         if (!anchor.stands(seat.team())) {
             game.state().set(scope, counters.finalDeaths(), game.state().get(scope, counters.finalDeaths()) + 1);
@@ -240,12 +241,12 @@ public final class Lives implements GameModule {
     public void fell(@NotNull Player player) {
         if (game.roster().slotOf(player) == null || respawns.isDead(player)) return; // a waiting ghost cannot die again
         Player by = credit.creditFor(player);
-        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null, null, Cause.VOID);
+        killed(player, by, by != null ? Banners.voidVerb(game) : "fell into the void", null, null, null, Cause.VOID);
     }
 
     // a side with a bed respawns, a side without loses the seat
     private void killed(Player victim, @Nullable Player by, String verb, @Nullable String tool, @Nullable ItemStack item,
-                        Cause cause) {
+                        @Nullable Entity source, Cause cause) {
         Slot seat = game.roster().slotOf(victim);
         if (seat == null) return;
         Match.addSeat(game, victim, counters.deaths());
@@ -253,7 +254,7 @@ public final class Lives implements GameModule {
         boolean last = !anchor.stands(seat.team());
         Tally.died(game, victim.getUuid(), by != null ? by.getUuid() : null, last, cause);
         if (!last) keep(victim, seat); // before the killer's share and the spill
-        Death death = new Death(game, victim, seat, by, last, tool, item, victim.getPosition());
+        Death death = new Death(game, victim, seat, by, last, tool, item, source, false, victim.getPosition());
         died(death);
         spill(victim);
         if (victim.getOpenInventory() != null) victim.closeInventory(); // vanilla closes a window at a death

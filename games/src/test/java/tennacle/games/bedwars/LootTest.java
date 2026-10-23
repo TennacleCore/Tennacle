@@ -1,6 +1,7 @@
 package tennacle.games.bedwars;
 
 import tennacle.boot.Mechanics;
+import tennacle.games.Match;
 import tennacle.games.Matches;
 import tennacle.games.Mode;
 import tennacle.games.TestWiring;
@@ -24,7 +25,15 @@ import io.github.term4.polyp.entity.DroppedItemEntity;
 import io.github.term4.polyp.mechanics.containers.Spill;
 import io.github.term4.polyp.mechanics.damage.DamageSnapshot;
 import io.github.term4.polyp.mechanics.damage.DeathConfig;
+import io.github.term4.polyp.mechanics.damage.types.explosion.ExplosionDamage;
 import io.github.term4.polyp.mechanics.damage.types.melee.MeleeDamage;
+import net.minestom.server.coordinate.BlockVec;
+import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.EntityType;
+import net.minestom.server.event.EventDispatcher;
+import net.minestom.server.event.player.PlayerBlockBreakEvent;
+import net.minestom.server.instance.block.Block;
+import net.minestom.server.instance.block.BlockFace;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
@@ -96,6 +105,81 @@ class LootTest extends HeadlessServerTest {
             assertEquals(0, count(b, Material.COBBLESTONE));
             BedWarsRoundTest.tickUntil(game, "the cobblestone where they fell", () -> lying(game, fell, Material.COBBLESTONE) == 8);
         });
+    }
+
+    @Test
+    void aFireballKillDrops() {
+        round("LootF", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            Respawns respawns = game.module(Respawns.class);
+            BedWarsRoundTest.tickUntil(game, "out of spawn protection", () -> !respawns.isProtected(a));
+            a.getInventory().setItemStack(1, ItemStack.of(Material.IRON_INGOT, 20));
+            a.getInventory().setItemStack(2, ItemStack.of(Material.DIAMOND, 2));
+            Pos died = a.getPosition();
+            Entity fireball = fireball(game, died);
+            try {
+                game.module(KillCredit.class).record(a, b, game.tick());
+                blast(a, fireball, 100f);
+            } finally {
+                fireball.remove();
+            }
+            assertTrue(respawns.isDead(a));
+            assertEquals(0, Resources.IRON.held(b), "not the killer's");
+            assertEquals(20, lying(game, died, Material.IRON_INGOT), "where they died");
+            assertEquals(2, lying(game, died, Material.DIAMOND));
+            for (Entity e : game.instance().getEntities()) {
+                if (e instanceof DroppedItemEntity item) assertEquals(0, Math.hypot(item.getVelocity().x(), item.getVelocity().z()), 1e-9, "no spread");
+            }
+        });
+    }
+
+    @Test
+    void aFireballIntoTheVoidDrops() {
+        round("LootV", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            Respawns respawns = game.module(Respawns.class);
+            BedWarsRoundTest.tickUntil(game, "out of spawn protection", () -> !respawns.isProtected(a));
+            a.getInventory().setItemStack(1, ItemStack.of(Material.GOLD_INGOT, 6));
+            Entity fireball = fireball(game, a.getPosition());
+            try {
+                blast(a, fireball, 1f);
+            } finally {
+                fireball.remove();
+            }
+            assertTrue(!respawns.isDead(a));
+            game.module(KillCredit.class).record(a, b, game.tick());
+            Pos fell = a.getPosition();
+            game.module(Lives.class).fell(a);
+            assertEquals(0, Resources.GOLD.held(b), "the knock was the fireball's");
+            assertEquals(6, lying(game, fell, Material.GOLD_INGOT));
+        });
+    }
+
+    @Test
+    void aFinalLeaveDrops() {
+        round("LootL", (game, fa, fb) -> {
+            Player a = fa.player, b = fb.player;
+            BlockVec bed = game.arena().marker(BedWars.BED, Match.teamOf(game, a)).boxes().getFirst().min();
+            EventDispatcher.call(new PlayerBlockBreakEvent(b, game.instance(), Block.RED_BED, Block.AIR, bed, BlockFace.TOP));
+            a.getInventory().setItemStack(1, ItemStack.of(Material.EMERALD, 3));
+            game.module(KillCredit.class).record(a, b, game.tick());
+            Pos left = a.getPosition();
+            a.remove();
+            assertEquals(0, Resources.EMERALD.held(b), "not the killer's");
+            assertEquals(3, lying(game, left, Material.EMERALD));
+        });
+    }
+
+    private static Entity fireball(Game game, Pos at) {
+        Entity fireball = new Entity(EntityType.FIREBALL);
+        fireball.setNoGravity(true);
+        fireball.setInstance(game.instance(), at.add(0, 3, 0)).join();
+        return fireball;
+    }
+
+    private static void blast(Player victim, Entity fireball, float amount) {
+        Mechanics.polyp.services().damage().apply(DamageSnapshot.of(victim, ExplosionDamage.INSTANCE).withSource(fireball)
+                .withPoint(fireball.getPosition()).withAmount(amount));
     }
 
     @Test
