@@ -152,6 +152,18 @@ final class Lines {
         return theme(game).bad("Purchase Failed! Your inventory is full!");
     }
 
+    /** A season's locked item, refused in use: in red with the refusal sound. */
+    static void locked(Game game, Player player, ItemStack item, @Nullable String when) {
+        String id = Wares.pickOf(item);
+        Wares.Ware ware = id != null ? Wares.of(id) : null;
+        String name = ware != null ? ware.names().getFirst() : "That item";
+        refused(player, theme(game).bad(when == null ? name + " is disabled!" : "You can't use " + name + " until " + when.substring("after ".length()) + "!"));
+    }
+
+    static Component disabled(Game game) {
+        return theme(game).bad("That item is disabled!");
+    }
+
     static Component owned(Game game) {
         return theme(game).bad("You've already purchased this item!");
     }

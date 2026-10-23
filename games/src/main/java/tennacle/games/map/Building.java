@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import tennacle.commands.RulesCompletions;
 import tennacle.boot.Mechanics;
 import tennacle.games.Match;
+import tennacle.games.items.ItemGates;
 import tennacle.games.stats.Tally;
 
 import java.util.List;
@@ -243,6 +244,13 @@ public final class Building {
         game.on(PlayerBlockPlaceEvent.class, e -> {
             Player player = e.getPlayer();
             if (game.roster().slotOf(player) == null) return;
+            // a season's locked item says so itself: no build line on top
+            ItemGates gates = ItemGates.of(game);
+            if (gates != null && gates.refuse(player, player.getItemInHand(e.getHand()))) {
+                e.setCancelled(true);
+                Refusals.handled(e);
+                return;
+            }
             String reason = building.refusal(player, e.getBlockPosition());
             if (reason != null) {
                 refuse(e, reason);
@@ -304,7 +312,9 @@ public final class Building {
         game.onWorld(TntPrimeEvent.class, TntPrimeEvent::world, e -> {
             if (e.cause() != TntPrimeEvent.Cause.PLACEMENT || e.blockPos() == null) return;
             if (!(e.igniter() instanceof Player player) || game.roster().slotOf(player) == null) return;
-            if (building.refusal(player, e.blockPos()) != null) e.setCancelled(true);
+            ItemGates gates = ItemGates.of(game);
+            boolean locked = gates != null && !gates.usable(player, player.getItemInMainHand());
+            if (locked || building.refusal(player, e.blockPos()) != null) e.setCancelled(true);
         });
         game.onWorld(ExplosionEvent.class, ExplosionEvent::world, e -> {
             Player igniter = e.source() instanceof Player p && game.roster().slotOf(p) != null ? p : null;

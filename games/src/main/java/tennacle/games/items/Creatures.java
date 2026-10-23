@@ -150,6 +150,11 @@ public final class Creatures implements GameModule {
             Player player = e.getPlayer();
             if (e.getHand() != PlayerHand.MAIN || e.getItemStack().material() != Material.IRON_GOLEM_SPAWN_EGG
                     || game.roster().slotOf(player) == null || game.isGhost(player)) return;
+            ItemGates gates = ItemGates.of(game);
+            if (gates != null && gates.refuse(player, e.getItemStack())) {
+                player.getInventory().update(player); // the client spent the egg
+                return;
+            }
             Direction face = e.getBlockFace().toDirection();
             Point at = e.getPosition().add(face.normalX(), face.normalY(), face.normalZ());
             ItemStack held = player.getItemInMainHand();

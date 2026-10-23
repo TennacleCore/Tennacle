@@ -8,6 +8,7 @@ import io.github.term4.grotto.vault.VaultKey;
 import tennacle.Msg;
 import tennacle.games.Careers;
 import tennacle.games.stats.Feats;
+import tennacle.games.items.ItemGates;
 import tennacle.games.stats.Footwork;
 import tennacle.games.stats.Haul;
 import tennacle.games.stats.Tally;
@@ -448,6 +449,8 @@ public final class BedWars {
                         KillCredit::new,
                         FriendlyFire::new,
                         () -> new Beds(BED, BEDS).warning(Lines::bedsWarning), // five minutes before the clock, wherever it stands
+                        // a season's item rules, after Beds (it counts the falls) and before the throws' and Feats' checks
+                        () -> ItemGates.of(Wares.ids(), Wares::pickOf, Lines::locked),
                         () -> new Lives(COUNTERS).onDeath(Gear::died),
                         HotbarOrders.Switch::new, // the after-bed hotbar takes over at the fall
                         Chests::new,

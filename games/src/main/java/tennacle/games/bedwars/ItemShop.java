@@ -3,6 +3,7 @@ package tennacle.games.bedwars;
 import tennacle.games.bedwars.Wares.Tab;
 import tennacle.games.bedwars.Wares.Ware;
 import tennacle.games.shop.Favorites;
+import tennacle.games.items.ItemGates;
 import tennacle.games.shop.Offer;
 import tennacle.games.shop.Price;
 import tennacle.games.shop.Refusal;
@@ -265,6 +266,9 @@ final class ItemShop {
     static List<Component> header(@Nullable Game game, Player viewer, Ware ware) {
         List<Component> lore = new ArrayList<>();
         if (game != null) prices(game, viewer, ware, lore);
+        ItemGates gates = game != null ? ItemGates.of(game) : null;
+        String when = gates != null ? gates.when(viewer, ware.offer().id()) : null;
+        if (when != null) lore.add(Component.text("Usable " + when, NamedTextColor.RED));
         if (!lore.isEmpty()) lore.add(Component.empty());
         if (!ware.description().isEmpty()) {
             lore.addAll(ware.description());
@@ -306,6 +310,8 @@ final class ItemShop {
     }
 
     private static Component last(Game game, Player viewer, Ware ware) {
+        ItemGates gates = ItemGates.of(game);
+        if (gates != null && gates.disabled(viewer, ware.offer().id())) return Component.text("Disabled", NamedTextColor.RED);
         if (owned(game, viewer, ware)) return Component.text("UNLOCKED", NamedTextColor.GREEN);
         Price price = ware.offer().price(game, viewer);
         if (affordable(viewer, price)) return Component.text("Click to purchase!", NamedTextColor.YELLOW);
@@ -380,6 +386,11 @@ final class ItemShop {
     private static void buy(Game game, Player viewer, Ware ware, int into) {
         Shop shop = game.module(Shop.class);
         if (shop == null) return;
+        ItemGates gates = ItemGates.of(game);
+        if (gates != null && gates.disabled(viewer, ware.offer().id())) {
+            Lines.refused(viewer, Lines.disabled(game));
+            return;
+        }
         String name = ware.name(game, viewer); // a tool's before the tier moves on
         Offer offer = ware.offer();
         Sale sale = shop.buy(viewer, offer, into);

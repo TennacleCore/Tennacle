@@ -89,6 +89,17 @@ public final class Timeline implements GameModule {
         else phases.onEnter(Match.LIVE, g -> start());
     }
 
+    /** Whether {@code id} has happened in this game. */
+    public boolean fired(@NotNull String id) {
+        return fired.contains(id);
+    }
+
+    /** {@code id}'s label on the board, or null. */
+    public @Nullable String label(@NotNull String id) {
+        for (Event event : events) if (event.id().equals(id)) return event.label();
+        return null;
+    }
+
     /** The first event still to come, or null once none is. */
     public @Nullable Next next() {
         long start = Phases.enteredAt(game, Match.LIVE);

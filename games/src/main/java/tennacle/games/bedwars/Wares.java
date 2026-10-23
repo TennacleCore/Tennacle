@@ -205,6 +205,11 @@ final class Wares {
         return BY_ID.get(id);
     }
 
+    /** Every ware id, in catalog order. */
+    static @NotNull java.util.Collection<String> ids() {
+        return java.util.Collections.unmodifiableSet(BY_ID.keySet());
+    }
+
     static @NotNull List<Ware> in(@NotNull Tab tab) {
         return BY_ID.values().stream().filter(w -> w.tab() == tab).toList();
     }
