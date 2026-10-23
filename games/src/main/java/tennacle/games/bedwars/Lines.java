@@ -156,7 +156,7 @@ final class Lines {
     static void locked(Game game, Player player, ItemStack item, @Nullable String when) {
         String id = Wares.pickOf(item);
         Wares.Ware ware = id != null ? Wares.of(id) : null;
-        String name = ware != null ? ware.names().getFirst() : "That item";
+        String name = ware != null ? ware.names().getFirst().replaceFirst(" \\(.*\\)$", "") : "That item";
         refused(player, theme(game).bad(when == null ? name + " is disabled!" : "You can't use " + name + " until " + when.substring("after ".length()) + "!"));
     }
 

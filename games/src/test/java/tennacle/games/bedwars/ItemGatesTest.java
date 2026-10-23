@@ -72,7 +72,7 @@ class ItemGatesTest extends HeadlessServerTest {
             ItemStack invis = Wares.icon(Wares.of("invisibility"), game, a.player);
             assertEquals("invisibility", Wares.pickOf(invis));
             assertTrue(drink(a.player, invis).isCancelled(), "a drink finishing before any bed breaks is refused");
-            assertTrue(chat(a).contains("You can't use Invisibility Potion (30 seconds) until a bed breaks!"), chat(a).toString());
+            assertTrue(chat(a).contains("You can't use Invisibility Potion until a bed breaks!"), chat(a).toString());
 
             String bTeam = Match.teamOf(game, b.player);
             BlockVec bBed = game.arena().marker(BedWars.BED, bTeam).boxes().getFirst().min();
