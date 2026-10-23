@@ -8,6 +8,17 @@ import io.github.term4.grotto.modules.flow.Countdown;
 import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
 import io.github.term4.polyp.Polyp;
+import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSnapshot;
+import io.github.term4.polyp.mechanics.projectile.ProjectileSystem;
+import io.github.term4.polyp.mechanics.projectile.entities.FireballEntity;
+import io.github.term4.polyp.mechanics.projectile.types.Fireball;
+import io.github.term4.polyp.presets.vanilla18.Vanilla18;
+import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.ItemEntity;
+import org.jetbrains.annotations.Nullable;
+import tennacle.boot.Mechanics;
+import tennacle.games.items.FireballProof;
 import io.github.term4.polyp.api.event.consume.ConsumeEvent;
 import io.github.term4.polyp.mechanics.consumable.ConsumableConfigResolver.ConsumableContext;
 import io.github.term4.polyp.mechanics.consumable.catalog.VanillaConsumables;
@@ -32,6 +43,7 @@ import tennacle.games.TestWiring;
 import tennacle.games.items.ItemGates;
 import tennacle.games.items.Unlock;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -95,6 +107,53 @@ class ItemGatesTest extends HeadlessServerTest {
             a.player.remove();
             b.player.remove();
         }
+    }
+
+    @Test
+    void fireballsSpareDiamonds() {
+        Game game = BedWarsRoundTest.byArrival(Matches.launch(Matches.mode("bedwars-solo"), Matches.platformFor(null),
+                BedWarsRoundTest.fixture(false)));
+        game.state().set(Scope.GAME, Countdown.START_AT, 2);
+        game.state().set(Scope.GAME, Countdown.FROM, 1);
+        FakePlayer a = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ProofA");
+        FakePlayer b = FakePlayer.connect(instance, new Pos(0.5, 65, 0.5), "ProofB");
+        Entity fireball = null;
+        try {
+            for (FakePlayer p : List.of(a, b)) {
+                p.player.setInstance(game.instance(), ROOM).join();
+                assertTrue(Matches.enter(game, List.of(p.player)));
+            }
+            await("both seated", () -> Game.of(a.player) == game && Game.of(b.player) == game);
+            BedWarsRoundTest.live(game);
+            ItemEntity diamond = new ItemEntity(ItemStack.of(Material.DIAMOND));
+            ItemEntity iron = new ItemEntity(ItemStack.of(Material.IRON_INGOT));
+            assertEquals(5f, blast(game, null, diamond), "off: a fireball takes diamonds");
+
+            game.state().set(Scope.GAME, ItemGates.FIREBALL_PROOF, FireballProof.parse("diamond until beds 1"));
+            assertEquals("diamond until beds 1", game.rules().resolve(Scope.GAME, ItemGates.FIREBALL_PROOF).toString());
+            ProjectileSystem projectiles = new ProjectileSystem(Mechanics.polyp, Vanilla18.projectiles());
+            fireball = projectiles.launch(ProjectileSnapshot.of(a.player, Fireball.INSTANCE).withConfig(Vanilla18.projectiles()));
+            assertTrue(fireball instanceof FireballEntity);
+            assertEquals(0f, blast(game, fireball, diamond), "a fireball spares diamonds");
+            assertEquals(5f, blast(game, fireball, iron), "only diamonds");
+            assertEquals(5f, blast(game, null, diamond), "TNT still takes them");
+
+            BlockVec bBed = game.arena().marker(BedWars.BED, Match.teamOf(game, b.player)).boxes().getFirst().min();
+            EventDispatcher.call(new PlayerBlockBreakEvent(a.player, game.instance(), Block.BLUE_BED, Block.AIR, bBed, BlockFace.TOP));
+            assertEquals(5f, blast(game, fireball, diamond), "until a bed breaks");
+        } finally {
+            if (fireball != null) fireball.remove();
+            if (game.status() == Game.Status.OPEN) game.end(Outcome.aborted());
+            a.player.remove();
+            b.player.remove();
+        }
+    }
+
+    private static float blast(Game game, @Nullable Entity source, ItemEntity item) {
+        ExplosionEvent.Target target = new ExplosionEvent.Target(item, 1, 1f, null, 5f);
+        EventDispatcher.call(new ExplosionEvent(game.shard(), new Pos(0.5, 65, 0.5), 3f, source, false,
+                new ArrayList<>(List.of(target)), new ArrayList<>()));
+        return target.damage();
     }
 
     @SuppressWarnings("unchecked")

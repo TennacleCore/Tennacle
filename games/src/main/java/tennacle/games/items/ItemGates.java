@@ -2,10 +2,14 @@ package tennacle.games.items;
 
 import io.github.term4.grotto.Game;
 import io.github.term4.grotto.GameModule;
+import io.github.term4.grotto.state.Scope;
 import io.github.term4.grotto.state.StateKey;
+import io.github.term4.polyp.api.event.explosion.ExplosionEvent;
+import io.github.term4.polyp.mechanics.projectile.entities.FireballEntity;
 import io.github.term4.polyp.api.event.consume.ConsumeEvent;
 import io.github.term4.polyp.api.event.projectile.ProjectileLaunchEvent;
 import net.minestom.server.codec.Codec;
+import net.minestom.server.entity.ItemEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -26,7 +30,7 @@ import java.util.function.Function;
  * A season's item rules: each item's {@link Unlock} as the rule {@code items.<id>}. A locked item can be bought and
  * held but not used. A drink or a meal is judged as it finishes, so one started before the unlock and finished after
  * goes through; a throw as it leaves; a placement (blocks, TNT, buckets) by {@code Building} as it lands. A disabled
- * item is not sold at all.
+ * item is not sold at all. {@code drops.fireball-proof} names the dropped items a fireball blast leaves whole.
  */
 public final class ItemGates implements GameModule {
 
@@ -40,6 +44,9 @@ public final class ItemGates implements GameModule {
     private static final long QUIET_TICKS = 4;
 
     private static final Codec<Unlock> CODEC = Codec.STRING.transform(Unlock::parse, Unlock::toString);
+
+    public static final StateKey<FireballProof> FIREBALL_PROOF = StateKey.of("drops.fireball-proof",
+            Codec.STRING.transform(FireballProof::parse, FireballProof::toString), FireballProof.NONE);
 
     private final Map<String, StateKey<Unlock>> keys = new LinkedHashMap<>();
     private final Function<ItemStack, @Nullable String> idOf;
@@ -66,7 +73,9 @@ public final class ItemGates implements GameModule {
 
     @Override
     public @NotNull Set<StateKey<?>> rules() {
-        return Set.copyOf(keys.values());
+        Set<StateKey<?>> rules = new java.util.LinkedHashSet<>(keys.values());
+        rules.add(FIREBALL_PROOF);
+        return rules;
     }
 
     @Override
@@ -80,6 +89,18 @@ public final class ItemGates implements GameModule {
         game.on(ProjectileLaunchEvent.class, ProjectileLaunchEvent::shooter, e -> {
             ItemStack item = e.snapshot().item();
             if (e.shooter() instanceof Player thrower && item != null && refuse(thrower, item)) e.setCancelled(true);
+        });
+        game.onWorld(ExplosionEvent.class, ExplosionEvent::world, e -> {
+            if (!(e.source() instanceof FireballEntity fireball)) return;
+            FireballProof proof = game.rules().resolve(Scope.GAME, FIREBALL_PROOF);
+            if (proof.materials().isEmpty()) return;
+            Player thrower = fireball.getShooter() instanceof Player p ? p : null;
+            for (Unlock.Condition end : proof.until()) if (met(thrower, end)) return;
+            for (ExplosionEvent.Target target : e.targets()) {
+                if (target.entity() instanceof ItemEntity drop && proof.materials().contains(drop.getItemStack().material())) {
+                    target.setDamage(0f);
+                }
+            }
         });
     }
 
@@ -127,12 +148,12 @@ public final class ItemGates implements GameModule {
         return false;
     }
 
-    private boolean met(Player player, Unlock.Condition condition) {
+    private boolean met(@Nullable Player player, Unlock.Condition condition) {
         return switch (condition) {
             case Unlock.Condition.Beds beds -> beds.count() == Unlock.Condition.Beds.ALL ? Beds.standing(game).isEmpty()
                     : broken >= beds.count();
             case Unlock.Condition.OwnBed ignored -> {
-                String team = Match.teamOf(game, player);
+                String team = player != null ? Match.teamOf(game, player) : null;
                 yield team != null && !Beds.stands(game, team);
             }
             case Unlock.Condition.Event event -> {
